@@ -1,5 +1,9 @@
 knayi
 =====
+
+support email:  support@kanyi.com
+		beginofalove@hotmail.com
+
 **Knayi** is Standalone Myanmar Languages JavaScript Library, which can use for building Myanmar **Unicode** standard web in user friendly.
 Script include Font Detector, Font Converter, Syllable Break Points, Keyboards.
 
