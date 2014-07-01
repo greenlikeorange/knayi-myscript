@@ -98,8 +98,6 @@ var core_version = "1.1.0",
 		convert: {
 			unicode5: {
 				zawgyi: {
-					// SingleReplace can loop reversely
-					reversed: false,
 					singleReplace: [
 
 						[/([က-အ](္[က-အ]|[ျြွ]+)[ိီေဲံ့ှ]*)ု/g, "$1ဳ"],
@@ -173,7 +171,6 @@ var core_version = "1.1.0",
 			},
 			zawgyi: {
 				unicode5: {
-					reversed: false,
 					singleReplace: [
 						[/ွ/g, 'ှ'],
 						[/ြ/g, 'ွ'],
@@ -233,7 +230,7 @@ var core_version = "1.1.0",
 						[/([ျြွ])(င်္)/g, '$2$1'],
 						[/ေ(င်္)/g, '$1ေ'],
 						[/([က-အ])(င်္)/g, '$2$1'],
-						[/\x20(္[က-အ])/g, '$1']
+						[/\u0020(္[က-အ])/g, '$1']
 					],
 					whileReplace: [
 						[/([ါာိီေုူဲံ့း])([ျြွှ])/g, "$2$1"],
@@ -946,7 +943,7 @@ var util = {
 
 			case 'unicode5':
 
-				var dbreg = "ါ ာ ိ ီ ု ူ ေ ဲ ံ ့ း ် ျ ြ ွ ှ ္ ္[က-အ]".split(" ");
+				var dbreg = "ါ ာ ိ ီ ု ူ ေ ဲ ံ ့ း ် ျ ြ ွ ှ ္".split(" ");
 
 				for (; i < dbreg.length; i++) {
 
@@ -991,28 +988,20 @@ var util = {
 	fontConvert: function( $text, lib, to ){
 
 		var sourceLib = lib[to],
-			copy,
-			match;
+			i = 0, j = 0,
+			copy;
 			
 		// Replace Single loop RegExp
-		if( lib[to].reversed ){
-			for (var i = sourceLib.singleReplace.length - 1; i >= 0; i--) {
-
-				$text = $text.replace( sourceLib.singleReplace[i][0], sourceLib.singleReplace[i][1] );
-			}
-		} else {
-			for (var i = 0; i < sourceLib.singleReplace.length; i++ ) {
-				$text = $text.replace( sourceLib.singleReplace[i][0], sourceLib.singleReplace[i][1] );
-			}
+		for (; i < sourceLib.singleReplace.length; i++ ) {
+			$text = $text.replace( sourceLib.singleReplace[i][0], sourceLib.singleReplace[i][1] );
 		}
 		
-		// Spelling check prevent endless l
+		// Spelling check prevent endless loop!
 		$text = util.spellChecker( $text, to ).text;
 
-		for (var j = 0; j < sourceLib.whileReplace.length; j++) {
+		for (; j < sourceLib.whileReplace.length; j++) {
 			copy = sourceLib.whileReplace[j];
-
-			while( (match = copy[0].exec($text)) ) {
+			while( $text.match(copy[0]) ) {
 				$text = $text.replace( copy[0], copy[1] );
 			}
 
