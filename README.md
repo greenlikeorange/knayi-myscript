@@ -8,7 +8,9 @@ support email: beginofalove@hotmail.com
 Nodejs
 ======
 
-``` npm install knayi-myscript ```
+```
+npm install knayi-myscript
+```
 
 ### Font Convert
 
