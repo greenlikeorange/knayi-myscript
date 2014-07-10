@@ -1,10 +1,54 @@
-knayi
-=====
+knayi-myscript
+==============
+**Knayi** is Standalone Myanmar Languages JavaScript Library, which can use for building Myanmar **Unicode** standard web in user friendly.
+Script include Font Detector, Font Converter, Syllable Break Points, Keyboards.
 
 support email: beginofalove@hotmail.com
 
-**Knayi** is Standalone Myanmar Languages JavaScript Library, which can use for building Myanmar **Unicode** standard web in user friendly.
-Script include Font Detector, Font Converter, Syllable Break Points, Keyboards.
+Nodejs
+======
+
+``` npm install knayi-myscript ```
+
+### Font Convert
+
+
+aSync version
+```
+var knayi = require("knayi-myscript");
+//@param {fontname-to-convert} default: "unicode5";
+
+knayi([String]).fontConvert([to], function(edited_content, old_content){
+	console.log(edited_content);
+	
+	// this.syllbreak can use for add break point to edited content
+	var edited = this.syllbreak();
+	console.log(edited);
+});
+
+```
+
+Sync version
+```
+var knayi = require("knayi-myscript");
+var edited = knayi([String]).fonConvertSync([to]);
+```
+
+FontType
+```
+knayi([String]).getFontType();
+
+```
+
+Syllbreak
+```
+// Direct syllbrak
+knayi([String]).syllbreak([language]);
+```
+
+
+Client
+======
 
 To Create knayi object, knayi accpet jQuery object, HTMLCollections or single html tag.
 
