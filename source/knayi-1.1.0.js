@@ -1,55 +1,15 @@
-/* Knayi Myanmar JavaScript Library
+/**
+ * Knayi-myscript Client-side script
  *
- * version:  1.1.0
- * date: 	 29 June, 2014
+ * version: 1.1.2
+ * date: 9 July, 2014
  * Licensed: MIT
- * Copyright (C) 2014 kanyi.org
+ * http://opensource.knayi.com/knayi-myscript
  * 
- * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
- * associated documentation files (the "Software"), to deal in the Software without restriction, 
- * including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
- * subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all copies or substantial
- * portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
- * NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- * Contribute:
- * 		greenlikeorange <beginofalove@hotmail.com>
- *
- * Syllable Break Points
- *   - Burmese (my)
- *   - Rakhine (rki)
- *   - Tavoyan (tvn)
- *   - Intha (int)
- *   - Mon (mnw)
- *   - Sgaw Karen (ksw)
- *   - Shan (shn)
- *   - Khamti Shan  (kht)
- * 
- * Font Convert
- *	 - Unicode5.2 => Zawgyi
- *	 - Zawgyi => Unicode5.2
- *
- * Font Detection
- *	 - Unicode5.2 'burmese'
- *	 - Zawgyi 'burmese'
- *
- * Keyboards
- *	 - KeyCode base Unicode5.2 keyboard 'my' ( ေ first keyboard )
- *	 - Zawgyi like Unicode5.2 keyboard 'my' ( ေ first keyboard )
- *
  */
 
 (function(global){
 
-	// knayi version
 var core_version = "1.1.0",
 	core_obj = {},
 	whitespace = "[\\x20\\t\\r\\n\\f]",
@@ -57,7 +17,7 @@ var core_version = "1.1.0",
 	rZawgyi = /[\u1000-\u1097\u1e29]/,
 	rInputs = /^INPUT|TEXTAREA|SELECT$/,
 
-	// usable Font-types use in "data-kny-ft"
+	// Usable font-type shortcut
 	fontTypes = {
 		unicode5: "unicode5",
 		unicode: "unicode5",
@@ -73,7 +33,9 @@ var core_version = "1.1.0",
 		zawgyi: 'zawgyi'
 	},
 
-	// Main Library about everything
+	/** 
+	 * Main Library;
+	 */
 	library = {
 
 		// Font Detecting Library
@@ -89,14 +51,24 @@ var core_version = "1.1.0",
 				,'[က-အ]္ေ' , 'ၤ','္'+whitespace, 'ာေ'
 				,'[ါ-ူ်း]ေ[က-အ]', 'ေေ', 'ုိ', '္$'
 			]
+
 		},
 
-		/* Font Converting Library
-		 * unicode5 is base font
-		 * when direct converter unavailable Any available can be use to extended
+		/**
+		 * Font Converting Library
+		 * library can use exchange method, when direct library don't support
+		 *
+		 * "[Base Font]": {
+		 *     "[Coverable Font]": {
+		 * 			singleReplace: [One Time replace],
+		 *			whileReplace: [While Match replace]
+		 * 		}
+		 * }
 		 */
 		convert: {
+
 			unicode5: {
+
 				zawgyi: {
 					singleReplace: [
 
@@ -111,6 +83,7 @@ var core_version = "1.1.0",
 						[/([က-အ])ြ/g, "ြ$1"],
 						[/([က-အ][^က-အ]*)ေ/g, "ေ$1"],
 						[/ြေ/g, "ေြ"],
+						[/နွ/g, "ႏွ"],
 
 						[/၎င်း/g, "၎"],
 						[/ါ်/g, "ၚ"],
@@ -155,6 +128,9 @@ var core_version = "1.1.0",
 						[/ွ/g, "ြ"],
 						[/ှ/g, "ွ"]
 
+						//ဆွေးနွေးပွဲဆိုင်ရာ 
+						//ေဆြးေနြးပြဲဆိုင္ရာ
+
 					],
 					whileReplace: [
 						[/([ျြွှ])ေ/g, "ေ$1"],
@@ -170,6 +146,7 @@ var core_version = "1.1.0",
 				}
 			},
 			zawgyi: {
+
 				unicode5: {
 					singleReplace: [
 						[/ွ/g, 'ှ'],
@@ -244,9 +221,11 @@ var core_version = "1.1.0",
 					]	
 				}
 			}
+
 		},
 	 
-		/* Syllable Character Breaking ( from jquery.mymr.js )
+		/**
+		 * Syllable Character Breaking
 		 * https://github.com/andjc/jquery.mymr
 		 *
 		 * License: GPL 3.0
@@ -273,7 +252,7 @@ var core_version = "1.1.0",
 				[/([က-အဣ-ဧဩဪဿ၌-၏])/g, "\u200B$1"],
 				[/([\u0009-\u000d\u0020\u00a0\u2000-\u200a\u2028\u2029\u202f]|>|\u201C|\u2018|\-|\(|\[|{|[\u2012-\u2014]|\u1039)\u200B([\u1000-\u1021])/g, "$1$2"],
 				[/\u200B(\u1004\u103A\u1039)/g, "$1"],
-				[/\u200B([\u1000-\u1021][\u103A\u1037])/g, "$1"],
+				[/\u200B([\u1000-\u1021]\u103A)/g, "$1"],
 				[/(\s|\n)\u200B([က-အဣ-ဧဩဪဿ၌-၏])/g, "$1$2"],
 				[/([က-အ])\u200B([က-အ])/g, "$1$2"]
 			],
@@ -282,7 +261,7 @@ var core_version = "1.1.0",
 				[/([က-အဣ-ဧဩဪဿ၌-၏])/g, "\u200B$1"],
 				[/([\u0009-\u000d\u0020\u00a0\u2000-\u200a\u2028\u2029\u202f]|>|\u201C|\u2018|\-|\(|\[|{|[\u2012-\u2014]|\u1039)\u200B([\u1000-\u1021])/g, "$1$2"],
 				[/\u200B(\u1004\u103A\u1039)/g, "$1"],
-				[/\u200B([\u1000-\u1021][\u103A\u1037])/g, "$1"],
+				[/\u200B([\u1000-\u1021]\u103A)/g, "$1"],
 				[/(\s|\n)\u200B([က-အဣ-ဧဩဪဿ၌-၏])/g, "$1$2"],
 				[/([က-အ])\u200B([က-အ])/g, "$1$2"]
 			],
@@ -291,7 +270,7 @@ var core_version = "1.1.0",
 				[/([က-အဣ-ဧဩဪဿ၌-၏])/g, "\u200B$1"],
 				[/([\u0009-\u000d\u0020\u00a0\u2000-\u200a\u2028\u2029\u202f]|>|\u201C|\u2018|\-|\(|\[|{|[\u2012-\u2014]|\u1039)\u200B([\u1000-\u1021])/g, "$1$2"],
 				[/\u200B(\u1004\u103A\u1039)/g, "$1"],
-				[/\u200B([\u1000-\u1021][\u103A\u1037])/g, "$1"],
+				[/\u200B([\u1000-\u1021]\u103A)/g, "$1"],
 				[/(\s|\n)\u200B([က-အဣ-ဧဩဪဿ၌-၏])/g, "$1$2"],
 				[/([က-အ])\u200B([က-အ])/g, "$1$2"]
 			],
@@ -300,7 +279,7 @@ var core_version = "1.1.0",
 				[/([က-အဣ-ဧဩဪဿ၌-၏])/g, "\u200B$1"],
 				[/([\u0009-\u000d\u0020\u00a0\u2000-\u200a\u2028\u2029\u202f]|>|\u201C|\u2018|\-|\(|\[|{|[\u2012-\u2014]|\u1039)\u200B([\u1000-\u1021])/g, "$1$2"],
 				[/\u200B(\u1004\u103A\u1039)/g, "$1"],
-				[/\u200B([\u1000-\u1021][\u103A\u1037])/g, "$1"],
+				[/\u200B([\u1000-\u1021]\u103A)/g, "$1"],
 				[/(\s|\n)\u200B([က-အဣ-ဧဩဪဿ၌-၏])/g, "$1$2"],
 				[/([က-အ])\u200B([က-အ])/g, "$1$2"]
 			],
@@ -347,8 +326,8 @@ var core_version = "1.1.0",
 
 		},
 
-		/* Knayi Keyboards
-		 *
+		/**
+		 * Knayi Keyboards
 		 */
 		keyboards: {
 
@@ -388,19 +367,15 @@ var core_version = "1.1.0",
 		}
 	},
 
-	// collection[1].value.match(/(ေ)(\u200B[က-အ]ြ)$/);
-
-	/** knayi is build like jquery, but knayi will note use CSS selector.
-	 * single element,
-	 * array [element, element2], 
-	 * HTMLCollection or 
-	 * jQuery $(element) can work on knayi
-	 *
-	 * Type of font will use, can show in 'ft'
-	 * By Adding 'downToTextNode = true', provide fontDetecting on each single #text Nodes
+	/**
+	 * Knayi build likely jQuery, but Knayi will not use CSS selector.
+	 * 
+	 * @param {Element|HTMLCollection|jQuery Object} elem
+	 * @param {object} options
+	 * @return {kanyi object}
 	 */
-	knayi = function( elem, ft, downToTextNode ) {
-		return new knayi.fn.init( elem, ft, downToTextNode );
+	knayi = function( elem, options ) {
+		return new knayi.fn.init( elem, options );
 	};
 
 knayi.fn = knayi.prototype = {
@@ -408,39 +383,36 @@ knayi.fn = knayi.prototype = {
 	knayi: core_version,
 
 	constructor: knayi,
+
 	// Initialize and return jQuery like object
-	init: function( elem, ft, downToTextNode ) {
+	init: function( elem, opts ) {
+
 		var i = 0;
-
-		this.downToTextNode = downToTextNode || false;
-
+		opts = opts || {};
+		this.downToTextNode = opts.downToTextNode || false;
+		
 		if ( !elem ) return this;
-
-		// knyData will add to future reference
-		if ( typeof elem == "string" ) {
-
-			this.context = knayi.trim(elem);
-			this.knyData = { fontType: ft || knayi.fontDetect( elem ) };
-			this.length = 0;
-
-		} else if ( elem.nodeType ) {
+		
+		// Mapping Element Node
+		if ( elem.nodeType ) {
 
 			this[0] = elem;
-			this[0].knyData = this[0].knyData ||
-			{
-				// Define User-set font-type
-				fontType: ft || fontTypes[this[0].getAttribute('data-kny-ft')]
-			};
+			// Crate knyData for Reference
+			if( !this[0].knyData ) this[0].knyData = {};
+			this[0].knyData.fontType = opts.fontType ||
+									this[0].knyData.fontType ||
+									fontTypes[this[0].getAttribute('data-kny-fontType')] || undefined;
 			this.length = 1;
 
 		} else if ( knayi.isCollection(elem) ) {
 
 			for (; i < elem.length; i++) {
 				this[i] = elem[i];
-				this[i].knyData = this[0].knyData ||
-				{
-					fontType: ft || fontTypes[this[i].getAttribute('data-kny-ft')]
-				};
+				// Crate knyData for Reference
+				if( !this[0].knyData ) this[0].knyData = {};
+				this[i].knyData.fontType = opts.fontType ||
+										this[i].knyData.fontType ||
+										fontTypes[this[i].getAttribute('data-kny-fontType')] || undefined;
 			};
 			this.length = i;
 
@@ -450,13 +422,15 @@ knayi.fn = knayi.prototype = {
 	},
 
 	each: function( callback, args ) {
-		return knayi.each(this, callback, args);
+		return knayi.each( this, callback, args );
 	}
 };
 
 knayi.fn.init.prototype = knayi.fn;
 
-// Create Extensible knayi
+/**
+ * Define Knayi as a extensible object
+ */
 knayi.extend = knayi.fn.extend = function() {
 
 	var target = arguments[0] || {},
@@ -479,7 +453,9 @@ knayi.extend = knayi.fn.extend = function() {
 	return target;
 };
 
-// Extend Utility functions
+/**
+ * Extending Utility
+ */
 knayi.extend({
 
 	// String trim
@@ -534,8 +510,13 @@ knayi.extend({
 
 	},
 
-	// Return Text from direct-child #text of an element
-	// Break point "*$" will be add between each #text within element
+	/**
+	 * Getting text of direct child of #text nodes
+	 * "*$" will add between each node
+	 *
+	 * @param {Element} elem
+	 * @return {String}
+	 */
 	justText: function( elem ) {
 
 		if ( elem == null || !elem.nodeType ) return false;
@@ -555,8 +536,14 @@ knayi.extend({
 
 	},
 
-	// Replace text to relative #text node of an element
-	// Break Point "*$" can added between #text node
+	/**
+	 * Just text replacer 
+	 * "*$" break point can use to Separate #text nodes
+	 *
+	 * @param {Element} elem
+	 * @param {String} text
+	 * @return {Element} Changed element
+	 */
 	textReplace: function( elem, text ){
 
 		if ( elem == null || !elem.nodeType ) return false;
@@ -599,7 +586,12 @@ knayi.extend({
 
 	},
 
-	// Find cursor location index on selected element
+	/**
+	 * Cursor Index Finder
+	 *
+	 * @param {Input|Textarea|contenteditable} elem
+	 * @return index of position of cursor
+	 */
 	cursor: function ( elem ) {
 
         var cursor = 0, os;
@@ -621,7 +613,14 @@ knayi.extend({
 
     },
 
-    // Move cursor location on target element
+    /**
+     * Set Cursor to Specific Index
+     *
+     * @param {Input|Textarea|contenteditable} elem
+     * @param {Number} _start start index
+     * @param {Number} _end end index
+	 * @return {Element} Changed element
+     */
     setCursor: function ( elem, _start, _end ) {
 
         if ( elem.setSelectionRange ) {
@@ -641,22 +640,27 @@ knayi.extend({
 
 });
 
-// Extend Self-stand Language Utility Functions
+/**
+ * Extend Stand-alone Language Utility Functions
+ * All stand-alone functions can use like
+ * knayi[Function Name]
+ */
 knayi.extend({
 
-	/* Detecting Font agent
-	 * return array with possible font-type first
+	/**
+	 * Font Detector agent
+	 * @param {String} content
+	 * @return {Array} result will include detected data
 	 */
-	fontDetect: function( text ) {
+	fontDetect: function( content ) {
 
 		var result = [],
+			// Trim and Remove break points "\u200B"
+			text = knayi.trim(content).replace(/\u200B/g, ''),
 			lib = library.detect,
-
-			// Trim and Remove syllable character-break hack \u200B
-			text = knayi.trim(text).replace(/\u200B/g, ''),
 			copy, font, match;
 
-		// Loop detecting every font-type in "detect library"
+		// Loop and Search Match on Library
 		for ( font in lib ) {
 
 			var t = 0, j = 0;
@@ -670,7 +674,7 @@ knayi.extend({
 
 		}
 
-		// Sort more possible first
+		// Sort most possible first
 		result.sort(function(a,b){
 			if(a.matchTime < b.matchTime)
 				return 1;
@@ -683,33 +687,44 @@ knayi.extend({
 
 	},
 
-	/* Font Converter agent
+	/**
+	 * Font Converter agent
+	 *
+	 * @param {String} text content
+	 * @param {String} which font to convert. Default: "unicode5";
+	 * @param {String}[Option] give current font type
+	 * 		without "form" knayi will first detect what font it's!
+	 * @return {String} converted text
 	 */
-	fontConvert: function( text, to, from ) {
+	fontConvert: function( content, to, from ) {
 
-		// Trim and Remove syllable character-break hack \u200B
-		var $text = knayi.trim(text).replace(/\u200B/, ''),
+		// Trim and Remove break points "\u200B"
+		var text = knayi.trim(content).replace(/\u200B/, ''),
 			detect, dlib, sourceLib;
 
-		// redefined FontTypes
+		// Redefining Font Types
 		to = fontTypes[ to || 'unicode5' ];
-		from = fontTypes[ from || ( detect = this.fontDetect( $text )[0] ).type ];
+		from = fontTypes[ from || ( detect = this.fontDetect( text )[0] ).type ];
 
-		// Not Match with Any fonts
+		// Return when font detected fail
 		if ( !from && detect && detect.matchTime < 1 ){
 			console.error("Not match with any fonts");
-			return text;
+			return content;
 		}
-		// When no need to convert
+		// Return when Target font and Current font are same type
 		if ( from == to ){
 			console.error("Convert target font and current font are same");
-			return text;
+			return content;
 		}
 
+		/* Library Searching
+		 * If direct library not found, Knayi will find 2 level library
+		 */
 		if ( ( dlib = library.convert[from] ) ){
 
-			// Search extendibles library when direct converter library not found
+			// Searching extensible library!
 			if ( !dlib[to] ){
+
 				var rlib;
 				var font;
 
@@ -717,39 +732,41 @@ knayi.extend({
 					if( library.convert[font] && library.convert[font][to] ) rlib = font;
 				}
 				
-				// No convertible of extend library found
+				// Return when no more convertible library found
 				if( !rlib ) {
 					console.error('Non convertible library found');
-					return text;
+					return content;
 				}
 
-				$text = knayi.fontConvert( $text, font, from );
+				text = knayi.fontConvert( text, font, from );
 				dlib = library.convert[font];
 
 			}
 
-			// After Everything PASS
-			// Return converted text string
-			return util.fontConvert( $text, dlib, to );
+			// Return converted text content
+			return util.convert( text, dlib, to );
 
 		} else {
-			// No convertible library found
+			// Return library not found!
 			console.error('Non convertible library found');
-			return text;
+			return content;
 		}
 		
 	},
 
-	/* Syllable break agent
+	/**
+	 * Syllable-Break agent
+	 *
+	 * @param {String} text content
+	 * @param {String} language of content
+	 * @return {String} edited text content
 	 */
 	syllbreak: function( text, language ){
 
 		// Detect font when language is not given
 		var lang = language || knayi.fontDetect( text );
 
-		console.log(lang);
-
-		// Return without matching any language
+		// Return when not match with any language
 		if( !language && lang[0].matchTime < 1 ) return text;
 		else if ( !language ) lang = lang[0].type;
 		
@@ -757,38 +774,33 @@ knayi.extend({
 
 		var lib = library.syllable[lang];
 
-		// No Library Error
-		if ( !lib ) throw new Error( "No Syllable Library found" );
-
-		for (var i = 0; i < lib.length; i++) {
-			text = text.replace(lib[i][0], lib[i][1]);
+		if ( lib ) {
+			for (var i = 0; i < lib.length; i++) {
+				text = text.replace(lib[i][0], lib[i][1]);
+			};
 		};
 
 		return text;
 
 	},
 
-	/* Dom watcher for watch #text Nodes changes
-	 */
-	domwatch: function( event ) {
-		var tag = event.target.nodeType == 3 ? event.target.parentNode : false;
-
-		if( tag && tag.knayiData && tag.knayiData.unstable ) {
-			var text = kanyi.justText( tag );
-			var detect = kanyi.fontDetect( text );
-
-			tag.knyData.fontType = detect[0].matchTime > 0 ? detect[0].type : undefined;
-		}
-
-	},
-
-	/* Knayi Keyboard
+	/**
+	 * Knayi Keyboard Event
+	 * 
+	 * @param {Element} elem
+	 * @param {ON|OFF} keyboard switch
+	 * @param {String} name of keyboard
 	 */
 	keyboard: function( elem, on, type ) {
 
-		if ( !elem.knyData ) elem.knyData = {};
+		console.log(elem)
 
-		elem.knyData.keyboard = type;
+		if ( !elem.knyData ) elem.knyData = {};
+		if ( type ){
+			if ( typeof library.keyboards[type] !== "undefined" ){
+				elem.knyData.keyboard = { type: type, status: (on || false) };
+			}
+		}
 
 		if( on ){
 			if (typeof elem.addEventListener !== 'undefined' ) elem.addEventListener('keypress', util.keyBoard, false );
@@ -806,8 +818,10 @@ knayi.extend({
 knayi.fn.extend({
 
 	// Add 'unstable = true' for watch changes of that nodes
-	fontDetect: function( unstable ){
-		var i = 0;
+	// callback( [ { fontType: [element, element2]} ] );
+	fontDetect: function( unstable, callback ){
+		var i = 0,
+			result = {};
 
 		for (; i < this.length; i++) {
 
@@ -816,18 +830,19 @@ knayi.fn.extend({
 			else this[i].knyData.unstable = false;
 
 			// Reduce work for fontType set elements
-			if ( this[i].knyData && this[i].knyData.fontType && !this[i].knayiData.unstable ) continue;
+			if ( !this[i].knyData.unstable && this[i].knyData && this[i].knyData.fontType ) continue;
 
 			var detect = knayi.fontDetect( this[i].nodeName.match(rInputs) ? this[i].value :
 							knayi.justText( this[i] ) );
 
 			var type = this[i].knyData.fontType = detect[0].matchTime > 0 ? detect[0].type : undefined;
 
-			// add to "data-kny-ft" data attribute
-			this[i].setAttribute( 'data-kny-ft', type );
+			// add to "data-kny-fontType" data attribute
+			this[i].setAttribute( 'data-kny-fontType', type );
 
 		}
-
+		// Return result of element arrays
+		if( callback ) callback( detect );
 		return this;
 
 	},
@@ -901,17 +916,13 @@ knayi.fn.extend({
 
 global.knayi = global.kny = knayi;
 
-/* Adding Dom watcher event
- */
-if (typeof document.addEventListener !== 'undefined' ) document.addEventListener("DOMNodeInserted", knayi.domwatch, false);
-else if (typeof document.attachEventListener !== 'undefined' ) document.addEventListener("onDOMNodeInserted", knayi.domwatch, false );
 
-
-/* Utility
+/**
+ * Internal Utility Functions
  */
 var util = {
 
-	// Find line with RegExp, Use for error finder
+	// Find line with RegExp, Use in finding error
 	lineFinder: function( text, rex ) {
 		var lines = text.split('\n'),
 			exc,
@@ -929,10 +940,12 @@ var util = {
 			}
 		};
 
+		return false;
+
 	},
 
 	// Check and replace unwanted spelling error on converting font
-	// Supported font-types: unicode5
+	// Supported font-types: unicode5, zawgyi
 	spellChecker: function( text, fontType ){
 
 		var $text = text, i = 0,
@@ -981,11 +994,13 @@ var util = {
 				return {result: [], text: $text};
 				break;
 		}
+
+		return false;
 		
 	},
 
-	// Font Converter
-	fontConvert: function( $text, lib, to ){
+	// Converter with specific
+	convert: function( $text, lib, to ){
 
 		var sourceLib = lib[to],
 			i = 0, j = 0,
@@ -1012,12 +1027,11 @@ var util = {
 	},
 
 	// Knayi Keyboard is a keypress event function
-	// ce mean this element is contenteditable element
 	// Use Internal only
 	keyBoard: function( event ) {
 		
 		var typed = String.fromCharCode( event.charCode ),
-			lib = library.keyboards[this.knyData.keyboard],
+			lib = library.keyboards[this.knyData.keyboard.type],
 			ce = false,
 			fixed = false,
 			target;
