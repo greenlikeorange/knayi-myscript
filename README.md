@@ -8,7 +8,7 @@ support email: beginofalove@hotmail.com
 Nodejs
 ======
 
-```
+```bash
 npm install knayi-myscript
 ```
 
@@ -16,7 +16,7 @@ npm install knayi-myscript
 
 
 aSync version
-```
+```js
 var knayi = require("knayi-myscript");
 //@param {fontname-to-convert} default: "unicode5";
 
@@ -31,19 +31,19 @@ knayi([String]).fontConvert([to], function(edited_content, old_content){
 ```
 
 Sync version
-```
+```js
 var knayi = require("knayi-myscript");
 var edited = knayi([String]).fonConvertSync([to]);
 ```
 
 FontType
-```
+```js
 knayi([String]).getFontType();
 
 ```
 
 Syllbreak
-```
+```js
 // Direct syllbrak
 knayi([String]).syllbreak([language]);
 ```
@@ -66,7 +66,7 @@ Example Selecting: ```var object = knayi( document.querySelectorAll("p.textConte
 
 Detect Zawgyi and Unicode 5 fonts in Burmese ('my') language. You can directly detect a string or you can also detect a html tag.
 Just simply use ```knayi.fontDetect()```
-```
+```js
 // String can direct use to detect their font-type
 var str = "{myanmar words}"
 var result = kanyi.fontDetect( str );
@@ -84,7 +84,7 @@ var result = kanyi.fontDetect( str );
  ```knayi( $("nav[role='navbar']") ).fontDetect( [unstable{ture/false}] );```
  * {unstable} mean these element can be change font-type.By defining {unstable} = true, knayi will watch there elements changes and when they change they will automatically update their right font-type
 
-```
+```js
 // Select elements
 var collection = document.querySelectorAll("p.myanmar");
 var kny = knayi( collection ).fontDetect();
