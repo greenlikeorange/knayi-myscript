@@ -1,5 +1,7 @@
 knayi-myscript
 ==============
+
+[![Join the chat at https://gitter.im/greenlikeorange/knayi-myscript](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/greenlikeorange/knayi-myscript?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 **Knayi** is Standalone Myanmar Languages JavaScript Library, which can use for building Myanmar **Unicode** standard web in user friendly.
 Script include Font Detector, Font Converter, Syllable Break Points, Keyboards.
 
