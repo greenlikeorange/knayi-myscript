@@ -362,7 +362,7 @@ knayi.fn = knayi.prototype = {
 	 */
 	fontConvertSync: function(to){
 		var to = to || "unicode5";
-		return ( this.edited = fontConvert(this.content, to) );
+		return ( this.edited = fontConvert(this.content, to, this.knyData.fontType) );
 	},
 
 	syllableSync: function(lang){
