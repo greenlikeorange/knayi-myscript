@@ -33,7 +33,7 @@ knayi([String]).fontConvert([to], function(edited_content, old_content){
 Sync version
 ```js
 var knayi = require("knayi-myscript");
-var edited = knayi([String]).fonConvertSync([to]);
+var edited = knayi([String]).fontConvertSync([to]);
 ```
 
 FontType
