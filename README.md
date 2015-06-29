@@ -1,7 +1,9 @@
 knayi-myscript
 ==============
 
-[![Join the chat at https://gitter.im/greenlikeorange/knayi-myscript](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/greenlikeorange/knayi-myscript?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)  
+[![NPM Version][npm-image]][npm-url] 
+[![Join the chat at https://gitter.im/greenlikeorange/knayi-myscript](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/greenlikeorange/knayi-myscript?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 **Knayi** is Standalone Myanmar Languages JavaScript Library, which can use for building Myanmar **Unicode** standard web in user friendly.
 Script include Font Detector, Font Converter, Syllable Break Points, Keyboards.
 
@@ -140,3 +142,6 @@ Knayi Keyboard can work on input element or contenteditable element.
 ``` knayi.keyboard( [element{single element}, 'zawUnicode5'] ); ```
 
 zawUnicode5 Keyboard is ```ေ``` first keyboard with same layout with **AphpaZawgyiUnicodeL** keyboard
+
+[npm-image]: https://img.shields.io/npm/v/knayi-myscript.svg
+[npm-url]: https://npmjs.org/package/knayi-myscript
