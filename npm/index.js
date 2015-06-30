@@ -143,7 +143,7 @@ var core_version = "1.1.0",
 					singleReplace: [
 						[/၀[^၀-၉\+\-\*\/]/g, '၀'],
 						[/[^၀-၉\+\-\*\/]၀/g, '၀'],
-						
+
 						[/ွ/g, 'ှ'],
 						[/ြ/g, 'ွ'],
 						[/[ျၾ-ႄ]/g, 'ြ'],
@@ -599,4 +599,4 @@ var util = {
 	}
 };
 
-module.export = knayi;
+module.exports = knayi;
