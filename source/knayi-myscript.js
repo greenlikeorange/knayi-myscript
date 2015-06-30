@@ -5,7 +5,7 @@
  * date: 9 July, 2014
  * Licensed: MIT
  * http://opensource.knayi.com/knayi-myscript
- * 
+ *
  */
 
 (function(global){
@@ -33,7 +33,7 @@ var core_version = "1.1.0",
 		zawgyi: 'zawgyi'
 	},
 
-	/** 
+	/**
 	 * Main Library;
 	 */
 	library = {
@@ -77,7 +77,7 @@ var core_version = "1.1.0",
 
 						[/([က-အ](္[က-အ]|[ျြွ]+)[ိီေဲံ့ှ]*)့/g, "$1႔"],
 						[/([က-အ])ျ([ွ][ှ]*)/g, "$1ၽ$2"],
-						
+
 						[/([ုူ])[့႔]/g, "$1႕"],
 
 						[/([က-အ])ြ/g, "ြ$1"],
@@ -122,14 +122,11 @@ var core_version = "1.1.0",
 						[/င်္/g, "ၤ"],
 						[/ှု/g, "ႈ"],
 						[/့/g, "့"],
-						[/်/g, "္"], 
+						[/်/g, "္"],
 						[/ျ/g, "်"],
 						[/ြ/g, "ျ"],
 						[/ွ/g, "ြ"],
 						[/ှ/g, "ွ"]
-
-						//ဆွေးနွေးပွဲဆိုင်ရာ 
-						//ေဆြးေနြးပြဲဆိုင္ရာ
 
 					],
 					whileReplace: [
@@ -149,6 +146,9 @@ var core_version = "1.1.0",
 
 				unicode5: {
 					singleReplace: [
+						[/၀[^၀-၉\+\-\*\/]/g, '၀'],
+						[/[^၀-၉\+\-\*\/]၀/g, '၀'],
+
 						[/ွ/g, 'ှ'],
 						[/ြ/g, 'ွ'],
 						[/[ျၾ-ႄ]/g, 'ြ'],
@@ -201,7 +201,7 @@ var core_version = "1.1.0",
 						[/ႌ/g, 'င်္ီ'],
 						[/ႍ/g, 'င်္ံ'],
 						[/ႎ/g, 'ိံ'],
-						
+
 						[/ြ([က-အ])/g, '$1ြ'],
 						[/ေ([က-အ])/g, '$1ေ'],
 						[/([ျြွ])(င်္)/g, '$2$1'],
@@ -218,12 +218,12 @@ var core_version = "1.1.0",
 						[/့([ောါုူဲ])/g, "$1့"],
 						[/([ေါာ])(္[က-အ])/g, "$2$1"],
 						[/([ါာ])(င်္)/g, "$2$1"]
-					]	
+					]
 				}
 			}
 
 		},
-	 
+
 		/**
 		 * Syllable Character Breaking
 		 * https://github.com/andjc/jquery.mymr
@@ -369,7 +369,7 @@ var core_version = "1.1.0",
 
 	/**
 	 * Knayi build likely jQuery, but Knayi will not use CSS selector.
-	 * 
+	 *
 	 * @param {Element|HTMLCollection|jQuery Object} elem
 	 * @param {object} options
 	 * @return {kanyi object}
@@ -390,9 +390,9 @@ knayi.fn = knayi.prototype = {
 		var i = 0;
 		opts = opts || {};
 		this.downToTextNode = opts.downToTextNode || false;
-		
+
 		if ( !elem ) return this;
-		
+
 		// Mapping Element Node
 		if ( elem.nodeType ) {
 
@@ -537,7 +537,7 @@ knayi.extend({
 	},
 
 	/**
-	 * Just text replacer 
+	 * Just text replacer
 	 * "*$" break point can use to Separate #text nodes
 	 *
 	 * @param {Element} elem
@@ -548,10 +548,10 @@ knayi.extend({
 
 		if ( elem == null || !elem.nodeType ) return false;
 		if ( elem.nodeType === 3 ) elem.nodeValue = text;
-		
+
 		var i = 0,
 			textContents = text.split("*$"),
-			childNodes = elem.childNodes;		
+			childNodes = elem.childNodes;
 
 
 		// Replacing each contents to each #text nodes
@@ -665,7 +665,7 @@ knayi.extend({
 
 			var t = 0, j = 0;
 			copy = lib[ font ];
-			
+
 			for (; j < copy.length; j++ ) {
 				if ( ( match = text.match( copy[j] ) ) ) t += match.length || 0;
 			};
@@ -731,7 +731,7 @@ knayi.extend({
 				for( font in dlib ) {
 					if( library.convert[font] && library.convert[font][to] ) rlib = font;
 				}
-				
+
 				// Return when no more convertible library found
 				if( !rlib ) {
 					console.error('Non convertible library found');
@@ -751,7 +751,7 @@ knayi.extend({
 			console.error('Non convertible library found');
 			return content;
 		}
-		
+
 	},
 
 	/**
@@ -769,7 +769,7 @@ knayi.extend({
 		// Return when not match with any language
 		if( !language && lang[0].matchTime < 1 ) return text;
 		else if ( !language ) lang = lang[0].type;
-		
+
 		lang = fontType2Lang[ lang ];
 
 		var lib = library.syllable[lang];
@@ -786,7 +786,7 @@ knayi.extend({
 
 	/**
 	 * Knayi Keyboard Event
-	 * 
+	 *
 	 * @param {Element} elem
 	 * @param {ON|OFF} keyboard switch
 	 * @param {String} name of keyboard
@@ -875,7 +875,7 @@ knayi.fn.extend({
 				$text = converted.join('*$');
 
 			}else {
-				$text = knayi.fontConvert( $text, to , f );	
+				$text = knayi.fontConvert( $text, to , f );
 			}
 
 			if( isInput ) this[i].value = $text;
@@ -927,14 +927,14 @@ var util = {
 		var lines = text.split('\n'),
 			exc,
 			i = 0;
-		
+
 		for (; i < lines.length; i++) {
 			if( ( exc = rex.exec(lines[i]) ) ){
-				return { 
+				return {
 					lineNumber: i + 1,
 					indexOfLine: exc.index,
 					line: lines[i],
-					exc: exc 
+					exc: exc
 				};
 				break;
 			}
@@ -996,7 +996,7 @@ var util = {
 		}
 
 		return false;
-		
+
 	},
 
 	// Converter with specific
@@ -1005,12 +1005,12 @@ var util = {
 		var sourceLib = lib[to],
 			i = 0, j = 0,
 			copy;
-			
+
 		// Replace Single loop RegExp
 		for (; i < sourceLib.singleReplace.length; i++ ) {
 			$text = $text.replace( sourceLib.singleReplace[i][0], sourceLib.singleReplace[i][1] );
 		}
-		
+
 		// Spelling check prevent endless loop!
 		$text = util.spellChecker( $text, to ).text;
 
@@ -1019,17 +1019,15 @@ var util = {
 			while( $text.match(copy[0]) ) {
 				$text = $text.replace( copy[0], copy[1] );
 			}
-
 		}
 
 		return $text;
-
 	},
 
 	// Knayi Keyboard is a keypress event function
 	// Use Internal only
 	keyBoard: function( event ) {
-		
+
 		var typed = String.fromCharCode( event.charCode ),
 			lib = library.keyboards[this.knyData.keyboard.type],
 			ce = false,

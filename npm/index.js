@@ -1,6 +1,6 @@
 /**
  * Kanyi Myanmar script on npm
- * 
+ *
  */
 
 var core_version = "1.1.0",
@@ -25,7 +25,7 @@ var core_version = "1.1.0",
 		zawgyi: 'zawgyi'
 	},
 
-	/** 
+	/**
 	 * Main Library;
 	 */
 	library = {
@@ -69,7 +69,7 @@ var core_version = "1.1.0",
 
 						[/([က-အ](္[က-အ]|[ျြွ]+)[ိီေဲံ့ှ]*)့/g, "$1႔"],
 						[/([က-အ])ျ([ွ][ှ]*)/g, "$1ၽ$2"],
-						
+
 						[/([ုူ])[့႔]/g, "$1႕"],
 
 						[/([က-အ])ြ/g, "ြ$1"],
@@ -114,13 +114,13 @@ var core_version = "1.1.0",
 						[/င်္/g, "ၤ"],
 						[/ှု/g, "ႈ"],
 						[/့/g, "့"],
-						[/်/g, "္"], 
+						[/်/g, "္"],
 						[/ျ/g, "်"],
 						[/ြ/g, "ျ"],
 						[/ွ/g, "ြ"],
 						[/ှ/g, "ွ"]
 
-						//ဆွေးနွေးပွဲဆိုင်ရာ 
+						//ဆွေးနွေးပွဲဆိုင်ရာ
 						//ေဆြးေနြးပြဲဆိုင္ရာ
 
 					],
@@ -141,6 +141,9 @@ var core_version = "1.1.0",
 
 				unicode5: {
 					singleReplace: [
+						[/၀[^၀-၉\+\-\*\/]/g, '၀'],
+						[/[^၀-၉\+\-\*\/]၀/g, '၀'],
+						
 						[/ွ/g, 'ှ'],
 						[/ြ/g, 'ွ'],
 						[/[ျၾ-ႄ]/g, 'ြ'],
@@ -193,7 +196,7 @@ var core_version = "1.1.0",
 						[/ႌ/g, 'င်္ီ'],
 						[/ႍ/g, 'င်္ံ'],
 						[/ႎ/g, 'ိံ'],
-						
+
 						[/ြ([က-အ])/g, '$1ြ'],
 						[/ေ([က-အ])/g, '$1ေ'],
 						[/([ျြွ])(င်္)/g, '$2$1'],
@@ -210,12 +213,12 @@ var core_version = "1.1.0",
 						[/့([ောါုူဲ])/g, "$1့"],
 						[/([ေါာ])(္[က-အ])/g, "$2$1"],
 						[/([ါာ])(င်္)/g, "$2$1"]
-					]	
+					]
 				}
 			}
 
 		},
-	 
+
 		/**
 		 * Syllable Character Breaking
 		 * https://github.com/andjc/jquery.mymr
@@ -389,7 +392,7 @@ knayi.fn.init.prototype = knayi.fn;
  * @return {Array} result will include detected data
  */
 function fontDetect(content){
-	
+
 	var result = [],
 		text = content.trim().replace(/\u200B/g, ''),
 		lib = library.detect,
@@ -400,7 +403,7 @@ function fontDetect(content){
 
 		var t = 0, j = 0;
 		copy = lib[ font ];
-		
+
 		for (; j < copy.length; j++ ) {
 			if ( ( match = text.match( copy[j] ) ) ) t += match.length || 0;
 		};
@@ -456,7 +459,7 @@ function fontConvert( content, to, from ) {
 			for( font in dlib ) {
 				if( library.convert[font] && library.convert[font][to] ) rlib = font;
 			}
-			
+
 			// Return when no more convertible library found
 			if( !rlib ) {
 				return content;
@@ -474,7 +477,7 @@ function fontConvert( content, to, from ) {
 		// Return library not found!
 		return content;
 	}
-	
+
 };
 
 /**
@@ -492,7 +495,7 @@ function syllbreak( text, language ){
 	// Return when not match with any language
 	if( !language && lang[0].matchTime < 1 ) return text;
 	else if ( !language ) lang = lang[0].type;
-	
+
 	lang = fontType2Lang[ lang ];
 
 	var lib = library.syllable[lang];
@@ -565,7 +568,7 @@ var util = {
 		}
 
 		return false;
-		
+
 	},
 
 	// Converter with specific
@@ -574,12 +577,12 @@ var util = {
 		var sourceLib = lib[to],
 			i = 0, j = 0,
 			copy;
-			
+
 		// Replace Single loop RegExp
 		for (; i < sourceLib.singleReplace.length; i++ ) {
 			$text = $text.replace( sourceLib.singleReplace[i][0], sourceLib.singleReplace[i][1] );
 		}
-		
+
 		// Spelling check prevent endless loop!
 		$text = util.spellChecker( $text, to ).text;
 
