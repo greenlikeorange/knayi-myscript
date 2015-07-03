@@ -373,9 +373,12 @@ knayi.fn = knayi.prototype = {
 		return ( this.edited = syllable( this.edited || this.content, lang ) );
 	},
 
-	syllable: function(lang){
+	syllable: function(lang, callback){
 		var lang = this.knyData.fontType == "zawgyi" ? "zawgyi": "my";
-		syllable( this.edited || this.content, lang );;
+		if(callback)
+			return callback(syllable( this.edited || this.content, lang ));
+		else
+		  return syllbrak( this.edited || this.content, lang );
 	},
 
 	getFontType: function(){
