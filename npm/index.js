@@ -370,15 +370,15 @@ knayi.fn = knayi.prototype = {
 
 	syllableSync: function(lang){
 		var lang = this.knyData.fontType == "zawgyi" ? "zawgyi": "my";
-		return ( this.edited = syllable( this.edited || this.content, lang ) );
+		return ( this.edited = syllbreak( this.edited || this.content, lang ) );
 	},
 
 	syllable: function(lang, callback){
 		var lang = this.knyData.fontType == "zawgyi" ? "zawgyi": "my";
 		if(callback)
-			return callback(syllable( this.edited || this.content, lang ));
+			return callback(syllbreak( this.edited || this.content, lang ));
 		else
-		  return syllbrak( this.edited || this.content, lang );
+		  return syllbreak( this.edited || this.content, lang );
 	},
 
 	getFontType: function(){
