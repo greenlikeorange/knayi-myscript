@@ -326,6 +326,14 @@ var core_version = "1.1.0",
 		return new knayi.fn.init(content);
 	};
 
+function isTheseFontTypesAreMatch(type1, type2){
+	if(fontTypes[type1] && fontType[type2]) {
+		return fontTypes[type1] === fontType[type2]
+	} else {
+		return null;
+	}
+}
+
 knayi.fn = knayi.prototype = {
 
 	knayi: core_version,
@@ -353,9 +361,18 @@ knayi.fn = knayi.prototype = {
 	 */
 	fontConvert: function(to, callback){
 		var to = to || "unicode5";
-		this.edited = fontConvert(this.content, to);
+		var that = this;
 
-		callback(this.edited, this.content);
+		(function(){
+			if( that.edited && isTheseFontTypesAreMatch(that.edited_fontType, to) ){
+				callback(that.edited, that.content);
+			} else {
+				that.edited_fontType = "unicode5";
+				that.edited = fontConvert(that.content, to, that.knyData.fontType);
+				callback(that.edited, that.content);
+			}
+		}());
+
 		return this;
 	},
 
@@ -365,24 +382,53 @@ knayi.fn = knayi.prototype = {
 	 */
 	fontConvertSync: function(to){
 		var to = to || "unicode5";
-		return ( this.edited = fontConvert(this.content, to, this.knyData.fontType) );
+		if( this.edited && isTheseFontTypesAreMatch(this.edited_fontType, to) ){
+			return this.edited;
+		} else {
+			this.edited_fontType = "unicode5";
+			this.edited = fontConvert(this.content, to, this.knyData.fontType );
+			return this.edited;
+		}
 	},
 
-	syllableSync: function(lang){
-		var lang = this.knyData.fontType == "zawgyi" ? "zawgyi": "my";
-		return ( this.edited = syllbreak( this.edited || this.content, lang ) );
+  // Syllable Breaking Point adding async
+	syllable: function(callback){
+
+		if(this.edited_fontType) {
+			this.edited = syllbreak(this.edited, this.edited_fontType);
+			if(callback){
+				callback(this.edited);
+				return this;
+			} else {
+				return this.edited;
+			}
+		} else {
+			this.edited = syllbreak(this.content, this.knyData.fontType);
+			this.edited_fontType = this.knyData.fontType;
+			if(callback){
+				callback(this.edited);
+				return this;
+			} else {
+				return this.edited;
+			}
+		}
 	},
 
-	syllable: function(lang, callback){
-		var lang = this.knyData.fontType == "zawgyi" ? "zawgyi": "my";
-		if(callback)
-			return callback(syllbreak( this.edited || this.content, lang ));
-		else
-		  return syllbreak( this.edited || this.content, lang );
+		// Syllable Breaking Point adding sync
+	syllableSync: function(){
+
+		if(this.edited_fontType) {
+			this.edited = syllbreak(this.edited, this.edited_fontType);
+			return this.edited;
+		} else {
+			this.edited = syllbreak(this.content, this.knyData.fontType);
+			this.edited_fontType = this.knyData.fontType;
+			return this.edited;
+		}
 	},
 
 	getFontType: function(){
-		return this.knyData.fontType;
+		return this.edited_fontType || this.knyData.fontType;
 	}
 
 };
@@ -575,7 +621,7 @@ var util = {
 	},
 
 	// Converter with specific
-	convert: function( $text, lib, to ){
+	convert: function( $text, lib, to, callback ){
 
 		var sourceLib = lib[to],
 			i = 0, j = 0,
@@ -594,7 +640,6 @@ var util = {
 			while( $text.match(copy[0]) ) {
 				$text = $text.replace( copy[0], copy[1] );
 			}
-
 		}
 
 		return $text;
