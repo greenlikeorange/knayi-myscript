@@ -1,10 +1,7 @@
 /**
  * Knayi-myscript Client-side script
- *
- * version: 1.1.2
- * date: 9 July, 2014
  * Licensed: MIT
- * http://opensource.knayi.com/knayi-myscript
+ * https://github.com/greenlikeorange/knayi-myscript
  *
  */
 
@@ -45,11 +42,11 @@ var core_version = "1.1.0",
 				'်း', 'ဵ', '[ၐ-ၙ]', '^([က-အ]ြ|[က-အ]ေ)'
 			],
 			zawgyi : [
-				'ာ္', '်ာ', whitespace+'(ျ|ေ|[ၾ-ႄ])[က-အ]'
-				,'^(ျ|ေ|[ၾ-ႄ])[က-အ]', '[က-အ]္[^က-အ]', 'ဥ္'
-				,'္း' ,'[ါ-ူေ်း](ျ|[ၾ-ႄ])[က-အ]' ,'ံု'
-				,'[က-အ]္ေ' , 'ၤ','္'+whitespace, 'ာေ'
-				,'[ါ-ူ်း]ေ[က-အ]', 'ေေ', 'ုိ', '္$'
+				'ာ္', '်ာ', whitespace+'(ျ|ေ|[ၾ-ႄ])[က-အ]',
+				'^(ျ|ေ|[ၾ-ႄ])[က-အ]', '[က-အ]္[^က-အ]', 'ဥ္',
+				'္း' ,'[ါ-ူေ်း](ျ|[ၾ-ႄ])[က-အ]' ,'ံု',
+				'[က-အ]္ေ' , 'ၤ','္'+whitespace, 'ာေ',
+				'[ါ-ူ်း]ေ[က-အ]', 'ေေ', 'ုိ', '္$'
 			]
 
 		},
@@ -413,7 +410,7 @@ knayi.fn = knayi.prototype = {
 				this[i].knyData.fontType = opts.fontType ||
 										this[i].knyData.fontType ||
 										fontTypes[this[i].getAttribute('data-kny-fontType')] || undefined;
-			};
+			}
 			this.length = i;
 
 		}
@@ -443,12 +440,12 @@ knayi.extend = knayi.fn.extend = function() {
 	}
 
 	for ( ; i < length; i++ ) {
-		if ( ( arg = arguments[i] ) != null ) {
+		if ( ( arg = arguments[i] ) !== null ) {
 			for ( name in arg ) {
 				target[ name ] = arg[ name ];
 			}
 		}
-	};
+	}
 
 	return target;
 };
@@ -482,7 +479,7 @@ knayi.extend({
 					value = callback.apply( obj[i], args );
 
 					if ( value === false ) break;
-				};
+				}
 			} else  {
 				for ( i in obj ) {
 					value = callback.apply( obj[i], args );
@@ -496,7 +493,7 @@ knayi.extend({
 					value = callback.call( obj[i], obj[i], i, obj );
 
 					if ( value === false ) break;
-				};
+				}
 			} else  {
 				for ( i in obj ) {
 					value = callback.call( obj[i], obj[i], i, obj );
@@ -519,7 +516,7 @@ knayi.extend({
 	 */
 	justText: function( elem ) {
 
-		if ( elem == null || !elem.nodeType ) return false;
+		if ( elem === null || !elem.nodeType ) return false;
 		if ( elem.nodeType === 3 ) return elem.value;
 
 		var text = "",
@@ -527,10 +524,10 @@ knayi.extend({
 			childNodes = elem.childNodes;
 
 		for ( ; i < childNodes.length; i++ ) {
-			if ( childNodes[i].nodeType === 3 && childNodes[i].nodeValue != null ) {
+			if ( childNodes[i].nodeType === 3 && childNodes[i].nodeValue !== null ) {
 				text += "*$" + knayi.trim(childNodes[i].nodeValue);
 			}
-		};
+		}
 
 		return text.replace(/\*\$/, '');
 
@@ -546,7 +543,7 @@ knayi.extend({
 	 */
 	textReplace: function( elem, text ){
 
-		if ( elem == null || !elem.nodeType ) return false;
+		if ( elem === null || !elem.nodeType ) return false;
 		if ( elem.nodeType === 3 ) elem.nodeValue = text;
 
 		var i = 0,
@@ -556,10 +553,10 @@ knayi.extend({
 
 		// Replacing each contents to each #text nodes
 		for ( ; i < childNodes.length; i++ ) {
-			if ( childNodes[i].nodeType === 3 && childNodes[i].nodeValue != null ) {
+			if ( childNodes[i].nodeType === 3 && childNodes[i].nodeValue !== null ) {
 				childNodes[i].nodeValue = textContents.shift(1);
 			}
-		};
+		}
 
 		// Over contents will be join and add as new #text node
 		if ( textContents.length > 0 ) {
@@ -576,8 +573,8 @@ knayi.extend({
 		var length = obj.length;
 
 		if ( obj.jquery && obj.length > 0 ) return true;
-		if ( obj == null ) return false;
-		if ( obj == global ) return false;
+		if ( obj === null ) return false;
+		if ( obj === global ) return false;
 		if ( obj.nodeType === 1 && length ) return true;
 
 		return core_obj.toString.call(obj) == "[object HTMLCollection]" || ( ( length === 0 ||
@@ -668,7 +665,7 @@ knayi.extend({
 
 			for (; j < copy.length; j++ ) {
 				if ( ( match = text.match( copy[j] ) ) ) t += match.length || 0;
-			};
+			}
 
 			result.push( { type: font, matchTime: t } );
 
@@ -777,8 +774,8 @@ knayi.extend({
 		if ( lib ) {
 			for (var i = 0; i < lib.length; i++) {
 				text = text.replace(lib[i][0], lib[i][1]);
-			};
-		};
+			}
+		}
 
 		return text;
 
@@ -792,8 +789,6 @@ knayi.extend({
 	 * @param {String} name of keyboard
 	 */
 	keyboard: function( elem, on, type ) {
-
-		console.log(elem)
 
 		if ( !elem.knyData ) elem.knyData = {};
 		if ( type ){
@@ -821,6 +816,7 @@ knayi.fn.extend({
 	// callback( [ { fontType: [element, element2]} ] );
 	fontDetect: function( unstable, callback ){
 		var i = 0,
+		  detect,
 			result = {};
 
 		for (; i < this.length; i++) {
@@ -832,7 +828,7 @@ knayi.fn.extend({
 			// Reduce work for fontType set elements
 			if ( !this[i].knyData.unstable && this[i].knyData && this[i].knyData.fontType ) continue;
 
-			var detect = knayi.fontDetect( this[i].nodeName.match(rInputs) ? this[i].value :
+			detect = knayi.fontDetect( this[i].nodeName.match(rInputs) ? this[i].value :
 							knayi.justText( this[i] ) );
 
 			var type = this[i].knyData.fontType = detect[0].matchTime > 0 ? detect[0].type : undefined;
@@ -864,12 +860,11 @@ knayi.fn.extend({
 
 			if( this.downToTextNode ){
 				// Split each #text node by "*$"
-				var i = 0,
-					textNodes = $text.split('*$'),
+				var textNodes = $text.split('*$'),
 					converted = [];
 
-				for (; i < textNodes.length; i++) {
-					converted.push( knayi.fontConvert( textNodes[i], to ) );
+				for (var j = 0; j < textNodes.length; j++) {
+					converted.push( knayi.fontConvert( textNodes[j], to ) );
 				}
 
 				$text = converted.join('*$');
@@ -893,8 +888,6 @@ knayi.fn.extend({
 	// Adding syllable break point on element #text nodes
 	syllbreak: function( langauge ){
 
-		var i = 0;
-
 		for (var i = 0; i < this.length; i++) {
 			var isInput = this[i].nodeName.match(rInputs);
 				lang = langauge || this[i].knyData.fontType;
@@ -906,7 +899,7 @@ knayi.fn.extend({
 			if( isInput ) this[i].value = $text;
 			else knayi.textReplace( $text );
 
-		};
+		}
 
 		return this;
 
@@ -936,9 +929,8 @@ var util = {
 					line: lines[i],
 					exc: exc
 				};
-				break;
 			}
-		};
+		}
 
 		return false;
 
@@ -949,14 +941,14 @@ var util = {
 	spellChecker: function( text, fontType ){
 
 		var $text = text, i = 0,
-			rxc,line,match,
+			rxc,line,match, dbreg,
 			result = [];
 
 		switch( fontType ){
 
 			case 'unicode5':
 
-				var dbreg = "ါ ာ ိ ီ ု ူ ေ ဲ ံ ့ း ် ျ ြ ွ ှ ္".split(" ");
+				dbreg = "ါ ာ ိ ီ ု ူ ေ ဲ ံ ့ း ် ျ ြ ွ ှ ္".split(" ");
 
 				for (; i < dbreg.length; i++) {
 
@@ -974,7 +966,7 @@ var util = {
 				break;
 			case 'zawgyi':
 
-				var dbreg = "ါ ာ ိ ီ ု ူ ေ ဲ ဳ ဴ ံ ့ း ္ ် ျ ြ ွ ၚ ၠ ၡ ၢ ၣ ၤ ၥ ၦ ၧ ၨ ၩ ၪ ၫ ၬ ၭ ၰ ၱ ၲ ၳ ၴ ၵ ၶ ၷ ၸ ၹ ၺ ၻ ၼ ၽ ၾ ၿ ႀ ႁ ႂ ႃ ႄ ႅ ႇ ႈ ႉ ႊ ႋ ႌ ႍ ႎ ႓ ႔ ႕ ႖".split(" ");
+				dbreg = "ါ ာ ိ ီ ု ူ ေ ဲ ဳ ဴ ံ ့ း ္ ် ျ ြ ွ ၚ ၠ ၡ ၢ ၣ ၤ ၥ ၦ ၧ ၨ ၩ ၪ ၫ ၬ ၭ ၰ ၱ ၲ ၳ ၴ ၵ ၶ ၷ ၸ ၹ ၺ ၻ ၼ ၽ ၾ ၿ ႀ ႁ ႂ ႃ ႄ ႅ ႇ ႈ ႉ ႊ ႋ ႌ ႍ ႎ ႓ ႔ ႕ ႖".split(" ");
 
 				for (; i < dbreg.length; i++) {
 
@@ -1048,7 +1040,7 @@ var util = {
 			value = ce ? target.nodeValue : target.value,
 			// value to current Index position
 			v2pos = value.substr(0, _sIndex),
-			fORT, match, k = -1, i = 0
+			fORT, match, k = -1, i = 0;
 
 		// Replace by enBase Keyboard
 		if ( ( k = lib.keyfix.from.indexOf( typed ) ) > -1 ){
@@ -1062,7 +1054,7 @@ var util = {
 				_sIndex = match.index;
 				fORt = fORt.replace( lib.rexfix[i][0], lib.rexfix[i][1] );
 			}
-		};
+		}
 
 		if ( fORt !== v2pos + typed ) fixed = fORt;
 
