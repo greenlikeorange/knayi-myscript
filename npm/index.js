@@ -362,16 +362,17 @@ knayi.fn = knayi.prototype = {
 	fontConvert: function(to, callback){
 		var to = to || "unicode5";
 		var that = this;
-
-		(function(){
-			if( that.edited && isTheseFontTypesAreMatch(that.edited_fontType, to) ){
+    
+    new Promise(function (resolve, reject) {
+      if( that.edited && isTheseFontTypesAreMatch(that.edited_fontType, to) ){
 				callback(that.edited, that.content);
 			} else {
 				that.edited_fontType = "unicode5";
 				that.edited = fontConvert(that.content, to, that.knyData.fontType);
 				callback(that.edited, that.content);
 			}
-		}());
+      resolve();
+    });
 
 		return this;
 	},
@@ -394,26 +395,30 @@ knayi.fn = knayi.prototype = {
   // Syllable Breaking Point adding async
 	syllable: function(callback){
 
-		if(this.edited_fontType) {
-			this.edited = syllbreak(this.edited, this.edited_fontType);
-			if(callback){
-				callback(this.edited);
-				return this;
-			} else {
-				return this.edited;
-			}
-		} else {
-			this.edited = syllbreak(this.content, this.knyData.fontType);
-			this.edited_fontType = this.knyData.fontType;
-			if(callback){
-				callback(this.edited);
-				return this;
-			} else {
-				return this.edited;
-			}
-		}
-	},
+    if (callback) {
+      return new Promise(function (resolve, reject) {
+        if(this.edited_fontType) {
+          this.edited = syllbreak(this.edited, this.edited_fontType);
+        } else {
+          this.edited = syllbreak(this.content, this.knyData.fontType);
+          this.edited_fontType = this.knyData.fontType;
+        }
+        callback(this.edited);
+        resolve(this.edited);
+      });
+    } else {
+      if(this.edited_fontType) {
+        this.edited = syllbreak(this.edited, this.edited_fontType);
+      } else {
+        this.edited = syllbreak(this.content, this.knyData.fontType);
+        this.edited_fontType = this.knyData.fontType;
+      }
+      return this.edited; 
+    }
 
+  });
+
+  },
 		// Syllable Breaking Point adding sync
 	syllableSync: function(){
 

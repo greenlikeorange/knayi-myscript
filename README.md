@@ -7,7 +7,7 @@ knayi-myscript
 **Knayi** is Standalone Myanmar Languages JavaScript Library, which can use for building Myanmar **Unicode** standard web in user friendly.
 Script include Font Detector, Font Converter, Syllable Break Points, Keyboards.
 
-support email: beginofalove@hotmail.com
+support email: ty@kny.co
 
 Nodejs
 ======
