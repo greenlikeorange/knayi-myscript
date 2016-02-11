@@ -70,10 +70,11 @@ Example Selecting: ```var object = knayi( document.querySelectorAll("p.textConte
 
 Detect Zawgyi and Unicode 5 fonts in Burmese ('my') language. You can directly detect a string or you can also detect a html tag.
 Just simply use ```knayi.fontDetect()```
+
 ```js
 // String can direct use to detect their font-type
 var str = "{myanmar words}"
-var result = kanyi.fontDetect( str );
+var result = knayi.fontDetect( str );
 
 /* Example returned result
  *  [ 
@@ -141,7 +142,7 @@ Knayi Keyboard can work on input element or contenteditable element.
 
 ``` knayi.keyboard( [element{single element}, 'zawUnicode5'] ); ```
 
-zawUnicode5 Keyboard is ```ေ``` first keyboard with same layout with **AphpaZawgyiUnicodeL** keyboard
+zawUnicode5 Keyboard is `ေ` first keyboard with same layout with **AphpaZawgyiUnicodeL** keyboard
 
 [npm-image]: https://img.shields.io/npm/v/knayi-myscript.svg
 [npm-url]: https://npmjs.org/package/knayi-myscript
