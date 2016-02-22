@@ -897,7 +897,7 @@ knayi.fn.extend({
 			$text = knayi.syllbreak( $text, lang );
 
 			if( isInput ) this[i].value = $text;
-			else knayi.textReplace( $text );
+			else knayi.textReplace( this[i], $text );
 
 		}
 
