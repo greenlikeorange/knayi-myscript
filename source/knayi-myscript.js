@@ -397,8 +397,8 @@ knayi.fn = knayi.prototype = {
 			// Crate knyData for Reference
 			if( !this[0].knyData ) this[0].knyData = {};
 			this[0].knyData.fontType = opts.fontType ||
-									this[0].knyData.fontType ||
-									fontTypes[this[0].getAttribute('data-kny-fontType')] || undefined;
+						this[0].knyData.fontType ||
+						fontTypes[this[0].getAttribute('data-kny-fontType')] || undefined;
 			this.length = 1;
 
 		} else if ( knayi.isCollection(elem) ) {
@@ -406,10 +406,10 @@ knayi.fn = knayi.prototype = {
 			for (; i < elem.length; i++) {
 				this[i] = elem[i];
 				// Crate knyData for Reference
-				if( !this[0].knyData ) this[0].knyData = {};
+				if( !this[i].knyData ) this[i].knyData = {};
 				this[i].knyData.fontType = opts.fontType ||
-										this[i].knyData.fontType ||
-										fontTypes[this[i].getAttribute('data-kny-fontType')] || undefined;
+							this[i].knyData.fontType ||
+							fontTypes[this[i].getAttribute('data-kny-fontType')] || undefined;
 			}
 			this.length = i;
 
