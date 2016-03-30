@@ -415,9 +415,6 @@ knayi.fn = knayi.prototype = {
       }
       return this.edited; 
     }
-
-  });
-
   },
 		// Syllable Breaking Point adding sync
 	syllableSync: function(){
