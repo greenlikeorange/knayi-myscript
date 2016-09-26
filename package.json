@@ -1,11 +1,8 @@
 {
   "name": "knayi-myscript",
-  "version": "1.0.13",
-  "description": "Knayi Myanmar languages script library for Nodejs",
-  "main": "index.js",
-  "scripts": {
-    "test": "mocha"
-  },
+  "version": "2.0.0",
+  "description": "Knayi Myanmar languages JavaScirpt library",
+  "main": "main.js",
   "repository": {
     "type": "git",
     "url": "http://github.com/greenlikeorange/knayi-myscript"
@@ -17,6 +14,7 @@
     "Zawgyi",
     "Unicode",
     "Convert",
+    "Detecting",
     "Localzation",
     "JavaScript"
   ],
