@@ -374,12 +374,13 @@ function spellingFix(content, fontType){
   }
 };
 
-var knayi = kny = {
+var knayi = {
 	fontDetect: fontDetect,
 	fontConvert: fontConvert,
 	syllBreak: syllBreak,
 	spellingFix: spellingFix
 };
+var kny = knayi;
 
 if (this.module && this.module.exports)
   this.module.exports = knayi;
