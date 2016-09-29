@@ -381,5 +381,5 @@ var knayi = kny = {
 	spellingFix: spellingFix
 };
 
-if (module && module.exports)
-	module.exports = knayi;
+if (this.module && this.module.exports)
+  this.module.exports = knayi;
