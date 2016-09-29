@@ -374,7 +374,7 @@ function spellingFix(content, fontType){
   }
 };
 
-var knayi = {
+var knayi = kny = {
 	fontDetect: fontDetect,
 	fontConvert: fontConvert,
 	syllBreak: syllBreak,
