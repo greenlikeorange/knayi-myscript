@@ -26,24 +26,24 @@ npm install knayi-myscript
 ## Example
 
 - **fontDetect(content, [defaultFont])**
-```
+```javascript
 knayi.fontDetect('မဂၤလာပါ') // zawgyi
 knayi.fontDetect('မင်္ဂလာပါ') // unicode
 ```
 
 - **fontConvert(content, convertTo, [convertFrom])**
-```
+```javascript
 knayi.fontConvert('မဂၤလာပါ', 'unicode', 'zawgyi') // မင်္ဂလာပါ
 knayi.fontConvert('မဂၤလာပါ', 'unicode') // မင်္ဂလာပါ
 ```
 
 - **syllBreak(content, [fontType] [,breakPoint])**
-```
+```javascript
 knayi.syllBreak('မင်္ဂလာပါ', null, '$$') // 'မင်္ဂ$$လာ$$ပါ'
 ```
 
 - **spellingFix(content, [fontType])**  
-```
+```javascript
 knayi.spellingFix('မင်္ဂလာာပါါ') // 'မင်္ဂလာပါ'
 ```
 
