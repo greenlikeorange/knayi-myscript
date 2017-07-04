@@ -10,12 +10,11 @@ library.spellingFix = {
 };
 
 // Populate Spelling Check
-library.spellingFix.unicode = library.spellingFix.unicode.map(function (exp) {
-  return [new RegExp(`[${exp}]{2,}`, 'g'), exp];
-});
-library.spellingFix.zawgyi = library.spellingFix.zawgyi.map(function (exp) {
-  return [new RegExp(`[${exp}]{2,}`, 'g'), exp];
-});
+Object.keys(library.spellingFix).forEach(sys=>{
+	library.spellingFix[sys] = library.spellingFix[sys].map(exp=>{
+	  return [new RegExp(`[${exp}]{2,}`, 'g'), exp];
+	})
+})
 
 /**
 * Spelling Check agent
