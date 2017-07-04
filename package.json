@@ -3,8 +3,9 @@
   "version": "2.0.5",
   "description": "Knayi Myanmar languages JavaScirpt library",
   "main": "main.js",
-  "scripts":{
-  	"test":"mocha"
+  "scripts": {
+    "test": "mocha",
+    "build": "browserify main.js --standlone | uglifyjs -c > dist/bundle.js"
   },
   "repository": {
     "type": "git",
@@ -29,6 +30,7 @@
   "homepage": "https://github.com/greenlikeorange/knayi-myscript",
   "devDependencies": {
     "chai": "^4.0.2",
-    "mocha": "^3.4.2"
+    "mocha": "^3.4.2",
+    "uglify-es": "^3.0.23"
   }
 }
