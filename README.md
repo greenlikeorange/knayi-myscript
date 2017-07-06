@@ -19,9 +19,14 @@ Knayi Myanmar Script
  - Spelling Check (Unicode and Zawgyi)
 
 ## Install
-Using [npm](http://npmjs.com).
+Using npm.
 ```bash
-npm install knayi-myscript
+npm install knayi-myscript --save
+```
+
+OR yran
+```bash
+yarn add knayi-myscript
 ```
 
 ## Usage
