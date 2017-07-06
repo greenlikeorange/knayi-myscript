@@ -1,0 +1,29 @@
+{
+  "name": "knayi-myscript",
+  "description": "Knayi Myanmar languages JavaScirpt library",
+  "main": "./dist/knayi-myscript.min.js",
+  "authors": [
+    "greenlikeorange <ty@kny.co>",
+    "Aung Myo Kyaw <me@aungmyokyaw.com>"
+  ],
+  "license": "MIT",
+  "keywords": [
+    "Myanmar",
+    "Language",
+    "Font",
+    "Zawgyi",
+    "Unicode",
+    "Convert",
+    "Detecting",
+    "Localzation",
+    "JavaScript"
+  ],
+  "homepage": "https://github.com/greenlikeorange/knayi-myscript",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
