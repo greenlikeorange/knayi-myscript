@@ -8,4 +8,4 @@ module.exports = {
 	fontConvert,
 	syllBreak,
 	spellingFix
-}
+};

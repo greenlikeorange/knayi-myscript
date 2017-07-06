@@ -2,8 +2,8 @@ var webpack = require('webpack');
 
 module.exports = {
   entry: {
-    "knayi-myscript": __dirname + "/main.js",
-    "knayi-myscript.min": __dirname + "/main.js",
+    "knayi-myscript": __dirname + "/client.js",
+    "knayi-myscript.min": __dirname + "/client.js",
   },
   devtool: "source-map",
   output: {
