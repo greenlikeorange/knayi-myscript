@@ -54,9 +54,5 @@ knayi.spellingFix('မင်္ဂလာာပါါ') // 'မင်္ဂလာ
   - [ ] Contributing guide
   - [ ] Version release note
 
-## Contributors
-- [greenlikeorange](https://github.com/greenlikeorange)
-- [AungMyoKyaw](https://github.com/AungMyoKyaw)
-
 ## License
 [MIT](./LICENSE)
