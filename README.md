@@ -39,7 +39,7 @@ knayi.fontConvert('မဂၤလာပါ', 'unicode') // မင်္ဂလာ�
 
 - **syllBreak(content, [fontType] [,breakPoint])**
 ```javascript
-knayi.syllBreak('မင်္ဂလာပါ', null, '$$') // 'မင်္ဂ$$လာ$$ပါ'
+knayi.syllBreak('မင်္ဂလာပါ', null, '$$') // 'မင်္ဂလာ$$ပါ'
 ```
 
 - **spellingFix(content, [fontType])**  
@@ -49,8 +49,6 @@ knayi.spellingFix('မင်္ဂလာာပါါ') // 'မင်္ဂလာ
 
 ## Todo
 
-  - [ ] Imporve Docs
-  - [ ] Support to [yarn](http://yarnpkg.com)
   - [ ] Contributing guide
   - [ ] Version release note
 

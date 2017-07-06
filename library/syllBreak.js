@@ -44,16 +44,18 @@ function syllBreak(content, fontType, breakpoint){
   if (!fontType)
     fontType = fontDetect(content);
 
-  if (!breakpoint)
-    breakpoint = '\u200B';
-
   var lib = library.syllable[fontType];
 
   for (var i = 0; i < lib.length; i++) {
     content = content.replace(lib[i][0], lib[i][1]);
   };
 
-  return content;
+  content = content.replace(/^\u200B/, '');
+
+  if (breakpoint && breakpoint !== '\u200B')
+    return content.replace(/\u200B/g, breakpoint);
+
+  return content
 };
 
 module.exports = syllBreak;
