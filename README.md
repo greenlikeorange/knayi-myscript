@@ -9,6 +9,9 @@ Knayi Myanmar Script
 
 > Standalone Myanmar languages JavaScript library, use to build Myanmar **Unicode** standard web easily.
 
+## Node Version
+ - Required node >= 6
+
 ## Features
  - Detector (Unicode and Zawgyi)
  - Converter (Unicode and Zawgyi)
