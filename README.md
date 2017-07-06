@@ -1,6 +1,12 @@
 Knayi Myanmar Script
 ====================
 
+[![NPM version][npm-image]][npm-url]
+![][travis-url]
+![][david-url]
+![][dt-url]
+![][license-url]
+
 > Standalone Myanmar languages JavaScript library, use to build Myanmar **Unicode** standard web easily.
 
 ## Features
@@ -54,3 +60,10 @@ knayi.spellingFix('မင်္ဂလာာပါါ') // 'မင်္ဂလာ
 
 ## License
 [MIT](./LICENSE)
+
+[npm-url]: https://npmjs.org/package/knayi-myscript
+[npm-image]:https://badge.fury.io/js/knayi-myscript.png
+[travis-url]:https://api.travis-ci.org/leftstick/knayi-myscript.svg?branch=master
+[david-url]:https://david-dm.org/leftstick/knayi-myscript.png
+[dt-url]:https://img.shields.io/npm/dt/knayi-myscript.svg
+[license-url]:https://img.shields.io/npm/l/knayi-myscript.svg
