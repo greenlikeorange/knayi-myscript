@@ -1,7 +1,7 @@
-var fontDetect = require('./library/detector');
-var fontConvert = require('./library/converter');
-var syllBreak = require('./library/syllBreak');
-var spellingFix = require('./library/spellingCheck')
+const fontDetect = require('./library/detector')
+const fontConvert = require('./library/converter')
+const syllBreak = require('./library/syllBreak')
+const spellingFix = require('./library/spellingCheck')
 
 module.exports = {
 	fontDetect,
