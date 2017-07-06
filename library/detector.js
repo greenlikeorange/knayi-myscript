@@ -1,6 +1,6 @@
-var whitespace = '[\\x20\\t\\r\\n\\f]';
-var mmCharacterRange = /[\u1000-\u109F]/;
-var library = {};
+const whitespace = '[\\x20\\t\\r\\n\\f]';
+const mmCharacterRange = /[\u1000-\u109F]/;
+const library = {};
 
 /** DETECTION Libarary **/
 library.detect = {

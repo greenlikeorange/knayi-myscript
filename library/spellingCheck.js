@@ -1,7 +1,7 @@
-var fontDetect = require('./detector');
+const fontDetect = require('./detector');
 
-var mmCharacterRange = /[\u1000-\u109F]/;
-var library = {};
+const mmCharacterRange = /[\u1000-\u109F]/;
+const library = {};
 
 /** Spelling Check Libarary **/
 library.spellingFix = {
@@ -10,7 +10,7 @@ library.spellingFix = {
 };
 
 // Populate Spelling Check
-Object.keys(library.spellingFix).forEach(sys=>{
+Object.keys(library.spellingFix).forEach((sys) =>{
 	library.spellingFix[sys] = library.spellingFix[sys].map(exp=>{
 	  return [new RegExp(`[${exp}]{2,}`, 'g'), exp];
 	})

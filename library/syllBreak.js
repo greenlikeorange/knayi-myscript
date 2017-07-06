@@ -1,7 +1,7 @@
-var fontDetect = require('./detector');
+const fontDetect = require('./detector');
 
-var mmCharacterRange = /[\u1000-\u109F]/;
-var library = {};
+const mmCharacterRange = /[\u1000-\u109F]/;
+const library = {};
 
 /** Syllable Libarary **/
 library.syllable = {

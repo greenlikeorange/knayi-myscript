@@ -1,14 +1,14 @@
-var spellingFix = require('./spellingCheck');
-var fontDetect = require('./detector');
+const spellingFix = require('./spellingCheck');
+const fontDetect = require('./detector');
 
-var	fontTypes = {
+const	fontTypes = {
   unicode: "unicode",
   uni: "unicode",
   zawgyi: "zawgyi",
   zaw: "zawgyi"
 };
-var mmCharacterRange = /[\u1000-\u109F]/;
-var library = {};
+const mmCharacterRange = /[\u1000-\u109F]/;
+const library = {};
 
 /** Converting Libarary **/
 library.convert = {
