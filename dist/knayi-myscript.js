@@ -1,3 +1,4 @@
+window["knayi"] =
 /******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
@@ -192,22 +193,9 @@ module.exports = spellingFix;
 "use strict";
 
 
-(function (window) {
-  var lib = __webpack_require__(3);
-  window.kny = lib;
-  window.knayi = lib;
-})(window);
-
-/***/ }),
-/* 3 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
 var fontDetect = __webpack_require__(0);
-var fontConvert = __webpack_require__(4);
-var syllBreak = __webpack_require__(5);
+var fontConvert = __webpack_require__(3);
+var syllBreak = __webpack_require__(4);
 var spellingFix = __webpack_require__(1);
 
 module.exports = {
@@ -218,7 +206,7 @@ module.exports = {
 };
 
 /***/ }),
-/* 4 */
+/* 3 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -304,7 +292,7 @@ function fontConvert(content, to, from) {
 module.exports = fontConvert;
 
 /***/ }),
-/* 5 */
+/* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -354,3 +342,4 @@ module.exports = syllBreak;
 
 /***/ })
 /******/ ]);
+//# sourceMappingURL=knayi-myscript.js.map
