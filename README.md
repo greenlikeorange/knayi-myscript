@@ -24,10 +24,16 @@ Using npm.
 npm install knayi-myscript --save
 ```
 
-OR yran
+Using yran
 ```bash
 yarn add knayi-myscript
 ```
+
+Using CDN
+```html
+<script src="https://unpkg.com/knayi-myscript@2.2.0/dist/knayi-myscript.min.js"></script>
+```
+
 
 ## Usage
 |Method Name | Arguments | Return | Note |
