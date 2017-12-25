@@ -31,7 +31,7 @@ yarn add knayi-myscript
 
 Using CDN
 ```html
-<script src="https://unpkg.com/knayi-myscript@2.2.0/dist/knayi-myscript.min.js"></script>
+<script src="https://unpkg.com/knayi-myscript@2.2.0/dist/client/knayi-myscript.min.js"></script>
 ```
 
 ## API
@@ -71,7 +71,7 @@ knayi.fontConvert('မဂၤလာပါ', 'unicode') // မင်္ဂလာ�
 knayi.syllBreak('မင်္ဂလာပါ', null, '$$') // 'မင်္ဂလာ$$ပါ'
 ```
 
-- **spellingFix(content, [fontType])**  
+- **spellingFix(content, [fontType])**
 ```javascript
 knayi.spellingFix('မင်္ဂလာာပါါ') // 'မင်္ဂလာပါ'
 ```

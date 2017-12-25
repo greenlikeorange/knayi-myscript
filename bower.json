@@ -1,7 +1,7 @@
 {
   "name": "knayi-myscript",
   "description": "Knayi Myanmar languages JavaScirpt library",
-  "main": "./dist/knayi-myscript.min.js",
+  "main": "./dist/client/knayi-myscript.min.js",
   "authors": [
     "greenlikeorange <ty@kny.co>",
     "Aung Myo Kyaw <me@aungmyokyaw.com>"

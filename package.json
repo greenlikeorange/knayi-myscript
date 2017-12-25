@@ -1,42 +1,44 @@
 {
-  "name": "knayi-myscript",
-  "version": "2.2.0",
-  "description": "Knayi Myanmar languages JavaScirpt library",
-  "main": "main.js",
-  "scripts": {
-    "test": "mocha",
-    "build": "webpack"
-  },
-  "repository": {
-    "type": "git",
-    "url": "http://github.com/greenlikeorange/knayi-myscript"
-  },
-  "keywords": [
-    "Myanmar",
-    "Language",
-    "Font",
-    "Zawgyi",
-    "Unicode",
-    "Convert",
-    "Detecting",
-    "Localzation",
-    "JavaScript"
-  ],
-  "contributors": [
-    "greenlikeorange <ty@kny.co>",
-    "Aung Myo Kyaw <me@aungmyokyaw.com>"
-  ],
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/greenlikeorange/knayi-myscript/issues"
-  },
-  "homepage": "https://github.com/greenlikeorange/knayi-myscript",
-  "devDependencies": {
-    "babel-core": "^6.25.0",
-    "babel-loader": "^7.1.1",
-    "babel-preset-env": "^1.6.0",
-    "chai": "^4.0.2",
-    "mocha": "^3.4.2",
-    "webpack": "^3.0.0"
-  }
+	"name": "knayi-myscript",
+	"version": "2.2.0",
+	"description": "Knayi Myanmar languages JavaScirpt library",
+	"main": "dist/node/main.js",
+	"scripts": {
+		"test": "gulp test",
+		"build": "gulp"
+	},
+	"repository": {
+		"type": "git",
+		"url": "http://github.com/greenlikeorange/knayi-myscript"
+	},
+	"keywords": [
+		"Myanmar",
+		"Language",
+		"Font",
+		"Zawgyi",
+		"Unicode",
+		"Convert",
+		"Detecting",
+		"Localzation",
+		"JavaScript"
+	],
+	"contributors": [
+		"greenlikeorange <ty@kny.co>",
+		"Aung Myo Kyaw <me@aungmyokyaw.com>"
+	],
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/greenlikeorange/knayi-myscript/issues"
+	},
+	"homepage": "https://github.com/greenlikeorange/knayi-myscript",
+	"devDependencies": {
+		"babel-core": "^6.26.0",
+		"babel-loader": "^7.1.2",
+		"babel-preset-env": "^1.6.1",
+		"chai": "^4.1.2",
+		"gulp": "^3.9.1",
+		"gulp-babel": "^7.0.0",
+		"gulp-mocha": "^4.3.1",
+		"webpack": "^3.10.0"
+	}
 }
