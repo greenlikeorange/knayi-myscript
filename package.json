@@ -3,7 +3,7 @@
   "version": "2.2.0",
   "description": "Knayi Myanmar languages JavaScirpt library",
   "main": "main.js",
-  "module": "dist/knayi-myscript.min.js",
+  "module": "dist/knayi-myscript.es.js",
   "scripts": {
     "test": "mocha",
     "build": "webpack"
