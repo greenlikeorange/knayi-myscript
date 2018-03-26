@@ -10,7 +10,8 @@ Knayi Myanmar Script
 > Standalone Myanmar languages JavaScript library, use to build Myanmar **Unicode** standard easily.
 
 ## Node Version
- - Required node version >= 4
+ - Required node version >= 4  
+ Note: From version >=2.3.0 build step will only support for node >=6
 
 ## Features
  - Detector (Unicode and Zawgyi)
@@ -78,7 +79,9 @@ knayi.spellingFix('မင်္ဂလာာပါါ') // 'မင်္ဂလာ
 
 ## Build
 
-Start from >=2.3.0 knayi will only support build script at node >=6
+ - Required node >=6  
+ - `npm run build`  
+ To build production run `webpack -p`  
 
 ## License
 [MIT](./LICENSE)
