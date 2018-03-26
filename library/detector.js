@@ -1,3 +1,4 @@
+const myanmartools = require('myanmar-tools');
 const whitespace = '[\\x20\\t\\r\\n\\f]';
 const mmCharacterRange = /[\u1000-\u109F]/;
 const library = {};
@@ -43,6 +44,9 @@ function fontDetect(content, def){
 	content = content.trim().replace(/\u200B/g, '');
 	def = def || 'zawgyi';
 
+	const detector = new myanmartools.ZawgyiDetector();
+	const zawgyiPropability = detector.getZawgyiProbability(content);
+
 	var match = {};
 
 	for (var type in library.detect) {
@@ -55,9 +59,9 @@ function fontDetect(content, def){
 		}
 	}
 
-	if (match.unicode > match.zawgyi) {
+	if (match.unicode > match.zawgyi && zawgyiPropability < 0.05) {
 		return 'unicode';
-	} else if (match.unicode < match.zawgyi) {
+	} else if (match.unicode < match.zawgyi && zawgyiPropability > 0.95) {
 		return 'zawgyi';
 	} else {
 		return def;
