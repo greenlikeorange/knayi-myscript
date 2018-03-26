@@ -1,1 +1,2652 @@
-module.exports=function(u){function e(t){if(g[t])return g[t].exports;var n=g[t]={i:t,l:!1,exports:{}};return u[t].call(n.exports,n,n.exports,e),n.l=!0,n.exports}var g={};return e.m=u,e.c=g,e.d=function(u,g,t){e.o(u,g)||Object.defineProperty(u,g,{configurable:!1,enumerable:!0,get:t})},e.n=function(u){var g=u&&u.__esModule?function(){return u.default}:function(){return u};return e.d(g,"a",g),g},e.o=function(u,e){return Object.prototype.hasOwnProperty.call(u,e)},e.p="",e(e.s=2)}([function(u,e,g){"use strict";function t(u,e){if(!u)throw new Error("Content must be specified on knayi.fontDetect");if(""===u)return u;if(!n.test(u))return e;u=u.trim().replace(/\u200B/g,""),e=e||"zawgyi";var g={};for(var t in r.detect){g[t]=0;for(var c=0;c<r.detect[t].length;c++){var i=r.detect[t][c],o=u.match(i);g[t]+=o&&o.length||0}}return g.unicode>g.zawgyi?"unicode":g.unicode<g.zawgyi?"zawgyi":e}var n=/[\u1000-\u109F]/,r={};r.detect={unicode:["ှ","ဿ","ည်","န်","င်","ေး","ော","်း","ဵ","[ၐ-ၙ]","^([က-အ]ြ|[က-အ]ေ)"],zawgyi:["ာ္","်ာ","[\\x20\\t\\r\\n\\f](ျ|ေ|[ၾ-ႄ])[က-အ]","^(ျ|ေ|[ၾ-ႄ])[က-အ]","[က-အ]္[^က-အ]","ဥ္","္း","[ါ-ူေ်း](ျ|[ၾ-ႄ])[က-အ]","ံု","[က-အ]္ေ","ၤ","္[\\x20\\t\\r\\n\\f]","ာေ","[ါ-ူ်း]ေ[က-အ]","ေေ","ုိ","္$"]},Object.keys(r.detect).forEach(function(u){for(var e=0;e<r.detect[u].length;e++)r.detect[u][e]=new RegExp(r.detect[u][e],"g")}),u.exports=t},function(u,e,g){"use strict";function t(u,e){if(!u)throw new Error("Content must be specified on knayi.fontConvert");if(""===u||!r.test(u))return u;switch(e||(e=n(u)),u=u.trim().replace(/\u200B/g,""),e){case"zawgyi":for(var g=0;g<c.spellingFix.zawgyi.length;g++){var t=c.spellingFix.zawgyi[g];u=u.replace(t[0],t[1])}return u;case"unicode":default:for(var g=0;g<c.spellingFix.unicode.length;g++){var t=c.spellingFix.unicode[g];u=u.replace(t[0],t[1])}return u}}var n=g(0),r=/[\u1000-\u109F]/,c={};c.spellingFix={unicode:"ါ ာ ိ ီ ု ူ ေ ဲ ံ ့ း ် ျ ြ ွ ှ ္".split(" "),zawgyi:"ါ ာ ိ ီ ု ူ ေ ဲ ဳ ဴ ံ ့ း ္ ် ျ ြ ွ ၚ ၠ ၡ ၢ ၣ ၤ ၥ ၦ ၧ ၨ ၩ ၪ ၫ ၬ ၭ ၰ ၱ ၲ ၳ ၴ ၵ ၶ ၷ ၸ ၹ ၺ ၻ ၼ ၽ ၾ ၿ ႀ ႁ ႂ ႃ ႄ ႅ ႇ ႈ ႉ ႊ ႋ ႌ ႍ ႎ ႓ ႔ ႕ ႖".split(" ")},Object.keys(c.spellingFix).forEach(function(u){c.spellingFix[u]=c.spellingFix[u].map(function(u){return[new RegExp("["+u+"]{2,}","g"),u]})}),u.exports=t},function(u,e,g){"use strict";var t=g(0),n=g(3),r=g(4),c=g(1);u.exports={fontDetect:t,fontConvert:n,syllBreak:r,spellingFix:c}},function(u,e,g){"use strict";function t(u,e,g){if(!u)throw new Error("Content must be specified on knayi.fontConvert");if(""===u||!i.test(u))return u;if(!e)throw new Error("convertTo must be specified on knayi.fontConvert");if(u=u.trim().replace(/\u200B/g,""),e=c[e],g=c[g],!e)return console.error("Convert library dosen't this fontType to convert"),u;if(g||(g=r(u)),e===g)return u;u=n(u,g);for(var t=o.convert[g][e],a=0;a<t.oneTime.length;a++){var f=t.oneTime[a];u=u.replace(f[0],f[1])}for(var d=0;d<t.asFoundAs.length;d++)for(var s=t.asFoundAs[d];s[0].test(u);)u=u.replace(s[0],s[1]);return u}var n=g(1),r=g(0),c={unicode:"unicode",uni:"unicode",zawgyi:"zawgyi",zaw:"zawgyi"},i=/[\u1000-\u109F]/,o={};o.convert={unicode:{zawgyi:{oneTime:[[/([\u1000-\u1021](\u1039[\u1000-\u1021]|[\u103b\u103c\u103d]+)[\u102d\u102e\u1031\u1032\u1036\u1037\u103e]*)\u102f/g,"$1ဳ"],[/([\u1000-\u1021](\u1039[\u1000-\u1021]|[\u103b\u103c\u103d]+)[\u102d\u102e\u1031\u1032\u1036\u1037\u103e]*)\u1030/g,"$1ဴ"],[/([\u1000-\u1021](\u1039[\u1000-\u1021]|[\u103b\u103c\u103d]+)[\u102d\u102e\u1031\u1032\u1036\u1037\u103e]*)\u1037/g,"$1႔"],[/([\u1000-\u1021])\u103b([\u103d][\u103e]*)/g,"$1ၽ$2"],[/([\u102f\u1030])[\u1037\u1094]/g,"$1႕"],[/([\u1000-\u1021])\u103c/g,"ြ$1"],[/([\u1000-\u1021][^\u1000-\u1021]*)\u1031/g,"ေ$1"],[/\u103c\u1031/g,"ေြ"],[/\u1014\u103d/g,"ႏွ"],[/\u104e\u1004\u103a\u1038/g,"၎"],[/\u102b\u103a/g,"ၚ"],[/\u103f/g,"ႆ"],[/\u1039\u101c/g,"ႅ"],[/\u1039\u1019/g,"ၼ"],[/\u1039\u1018/g,"ၻ"],[/\u1039\u1017/g,"ၺ"],[/\u1039\u1016/g,"ၹ"],[/\u1039\u1016/g,"ၹ"],[/\u1039\u1015/g,"ၸ"],[/\u1039\u1014/g,"ၷ"],[/\u1039\u1013/g,"ၶ"],[/\u1039\u1012/g,"ၵ"],[/\u1039\u1011/g,"ၳ"],[/\u1039\u1010/g,"ၱ"],[/\u1039\u100f/g,"ၰ"],[/\u100e\u1039\u100d/g,"ၯ"],[/\u100f\u1039\u100d/g,"႑"],[/\u100d\u1039\u100d/g,"ၮ"],[/\u1039\u100c/g,"ၭ"],[/\u1039\u100b/g,"ၬ"],[/\u1009/g,"ၪ"],[/\u1039\u1005\u103b/g,"ၩ"],[/\u1039\u1007/g,"ၨ"],[/\u1039\u1006/g,"ၦ"],[/\u1039\u1005/g,"ၥ"],[/\u1039\u1003/g,"ၣ"],[/\u100c/g,"႒"],[/\u1039\u1002/g,"ၢ"],[/\u1039\u1001/g,"ၡ"],[/\u103d\u103e/g,"ႊ"],[/\u103e\u1030/g,"ႉ"],[/\u1039\u1000/g,"ၠ"],[/\u100b\u1039\u100b/g,"႗"],[/\u1004\u103a\u1039/g,"ၤ"],[/\u103e\u102f/g,"ႈ"],[/\u1037/g,"့"],[/\u103a/g,"္"],[/\u103b/g,"်"],[/\u103c/g,"ျ"],[/\u103d/g,"ြ"],[/\u103e/g,"ွ"]],asFoundAs:[[/([\u103b\u103c\u103d\u103e])\u1031/g,"ေ$1"],[/\u103b([\u1000\u1003\u1006\u100f\u1010\u1011\u1018\u101a\u101c\u101e\u101f\u1021])/g,"ၾ$1"],[/\u103b([\u1000-\u1021](\u103c\u103d|\u108a|\u103c)[\u102d\u102e])/g,"ႃ$1"],[/\u107e([\u1000-\u1021](\u103c\u103d|\u108a|\u103c)[\u102d\u102e])/g,"ႄ$1"],[/\u103b([\u1000-\u1021][\u102d\u102e])/g,"ၿ$1"],[/\u107e([\u1000-\u1021][\u102d\u102e])/g,"ႀ$1"],[/\u103b([\u1000-\u1021][\u103c])/g,"ႁ$1"],[/\u107e([\u1000-\u1021][\u103c])/g,"ႂ$1"]]}},zawgyi:{unicode:{oneTime:[[/([^\u1040-\u1049\+\-\*\/])?\u1040([^\u1040-\u1049\+\-\*\/])?/g,"$1ဝ$2"],[/\u103d|\u1087/g,"ှ"],[/\u103c/g,"ွ"],[/[\u103b\u107e-\u1084]/g,"ြ"],[/[\u103a\u107d]/g,"ျ"],[/\u1039/g,"်"],[/[\u1094-\u1095]/g,"့"],[/[\u107b\u1093]/g,"္ဘ"],[/\u1033/g,"ု"],[/\u1034/g,"ူ"],[/\u1088/g,"ှု"],[/\u1089/g,"ှူ"],[/\u108a/g,"ွှ"],[/\u1061/g,"္ခ"],[/\u108f/g,"န"],[/\u1062/g,"္ဂ"],[/\u1063/g,"္ဃ"],[/\u1065/g,"္စ"],[/\u1066/g,"္ဆ"],[/\u1068/g,"္ဇ"],[/\u1069/g,"္စျ"],[/\u106a/g,"ဉ"],[/\u106b/g,"ည"],[/\u106c/g,"္ဋ"],[/\u106d/g,"္ဌ"],[/\u106e/g,"ဍ္ဍ"],[/\u106f/g,"ဎ္ဍ"],[/\u1070/g,"္ဏ"],[/\u1071/g,"္တ"],[/\u1073/g,"္ထ"],[/\u1075/g,"္ဒ"],[/\u1076/g,"္ဓ"],[/\u1077/g,"္န"],[/\u1078/g,"္ပ"],[/\u1079/g,"္ဖ"],[/\u1079/g,"္ဖ"],[/\u107a/g,"္ဗ"],[/\u107c/g,"္မ"],[/\u1085/g,"္လ"],[/\u1086/g,"ဿ"],[/\u1090/g,"ရ"],[/\u1091/g,"ဏ္ဍ"],[/\u1092/g,"ဌ"],[/\u1097/g,"ဋ္ဋ"],[/\u1060/g,"္က"],[/\u105a/g,"ါ်"],[/\u104e/g,"၎င်း"],[/\u1025\u103a/g,"ဉ်"],[/([\u1000-\u1021])\u108b/g,"ၤ$1ိ"],[/([\u1000-\u1021])\u108c/g,"ၤ$1ီ"],[/([\u1000-\u1021])\u108d/g,"ၤ$1ံ"],[/\u108e/g,"ိံ"],[/\u103c([\u1000-\u1021])/g,"$1ြ"],[/\u1031([\u1000-\u1021])/g,"$1ေ"],[/([\u103b\u103c\u103d])(\u1064)/g,"$2$1"],[/\u1031(\u1064)/g,"$1ေ"],[/([\u1000-\u1021])(\u1064)/g,"$2$1"],[/\u0020(\u1039[\u1000-\u1021])/g,"$1"],[/\u1064/g,"င်္"]],asFoundAs:[[/([\u102b\u102c\u102d\u102e\u1031\u102f\u1030\u1032\u1036\u1037\u1038])([\u103b\u103c\u103d\u103e])/g,"$2$1"],[/\u103d([\u103b\u103c])/g,"$1ွ"],[/\u103e([\u103b\u103c\u103d])/g,"$1ှ"],[/([\u102f\u1030])([\u102d\u102e])/g,"$2$1"],[/\u1036([\u102d\u102e\u102f\u1030])/g,"$1ံ"],[/\u1037([\u1031\u102c\u102b\u102f\u1030\u1032])/g,"$1့"],[/([\u1031\u102b\u102c])(\u1039[\u1000-\u1021])/g,"$2$1"],[/([\u102b\u102c])(\u1004\u103a\u1039)/g,"$2$1"]]}}},u.exports=t},function(u,e,g){"use strict";function t(u,e,g){if(!u)throw new Error("Content must be specified on knayi.fontConvert");if(""===u||!r.test(u))return u;u=u.trim().replace(/\u200B/g,""),e||(e=n(u));for(var t=c.syllable[e],i=0;i<t.length;i++)u=u.replace(t[i][0],t[i][1]);return u=u.replace(/^\u200B/,""),g&&"​"!==g?u.replace(/\u200B/g,g):u}var n=g(0),r=/[\u1000-\u109F]/,c={};c.syllable={zawgyi:[[/([\u1000-\u1021\u1023-\u1027\u1029\u102a\u104c-\u104f\u1086\u108f-\u1092])/g,"​$1"],[/([\u1031][\u103b\u107e-\u1084]|[\u1031\u103b\u107e-\u1084])/g,"​$1"],[/([\u1031\u103b\u107e-\u1084])\u200B([\u1000-\u1021\u1025\u1029\u106A\u106B\u1086\u108F\u1090])/g,"$1$2"],[/([\u0009-\u000d\u0020\u00a0\u2000-\u200a\u2028\u2029\u202f]|>|\u201C|\u2018|\-|\(|\[|{|[\u2012-\u2014])\u200B([\u1000-\u1021\u1031\u103b\u1025\u1029\u106A\u106B\u107e-\u1084\u1086\u108F\u1090])/g,"$1$2"],[/\u200B([\u1000-\u1021\u1025\u1029\u106A\u106B\u1086\u108F\u1090]\u1039)/g,"$1"],[/(\s|\n)\u200B([\u1000-\u1021\u1023-\u1027\u1029\u102a\u104c-\u104f\u1086\u108f-\u1092])/g,"$1$2"],[/([\u1000-\u1021])\u200B([\u1000-\u1021\u1031\u103b\u107e-\u1084])/g,"$1$2"]],unicode:[[/(\u103A)(\u1037)/g,"$2$1"],[/([\u1000-\u1021\u1023-\u1027\u1029\u102a\u103f\u104c-\u104f])/g,"​$1"],[/([\u0009-\u000d\u0020\u00a0\u2000-\u200a\u2028\u2029\u202f]|>|\u201C|\u2018|\-|\(|\[|{|[\u2012-\u2014]|\u1039)\u200B([\u1000-\u1021])/g,"$1$2"],[/\u200B(\u1004\u103A\u1039)/g,"$1"],[/\u200B([\u1000-\u1021]\u103A)/g,"$1"],[/(\s|\n)\u200B([\u1000-\u1021\u1023-\u1027\u1029\u102a\u103f\u104c-\u104f])/g,"$1$2"],[/([\u1000-\u1021])\u200B([\u1000-\u1021])/g,"$1$2"]]},u.exports=t}]);
+module.exports =
+/******/ (function(modules) { // webpackBootstrap
+/******/ 	// The module cache
+/******/ 	var installedModules = {};
+/******/
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/
+/******/ 		// Check if module is in cache
+/******/ 		if(installedModules[moduleId]) {
+/******/ 			return installedModules[moduleId].exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = installedModules[moduleId] = {
+/******/ 			i: moduleId,
+/******/ 			l: false,
+/******/ 			exports: {}
+/******/ 		};
+/******/
+/******/ 		// Execute the module function
+/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+/******/
+/******/ 		// Flag the module as loaded
+/******/ 		module.l = true;
+/******/
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/
+/******/
+/******/ 	// expose the modules object (__webpack_modules__)
+/******/ 	__webpack_require__.m = modules;
+/******/
+/******/ 	// expose the module cache
+/******/ 	__webpack_require__.c = installedModules;
+/******/
+/******/ 	// define getter function for harmony exports
+/******/ 	__webpack_require__.d = function(exports, name, getter) {
+/******/ 		if(!__webpack_require__.o(exports, name)) {
+/******/ 			Object.defineProperty(exports, name, {
+/******/ 				configurable: false,
+/******/ 				enumerable: true,
+/******/ 				get: getter
+/******/ 			});
+/******/ 		}
+/******/ 	};
+/******/
+/******/ 	// getDefaultExport function for compatibility with non-harmony modules
+/******/ 	__webpack_require__.n = function(module) {
+/******/ 		var getter = module && module.__esModule ?
+/******/ 			function getDefault() { return module['default']; } :
+/******/ 			function getModuleExports() { return module; };
+/******/ 		__webpack_require__.d(getter, 'a', getter);
+/******/ 		return getter;
+/******/ 	};
+/******/
+/******/ 	// Object.prototype.hasOwnProperty.call
+/******/ 	__webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
+/******/
+/******/ 	// __webpack_public_path__
+/******/ 	__webpack_require__.p = "";
+/******/
+/******/ 	// Load entry module and return exports
+/******/ 	return __webpack_require__(__webpack_require__.s = 2);
+/******/ })
+/************************************************************************/
+/******/ ([
+/* 0 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var myanmartools = __webpack_require__(3);
+var whitespace = '[\\x20\\t\\r\\n\\f]';
+var mmCharacterRange = /[\u1000-\u109F]/;
+var library = {};
+
+/** DETECTION Libarary **/
+library.detect = {
+	unicode: ['\u103E', '\u103F', '\u100A\u103A', '\u1014\u103A', '\u1004\u103A', '\u1031\u1038', '\u1031\u102C', '\u103A\u1038', '\u1035', '[\u1050-\u1059]', '^([\u1000-\u1021]\u103C|[\u1000-\u1021]\u1031)'],
+	zawgyi: ['\u102C\u1039', '\u103A\u102C', whitespace + '(\u103B|\u1031|[\u107E-\u1084])[\u1000-\u1021]', '^(\u103B|\u1031|[\u107E-\u1084])[\u1000-\u1021]', '[\u1000-\u1021]\u1039[^\u1000-\u1021]', '\u1025\u1039', '\u1039\u1038', '[\u102B-\u1030\u1031\u103A\u1038](\u103B|[\u107E-\u1084])[\u1000-\u1021]', '\u1036\u102F', '[\u1000-\u1021]\u1039\u1031', '\u1064', '\u1039' + whitespace, '\u102C\u1031', '[\u102B-\u1030\u103A\u1038]\u1031[\u1000-\u1021]', '\u1031\u1031', '\u102F\u102D', '\u1039$']
+};
+
+// Populate Detect library as RegExps
+Object.keys(library.detect).forEach(function (type) {
+	for (var i = 0; i < library.detect[type].length; i++) {
+		library.detect[type][i] = new RegExp(library.detect[type][i], 'g');
+	}
+});
+
+/**
+ * Font Type Detector agent
+ * @param content Text to make a detection
+ * @param def Default return format;
+ * @return unicode ? zawgyi
+ */
+function fontDetect(content, def) {
+	if (!content) throw new Error('Content must be specified on knayi.fontDetect');
+
+	if (content === '') return content;
+
+	if (!mmCharacterRange.test(content)) return def;
+
+	content = content.trim().replace(/\u200B/g, '');
+	def = def || 'zawgyi';
+
+	var detector = new myanmartools.ZawgyiDetector();
+	var zawgyiPropability = detector.getZawgyiProbability(content);
+
+	var match = {};
+
+	for (var type in library.detect) {
+		match[type] = 0;
+
+		for (var i = 0; i < library.detect[type].length; i++) {
+			var rule = library.detect[type][i];
+			var m = content.match(rule);
+			match[type] += m && m.length || 0;
+		}
+	}
+
+	if (match.unicode > match.zawgyi && zawgyiPropability < 0.05) {
+		return 'unicode';
+	} else if (match.unicode < match.zawgyi && zawgyiPropability > 0.95) {
+		return 'zawgyi';
+	} else {
+		return def;
+	}
+};
+
+module.exports = fontDetect;
+
+/***/ }),
+/* 1 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var fontDetect = __webpack_require__(0);
+
+var mmCharacterRange = /[\u1000-\u109F]/;
+var library = {};
+
+/** Spelling Check Libarary **/
+library.spellingFix = {
+	unicode: "\u102B \u102C \u102D \u102E \u102F \u1030 \u1031 \u1032 \u1036 \u1037 \u1038 \u103A \u103B \u103C \u103D \u103E \u1039".split(" "),
+	zawgyi: "\u102B \u102C \u102D \u102E \u102F \u1030 \u1031 \u1032 \u1033 \u1034 \u1036 \u1037 \u1038 \u1039 \u103A \u103B \u103C \u103D \u105A \u1060 \u1061 \u1062 \u1063 \u1064 \u1065 \u1066 \u1067 \u1068 \u1069 \u106A \u106B \u106C \u106D \u1070 \u1071 \u1072 \u1073 \u1074 \u1075 \u1076 \u1077 \u1078 \u1079 \u107A \u107B \u107C \u107D \u107E \u107F \u1080 \u1081 \u1082 \u1083 \u1084 \u1085 \u1087 \u1088 \u1089 \u108A \u108B \u108C \u108D \u108E \u1093 \u1094 \u1095 \u1096".split(" ")
+};
+
+// Populate Spelling Check
+Object.keys(library.spellingFix).forEach(function (sys) {
+	library.spellingFix[sys] = library.spellingFix[sys].map(function (exp) {
+		return [new RegExp("[" + exp + "]{2,}", 'g'), exp];
+	});
+});
+
+/**
+* Spelling Check agent
+* @param content Text to process
+* @param fontType Type of font of content
+* @return edited text
+*/
+function spellingFix(content, fontType) {
+	if (!content) throw new Error('Content must be specified on knayi.fontConvert');
+
+	if (content === '' || !mmCharacterRange.test(content)) return content;
+
+	if (!fontType) fontType = fontDetect(content);
+
+	content = content.trim().replace(/\u200B/g, '');
+
+	switch (fontType) {
+		case 'zawgyi':
+			for (var i = 0; i < library.spellingFix.zawgyi.length; i++) {
+				var rule = library.spellingFix.zawgyi[i];
+				content = content.replace(rule[0], rule[1]);
+			}
+			return content;
+		case 'unicode':
+		default:
+			for (var i = 0; i < library.spellingFix.unicode.length; i++) {
+				var rule = library.spellingFix.unicode[i];
+				content = content.replace(rule[0], rule[1]);
+			}
+			return content;
+	}
+};
+
+module.exports = spellingFix;
+
+/***/ }),
+/* 2 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var fontDetect = __webpack_require__(0);
+var fontConvert = __webpack_require__(10);
+var syllBreak = __webpack_require__(11);
+var spellingFix = __webpack_require__(1);
+
+module.exports = {
+	fontDetect: fontDetect,
+	fontConvert: fontConvert,
+	syllBreak: syllBreak,
+	spellingFix: spellingFix
+};
+
+/***/ }),
+/* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* Copyright 2017 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+ 
+
+module.exports = {
+    ZawgyiDetector: __webpack_require__(4).ZawgyiDetector
+};
+
+
+/***/ }),
+/* 4 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(Buffer) {
+/* Copyright 2017 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+var DATA = "VVpNT0RFTCAAAAABQk1BUktPViAAAAAAAOMAWr/uESgAAD5mstAAAb7NhnAAAr7ArUgAA76jY7AABD66vUAABb9aKJgABr8tSVgAB73iAuAACL+15zwACUA0BwwACkA1NngAC79BHAgADL9xkEAADb9dKzAAEMCSLKIAET8EMGQAEj5P/OAAE76TVMAAFL+iSNQAFT5ra0AAFj+JRUIAFz86bsgAGD4GNcAAGb8g0mgAGj1aM4AAGz6/W+AAHL3q7cAAHT5DkjAAHj/2mogAH76ca0gAIL+xmWgAIr7jCJAAI0EBDq4AJcCO+MEAJr/wybwAJ0ABACQAKL+UlaQAKkAuZ4gALMDxt1cALcBzklwALsCuxssAL8CAnsgAMMCcK5wAMcBeCZwAMsEKQmQAM8CZvSIAN8CebhwAOMCCLngAOcDMj1gAOsCB0/QAO7+VWCAAPMEOOUkAPsDG7nIAQT+tU9wAQj/PnfAAQ8B8HiQARMB8HiQARcCZvSEARsCQ3jgAUcA9WDwAWb+VWCAAW8BeCZwAYsCP93IAbEEGSaIAbUD3bvoAbr+VWCAAb0EF2E8AcUB1XYYAckB6iawAc0D/dDYAdEDfaNoAdT276oAAdsCCl3kAd8EBmlAAeEC+K7gAecAjZRgAer+VWCAAez5gz8AAfb+VWCAAfr+VWCAAf7+VWCAAgD8gAIAAhsEUnwgAh8Cr4t4AiL+VWCAAib9C47AAir9C47AAi8B8HiQAvb2LjIAA4sAjZRgARb9yX6AAAD70UaAAAb9yX5gAAj9rFvgAA8AVUPQABL/R6NgABT3HB4AABr8z/FAAB768p0AACL7fNEAAC8CxEe0ADECMz44ADUA4/moAEECETuoAET3Dj0AAEr+IQ1QAE8ABTfAAFMAPv1gAFT+jMDgAFr9NzKAAF7+pJcQAGMAiKLwAGcASMZQAGr7MD9AAG78KAJgAHL3dXgAAHT58zSAAHr7XYyAAH7+gRowAIMAC55AAIr/ZxogAJsA5IbQAJz8ppIAAKL/R6NgALMAjmPAALb/YoC4ALj1BH2AAL8AnsIgAML7+LbAAMbzLuAAAMr4kAQAAM78tXYAANMCR2JgANcBboJwAN8BO6ZgAOL+tFhAAOcC/D5UAOsBdfhAAOz+4Vk8APEBUUUcAPT/QfNYAPkDhm2UAQb9RpfAAQsBWDwQAQ76B2wAARL/R6NgARsBx60QAV8DelCYAWMDKAgcAW8Co4VIAYr/R6NgAaL/R6NgAc8BJNzwAdMDw4IwAdcBJNzwAdsC6TZIAd8A5IbQAhsBx60QAh8BJNzwAiMC6DswAMr98PjAAAL9DhzgAAb8oEqgAAsCJ1SwABb/kiPAABsBwgaYAB7/W2CAAC8BYhqwADsAmEJQAEL9FLLAAEbtNoAAAEr/W2CAAEz9OcpAAFb8a4egAFr+eSjAAFz84LCAAGcAXyJgAGr8H/dgAG7+yBWAAHD60CBAAHb+BckgAHj7NTAAAH0A/cG4AID8fxfAAIsCNav8ALL+AhG4ALcAiAhgALj+JjK4ALz/TrYgAML3Q4yAAMb22wYAAMkAONi8AMz8CVRoANMB+yaIANcAXyJgANz4l6MAAOMDEb4sAOb/W2CgAOsA7mVgAO8CPGNkAPECylcsAPT5loEAAPkDpEa4AQb+pMKAAQsBEJSAAUcDUokEAdMCT7uIAd7/W2CgAgb/W2CgAhsB7gT4Ah8CmjfwANL/KAkQAAD/aWjQAAUBPflwABb6/mfAABr/S1wgABzz/8wAACD+1ceQAC79ikngADMARXagAEL+0oEAAEb6QmIgAEj8eeMgAEz/XBwgAFL5EgWAAFT9tn7wAFr8pcoAAFzz/8wAAGD8AUcAAGTz/8wAAGj+gpHgAGz85cbAAHL7F2HAAHT+b94wAHsCIEzIAH79ikngAIL/mkjwAIcARXagAIkAQB1QALL7x44gALj7g47AAL7/Cy7QAML9I/EAAMT6HzTAAMj+R1bgAM7+WG/wAN7++XUwAOkA6OGgAO8Af6GAAPEDGUe8APT8eeMgAPkBgmgsAQsARXagARr5EgWAAUcBXrVIAWcDR+kYAW8DKD4EAdMA9ui4AgsArUMwAg8ARXagAhMARXagAhsARXagAh8ArUMwAicARXagADb78DDAAAEADjCAAAT8bOJAABL+XvBgAEb+XvBgAEj8bOJAAFT7nhFgAGj/z6zIAHT5NsAAAID8bOJAALT6tzNAALj9k3hgAQr+XvBgAW7/LomAALL/bqnAAAL8suDAAAj5rSQAABcBntEAABr+C8WgAB8AaMbwAEb5ZJoAAEr+C8WgAFb/KO0QAFsA5RE4AF76o4WAAGkB/42IAG7/cHxAAHMCBIMsAHT+4bigAHkC7VnUALL/7fJgALcDFdJ8ALj+ylqwALz72UOAAMD/aX8wAMT+YEUAAMj9EzgAAM8A+AoAANr8eFkAAN72rfWAAOL+Rw3IAOcBa79AAOsEexREAO0Et0ToAPMAaMbwAPb8Sh9gAPj7IkkAAP0BHLd4AQcAaMbwAUcAaMbwAWUClKDIAb7+C8WgAeT+jybgAekA5iOgAe0Cii88AfEAgNzAAfb+C8WgAf7+C8WgAi8BGjkQAOL9wruAAAD5N0+AAAb4NxyAAAr8A1+AAAz4iPwAABb7xx3AABj8Dj4gAB783jwAACkDVWc8AC74eZ+AAET8vInAAEj+R07QAEz4iPwAAFT1HcoAAFj0cDoAAF72Z80AAGL+sPcAAGT/AR2AAGj96aEgAG0BR4LIAHL5PDIAAHT8wsCAAHj8rVUAAH8ATCdYAID8zuigAIj8h2bAAJsDjx5UAJz4iPwAALL5880AALb8lsDgALj3yaOAALz4pHIAAML1lDgAAMb7fxwAAMj/tMGYAMz0U2oAAN7+PyeQAOMCJ1r8AOcA4tYQAOsANA8AAO0BhiqIAPD4IpSAAPcD124oAPkDHub0AQb+PrcAAQsB/BSwARMB4nWgAXMDneY0AXcBbNG4AXsAjLMAAar/REIAAdcACe2QAdsCZ9r0Ad7/REIAAhsBtndIAh7/REIAAi8ACe2QAKL94jOAAAD+DC+gAAT25qsAAAr6/AgAABb6SoUgABr5gwEAAB76ONYAAC79XeNgADD95mlAAETzUbAAAEj873YAAEz9SI+AAFT88+JwAFr+GUcwAFz7UrqAAGT4Cx0AAGj73UtAAGz6LXRAAHL8pC5gAHT/rD1gAH7+QAagAIL6ONaAAIj4Cx0AALcAjXH8ALj3aAgAALz4WlPAAMD6mlRAAMT9V/WgAMkCcJowAMz6aqHAAN7/30jwAOMAW3EQAOcDu6tQAOsAW3EQAPMAW3EQAPcDr7h4APkDaU3UAdcAEcuQAdsAEcuQAhsDTnB0Aib/U/4AAJr8HXHgAAL7YxxAAAT+KU9gAAj4oVqAABT2aVeAABj6YiYAAET+OhkwAFT8/6SAAFr8HXHAAGD8R4jgAGT/08JwAGj9FQWAAG78dotAAHMCaNwAAHbyS3wAAHj+sfO4AH7+ommQAID4oVqAAIj9bh8AAJr/QTZAALb8L9JgALr6LrzAALz9Ka1AAMD+RyTIAMb72JDgAMkCQ8pYAMz9bh8AAN79ogqgAOcBnqsIAOr7lvYAAO0B+JcYAPcCuXAsAPkCiWQAAXL+cZ0gAX7/1IFQAcL/QTZAAdr+cZ0gAhsAI2CYAj7+cZ0gAA77S1SAALUAiFwwAMkCTzAcAOcCAufYACMAzd1IAAb8bX/gAFsAHGswALT844kgAL0AKmhsAMb+1fIwAOL9bthgAOr85hwAAO0CpjzYAML5jYAAAAD8wK6AAAT+VBhgAAr9qShAAA79qShAABT3qWAAABj9NbfAACT/tvyAACj+xlhAAC7+8xogAEL9qSiAAET848EAAEj7xNCAAFUBtbQgAFj1eCQAAFz470kAAGb+I4EAAGj/bPYAAHT8RAFAAHj7xNCAAHz470kAAIMAA4jAAIr/Fm0gAJr/qbhAAJz/cp5AALT6tHzAALr4McAAALz8wWgAAMT+VBhgAMr+c2DQANL9qShAANb9qShAAN78W+zgAOD6+tHAAOb9qShAAOsEKi7oAO0EbpRIAPL9qShAAPcCQZnEAPj/VwTgAP0C2z6cAQb8gpJAAQr9qShAAdb9qShAAd79qShAAfsBhJPwAf7+pC1AAgcChWr4Ai7+pC1AACr+HvPQAAL/gdgAAAT6m1JAAFr68D6AAHL/gdgAALj9M4FwAMj+e/igANL/gdgAAN8Acl4YAOj/qOsEAO0BPl1QAHL8qweAAAD9m9WAAAb+Ww6wAAz7c+ZAABzzWBwAAET9QiJAAEr+uGfwAEzzWBwAAFT9xQkAAFjzWBwAAFz7c+ZAAHD7c+ZAAHb8DS3gAHr+uGfwAHzzWBwAAID/y71QAIj8nnLgAJsARsYAAJzzWBwAALD/osHwALTyDR0AALj84IlAAMkA127YAOcCiXBQAPL/iAEQAQTzWBwAAdr+uGfwAd8AnOkQAhsAvxgoAEL9nrDgAAEA4RRwAAUAOwOIABz5GScAAET9raXAAEr5Y6IAAFT/+IZgAFj/vDhQAF75Y6IAAGkAfwioAHD80V+gAH75Y6IAAID5GScAAIj+y5QAALUCChC4ALkAChqIAQT9jBIgAAAAiv4XS3AAAvtDa4AABvzhW0AACwCnqdAAGv96L6AAHv7m5IAARvwjgOAASv0IAKAAVv1pmaAAWv6Ji0AAXv4XS2AAZPq59AAAav1KFwAAcvwjgOAAdv96L6AAeP5Nr0AAfPVmPgAAgP1OIuAAiv50pKAAtPryENAAuPfD0gAAvPLpRwAAwv7+tgAAywGvPwAA6v4XS2gA7QMIPbAA8wDWVngA+wCnqdgA/Pz8LEABBwAk5GABkwBuiegBnwIrsNgB1v96L6AB3v96L6ACGwBuiegBMv+d6EAAAP5fHZAABv2npSAACPseVgAADPorEYAAFPN8GgAAGv9/iTgAHv3OJEAAIv47BAAAKvtgf4AALv4SLfAAQwDoMsAARv0a4eAASPuplcAATPv0EQAAVv1NcoAAWPy7RhAAXvSBCgAAYv+d6CAAZPzYqcAAavv13MAAbvm/+sAAcPRjggAAdP2GMKAAeQBCR4gAfvtpgAAAgPfwhAAAiv1pXuAAjQJWjngAmwKyKtAAnQDwfXgAov47BAAAtv8ZTfAAuvlPRgAAvP7mtkAAwvwfj9AAxP5rVuAAyQDm8DQAzvo2YQAA2QKnNrQA3v/DmLAA4wKR/7wA5wNG1AAA6wKQn/AA7QQtddAA8wKTg4QA9wKbK4gA+QQ2f2gBBPMX+AABCvzW1cABEvzW1cABGwCAZjABXwCAZjABZQPJKcABowNzehABpwKuj7QBqwJ40fABrwIvylABsQJfm+ABtPgzMQABvP3bUQABxvzW1cABzQJMLkQB0PgzMQAB1wFq+EAB2wJCG3AB3wJZccAB4vtgf4AB5QGZSFgB6QOMa4wB7QNcEtgB8QNDjPAB9QPeP/QB+v47BAACAv47BAACGwKnB6ACHwNTiGQA2v8y82AAAvkI94AABv4Q/CAACwCEC8AAFv52Y3AAGv9b7tAAHv2gHoAALv79S+gAQv2gHoAARQJMA/QASPCKYAAAVPi2sgAAWvxuKvAAZwBK69AAaPgT+0AAbvgE8oAAcP5kGGgAdPmZvwAAeP89HRAAfP/ai6AAgPCKYAAAiv6fqGAAtv2dSKgAuveRdEAAvvOvaAAAwPgKlwAAxP1ElBAAyQGvGxwAzvgVmgAA2QHjsVAA3wEgqsgA5wBK69AA7P5YnWAA8wABRlAA9wLO1bAA+QNNh8ABBPkTcAABCv2gHoABZQMQuYABqwCyuGABsP7j2DABtvlpWAABvQD0USgBzQAdMvAB0QAJvyAB1wBK69AB2v2gHoAB4vlpWAAB5vwA7EAB6QIkrwAB7v2gHoAB8QNafaAB9QM47vACGwCyuGACHwBK69AA3v5qToAAAvgqIYAABvsGSkAACvjuFYAADPpfH8AAFvwwC2AAGvwgo+AAHwCYC2gAIPs25wAALPTjdAAANvwO1MAAQPr1L2AARvgDYQAASvxQ6wAAUvwO1MAAVP4AcdgAWP5dFngAXP95PvAAYvwO1MAAZv8WlJAAav6IbuAAbv0t3CAAcPi2oIAAdv3ijSAAfwJoxjAAgv8g7KAAiwCRkDgAmvwO1MAAsvwjgCgAtQEDCmAAuPrRQSAAvPZ2zYAAwPoLT8AAxPwLpIAAyQEy3hwAzPTjdgAA3wNr1GgA4wDRK1gA5wJ16fQA6v79mZAA7QKraXAA8wH676AA9v4M9UAA+QAWlLABAP95PvABBwCHhdABGv/NMqABRwNV8ngBswHqagABtwIr63wB1wGCnXAB3v/NMqAB9wDRK1gCGwGbA7ACHwBOZeACIwDRK1gAbvvPu4AAAP+m/ZAABPuE1MAAGPl3qoAAHPl3qoAAIP7wX3AALPl3qoAAUP2jswAAVvg9RoAAXP2jswAAZQGH6SQAaPfNsoAAcPl3qoAAdQBp9/gAePx9HOAAfPl3qoAAgQH0UpAAsvsnqdAAtPRkV4AAuPbnTgAAvP2jswAAwP5EGWAAxv+5t0AAyv91WQAA3wCsdMAA9v5W0xAA+Px9HOACGv5W0xAA7v4610AAAv7iZvAABvNdUAAACv5WRrAADv/x2xAAFPwmqIAAGvyyKQAAHwD6IOAAIwDoHGAAKPy1FIAALvzbP5AANvtfzAAARwAEmnAASwKR9IgATwD8mhAAVv7FpyAAWv+0feAAXwC5b8gAYPorxIAAZv9xLsAAav8TMQAAbvxRmMAAcwGO7RgAdwFAHdgAeP0ZoOAAfwJlAaAAgvtfzIAAiwESFVAAmwJKUxAAnP9+myAAtv3QnqAAuQAQjBwAvPrRlAAAwP5gFSAAxQBRrjAAyQDCxpAAzPuB0sAA3v2zbYAA4QFAOxAA5wExwfAA6wFDtCQA7QRgPbQA8v++CAAA9wDoHGAA+PDCmAAA/QPIanABBwChCYABCv+du4ABEwGZjoABGwHBBOgBowGDSCABswC5b8AB1wNkA0wB2wMmshQB3wKm/HAB/wJzFigCGwKA3PwCHwFP6PACLwPXPowCMwMjzYgBNv87tQAAAv0910AABvyfLSAACv/9RvAADvwSb4AAFv+z3/gAGvpwMEAAHv+ZDmAAIv/PACAAKvmvZQAALwEmGIgAMPn+rQAANwJEZsgAQQEXNXgARvwNU0AASv3p4SAATQEW3KAAUwB2wxAAVv/KIDgAWvyBuMAAXvtFOwAAYv5sHAAAZwBPTKAAawALw0gAbPN5jAAAcv3MjoAAdPo1jIAAeQJ5EOQAfwDxt0gAgvyLC8AAiwClb6gAjQGdT2gAmwGyMNAAsvvUBoAAtwLuj1gAuPvicUAAvv5uDFAAwPZatAAAxP4CnjAAyP8nXggAzv5MxxAA0wQ3gQgA1wIM/rAA2QPoXUwA3wBpObAA4wFoi1AA5wRhJswA6wLCkbQA7QCpzuAA8QBV7IAA9P9ILzQA+QO6RiwBBwGyMNABCwKzTZQBDwBPTKABEwEAvrABGwFoi0ABRwPiEUQBZQQGh/ABsQKWx8ABtPuz3gABvwK0v9wBwwBPTKABxQFH/lAByu+swAABzQOYH3AB1wIM/rAB2wJ0yzwB3wHrUMAB4vwSb4AB5QJkF+gB6QOi55gB7QBtKuAB8QK1ItgB9P4Qu2ACGwLIr5wCJwIB24ACLwGQAbAAzv280YAAAwICSEgABPsyB0AACvr2soAADQG1wmgAFwJ21kwAGwLvTSAAHwG6RBgALwJ1AGwAQv9BTQAARwEN/fwASwDhW5AATP5KQ8AAVvMWqAAAWwEhsbAAXwE8qpgAZv9BTQAAaPwCvOAAbPwUhSAAcvpczUAAdPyRWeAAev280cAAfwE8qqAAgv9BTQAAmv9BTQAAsv/HoZAAtwBVlZQAuPvF0zAAvP5fKnAAwv5r6GAAxvek3QAAyQA42ewAzwBpvlgA0wJMicgA1wNOqhgA3wIzN2wA4wEDiqgA5wII8hAA6wHuHLAA7v6f3CAA8QFt7gQA9P4DYGAA+QPindABBwDhW5ABCwJ2MTgBRwJMicgB1wIzN2wB3wIYo4AB9wAIcxACGwFVENgCHwE8qpgCLwDhW5AAkv5iCIAAAvb4sgAABP+O0bAADvv8kQAAFQBBmVwAGP4qDIAAHvb4sgAAIvv8kQAALv9nk2AARvs5X0AASv/E7LAATv5ySdgAVPvnxkAAavwV0yAAbPEzUAAAcPyQf0AAdPq4VKAAgvihC4AAsv5iCHAAtPzqyIAAuPgnVyAAvPw/pcAAwP7TioAAxv/d58AAyQIDsoAAzvozkcAA0v/E7LAA1v/E7LAA3wIKedQA5wD7tQAA6P3LXKAA7wB1/ZwA8QIRdbgA9P/99MQA+QB/VigBxwD7tQABzv/E7LAAvv3epkAAAv/mrAAABPv9J2AACPyRakAADvyMe2AAFP+Hj9gAGP4YTkAAHvyGGiAAIQArBjAAQP5ZM9AARvsi9CAATv1AzKAAVvZL2wAAWv3epoAAXvoxvAAAZv9SN2AAaP1hOeAAbvwL9OAAcP9b64AAdQCWgbgAePsgI0AAfQFwdTAAgPtZ1QAAiwA4XqgAmwAQ6DgAnPtZ1QAAtvwlttAAuvdR1gAAvQAtaQgAwvwhg9AAxvuHuUAAyQDX4BwAzv3CeXAA3wEL/9gA4PgZUQAA5wMDB9gA6wI3cgQA7QHaVGgA8wDCWlAA9wJ/E4AA+QI5bfwBBv9SN2ABbwCTrbAB2v9SN2AB3wAQ6DgCGwBajcACHv9SN2ACIwJl5bQBWv96beAAAv4qhgAABvqtAYAACv4tx2AADPgRVoAAFwAAsSwAGPT0ugAAHvtzAkAAIvvkDoAAJv4XiaAAKvyP4QAALwCn4eQANwEgGyAAQPtwgYAARPi3DUAASv0v4MAATPxikQAAVv5HxyAAWvpKK0AAXPk1fwAAYv6q1KAAZP6cXcAAav33tcAAbvyHoKAAcv5Z8DgAdv4XHeAAeP1B38AAfv2D5CAAgv2CJ+AAiv/F2/AAjPxA/UAAmwJkTlwAnPxA/UAAowJJQjAAsvyP4QAAtv5oZPgAuPqte6AAvP3LdHAAwvwgGKAAxP0oBXAAyPgbIsAAzv55peAA0wMHPugA1wLACngA2QIFU/AA3v7DazAA4Pta1YAA5wQRd1QA6wARHbAA7P1YsOgA8P42hfAA9PtFOMAA+wCTKnAA/QQqQZQBBv96bdABCwAw7DABDwGvXhABEv4XiaABGwIcrOABZQO0v/QBowBuqQABsQIUOnwBtP5pH6ABvwDDT2gBxwHvtEABywD3YqABzP8SxpgB0v4XiaAB1wLmWAwB2wJ1ZfAB3wMyUHAB4QG5hsAB5QLu4ggB6QPhifwB7QMd3lAB8QJddPAB9QMH6yAB+wKpTDgB/wQdOUgCAwKszgQCBwK9B2wCGwLfi8ACHwJQkywCIwKNnwQCKwGH57ACLwIFVpACMwFZOxABCv9CvEAAAP6rCOAABvw2R8AACwF3YAAADv2/sEAAFvqiXQAAGv20f0AAHwFVyIAAJvwgfgAAKQD0YkgARPxEfKAASv7QfGAATv2/sEAAVP+GZJAAWv+HGpAAXP0R+UAAYPdWFgAAZwA311AAaP5bXLAAbvKtAAAAcPhImYAAdPtWu4AAeQLol0gAfP0/fgAAgPxEfMAAiv7K1CAAmwFJ38AAswBS0EAAtvxGNWAAuQB7xyAAvPx4rSAAwQBfLRwAxPy8J/AAyQAE/8gAzPx72gAA2QL4AKgA3v4XdwAA4P1F1UAA5wBS0EAA6wR6isgA7QKuiBAA8P8+HgAA9wKIO/QA+P+AxrgA/QHTMcgBAvwgfgABBvpK+QABCv49MUABYwC6nMABZQOBAIQBiwBS0EABsQEyrjgBtPiVKgABvvKtAAAByP95UeABzQGKRrAB0P9Uu6AB1wFsDuAB2wC6nMAB3wBS0EAB4v2/sEAB5QLojbwB6QMl96gB7P9Uu6AB8QKVT0AB9QF2oeACGwHFOYgBNv3d4EAAAPvRf4AABPbntwAACP7OO9AADv7N0hAAFvuuvaAAGvwvEuAAHvhLrAAAIwGIGJAAKPtbYQAALvypm+AAMvowL4AANv3d4AAAQvw+rgAARPoQGuAASvsLqwAATv1ABoAAUwCTfDAAVv0nXcAAWPWSvwAAXPwt24AAYv7flGAAZvqE8UAAavFlRAAAbvsSGgAAcvzk3YAAdvy8xGAAeP8yUQAAfv5UpyAAgPqWekAAivvECMAAjPtbYQAAmwFRa8AAnQAll1gAowAQtrAAsv9R1EAAtvwq37gAuPoYTuAAvP43JDgAwP2KPxAAxP99ziAAyQB6bxgAzPrNCmAA2QAf1oAA3wDS/ygA5wQm6XgA6wBaXEAA7QIsWxwA8wMVJGAA9wQitGQA+v6c9KAA/QQxKnQBBvqZO8ABCvy3SgABDv9R1EABEwA4LRABFv9R1EABGwKkX3gBZQIdrFQBsP+coKABtQIc9swBvvowL4AByPySMEABzQBmjxAB0QBvPNAB1v/YKOAB2wLH6OgB3wINE+gB4QD3FBgB6QKQh/QB7QJByZAB8QIRDGgB9P6r/GAB/wL0Q8QCBwJaJ/gCGwJ8rFACHwFdVIACMwELzlABIv96IQAAAvwhh4AABvzNGiAACwAfyzgADvgQxgAAFvmVXoAAGvnKBgAAHv8gEpAAIvyPR4AALv4PFPAARv02AoAASv5B7dAATvxRqmAAVPwXguAAWvUdXgAAXPlRawAAYP6cqqAAav2BKGAAbv625cAAcv7q+yAAdv7bVFAAeP1+1EAAfPw5jwAAgv/zKPAAiv9MYkAAjvrRYoAAlwBugpAAmwBugpAAnvrRYoAAtv4f3lAAuPlZaMAAvP/F3igAwvyG/6AAxPy5VfAAyQB897wAzv9KNRgA2QNmBwgA3wGBNQAA4wOtAzgA5wQu/sAA6wKL4UwA7vk+SUAA8PjaGIAA9wQrgJQA+PxRCQAA/QMLTbgBBwBW3MABCwLYSpQBGwI5KaABZQP23FgBbwEf9LABsQJxLZQBtP6Dr6ABvPVoEAABywDWTyABzQEOqHAB0wBugpAB1wGHwUAB2wLUi3QB4vyPR4AB5QK1juQB6QLnnZAB7QO0s9wB8QJhP3wB9QP1PtgB+wBugpAB/wKrVpwCAwDWTyACBwQeR6wCGwIcmagCHwBugpACLwLsuVgCMwEf9LABAwIVPcAAAv77zPgABwD+RBwACwIVPcQADwJt9tAAFwBjMIQAGv/v/GAAHwGbOIAAIwKKhsgAMwLGr9gAQwGuMUAARv6boMgASwJJJAgATwERPNgAUwGuMUgAVwAutrAAWwDuM6gAXwM7+OAAZwA4VFAAawBwsXwAbwGjpbwAcwE38+gAdv43QBAAewAHR/AAfv8BuFAAgwJt9tAAhwCpcEgAiwGdJyAAmwJt9swAswDRlOAAuv9FkPAAvv0BJOAAwv8ztfAAxQEm5NgAyv0+FxAAzwE/6XgA2QJdc7QA3wG5X5AA4wLGr9gA5wQwtVAA6wNTTywA7QPFaCgA8wMOUVQA+v6V7CAA/P3+z6ABBv+hD5ABCwHCrvgBGwJt9swBRwMOUVQBZQJ6ZVgBsvjU1wABtwAWJUABvv4mWeAByv8ztgABzQJ3nJwB0wCOd2AB1wB2ESgB4wDHl1AB5QCGsOgB6QLHjbAB7PrCYYAB8P97+UAB9QIrLkgCGwM7+NwCHwLGr9gBKv6PxIAAAPvsZcAABvq/nSAACv0xcuAADwFwtjgAEwBhIPAAFPqUGwAAGvn/CYAAHwDX/agAIwI9XzwAKPdgPgAALwEjkrAANvxZwIAAQvqaLoAARvQoGwAASv50tlAATwAgysgAVvvJcwAAWP2sqmAAXPtkQMAAYwAydEAAZPzAZ0AAaPzHWkAAbvbbOAAAcvxPqgAAdvpLzMAAeQJ+/IAAfwC/RCAAgvUdIAAAiv7/vJAAjvjqOQAAmvxZwMAAnvxZwIAAtv4+JtQAuPrqFSAAvPsIkaAAwP1Pm4AAxPTNFgAAyP/eKbgAzv8KevAA2QNq69gA3v8p5TgA4wDI7XAA5wOA+ngA6wFcOJAA7P+vf3AA8vu2jIAA9wEL4hgA+QNGh9ABBvsl34ABCvxZwIABDwBhIPABEv2AVsABGv9fXaABZQPCJPQBbwKds3wBsQGMKiABtQCwgtABvP84GkABxvjqOQAByP479IABzQKaF2gB0QLt1UgB1wKLMdwB2wAgysgB3wLYAIQB4PypE8AB5QLXWLAB6QL9lbQB7QEjVugB8QMgpPgB9QBh/PACGwI6u5wCHwE6CXACIwESkwAApv294AAAAv+lPLAABPepJAAACwEDzlAAFP2E+1AAGvalDgAAIvngXwAARP67/GAASv294EAATP6GCqAAVvdrgYAAWvhZ+wAAXvngXwAAYvngXwAAZwAItrAAaPrpLkAAbQA+HPAAcPicagAAdPol/EAAevngXwAAfwEYTAgAhv9B1EAAtPzdyugAuPO+agAAvQAGwoAAwv9Sz+AAxvVSugAAyQHG1DgAzPdklgAA3PcoIQAA4wGkutAA6wC6KMgA7QGHzcAA8PrpLkAA9wEDzlAA+QCzwNgBAvngXwABBwAItrABCwAItrABzv9B1EAB9wAItrACGv9B1EAAEvRqVgAAtP4fKqAAuP0XvyAA0vzsbcAA6vzsbcAA2v2kdAAAAwCOe2gABP37F4AACPqkQaAADv0K6kAAFPtXnkAAGPrJWwAAHvsEAwAAIv4hJuAAKPvOOYAALPphRkAAMvl6rwAANv81HkAAQv47FNAARPLzSgAASPgHfkAATP4kC8AAUvo8vcAAVP4MDGgAWPzzpiAAXPuHOkAAYQAuMZAAZPvOOUAAaPtEsAAAbP1rAAAAcPtfzeAAdvgs8YAAeP8AlBAAfvgrHQAAgvoyZwAAiP6iwPAAmwJpS6wAnQHim+gAtv3bjZAAuPfivoAAvP6M+7AAwv1pXFAAxP7VVuAAyv4exAAAzPnDUYAA3v9XwmAA4wD9c1AA5wMJpjQA8wO2QAgA9wHa48AA+QG72cgBBv81HkABiv81HkAB1wMNQVAB2wK8yxAB3wNb/7gB5wACW6ACGwNivMACHwI0HBADiwACW6AAhwK1bbwAAwID+6QAFv4LwbAARv9ENaAASwDaOvgAWwA9RogAaQHNSJgAbv+c7LAAcwDaOvgAdPuMCEAAeQDxQtgAfwE4XigAjwJctKwAuQDYBwAAvvT+VgAAwQCKADQAxQCalZQAyP8wfRAA2PxQ8CAA+QGnZcgBZQBdU/ABsv+q8/ABtwDuuJgBvwIozmQBywBfdaABzQH2CIAB0v+q8/AB1wJctKwB4wID+6QB5wJctKwB6P8yVIgB7wDaOvgB8Po8ygAB9v91AiAACu49oAAAVP4wP7ACGvzKQ6AASPqpjEAAAv0QNIAABvzVrNAACvriBIAALP4NR0AARv9+SYgASvriBIAAVv0QNIAAWv0QNIAAav6NpTAAcvriBIAAdv4bZVAAfwEI1ZQAiwBOZ8AAmvriBIAAywBOZ8AA8v0QNIAB2vriBIACGvriBIAAeP1bZeAAAPxaDWAABP9uYPQACvwwKsAAGP4f8uAAIP/gMFAALPhWdoAARQBEMPwATwBWu3AAVvZ3EQAAWP9KKEgAZP8QlyAAaP4uX0AAbP510qAAcQNkxfAAfP/gMEAAiPw0z+AAtv9zjhAAuvoTKUAAvwMxTAgAwP8QlyAAywBrOSAA1voTKUAA6wKYu8QA7P8QlyABBQA5vagBbPhWdoABcv0UqoAB1PhWdoAB3PhWdoAB9voTKUAALwDK4ogAAP0p+8AABPchmwAAGv9jR9AAKwAZcHgARPSaugAASv7P/MAAVv5dvOAAWwAZcHgAav7P/MAAcwAZcHgA5P4+acwAIvouoYAABv3SYBAALvtqVOAAWQJaG4gAcPzlN2gAeP6sX+AA8wDWdLQBCv/DsKAB2wG9DqgAAAAq+3yXwAABAAyP5AAI/KauwAANAUDHdAAZAR6YVAAhAOV4aABY+g75AABk+g75AABo/c1E4ABw/ljiUAB8/KauwAAAANL+Z8tgAAL9nJugAAb8LVcAAAr9zj5AAAz+Y+2QABb8Xa8wABr/AfXgAB7+6Y9wACL+ix5wAC78Cc6AADb/yq+AAED1M9gAAET9LGjgAEr/Y/FQAE75f5oAAFb7/zwAAFj6APagAFz8AhKgAGMATSRgAGb8ZctwAGr9esZwAG7+wsRwAHL6zTyAAHb4ZdEAAHj8MOCQAH7/O8AIAID7gJ/AAIb9qQCAAIr4H5MAAJsCl1kQAJ73VOIAAKL/yq+AAML/yq+AAMsDbjawAOL+1a/IAOb98pGAAO0Dp2eMAPMC3h8QAPb/yq+AAQb+lxcAAQr6tW5gAQz9gcJAARMAz+nQARb/yq+AARsAz+nQAW7/yq+AAdcAz+nQAdsCsjl0Ad8BxIYwAhsBZmMAAh8BZmMAAi8C0pukAjMBsAiIAPb9TaKAAAD8fpPYAAT5qTUAAAj7ar6AAAz6GrWAABL+BCqAABb31HkAABr3pwMAABz6xRGAACD4a/cAACT+PX0gACkC1tg4AC7+MCsAADb7tAoAAED7poEAAET8DOzwAEj4xUwAAEz8nnIgAFL8uxlAAFT8G2FgAFj+gjuAAFz/B+FAAGD71++AAGb6+rgAAGj2RUWAAG76GMfAAHD5aiMAAHT0K/gAAHj8Mr1gAH78lD2QAID9Qx0gAIr9SONgAJsCJlCIAJ0AWixQAKL/2U6AALcA577gAMb/CbVgAMsD/rCAAM8AxY/AAOL0B6kAAOb6AdkwAOsEBSRkAO0EF3kkAPMDijHAAQL4H2gAAQb8ffaAAQsB9PrAAQ8Aj3dgARMAb2zAARsBLVxQAW8CLRQUAXcCAH7IAcsCjR4YAdcDWsUEAdsDG4FoAd8DNk1kAeL/2U6AAhsDXT3MAh8CVoXwAib/CbVgAi8Dp7zUAjMCW9t4ATr/QUDgAAL+U1oIAAb7kXPAAAr75xBAAA7tYiAAABb98FkgABr9WsVAAB7/yprAACL9vLlAACb9vLlAACj8s1dAAC7/997gADD8R3OAADb+IrrgAEMBPKSAAEb6piQAAEr9bM7gAE7+rfXAAFMAI2XgAFb7grUAAFr4sG8AAF79zyzAAGL6RQuAAGb+vjcwAGr8TXDgAG78Ej3AAHL/g/1IAHb+ZrowAHkAdpNgAH7+bygQAIL9jzSAAIr+ocxQAIz9bgnAAJsB0x2wAJ79vLlAAKMAUhKAALsCg6qoAL8BksegAMD3G2sAAMUEHr88AMsEOSToANMEZBdoANcCIhzYAOMAizJwAOcECtQoAOsC0UCEAO8AUhKAAPMDeGdYAPcBA4SgAPsEAAyUAQLyTigAAQb/hZ8AAQsAjxsAARMB0x3AARsApitgAWcBA4SgAaMAud8QAacAUhKAAbEC1KtgAbT/vPVgAb0ALeEAAcUA1qVQAcj9FPBAAc0DmUh4AdEATeuwAdcCSTOYAdsCn+MgAd8CZxqwAeEBg6OoAfcC6oOUAfsB7hagAf8DZKwkAgL8HYcAAgbyTigAAhsDAs2EAh8CAz5wAicBA4SgAi8EKSmIAjMDkHl0AQ7/ccfAAAD8pHNwAAT4RdZAAAr+lXoQAAz7m3GAABT6+XlAABj5DCsAAB79BMFAACD8RyfgACb6r/2AAC77p/VAADb+DuOAAEb38w6AAEr8IeUgAEz4egSAAFL+L+7AAFT7REgAAFj5bXGAAFz9UbwAAGL6Pi7AAGT/zKfQAGr9b7nwAGz292UAAHD8TnCAAHb6Ch5gAHrwSdgAAH77RoYAAIL7JhbAAIr87cYgAI0BPZkYAJr8oeVAAJz2OZwAAKL+DuOgALsBG8gQAL8A0iKAAMMAILBwAMsDy7cQAN8AalXwAOD/W6IAAOb8NkRoAOsA0iKAAPMDcv4AAPcCRxioAPsCGoNYAQb46JSAAQr96EPgAQ8A0iKAARMAalXwARsCC2/YAW8A0iKAAYsBg5SgAbECOhDgAbUBuF5gAb0Bblo4Acj625MAAc0CWiU4AdEAyePIAdcAW7QAAdsCVVVQAd8CP1YcAeECDgksAfkDTbhgAf0EGNQoAgECr9RIAgUDcP9gAgsBVOgAAhsDS31MAh8CGoNYAS7/CYgAAAL4eMxAAAb21dkAAAr6zfJAAA70fXQAABT7QPNQABr+tRlgAB73CQ0AACL9noVAACj+9EigAC7+VZ2AADD9IsjAADcAA9p4AEL9kxQgAET63OogAEr7gnMAAE7+hjeAAFb40a3AAFr6OFRgAFz6IIEAAGL8qmXgAGb8NBqgAGj/ZN9YAG7+PBAwAHL6TNEAAHb1wkgAAHkA5hsMAH7+LSwgAID+BxuQAIcANjYQAIr9u0QAAIz7axkAAJr/xHhAAJz+oRLgAKMANjYQALcANjYQALsDujKAAMMEdkocAMcANjYQAMsEQ+1QANMCHQNgANz8z99QAOEC/dJAAOb8ClDgAOsDL3FQAO0AHnTQAPMD5sCAAQL4Hf0AAQb80M6gAQsCB18YAQ7/2SEgARL/wCYgARcANjYQARsCY2tQAYsAngKgAbEEHhLgAbUBVVqgAb0CEnngAcUCCjcUAcr7XCsAAc0EI2+UAdD+9EigAdcDWO4QAdsD2jesAd8DB+ysAeD7axkAAfcBT3TAAfj+PaqAAf8ANjYQAgL4Hf0AAgT+F7kAAhsD145oAh8B6qBwAiMAngKgAi8EcVkQAjMERpWYAQcA9J5AAAL/F87oAAb+hmNIAAr/tFUQAA78YPWgABUALbUgABsAOPXgAB7/C//gACMAWXKQACr+sTRAAC8ALeOQADL/tr9AADb/BGoAAEb7yGoAAEsAcRqYAEz3JpcAAFMA9J5QAFb+tv9AAFj9EWKAAF7+ADvAAGL7cEEAAGb/vvCAAGr87oIgAG7+gGfgAHL+9gHgAHcAIm1MAHkBcmCQAH8AGUKkAIL9/nOgAIcBphBgAIr/51pYAIz9CDmAAJsCtMV0AJz9KP7AALr/Z9JwAMMCBu54AMcCrT1gAMsEfXeQAM8AQywwANMBphBgAN8BphBgAOEAxEK4AOb/B/y4APMD404gAQcA0KEgAQsBPkPYARMC0JmoARsCd+CYAbEC2T7oAbT8ZjQAAbz/ZZdgAcUC8QtIAc0DrwVIAdD7A2iAAdcC1PCMAdsDhmKgAd8DvRkcAeL2FdwAAfkDHeyIAf0DHIfgAgECiipEAgUAdedIAhsDrl6EAh8CK8E8Ai8EM1OgAjMEHX7sARL+ayXgAAEA7IHYAAb6ZzMAAAr+PunQAA77QldAABcAlk4YABr/2cYQAB7/+0AYACMBhDJgACcCEEMAACr3iooAACz/gLMwADL/Or8gADcCdh/QAEMBJ7ogAEb/8V0cAEr96MyAAE8A6btUAFD41RQAAFb/i/NIAFr/CM1gAF7+YfigAGL9199AAGcABXOoAGr6/jFAAG77T/8AAHL/CXg4AHb+HeowAHr9wWkAAH7+i834AID71GnAAIT8VHdAAIr9lZnAAI0DGkdAAJr3iooAAJz/8AQAAKD+jR/AALED6ghQALUEeb5wAMb3iooAAMsBJ7ogAOED0cRgAOUEIWSQAPMDjZ9sAPb8EIOAAQUCmAUgAQj/XLjgARL8EIOAARr8EIOAAbEC5ohsAbUC1zYEAb0CzizUAcUAUSygAc0Cld5kAdEBu3yIAdcDE9MAAdsBAEOwAd8DrLE0AeECI4hEAecBSelAAekEVOvYAfkC6HtgAf0CJ/XEAgECrqTgAgUC2B6IAhsDlsgUAh8C03JEAib/zgogAlb8EIOAAM7+fnOAAALzjGgAAAT1hC0AAAj7fvOAAAzu9qAAABr+Y3NAAB79fX7wACMB4tMAACT8y7WAAC79XbTAADL8Nx7AADT4OqcAAETxH1wAAEr8+OdgAEz6pj3gAFT6H/mAAFr4oZUAAFz6Q6NAAGD+R2tgAGb8caZgAGr26FiAAG78IRkAAHL66h3AAHb4VSAAAHr6b1gAAH7+hN1gAIL6gFcAAIr+LkFwAJr+zWBAAJ78Nx7AAKL/4VegAKr8Nx7AAMsEATXUAM8B4tMAAN78Nx7AAOD90kIQAPMDihgAAPcDTnUsAPr/4VegAQb+lNZQAQsACy2AAQ8BMWDwARMBCeqAARsA2z3gAdcCm89kAdsC2cTsAd8CoI0oAhsDBXlUAh8CZrKEAi8EYtVQAjMESz9YA4sA2z3gALEBwv9oAAL+TUigAAcAJ4zMAAr+oH5QAA0AqcDIABcBE6JMABjzE8AAABz7J8KAACEBEY1YAC0AqcDIAEb/SCzgAEr4FO6AAFEBEY1YAFT1FLIAAFsBNvKEAFz7b6CAAGT/XVJQAGr9t/MAAG0BEY1YAHL8h+zAAHcAkAnEAHkAqcDIAH78OR3gAID/XVJQAIjoFoAAAJkAqcDIALsBFhd0AMUBEY1YAMr/nP8wANEBEY1YANUBEY1YAN79ClIAAOEAqcDIAOcBBM7AAPL+GdfAAQT+6xJwARD+G3lQAUUBEY1YAWUBEY1YAdT8K9zAAdj9ROLAAdz/XVJQAhj7J8KAAi78VBDgAjMB9waMAIT/liHQAAL/SBHAAAb+xQgQAAr/WFMgABjrAUAAABz7QWXAACMBHpLYAEb/SBHAAEj+Mz2gAE7/WFMgAFD+Mz2gAFb+Z67QAFr+mHtQAFz7QWXAAGT8x0kAAGr7O2NAAHL/E/ToAHb9YiFgAHj+Mz2gAH78CZVAAIL/d11QAIr4cWQAAJj+Mz2gALj+Mz2gAMsARGhIAOcCRu7MAPL+gKnQAQb+mHtQAQj8x0kAAdT8x0kAAdr+gKnQAhj48MyAAhzrAUAAAjD8x0kAADMCvQXUAAMCZEzEABUCEEOEAEUBtijAAFj/4z7gAGkAIGzAAHcATHawAHkBLTLMAH8BZbVYAbD/Vqc4AbcApL4oAb8B3geIAc0CLiooAO79z3qAAAD+RO7IAAT7ucvAAAj9domQAA7/vOFAABD45wIAABT+AqBQABj8LWiQABz5XloAACL8cYbgACb6E2QAACj/EIhwACz+VEIAADb7iMmAAET+E6sgAEj6rP/AAE7/SqFwAFT9MrXgAFj7iCygAFz+NQHwAGD7DyBAAGT8IOPgAGj1LJ8AAGz8LltAAHD+cFWYAHb9fkEAAHr9XE0gAH7wSPgAAID8yL+AAIr3HkIAAJr9FMgAAJ76E2QAAMMEVS84AMb/SqGAAMsDnCLwAM7/SqGAANMDW3o4AN8BqSFoAOD9j5BAAOT+WaNoAPMDghlwAPr/SqGAAQb9hISgAQsAj+LAAQ8BuacAARMAVsLIARsBIJsoAYr/SqGAAbL6E2QAAbT8oJYAAb8Aj+LAAc76E2QAAdcCWFtIAdsC3JUcAd8CRKAQAf8CW15UAhsCwivgAh8Aj+LAAi8C8YwoAjMDD8G8APL/eXpAAAD7G0XIAAT9qPyQAAj8rE+gAA7zRQQAABb+i8CwABr6nv9AABz5dNYAACD6nIjAACb+FpYAAC77THaAADb/yGcQAET8BxlgAEjvLnAAAE7+BfQQAFL/NRvwAFT+vBxIAFj8YsTAAFz8r+tAAGL9sOYgAGb9fGqgAGr1YxAAAG7+HQbAAHD7Cj6AAHb7meTgAHj/RUmAAH7+uptQAID5BR0AAIr8peIwAJsAPHr4AJz+4a+gAKMAJImgAKj5VqEAALMA1fvAALcAbi8wAMcAbi8wAMsEEawAAM8DijAoAN8CBRmoAOMBaUbIAOb6zseAAOsEPSXkAO0DPZD8APMD3KKgAQb/CwjQAQsByMGIAQ78jfnAARMB4Jh4ARcBH6FQARr/eXogAW8BH6FQAb78jfnAAdcDtrxAAdsD0kF0Ad8CQUK8AeL+qeEAAhsDFwdYAh8CemKsAi8A1fvAAjMA1fvAA4sBH6FQAS7/jbUgAAD6cR8QAAb9fNSgAAr8me/QAA7+8hugABT8sy6AABr+CszYAB78wCGAACL7dVNAACT81SFAACj/UH6AAC7/QoPQADD+oOgAADb+NImgAEDx1jAAAET7+AKAAEj2afQAAEz1QNwAAFMAGGDAAFT2JDUAAFj8bLlAAFz2N4EAAGL9P+EAAGb+X3KQAGryI3wAAGz/PW34AHL8tl4QAHT6EcqgAHj/thb4AH75j93AAIL6zTAAAIr/HCk4AI0DuDloAJL+vhvgAJcAeEygAJsBVM2YAJz+MligAKL/MFvAAKr+KtDgALcAeEygALsAeEygAL8AeEygAMMAeEygAMb+KtDgAMsEPOmAAN8BKb7AAOcBKb6wAOsCThQAAPMEN/3oAPsAeEygAQb7kZ3gAQr74w+AAQ8CBUPsARMB0/qgARcBkYtQARsCadc8AYsCPg6oAbEEIUR4AbUEAAe4Ab0D96hwAcUB6CSIAckBOG7AAc0EE/OQAdEC5i6wAdb8SZxgAdsCiCHkAd8ED1joAeEDrxeoAecAeEygAe74rWcAAhsET87IAh8DvsjcAiMA4BkwAicAeEygAvb7H7MAA4r+iCogAQEAZ8uwAAMC3m9oAAT85sxQAAj9KRmwAA0Cb9CIABECTSSEABcCUOXcABkAY8poAB7+zjewACD7w8WAACj/bLNAAC8AbkrgADUCLjcUADkED++QAEECGT48AET4JpoAAEr/Cl7QAE0BwU3MAFEBN2TYAFcAQUVIAFj7dl6gAF8CZdogAGD72POAAGUAZ1jsAGj+eWJgAG8CEkY0AHMCwxOQAHb/I93AAHsAqdgAAH8AXZRwAIMBfjogAIsC/6yEAJT/bLNAAJsCFyHUAJz5VOYAAKL9FyUAALb7bA6AALr74R2AAML5vNkAAMT+nRogAMsC8cO4AND/bLNAANz/bLNAAOMCxSX4AOcDL5sIAOsAscUoAO0BGT3QAPMCr6H8AQcCmC7YAQsC8HAYAQ7+7nagARMA/PkYART8dGvAARsA0J2QAYj7rSQAAdcCPVEEAdsCe+TkAd8CSkOsAeT3SrAAAfz/bLNAAhsCiF0gAh8A/PkYAi8CqH3UAjMBlLxwA4r+468gATsB5rGgAAEAU/y4AAb/OSC4AAj+0u/wAA0ATvZgABcAX7FkABr3gq8AABz+XFngACEABTrwACb9EAeAACr6/5CAAC8ARUYoADL/6RUAADT+ERAAAET/UdTYAEj+JYrwAE0A1JloAFD3+XoAAFb8JdWQAFj7heggAFz/dm8wAGD/l4YgAGT/IOHgAGj7GqlgAG79V/pAAHD+DGlAAHUAPRYsAHkCbBxMAHz/R8NwAIEBTWC4AIj/a5kwAI0CNbOYAJsCObIYAJ0AiCOAAKL/MnbgAKr9nyVAALcE+LNwALsElpRQAL8EPN1AAMMAzXMAAMcASq2AAMsERTAMAM8EGDkYANME3gy8ANcERU7AAN8EIGeEAOEC14HIAOT/ytNIAOj7CSvAAO8AzXMAAPMBou7IAPcDA8K4APsELwaoAQUAJRpgAQkAvzS0AQ8BNT+QARMAnsZgARr/MnbgAW8DTfo0AbEC+F9gAbUClZbQAb0CygrUAcUAbUIAAcj+hAxgAc0CtNeoAdECSMyYAdT/T/2AAdsCCq8gAeECq0kYAeT93ZRAAfkDskH4Af0DqaCcAgEDpm+YAgUCkGc0AgsCf/goAg8CTBHgAhsDiiNIAh8Cf/goAjMCf/goAN78DTUAAAECRSPoAAUCTDhQAAsA3QncAAz44k0AABUAZsWgABkCmUikAB0CKmewACL3cBgAACkCnDd8AC0CmiDsADT44k0AAEUCXJ0YAEkCXqPcAE78DTVAAFUDNHKQAFsBNYDAAF8CsB0kAGL/ORfQAGUAIEwAAGr/IJZYAG0C8EzEAHECaFE0AHUCMjloAHj+3bPAAH0B+coAAID+jscAAIkA+83YALUD1wiUALkEFC3sAL0DdtaMAMEDvdWoAMUDQqNQAMkEAJ6cAM0CCTmUANkBRXNgAN0CjNRYAOL+aX7AAOr+aX7AAO0CW+5UAPkDhl9MAP0DWnaYAQT/xR5gAQj+jscAAWUDHZawAbD+jscAAc0A8+0wAdD9flvAAdj8V8WAAeUADVNAAekDsRuYAe0AUgAwAfECQWfgAfUA+83YAhsAl6OQAkj44k0AAQr+VprgAAL/+J+AAAcCTiqYAAj8QgzAAA0BsslYABb+pJyEABkCJ1YQAB8Aly1YACEAAkeQACb7ztqAACj/VAAgAC0DGN5wADL27k8AADUBEKEAAEL/uX8AAET+TueYAEj7kr3AAE8BnIsIAFb8dF5wAFj+BSUYAFz+XiOwAGL/uX8AAGb/mHPQAGr7ZrnAAG8B4JAsAHL/iw2gAHcAiW8QAHj7QEeAAHz8wS5AAIMCZZEcAIsB6ZeIAJsAx1GQAJz7hbWAAKL7ztqAALMBxZdAALb8xG+wALkCxZKYAL0CrH6QAMEDlSlAAMUCiNq4AMkAgmFgAM8B+wXgANMARIwQANz5AVSAAOcEIcAAAO8Cyn1EAPMDHAhkAPcA9f4wAPkCY7KAAP0CgrWMAQECU1HEAQcCQh4gAQsBLx4QARL+VprAARsAx1GQAWT+RFGgAdMCqvv8AdcCO4SwAdsARIwQAd8BXcrAAeb/uX8AAekCsuIEAgb/uX8AAhsCMarUAh8Ax1GQAi8DcdnkAjMDhUhAAPb/8DMAAAMCaTpwAAT/Zz3QAAsCcz4YABT7Q5QQABsCnNvQAB7/DfsAAC8DjK1AADEAUkIQAETy31IAAEsCOh4kAE8BWv2wAFT6bFfAAFj+pb8IAF8BWv2gAGMBlB2gAGcCNKuMAGj/NZZQAGz3EysAAHMBJdXIAHcAtgkYAHsBwspAAH8CuHYkAIMBEVggAIsCTdlgAJsDiNUoAJ8BEVggAKMAqYuQALMAlH4IALb/ejtsALsC2cSwAL8BE/9IAMMBeSSoAMb+jU7AAMkA8PzwAM0Cd19kANMDRuz0ANcEElLMAN7++HUgAOMBEVggAOcDMalQAOsCOh4oAO8D87dYAPMC4010APsCHDcMAP0DAwwQAQcAMTlwAQsAqYuQARcBWv2wARsBWv2wAbEDsEAQAcT8ECWAAc0D6a7gAdcBwspAAdsCXvDsAd8CBjfgAer9e2tAAfUDbajUAf8BEVggAhsC65BAAi8C/P0IAjMDtB+4AJ8C0krEAAD+3TaQAAT4jCIAAAsAjUbwABUAb49oABkAh1hwAB8BAPw4ACcCeZG0ACr66xfAAC7zWGQAADMCINisAEUAbSrsAEsA3s0oAE8BkD84AFT/HvnAAFr7sGEAAF8A3s0oAGMCRatsAGcBchg4AGj+sV8gAGz+G7awAHL/9WygAHb/KjigAHsAHdXwAH7+7+HAAIMCINisAIsALVsIAJ8CeZG0ALMCRatsALUCKBYUALkBicg4ALz7rV5AAMEBu6gQAMT+oBhwAMkAY14QAM76wbfAANz6v5UAAOMCeZG0AOz7LcUAAQcA71K4ABr91Y/gAAD+PeSgAEb6H48AAFUCbwhkAGj/v9MIAHL6H48AALT4PasAALr/PWdAAAD33JVwAAcCEA7kAAsBOrfQAA8AiUW4ABcAFwXQABsCHH7IAB8BDAsoACMBOrfIAC8BswnwADcAUCXAAEb/jFQgAEsAUCXAAE8Bswn4AFMBOrfIAFcBdzvIAFr83kVAAF8At/JQAGL/PWdgAGcCMj4EAGr/HQ5QAG7/B3WQAHMA+EhwAHb/MVsgAHr/PWdgAH7/0LJgAIMAt/JQAIsBpr+gAIz9x7OgAJsBaWRoAMsDRvaoAOcAUCXAAOsAUCXAAPMCgrREAQb3tQ4AAQsAt/JQAbEAEabIAbT+bTOwAbz/HcKgAcb9tQZAAcz+2WRgAdD9HKNAAdb8+lPAAdsCcGMgAeD+bTOwAhsBswnwAh8BOrfIAKb+/hgAAAD0DVzgAAb/OmYAABcAMH4QABsB5Oh4AB8A4fAoACMAMH4QAEb9NmegAEsAMH4QAE8BEmJYAFMAmEqgAFb9NmeAAFr6E3wAAF8AmEqgAGMAMH4QAGcAv8EIAGr/TQTAAGz+ycbgAHMAmEqgAHb/YYBwAHr8UefAAH7/4E/gAIMBGxAgAIsBJDToAIz6XSYAAJsAmEqgAMsCfxOQAOsBsYlQAPMBsYlQAQb9NmeAAQr8mI3AAbD+IykgAbT8zcVAAbz6XSYAAcr9NmeAAcz8zcVAAdL3hPoAAdb9NmeAAdsAMH4QAd8AmEqgAeD3nwQAAhsA4fAwAED8RvxgAAL+15KQAAb9RJRgAA739mAAAEb+ceNQAEr39mAAAFr+FIoQAGL39mAAAGr9RJRgAG739mAAAHL+FIoQAHb+FIoQAH7+FIoQAIr9RJRgAMr/d25AAPL+FIoQAdr39mAAAFT9poYgAAL+obfoAAb4+dIAABr8yYpgABz5gvcAAET5gvcAAEj5gvcAAFD5gvcAAFz8B1PgAGT/NidAAGr6VLBAAGz5gvcAAHL8yYpgAHb/uE2wAHj5gvcAAH79hDzgAIr8yYpgAMr9hDzgAPL8yYpgAQT8B1PgART5gvcAAhj5gvcAAET6sRhAAAL+GYJQAAcAzIy0ABT/cg5wAB762niAAEcA/uhQAEr62niAAGr+GYJQAHL62niAAHb+6RtoAH762niAAIsATXY4AKL62niAAMr/fGZ4APL9DG6AAQb+GYJQARr+i8IwAhr62niAAGT/C2sQAAL+NCHQAAT7Y7cAAAj4LRWAAAz7Y7cAABj8szQgAB78sx8gAC72ydMAAEb78NlAAEj7Y7cAAFr8sx8gAFz9UQ3AAGD9UQ3AAGT4LRWAAGr9gJvAAGz7Y7cAAHL2ydMAAHb6J9nAAH792bVAAID9UQ3AAIr+altQAMsAJCmkAPD9UQ3AAQsBAqLoAdr2ydMAAdz9UQ3AAAAAAAAAAAAAAAAAAAAAAAAAAAAAhQAH02AAAwF1V6QABv69wvgACwADMggAFP6swpAAGv1wcCAAHv+NXBgANP26UuAARwDwckwASv/qtVgATPyTvMAAVv6H0TAAWv50fnAAXvUgugAAZPa1hwAAawFHF0AAbv/9VCAAcv7ezjAAdwDwckwAeP26UuAAfv+NXBgAgPnSKgAAiv6sZ3AAmP6swpAAywFbxtQA8v9dspABBPa1hwABDPa1hwABEPyTvMABGP26UuAB1vwjNKAB2vz31AAB3PteegACGvuie8AAAAAAAAAAAAAAADT+Dq6AABr2PO0AAB763GeAADcB1MVwAFb2PO0AAGT6rylAAGj6rylAAHL9DWYAAH8CG/LgALb8UrOAALj6rylAAND6rylAANb9qz/AAicBKTX4AGD8qlpAAAMAGzHUAAb+QDRgAAr7dUDAABr7dUDAAEMAOVjYAEb/8gVoAE77dUDAAFb84TaAAGsA45S8AHL9xbZAAHb84TaAAH8A45S8AILzbcQAAIr9xbZAALcAl3wQAMsA1ISQANL7dUDAAPL7dUDAAQb7dUDAAQrzbcQAARr7dUDAAdbzbcQAAd7/D82AAhrzbcQAAKMC73DoAAMCyp4kAAcEBFfIABUCU324AB8DoOMAACMDvXL4AEUAVq14AEsCTxZcAFcDvXL4AFj/Os7AAGcDSCn0AGj9jOSAAG8ClrfgAHL/w2eAAHcDggSYAHkBSYKoAH8CEWmEAIMDSCn0AIsDvXL4AJsDoOMAALMDfBA8ALsEQx2wAL8DfBA8AMsEBFfIANMEES+QAOcByouQAQcC73DsAQsCYtGYARsDoOMAAWcClrfgAbEAKZGAAbcCIW7YAb7+RNSgAcsClrfgAc0CPFfgAeMClrfgAfUCPguAAfsCYtGYAf8ByouQAgMClrfgAhsDSCn0AAAAVP1qDqAAAv4vRxAACPiRGQAARv5zpUAAVwEwgcQAWvnrsAAAXPiRGQAAYvwhgiAAcv9DPmAAdwF2w0AAfv4vRxAAiv3AtGAAmPiRGQAAswBxOFAAtwGTxlwAyv+1fkAA4PiRGQAA5v3AtGAA7PiRGQAA8PiRGQAB3PiRGQACHPiRGQAAcP5zXlAAAwB2q0AABwDaKlgACPgHCAAADPwg9EAAGPwg9EAAHvsSp8AALwGaXTgARwBbslgAUPgHCAAAVv7T1DAAWv4njiAAXPwg9EAAawB8/YAAbviTUIAAcwBbslgAdv7T1DAAfPgHCAAAgPwg9EAAiwASDNAAtv83PKAAywEF7jwA0Pwg9EAA1Pwg9EAA8vsSp8ABBv+KclABGPwg9EABcPwg9EACGwAIY3QAEPg7rgAAVwDnqvAAcvw23OAAfvw23OAAtwBs5aQACPI8YAAAtv681uAAuvyz5WAABPFccAAAtv6/D4AAAAAAAAz5AscAAPcAYHQYAPr+169gAgcBRw4IAAAACPFccAAAVvy4VqAAtv4rxHAAAAAAABz3eFYAAAL/XdwgAAb99e/gABr99e/gAGcAFrqgAJr8Vr2gALb99e/gAMr/rMj4AGT84rFAAAMAK0MYAAb7BJLAAAr7BJLAAB77BJLAAEjznRwAAFb7BJLAAFr8qN+AAGsAtm18AG79jV9AAHMBg0IYAHTznRwAAHjznRwAAHzznRwAAIjznRwAALcA47jQALsAORp0AMsADRwUANL+cvXAANcAHKEsAN7+t1PwAPL8qN+AAQTznRwAAdzznRwAAhjznRwAAhzznRwAADD6mHWAAAL+70QgABr68xtAAFb68xtAAFr68xtAAGr/9M8QAG768xtAAHMBi/hYALcAUIqUALr+kergAMr+H6sAANb68xtAAQb68xtAACD3V+QAAAL8WsvgAEb8WsvgAGr8WsvgAHL+kEogALr8WsvgAMr+kEogANMAdeFkAhr+kEogABT1S/4AAB7/HahIAHL+GB1QAIr+q2hwALr+GB1QANL8kQiAAMMC5XcYAAMAz4m0AAcEG6HgAAsDPjAkABb7kJEAAB8DPjAkAC8DlukwAET7Kh9AAEsB2McEAFcEnTFYAFj74+4AAGr8SDvgAG8Cg+lIAHMCz3foAHT25mgAAHj84NAgAH8BgqPwAIMDPjAkAIsEBhkcALMDs3koALcEFuOwALj9P+fQAL8Aor0AAMEApZF8AMUCJs14AMj+yqloANcDlukwANkAqgMUAO0CkW6UAPL+hcKQAPcBZRGwAPkA+PJ4AQcBZRGwAQsCNAUAAWUB3bkIAbMBOk2gAbcAPMLgAb8B2McAAcsCjL4IAc0BYIvgAdMB2McAAdsCjL4IAeMCWNfAAeUBaajIAekAr5tQAez+MJDwAfD/MKWAAfT8IGwgAhsDPjAkALcCwrQsAAL9ZKdgABb+WslwAET9S2cAAEsBureYAFr/gSCQAGcDqAyMAGkAYEzcAG8AhoAIAHL8WLrAAHb9laigAHkBGWjwAH8BpjnwAIMDdCZEAIsDG204AI8BureYALMDT1OAALcD9aJoALkBB/lAALz+YZiAAMD/nQIgAMUA7jncAMkAZWNsANj+qHMAAO7/4A3AAPD8gDXgAPkA2SfoAQcBUusIAQsCafskAWUBUEHUAbD6alZAAbcAsBroAbz99mWAAccCafskAcr/xF8QAcz/9SwwAdcBureYAdsBureYAeL/Yo0QAeUAZTOkAekBEeN8Ae0AEEtUAfEASVCcAfT9mHHAAgMCafskA4sCafskABzwMpAAAAL/M6MoAAb8vP4gAGj8zpKgAHD8zpKgAHj+NuJwALj8zpKgAM7+LhgwAK8CpiLUAAL+5UTQABT/vvNgAB8C/tvgAEMEe7DQAET9Lw6gAEsAu6UoAFcC/tvgAFj4cxmAAGr5DDOAAG7/yyGgAHL+i5BwAHcBzmiYAHkBqLf4AH8BsEGIAI8CGYOEALMEGOUQALcEAGIcALkCBUz0ALz+U7owAMEByBeYAMT/quKgAMj8bJsgANkAb+MIAN8EOGnIAOz4cxmAAPkBjJQQAQcCGYOEAQsCGYOEAWUCBJcAAbD2U48AAbcCGYOEAb8CTWnMAccA/s94Ac0AcnLUAdMCTWnMAdcCTWnMAeUBhOsMAej+U7owAe0BRQJoAfD+QdFgAfb5EmcAAf8B6WF4AhsDMsIoAAjxXHAAAAL8uFagALb+K8RwAFMBuo24AAL+CpXwAAcCNf/oAC8CNf/oAEMCNf/oAHsAoU8YALMCjrj0ALcC53IAALsAV6mQALz5P+YAAMD9LBjAAMb+U9pwANcCaeYwANr/ECDgAO0CmfHkAPkAsjZ4AWT/azBwAccCjrj0Ac8BCRuoAeMBCRuoAekBh2tgAI7+4l7AAAcBO+AgABb8/vUgABsBDTOAAEcAIqF4AE8BDTOAAGj3JWcAAHEB2Jx8AHcBJZm8AHr1kswAAH7+EsWgAJsAIqF4ALcCwFRIALkAi/6sAL0Cdhh0AMD/tRkgAMT/+9TQAMr7I3HgANkAkLE0AOz+ZNPAAPkB605AAV8AIqF4AWT8A98gAbL8/vUgAbb8/vUgAbz6zAsAAc71kswAAdcAIqF4Ad8AIqF4AekABgsUAez4rUwAAfL1kswAAfb8/vUgAhsAIqF4Ai8BO+AgAjMCMXsQAMMDNeqkAAMBaCuQAAcD51y8ABUACQAYABsEF38cAC8DjqOwAEMEkrcUAEcDw6gsAEsB77J4AFMDjqOwAFr+MJ+AAGkAkhIIAG8B77J4AHMB2zTQAHcB+pegAHsBy+sIAH8CmDPAAIsDjqOwAI8CHKv8ALcEcDgoALkAY6T8ALz45t6AAMD+3GJQAMb4bx0AAMsAG7JMANsADUEoAOMC3TGcAO0C4iA8APMEPx10APkABcUQAQcCuF7YAQsC3TGcAWT/Bp8AAbL+jyKAAbcAyJx4Ab8CPNcUAccChHiMAcsCUJJEAc0A5xJgAdMCZ+iUAdcC3TGcAdsCDy+MAd8D51y8AeMCZ+iUAeUBBfg8AekASGRYAez99hnAAfL+KGQwAfUB4SI0AJsBIuegAAD35V8AABb9VcXAAEb3c00AAFcDz/90AFr+sG3AAGsC2cQUAG7pfoAAAHD/kThwAHb9walgAHkAUahIAH7+HSLAALkCd7QYALz9aRmgAMEBMt54AMUC1q/QAMkCHmt4AM8CuC7sANcB1Fm4ANkBbz3AAN8B1Fm4AOcC40BwAO7/DccAAPD8QoOAAPcCPZ54APkBpay4AQcAcXWQAQsACakAAWUCL3YwAbEAGvuAAbb/DccAAb8AcXWQAcz9jldAAeMACakAAeUB7axoAekCQPmIAe0A/HQIAfEBhd/YAfb05kYAAFr8IbRAAAD8Q0ZAAAcEDE24ABUCXhKkAEb/Q1eAAEsAUx3YAHEBeXOAAH8ConJMALkDdoIwALz+Jy4QAMEBDPRoAMUCtncgAMj9adxgANkAzJ5IAOz+Jy4QAPkCZl/8AWUEBfL0AbD9adxgAc0BJ+1QAekDcBQwAe0AjuF4AfECrvlMAfUDIutgAGEAFS3IAAT6U+gAAAsBAtJAAA73qfIAABb+HcpoAEUB396IAFsDESx0AF8BK2c8AGL6hXXAAGsCz1Z8AHEB396IAHUAxp/gALkD8ggcAL0CoWFcAMEC/L4QAMUC+hpoAMkCxjQgANkCPYUgAOD+x3dQAO0BsTHoAWUDMYKAAc0BsTHoAekCUucoAe0BsTHoAfEBLmxwAA0A9bj4AAcCr12kAET/JamQAHz+VhCAAIMC5AX0AAL/n03AAAcEBWCIAAsDcKVIABT6A2NAAEb4hMUAAEsCi0zsAFj8a/pwAGsCDcEYAHMCi0zsAHcCi0zsAHkBUByYAH8Ci0zsALkBEEBMAL8AsL1YAMD8LcqAAMUCDf5cAMj+WDFwANkBrQloAO8CV2akAPkArOVUAQsCV2akAWUAtVkQAbD8VVGAAbcCi0zsAcz/L2VYAdMCi0zsAeMCi0zsAeUAyQpIAekAMViEAez8G06AAfEAmOFcAfT98+1gAGsCnjqkAAMADuBYAAcEF8lAABb+QCYQAEcBccSIAEsCEZtMAFsBSk4YAGr+Yt/AAG8BKB74AHcBccSIAHsCEZtMAH8B2ZEYAI8BoHEoALsCRYGUAMMBCff4AOcBoHEoAO0CoHygAQsCEZtMAWUAYrF8AbMABG0IAbcBSk4YAb8B2ZEYAc79IJSgAeMBccSIAekByHO0AfcBSk4YAf8B2ZEYAH8DKi9kAAD+U9aAABb/ro8QAET6P75AAEr/3shgAFj4KQeAAGr6CKeAAGz8AVWAAHL+v1twAHT+LMDAAHr9lVmgAHz+BBqwAI79ucNAAOMCXC1UAOUB/sbYAPMC0XZcAQb+V03wAQr/+LZQAbD8Su1gAbb0UFIAAb773XTAAccCnZAUAcsCEPC8Ac76kOnAAdL/5SSgAdcBEkw4AeL47o+AAfkBusPgAf0CMNdsAgEBDyr8AgUAJ6b8AvcC0XZcAGsCcMWkAAD+HkeQABb+GtLgAET6OWSAAEr/+zfAAFj4LhMAAGr/lHlwAG8ALEiAAHMA72QYAHT4LhMAAHr1X7oAAH7+SWbAAI7/GP/gAOUAXszcAQcALEiAAQsAG8LoAbD9+cDAAbb+MZVAAb78tJIgAc76NPbAAdL/K56gAdb8at7AAeL4LXaAAfkBL3xIAf0CeJjwAgEBfHwYAgT+IPegADcCadJoABUBMjCgAEUAr92oAFkAyqDsAGkBgAGwAHcCERlYAHkAZ8BAAH8BumYgALcDN9R4AOcCERlYAO8CERlYAbEBLmmoAc0CCRTcAdcCERlYAJ8CywSMAAEBOxQ4AAcDI72YABb+fArgAB8DI72YAEb8KcngAEr8RnKAAFcEmoVgAFj9xfvAAGj9MJHAAG0AHqCIAHMBo+HoAHT9eF7AAHj4gsYAAHz+NF3gAI76zAzAALcEbaVAAMsCckt8AN8DI72YAOMB+gT4AOUCZlb4APMDI72YAQT6k3iAAQkASZsIAWb/plYgAbD/aOiAAbT8d0FAAbz+mdVQAccCckt8AcsCckt8Acz+oylgAdL+T34gAdb6GsJAAdsCPmU0AeD2yrsAAfcCckt8AfkBj/i8Af0CNP88AgECSt1MAgb0HpQAAJcDC4y0AAEB+jfMABcAx/CwABsDZEXAAEUArGYAAEj/zw2oAFcDZEXAAFj+KJMQAF8DZEXAAGj+pk9AAG0AEGEYAHL8u3PgAHUBUwj0AHkAST0oAH0AubYkAI0ANzswALcELqysALsEPsI0AMMDZEXAAMsCPYqkANMDvP7MAO8DC4ywAQT/BHBQAQj+2jcwAbEBHTUUAbUAi66kAb0AwHWoAcb62ukAAcsAuRJIAc0Av7fwAdD/idI4AdT5VuiAAdsBYdaYAeEA1g4oAe8CstOkAfsCstOkAgMCstOkAhsDmCwIAO8CDcgoAAD83yVIAAcEggsYAAsD/UusABb4t8UAABsDzVW4AB8D6R58ACMDS9mUAC8CZoE0ADcC8yCIAET+BZvYAEkANFtAAE8DNINEAFcEcYrQAFj5FQJAAF8EDfygAGcDBtu8AGr7ZeKAAG0B1dzgAHMBzhsQAHT+1vaAAHkAxIO4AHz++le4AIMDhquIAIsEddMkAI0CUzG8AJsDBtu8AJ8Bah5AALcCZoE0ALsESn2cAMsEPiqgAN8EJinoAOcEVlzcAPMEInaYAPcBah5AAPsCZoE0AQb+bT5wAQkA/TJoAQ8CZoE0ARMCZoE0ARsC28o4AbEC4kaEAbUCjd6EAb0CiUhQAcT8g5ygAcr6aHcAAc0C8s0QAdECIY8oAdT/d3eAAdsBah44Ad8DxVUMAeECySqAAe8Bah5AAgMBah5AAhsEHOT8Ah8C8yCIAi8Cmmd8AjMC28o4AlcBah5AAvcAUN+QAHsDD7mAAAECQQIAABbzv2gAAEUBA/UcAEj/+LeAAFkAWmUoAGkAfmuEAGz/rYBwAHMAhomIAHUASH8gAHj/i8FoAH0AnIQMAIz/ND6YAMsCgxooAOcEbvYIAQT/GcqwAQkAD5JwAbEA5kPwAbUAT/C0Ab0AjTBgAcT6FdQAAcsAVrJYAc0Am8XgAdD9UsagAdb7HbYAAdsAmLNwAeEAUHCkAgMCFqXoAh8DaHKMAvcCQbdwA4sCtwBwAMMAjxOYAAEA78/QAAcCqm38AAsCQJ1gAA8BqFJAABb/oaf4ABsCbkToAB8CQJ1gACMBQIWwAEb96JysAEj8KjBAAE8BqFJAAFMBQIWwAFcDzet4AFkAymRUAF8BQIWwAGcChZs4AGj9ANgAAG0BHww4AHEATQkYAHUBiVbcAHkAE2oIAH0AU5EEAIMB8ffIAIsCengIAI0BiEyEALcDegcYAMsCoiswAM8DMZq4AN8B8ffIAOcDBxdYAPMDCumUAQT+zciQAQkAXkzwAbECExi4AbUCEdcQAbr9zD3gAb0Bru7IAcb+WF7QAckBU8QoAc0B8UD0AdEAHSrwAdT9/F7gAdj8GKzAAd8CYMh0AeECApsgAhsBQIWwAi8C0zEUAjMDbnVoABT0N3gAAB78olDgAFb8olDgAIr8olDgANL/JkyIAQb8olDgAAjwPuAAAMr8vMzgARr8vMzgAATuQCAAAMr8wUggAAAAPQGl2DgAtQAJ1CAAuwGN2IgAwwEW0aAAxPvCGoAA6QD0ZigA7QBC9BAA9wBmSFQA+wJPo6gBovwbMaABpvqUZoABsv24o1ABtP4qb3ABuP8jA/AB/wAASuwCBP4qb3AANP+tMwAAAQDv2CgAFP5KTtAAcP5KTtAAuwDshFgAwwIjiNAAxPT6MAAA3wB+EXQA5P5KTtAA9wH50WAA+wE/0zgB/v6BaiACBv+Ll0ACHQCIC5gAVPyl2gAAAv7Vv5gABwCrlNwAGv3KNoAAHvP9zAAARv/0RYgAVvzltsAAWv6RYWAAXvP9zAAAawBIUEQAdvzltsAAfv3KNoAAiv9H/3AAsvP9zAAAtwF3FWQAuwA6eOgAyv8SDaAA8vzltsABBv/0RYgBDvt+QUABGvt+QUACGv3KNoAARPpsPMAAAv/cijgABv0u3EAADvsfVAAAHvsfVAAARvsfVAAASvsfVAAAVvsfVAAAav6c+RAAdvsfVAAAiwBWEawAtwB4QMgAyv0u3EAA0vsfVAAA5vsfVAAA8v6c+RABBv4quTACGv76UlAACPFU+AAAAP45J0AAtv+Ot5AAzQIPDHQAAwIuuXAABwCdp1AACv8t2IgADQAr8cAAFP/XNzAAGv6qvLAAHv7KrlAAIP70/1AALP0AR0AANQAJwqAARwArmDAASv3a+AAATvqBiMAAUQCCFMgAVv2SgGAAWwAd6XAAXPj4zIAAYP8a8MAAZvwu+QAAawBRjqQAbP1Jc8AAcwBPf2gAdwB2MOgAePs7YgAAfv/xZXgAgPvXAIAAiwDaK0wAmP4lZjAAoQFsptgAuP8a8MAAwQEE2kgAywDQ2+gAzP6RluAA3P6RluAA5QFsptgA6P9weOAA8v+XhNgA+QEE2kgBBvxLjSABCPojrQABDP9D7CABEQCCFMgBGvodnMABiQEE2kgB1Ps7YgAB2vhSYYAB3vSk6gACGvw4lmACHP70/1ACLQC7NLgCMP9weOAAyQG9TCgAAwINAxQABwCJCqQACv7H6cAADP5ZV0AAFQCkDYgAGv8oSFAAHv+z/YgAIP7fq+AALP+WSgAARv/cYlAASvwJROAATP1lcwAAUQBaZ/gAVwFTR+QAWv59AwAAXPuMgYAAYQAhSAgAZv3qjYAAawCLcNwAbP5ZV0AAcv/WKsgAdv/P37AAeOuiAAAAfv9AyOgAgPpxkwAAiwDPacAAlQEL2hgAmP5ZV0AAnQEL2hgAwQEL2hgAywDahZwAzP6u32AA3P+WSgAA6QEL2hgA8v6AgbAA+QEL2hgBBv45pQABCvwJROABDP/lNtABEQBaZ/gBGPowjYABiQEL2hgB1Pw+3OAB2v4hEFAB3PowjYACGvyeueACHP9R68ACLQBaZ/gCMQEL2hgDiQEL2hgAAAAAAATuQCAAAHr8wUggAAAAAAAG7kAgAAC4/MFIIAAAAAAACvA+4AAAdPy8zOAByPy8zOAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJvZxHgAAAP6etoAAbP4La3AAeP6etoAAfPx3pKAAjP4La3ABCP4La3ABsP4La3ABvP4La3ABzPx3pKAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVPlkCIAAAv8o4HAABvvZjIAACv7LhzAAGv2L+IAAHvvZjIAANvvZjIAARv5ZR1AAVv2L+IAAWvvZjIAAav7LhzAAcvvZjIAAdv2L+IAAivvZjIAAjP2eyoAAywCPh9gA4v7LhzAA5v+8K4AA8v2L+IABCvvZjIABvP+kiUgDiv2L+IA==";
+// Standard Myanmar code point range before digits
+var STD_CP0 = 0x1000;
+var STD_CP1 = 0x103F;
+// Standard Myanmar code point range after digits
+var AFT_CP0 = 0x104A;
+var AFT_CP1 = 0x109F;
+// Extended Myanmar code point range A
+var EXA_CP0 = 0xAA60;
+var EXA_CP1 = 0xAA7F;
+// Extended Myanmar code point range B
+var EXB_CP0 = 0xA9E0;
+var EXB_CP1 = 0xA9FF;
+// Unicode space characters
+var SPC_CP0 = 0x2000;
+var SPC_CP1 = 0x200B;
+// Indices into Markov nodes
+var STD_OFFSET = 1;
+var AFT_OFFSET = STD_OFFSET + STD_CP1 - STD_CP0 + 1;
+var EXA_OFFSET = AFT_OFFSET + AFT_CP1 - AFT_CP0 + 1;
+var EXB_OFFSET = EXA_OFFSET + EXA_CP1 - EXA_CP0 + 1;
+var SPC_OFFSET = EXB_OFFSET + EXB_CP1 - EXB_CP0 + 1;
+var NUM_STATES = SPC_OFFSET + SPC_CP1 - SPC_CP0 + 1;
+/**
+ * Returns the index of the state in the Markov chain corresponding to the given code point.
+ *
+ * <p>Code points in the standard Myanmar range, Myanmar Extended A, Myanmar Extended B, and
+ * Unicode Whitespace each have a unique state assigned to them. All other code points are mapped
+ * to state 0.
+ *
+ * @param cp The code point to convert to a state index.
+ * @return The index of the state in the Markov chain. 0 <= state < getSize()
+ */
+function getIndexForCodePoint(cp) {
+    if (STD_CP0 <= cp && cp <= STD_CP1) {
+        return cp - STD_CP0 + STD_OFFSET;
+    }
+    if (AFT_CP0 <= cp && cp <= AFT_CP1) {
+        return cp - AFT_CP0 + AFT_OFFSET;
+    }
+    if (EXA_CP0 <= cp && cp <= EXA_CP1) {
+        return cp - EXA_CP0 + EXA_OFFSET;
+    }
+    if (EXB_CP0 <= cp && cp <= EXB_CP1) {
+        return cp - EXB_CP0 + EXB_OFFSET;
+    }
+    if (SPC_CP0 <= cp && cp <= SPC_CP1) {
+        return cp - SPC_CP0 + SPC_OFFSET;
+    }
+    return 0;
+}
+function checkMagicNumberAndVersion(stream, offset, expectedBinaryTagLead, expectedBinaryTagTrail, expectedBinaryVersion) {
+    var binaryTagLead = stream.getUint32(offset);
+    offset += 4;
+    if (binaryTagLead != expectedBinaryTagLead) {
+        throw new Error("Unexpected magic number lead; expected "
+            + expectedBinaryTagLead.toString(16)
+            + " but got "
+            + binaryTagLead.toString(16));
+    }
+    var binaryTagTrail = stream.getUint32(offset);
+    offset += 4;
+    if (binaryTagTrail != expectedBinaryTagTrail) {
+        throw new Error("Unexpected magic number trail; expected "
+            + expectedBinaryTagTrail.toString(16)
+            + " but got "
+            + binaryTagTrail.toString(16));
+    }
+    var binaryVersion = stream.getUint32(offset);
+    offset += 4;
+    if (binaryVersion != expectedBinaryVersion) {
+        throw new Error("Unexpected serial version number; expected "
+            + expectedBinaryVersion.toString(16)
+            + " but got "
+            + binaryVersion.toString(16));
+    }
+    return offset;
+}
+// This is different on Node vs Browser.
+var getArrayBuffer;
+getArrayBuffer = function () {
+    // Buffer is defined on Node
+    // @ts-ignore
+    var nodeBuffer = new Buffer(DATA, "base64");
+    var arrayBuffer = new ArrayBuffer(nodeBuffer.length);
+    var u8view = new Uint8Array(arrayBuffer);
+    for (var i = 0; i < nodeBuffer.length; i++) {
+        u8view[i] = nodeBuffer[i];
+    }
+    return arrayBuffer;
+};
+var BinaryMarkov = /** @class */ (function () {
+    function BinaryMarkov(stream, offset) {
+        offset = checkMagicNumberAndVersion(stream, offset, BinaryMarkov.BINARY_TAG_LEAD, BinaryMarkov.BINARY_TAG_TRAIL, BinaryMarkov.BINARY_VERSION);
+        var size = stream.getInt16(offset);
+        offset += 2;
+        var logProbabilityDifferences = [];
+        for (var i1 = 0; i1 < size; i1++) {
+            logProbabilityDifferences[i1] = [];
+            var entries = stream.getInt16(offset);
+            offset += 2;
+            var fallback = void 0;
+            if (entries == 0) {
+                fallback = 0.0;
+            }
+            else {
+                fallback = stream.getFloat32(offset);
+                offset += 4;
+            }
+            var next = -1;
+            for (var i2 = 0; i2 < size; i2++) {
+                if (entries > 0 && next < i2) {
+                    next = stream.getInt16(offset);
+                    offset += 2;
+                    entries--;
+                }
+                if (next == i2) {
+                    logProbabilityDifferences[i1][i2] = stream.getFloat32(offset);
+                    offset += 4;
+                }
+                else {
+                    logProbabilityDifferences[i1][i2] = fallback;
+                }
+            }
+        }
+        this.logProbabilityDifferences = logProbabilityDifferences;
+    }
+    BinaryMarkov.prototype.getLogProbabilityDifference = function (i1, i2) {
+        return this.logProbabilityDifferences[i1][i2];
+    };
+    // JavaScript doesn't have the concept of 64-bit integers, so split the tag into two 32-bit ints.
+    BinaryMarkov.BINARY_TAG_LEAD = 0x424D4152;
+    BinaryMarkov.BINARY_TAG_TRAIL = 0x4B4F5620;
+    // Current serial format version number, used in association with the magic number.
+    BinaryMarkov.BINARY_VERSION = 0;
+    return BinaryMarkov;
+}());
+var ZawgyiUnicodeMarkovModel = /** @class */ (function () {
+    function ZawgyiUnicodeMarkovModel(stream, offset) {
+        offset = checkMagicNumberAndVersion(stream, offset, ZawgyiUnicodeMarkovModel.BINARY_TAG_LEAD, ZawgyiUnicodeMarkovModel.BINARY_TAG_TRAIL, ZawgyiUnicodeMarkovModel.BINARY_VERSION);
+        this.classifier = new BinaryMarkov(stream, offset);
+    }
+    ZawgyiUnicodeMarkovModel.prototype.predict = function (input) {
+        // Start at the base state
+        var prevState = 0;
+        var totalDelta = 0.0;
+        var seenTransition = false;
+        for (var offset = 0; offset <= input.length; offset++) {
+            var currState = void 0;
+            if (offset == input.length) {
+                currState = 0;
+            }
+            else {
+                // Note: All interesting characters are in the BMP.
+                var cp = input.charCodeAt(offset);
+                currState = getIndexForCodePoint(cp);
+            }
+            // Ignore 0-to-0 transitions
+            if (prevState != 0 || currState != 0) {
+                var delta = this.classifier.getLogProbabilityDifference(prevState, currState);
+                totalDelta += delta;
+                seenTransition = true;
+            }
+            prevState = currState;
+        }
+        // Special case: if there is no signal, return -Infinity,
+        // which will get interpreted by users as strong Unicode.
+        // This happens when the input string contains no Myanmar-range code points.
+        if (!seenTransition) {
+            return Number.NEGATIVE_INFINITY;
+        }
+        // result = Pz/(Pu+Pz)
+        //        = exp(logPz)/(exp(logPu)+exp(logPz))
+        //        = 1/(1+exp(logPu-logPz))
+        return 1.0 / (1.0 + Math.exp(totalDelta));
+    };
+    // JavaScript doesn't have the concept of 64-bit integers, so split the tag into two 32-bit ints.
+    ZawgyiUnicodeMarkovModel.BINARY_TAG_LEAD = 0x555A4D4F;
+    ZawgyiUnicodeMarkovModel.BINARY_TAG_TRAIL = 0x44454C20;
+    // Current serial format version number, used in association with the magic number.
+    ZawgyiUnicodeMarkovModel.BINARY_VERSION = 1;
+    return ZawgyiUnicodeMarkovModel;
+}());
+var ZawgyiDetector = /** @class */ (function () {
+    /** Loads the model from the resource and returns a ZawgyiDetector instance. */
+    function ZawgyiDetector() {
+        // Convert the Base64 to an ArrayBuffer.
+        var arrayBuffer = getArrayBuffer();
+        this.model = new ZawgyiUnicodeMarkovModel(new DataView(arrayBuffer, 0), 0);
+    }
+    /**
+     * Performs detection on the given string. Returns the probability that the string is Zawgyi given
+     * that it is either Unicode or Zawgyi. Values approaching 1 are strong Zawgyi; values approaching
+     * 0 are strong Unicode; and values close to 0.5 are toss-ups.
+     *
+     * <p>If the string does not contain any Myanmar range code points, -Infinity is returned.
+     *
+     * @param input The string on which to run detection.
+     * @return The probability that the string is Zawgyi (between 0 and 1), or -Infinity if the string
+     *     contains no Myanmar range code points.
+     */
+    ZawgyiDetector.prototype.getZawgyiProbability = function (input) {
+        return this.model.predict(input);
+    };
+    return ZawgyiDetector;
+}());
+exports.ZawgyiDetector = ZawgyiDetector;
+
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(5).Buffer))
+
+/***/ }),
+/* 5 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* WEBPACK VAR INJECTION */(function(global) {/*!
+ * The buffer module from node.js, for the browser.
+ *
+ * @author   Feross Aboukhadijeh <feross@feross.org> <http://feross.org>
+ * @license  MIT
+ */
+/* eslint-disable no-proto */
+
+
+
+var base64 = __webpack_require__(7)
+var ieee754 = __webpack_require__(8)
+var isArray = __webpack_require__(9)
+
+exports.Buffer = Buffer
+exports.SlowBuffer = SlowBuffer
+exports.INSPECT_MAX_BYTES = 50
+
+/**
+ * If `Buffer.TYPED_ARRAY_SUPPORT`:
+ *   === true    Use Uint8Array implementation (fastest)
+ *   === false   Use Object implementation (most compatible, even IE6)
+ *
+ * Browsers that support typed arrays are IE 10+, Firefox 4+, Chrome 7+, Safari 5.1+,
+ * Opera 11.6+, iOS 4.2+.
+ *
+ * Due to various browser bugs, sometimes the Object implementation will be used even
+ * when the browser supports typed arrays.
+ *
+ * Note:
+ *
+ *   - Firefox 4-29 lacks support for adding new properties to `Uint8Array` instances,
+ *     See: https://bugzilla.mozilla.org/show_bug.cgi?id=695438.
+ *
+ *   - Chrome 9-10 is missing the `TypedArray.prototype.subarray` function.
+ *
+ *   - IE10 has a broken `TypedArray.prototype.subarray` function which returns arrays of
+ *     incorrect length in some situations.
+
+ * We detect these buggy browsers and set `Buffer.TYPED_ARRAY_SUPPORT` to `false` so they
+ * get the Object implementation, which is slower but behaves correctly.
+ */
+Buffer.TYPED_ARRAY_SUPPORT = global.TYPED_ARRAY_SUPPORT !== undefined
+  ? global.TYPED_ARRAY_SUPPORT
+  : typedArraySupport()
+
+/*
+ * Export kMaxLength after typed array support is determined.
+ */
+exports.kMaxLength = kMaxLength()
+
+function typedArraySupport () {
+  try {
+    var arr = new Uint8Array(1)
+    arr.__proto__ = {__proto__: Uint8Array.prototype, foo: function () { return 42 }}
+    return arr.foo() === 42 && // typed array instances can be augmented
+        typeof arr.subarray === 'function' && // chrome 9-10 lack `subarray`
+        arr.subarray(1, 1).byteLength === 0 // ie10 has broken `subarray`
+  } catch (e) {
+    return false
+  }
+}
+
+function kMaxLength () {
+  return Buffer.TYPED_ARRAY_SUPPORT
+    ? 0x7fffffff
+    : 0x3fffffff
+}
+
+function createBuffer (that, length) {
+  if (kMaxLength() < length) {
+    throw new RangeError('Invalid typed array length')
+  }
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    // Return an augmented `Uint8Array` instance, for best performance
+    that = new Uint8Array(length)
+    that.__proto__ = Buffer.prototype
+  } else {
+    // Fallback: Return an object instance of the Buffer class
+    if (that === null) {
+      that = new Buffer(length)
+    }
+    that.length = length
+  }
+
+  return that
+}
+
+/**
+ * The Buffer constructor returns instances of `Uint8Array` that have their
+ * prototype changed to `Buffer.prototype`. Furthermore, `Buffer` is a subclass of
+ * `Uint8Array`, so the returned instances will have all the node `Buffer` methods
+ * and the `Uint8Array` methods. Square bracket notation works as expected -- it
+ * returns a single octet.
+ *
+ * The `Uint8Array` prototype remains unmodified.
+ */
+
+function Buffer (arg, encodingOrOffset, length) {
+  if (!Buffer.TYPED_ARRAY_SUPPORT && !(this instanceof Buffer)) {
+    return new Buffer(arg, encodingOrOffset, length)
+  }
+
+  // Common case.
+  if (typeof arg === 'number') {
+    if (typeof encodingOrOffset === 'string') {
+      throw new Error(
+        'If encoding is specified then the first argument must be a string'
+      )
+    }
+    return allocUnsafe(this, arg)
+  }
+  return from(this, arg, encodingOrOffset, length)
+}
+
+Buffer.poolSize = 8192 // not used by this implementation
+
+// TODO: Legacy, not needed anymore. Remove in next major version.
+Buffer._augment = function (arr) {
+  arr.__proto__ = Buffer.prototype
+  return arr
+}
+
+function from (that, value, encodingOrOffset, length) {
+  if (typeof value === 'number') {
+    throw new TypeError('"value" argument must not be a number')
+  }
+
+  if (typeof ArrayBuffer !== 'undefined' && value instanceof ArrayBuffer) {
+    return fromArrayBuffer(that, value, encodingOrOffset, length)
+  }
+
+  if (typeof value === 'string') {
+    return fromString(that, value, encodingOrOffset)
+  }
+
+  return fromObject(that, value)
+}
+
+/**
+ * Functionally equivalent to Buffer(arg, encoding) but throws a TypeError
+ * if value is a number.
+ * Buffer.from(str[, encoding])
+ * Buffer.from(array)
+ * Buffer.from(buffer)
+ * Buffer.from(arrayBuffer[, byteOffset[, length]])
+ **/
+Buffer.from = function (value, encodingOrOffset, length) {
+  return from(null, value, encodingOrOffset, length)
+}
+
+if (Buffer.TYPED_ARRAY_SUPPORT) {
+  Buffer.prototype.__proto__ = Uint8Array.prototype
+  Buffer.__proto__ = Uint8Array
+  if (typeof Symbol !== 'undefined' && Symbol.species &&
+      Buffer[Symbol.species] === Buffer) {
+    // Fix subarray() in ES2016. See: https://github.com/feross/buffer/pull/97
+    Object.defineProperty(Buffer, Symbol.species, {
+      value: null,
+      configurable: true
+    })
+  }
+}
+
+function assertSize (size) {
+  if (typeof size !== 'number') {
+    throw new TypeError('"size" argument must be a number')
+  } else if (size < 0) {
+    throw new RangeError('"size" argument must not be negative')
+  }
+}
+
+function alloc (that, size, fill, encoding) {
+  assertSize(size)
+  if (size <= 0) {
+    return createBuffer(that, size)
+  }
+  if (fill !== undefined) {
+    // Only pay attention to encoding if it's a string. This
+    // prevents accidentally sending in a number that would
+    // be interpretted as a start offset.
+    return typeof encoding === 'string'
+      ? createBuffer(that, size).fill(fill, encoding)
+      : createBuffer(that, size).fill(fill)
+  }
+  return createBuffer(that, size)
+}
+
+/**
+ * Creates a new filled Buffer instance.
+ * alloc(size[, fill[, encoding]])
+ **/
+Buffer.alloc = function (size, fill, encoding) {
+  return alloc(null, size, fill, encoding)
+}
+
+function allocUnsafe (that, size) {
+  assertSize(size)
+  that = createBuffer(that, size < 0 ? 0 : checked(size) | 0)
+  if (!Buffer.TYPED_ARRAY_SUPPORT) {
+    for (var i = 0; i < size; ++i) {
+      that[i] = 0
+    }
+  }
+  return that
+}
+
+/**
+ * Equivalent to Buffer(num), by default creates a non-zero-filled Buffer instance.
+ * */
+Buffer.allocUnsafe = function (size) {
+  return allocUnsafe(null, size)
+}
+/**
+ * Equivalent to SlowBuffer(num), by default creates a non-zero-filled Buffer instance.
+ */
+Buffer.allocUnsafeSlow = function (size) {
+  return allocUnsafe(null, size)
+}
+
+function fromString (that, string, encoding) {
+  if (typeof encoding !== 'string' || encoding === '') {
+    encoding = 'utf8'
+  }
+
+  if (!Buffer.isEncoding(encoding)) {
+    throw new TypeError('"encoding" must be a valid string encoding')
+  }
+
+  var length = byteLength(string, encoding) | 0
+  that = createBuffer(that, length)
+
+  var actual = that.write(string, encoding)
+
+  if (actual !== length) {
+    // Writing a hex string, for example, that contains invalid characters will
+    // cause everything after the first invalid character to be ignored. (e.g.
+    // 'abxxcd' will be treated as 'ab')
+    that = that.slice(0, actual)
+  }
+
+  return that
+}
+
+function fromArrayLike (that, array) {
+  var length = array.length < 0 ? 0 : checked(array.length) | 0
+  that = createBuffer(that, length)
+  for (var i = 0; i < length; i += 1) {
+    that[i] = array[i] & 255
+  }
+  return that
+}
+
+function fromArrayBuffer (that, array, byteOffset, length) {
+  array.byteLength // this throws if `array` is not a valid ArrayBuffer
+
+  if (byteOffset < 0 || array.byteLength < byteOffset) {
+    throw new RangeError('\'offset\' is out of bounds')
+  }
+
+  if (array.byteLength < byteOffset + (length || 0)) {
+    throw new RangeError('\'length\' is out of bounds')
+  }
+
+  if (byteOffset === undefined && length === undefined) {
+    array = new Uint8Array(array)
+  } else if (length === undefined) {
+    array = new Uint8Array(array, byteOffset)
+  } else {
+    array = new Uint8Array(array, byteOffset, length)
+  }
+
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    // Return an augmented `Uint8Array` instance, for best performance
+    that = array
+    that.__proto__ = Buffer.prototype
+  } else {
+    // Fallback: Return an object instance of the Buffer class
+    that = fromArrayLike(that, array)
+  }
+  return that
+}
+
+function fromObject (that, obj) {
+  if (Buffer.isBuffer(obj)) {
+    var len = checked(obj.length) | 0
+    that = createBuffer(that, len)
+
+    if (that.length === 0) {
+      return that
+    }
+
+    obj.copy(that, 0, 0, len)
+    return that
+  }
+
+  if (obj) {
+    if ((typeof ArrayBuffer !== 'undefined' &&
+        obj.buffer instanceof ArrayBuffer) || 'length' in obj) {
+      if (typeof obj.length !== 'number' || isnan(obj.length)) {
+        return createBuffer(that, 0)
+      }
+      return fromArrayLike(that, obj)
+    }
+
+    if (obj.type === 'Buffer' && isArray(obj.data)) {
+      return fromArrayLike(that, obj.data)
+    }
+  }
+
+  throw new TypeError('First argument must be a string, Buffer, ArrayBuffer, Array, or array-like object.')
+}
+
+function checked (length) {
+  // Note: cannot use `length < kMaxLength()` here because that fails when
+  // length is NaN (which is otherwise coerced to zero.)
+  if (length >= kMaxLength()) {
+    throw new RangeError('Attempt to allocate Buffer larger than maximum ' +
+                         'size: 0x' + kMaxLength().toString(16) + ' bytes')
+  }
+  return length | 0
+}
+
+function SlowBuffer (length) {
+  if (+length != length) { // eslint-disable-line eqeqeq
+    length = 0
+  }
+  return Buffer.alloc(+length)
+}
+
+Buffer.isBuffer = function isBuffer (b) {
+  return !!(b != null && b._isBuffer)
+}
+
+Buffer.compare = function compare (a, b) {
+  if (!Buffer.isBuffer(a) || !Buffer.isBuffer(b)) {
+    throw new TypeError('Arguments must be Buffers')
+  }
+
+  if (a === b) return 0
+
+  var x = a.length
+  var y = b.length
+
+  for (var i = 0, len = Math.min(x, y); i < len; ++i) {
+    if (a[i] !== b[i]) {
+      x = a[i]
+      y = b[i]
+      break
+    }
+  }
+
+  if (x < y) return -1
+  if (y < x) return 1
+  return 0
+}
+
+Buffer.isEncoding = function isEncoding (encoding) {
+  switch (String(encoding).toLowerCase()) {
+    case 'hex':
+    case 'utf8':
+    case 'utf-8':
+    case 'ascii':
+    case 'latin1':
+    case 'binary':
+    case 'base64':
+    case 'ucs2':
+    case 'ucs-2':
+    case 'utf16le':
+    case 'utf-16le':
+      return true
+    default:
+      return false
+  }
+}
+
+Buffer.concat = function concat (list, length) {
+  if (!isArray(list)) {
+    throw new TypeError('"list" argument must be an Array of Buffers')
+  }
+
+  if (list.length === 0) {
+    return Buffer.alloc(0)
+  }
+
+  var i
+  if (length === undefined) {
+    length = 0
+    for (i = 0; i < list.length; ++i) {
+      length += list[i].length
+    }
+  }
+
+  var buffer = Buffer.allocUnsafe(length)
+  var pos = 0
+  for (i = 0; i < list.length; ++i) {
+    var buf = list[i]
+    if (!Buffer.isBuffer(buf)) {
+      throw new TypeError('"list" argument must be an Array of Buffers')
+    }
+    buf.copy(buffer, pos)
+    pos += buf.length
+  }
+  return buffer
+}
+
+function byteLength (string, encoding) {
+  if (Buffer.isBuffer(string)) {
+    return string.length
+  }
+  if (typeof ArrayBuffer !== 'undefined' && typeof ArrayBuffer.isView === 'function' &&
+      (ArrayBuffer.isView(string) || string instanceof ArrayBuffer)) {
+    return string.byteLength
+  }
+  if (typeof string !== 'string') {
+    string = '' + string
+  }
+
+  var len = string.length
+  if (len === 0) return 0
+
+  // Use a for loop to avoid recursion
+  var loweredCase = false
+  for (;;) {
+    switch (encoding) {
+      case 'ascii':
+      case 'latin1':
+      case 'binary':
+        return len
+      case 'utf8':
+      case 'utf-8':
+      case undefined:
+        return utf8ToBytes(string).length
+      case 'ucs2':
+      case 'ucs-2':
+      case 'utf16le':
+      case 'utf-16le':
+        return len * 2
+      case 'hex':
+        return len >>> 1
+      case 'base64':
+        return base64ToBytes(string).length
+      default:
+        if (loweredCase) return utf8ToBytes(string).length // assume utf8
+        encoding = ('' + encoding).toLowerCase()
+        loweredCase = true
+    }
+  }
+}
+Buffer.byteLength = byteLength
+
+function slowToString (encoding, start, end) {
+  var loweredCase = false
+
+  // No need to verify that "this.length <= MAX_UINT32" since it's a read-only
+  // property of a typed array.
+
+  // This behaves neither like String nor Uint8Array in that we set start/end
+  // to their upper/lower bounds if the value passed is out of range.
+  // undefined is handled specially as per ECMA-262 6th Edition,
+  // Section 13.3.3.7 Runtime Semantics: KeyedBindingInitialization.
+  if (start === undefined || start < 0) {
+    start = 0
+  }
+  // Return early if start > this.length. Done here to prevent potential uint32
+  // coercion fail below.
+  if (start > this.length) {
+    return ''
+  }
+
+  if (end === undefined || end > this.length) {
+    end = this.length
+  }
+
+  if (end <= 0) {
+    return ''
+  }
+
+  // Force coersion to uint32. This will also coerce falsey/NaN values to 0.
+  end >>>= 0
+  start >>>= 0
+
+  if (end <= start) {
+    return ''
+  }
+
+  if (!encoding) encoding = 'utf8'
+
+  while (true) {
+    switch (encoding) {
+      case 'hex':
+        return hexSlice(this, start, end)
+
+      case 'utf8':
+      case 'utf-8':
+        return utf8Slice(this, start, end)
+
+      case 'ascii':
+        return asciiSlice(this, start, end)
+
+      case 'latin1':
+      case 'binary':
+        return latin1Slice(this, start, end)
+
+      case 'base64':
+        return base64Slice(this, start, end)
+
+      case 'ucs2':
+      case 'ucs-2':
+      case 'utf16le':
+      case 'utf-16le':
+        return utf16leSlice(this, start, end)
+
+      default:
+        if (loweredCase) throw new TypeError('Unknown encoding: ' + encoding)
+        encoding = (encoding + '').toLowerCase()
+        loweredCase = true
+    }
+  }
+}
+
+// The property is used by `Buffer.isBuffer` and `is-buffer` (in Safari 5-7) to detect
+// Buffer instances.
+Buffer.prototype._isBuffer = true
+
+function swap (b, n, m) {
+  var i = b[n]
+  b[n] = b[m]
+  b[m] = i
+}
+
+Buffer.prototype.swap16 = function swap16 () {
+  var len = this.length
+  if (len % 2 !== 0) {
+    throw new RangeError('Buffer size must be a multiple of 16-bits')
+  }
+  for (var i = 0; i < len; i += 2) {
+    swap(this, i, i + 1)
+  }
+  return this
+}
+
+Buffer.prototype.swap32 = function swap32 () {
+  var len = this.length
+  if (len % 4 !== 0) {
+    throw new RangeError('Buffer size must be a multiple of 32-bits')
+  }
+  for (var i = 0; i < len; i += 4) {
+    swap(this, i, i + 3)
+    swap(this, i + 1, i + 2)
+  }
+  return this
+}
+
+Buffer.prototype.swap64 = function swap64 () {
+  var len = this.length
+  if (len % 8 !== 0) {
+    throw new RangeError('Buffer size must be a multiple of 64-bits')
+  }
+  for (var i = 0; i < len; i += 8) {
+    swap(this, i, i + 7)
+    swap(this, i + 1, i + 6)
+    swap(this, i + 2, i + 5)
+    swap(this, i + 3, i + 4)
+  }
+  return this
+}
+
+Buffer.prototype.toString = function toString () {
+  var length = this.length | 0
+  if (length === 0) return ''
+  if (arguments.length === 0) return utf8Slice(this, 0, length)
+  return slowToString.apply(this, arguments)
+}
+
+Buffer.prototype.equals = function equals (b) {
+  if (!Buffer.isBuffer(b)) throw new TypeError('Argument must be a Buffer')
+  if (this === b) return true
+  return Buffer.compare(this, b) === 0
+}
+
+Buffer.prototype.inspect = function inspect () {
+  var str = ''
+  var max = exports.INSPECT_MAX_BYTES
+  if (this.length > 0) {
+    str = this.toString('hex', 0, max).match(/.{2}/g).join(' ')
+    if (this.length > max) str += ' ... '
+  }
+  return '<Buffer ' + str + '>'
+}
+
+Buffer.prototype.compare = function compare (target, start, end, thisStart, thisEnd) {
+  if (!Buffer.isBuffer(target)) {
+    throw new TypeError('Argument must be a Buffer')
+  }
+
+  if (start === undefined) {
+    start = 0
+  }
+  if (end === undefined) {
+    end = target ? target.length : 0
+  }
+  if (thisStart === undefined) {
+    thisStart = 0
+  }
+  if (thisEnd === undefined) {
+    thisEnd = this.length
+  }
+
+  if (start < 0 || end > target.length || thisStart < 0 || thisEnd > this.length) {
+    throw new RangeError('out of range index')
+  }
+
+  if (thisStart >= thisEnd && start >= end) {
+    return 0
+  }
+  if (thisStart >= thisEnd) {
+    return -1
+  }
+  if (start >= end) {
+    return 1
+  }
+
+  start >>>= 0
+  end >>>= 0
+  thisStart >>>= 0
+  thisEnd >>>= 0
+
+  if (this === target) return 0
+
+  var x = thisEnd - thisStart
+  var y = end - start
+  var len = Math.min(x, y)
+
+  var thisCopy = this.slice(thisStart, thisEnd)
+  var targetCopy = target.slice(start, end)
+
+  for (var i = 0; i < len; ++i) {
+    if (thisCopy[i] !== targetCopy[i]) {
+      x = thisCopy[i]
+      y = targetCopy[i]
+      break
+    }
+  }
+
+  if (x < y) return -1
+  if (y < x) return 1
+  return 0
+}
+
+// Finds either the first index of `val` in `buffer` at offset >= `byteOffset`,
+// OR the last index of `val` in `buffer` at offset <= `byteOffset`.
+//
+// Arguments:
+// - buffer - a Buffer to search
+// - val - a string, Buffer, or number
+// - byteOffset - an index into `buffer`; will be clamped to an int32
+// - encoding - an optional encoding, relevant is val is a string
+// - dir - true for indexOf, false for lastIndexOf
+function bidirectionalIndexOf (buffer, val, byteOffset, encoding, dir) {
+  // Empty buffer means no match
+  if (buffer.length === 0) return -1
+
+  // Normalize byteOffset
+  if (typeof byteOffset === 'string') {
+    encoding = byteOffset
+    byteOffset = 0
+  } else if (byteOffset > 0x7fffffff) {
+    byteOffset = 0x7fffffff
+  } else if (byteOffset < -0x80000000) {
+    byteOffset = -0x80000000
+  }
+  byteOffset = +byteOffset  // Coerce to Number.
+  if (isNaN(byteOffset)) {
+    // byteOffset: it it's undefined, null, NaN, "foo", etc, search whole buffer
+    byteOffset = dir ? 0 : (buffer.length - 1)
+  }
+
+  // Normalize byteOffset: negative offsets start from the end of the buffer
+  if (byteOffset < 0) byteOffset = buffer.length + byteOffset
+  if (byteOffset >= buffer.length) {
+    if (dir) return -1
+    else byteOffset = buffer.length - 1
+  } else if (byteOffset < 0) {
+    if (dir) byteOffset = 0
+    else return -1
+  }
+
+  // Normalize val
+  if (typeof val === 'string') {
+    val = Buffer.from(val, encoding)
+  }
+
+  // Finally, search either indexOf (if dir is true) or lastIndexOf
+  if (Buffer.isBuffer(val)) {
+    // Special case: looking for empty string/buffer always fails
+    if (val.length === 0) {
+      return -1
+    }
+    return arrayIndexOf(buffer, val, byteOffset, encoding, dir)
+  } else if (typeof val === 'number') {
+    val = val & 0xFF // Search for a byte value [0-255]
+    if (Buffer.TYPED_ARRAY_SUPPORT &&
+        typeof Uint8Array.prototype.indexOf === 'function') {
+      if (dir) {
+        return Uint8Array.prototype.indexOf.call(buffer, val, byteOffset)
+      } else {
+        return Uint8Array.prototype.lastIndexOf.call(buffer, val, byteOffset)
+      }
+    }
+    return arrayIndexOf(buffer, [ val ], byteOffset, encoding, dir)
+  }
+
+  throw new TypeError('val must be string, number or Buffer')
+}
+
+function arrayIndexOf (arr, val, byteOffset, encoding, dir) {
+  var indexSize = 1
+  var arrLength = arr.length
+  var valLength = val.length
+
+  if (encoding !== undefined) {
+    encoding = String(encoding).toLowerCase()
+    if (encoding === 'ucs2' || encoding === 'ucs-2' ||
+        encoding === 'utf16le' || encoding === 'utf-16le') {
+      if (arr.length < 2 || val.length < 2) {
+        return -1
+      }
+      indexSize = 2
+      arrLength /= 2
+      valLength /= 2
+      byteOffset /= 2
+    }
+  }
+
+  function read (buf, i) {
+    if (indexSize === 1) {
+      return buf[i]
+    } else {
+      return buf.readUInt16BE(i * indexSize)
+    }
+  }
+
+  var i
+  if (dir) {
+    var foundIndex = -1
+    for (i = byteOffset; i < arrLength; i++) {
+      if (read(arr, i) === read(val, foundIndex === -1 ? 0 : i - foundIndex)) {
+        if (foundIndex === -1) foundIndex = i
+        if (i - foundIndex + 1 === valLength) return foundIndex * indexSize
+      } else {
+        if (foundIndex !== -1) i -= i - foundIndex
+        foundIndex = -1
+      }
+    }
+  } else {
+    if (byteOffset + valLength > arrLength) byteOffset = arrLength - valLength
+    for (i = byteOffset; i >= 0; i--) {
+      var found = true
+      for (var j = 0; j < valLength; j++) {
+        if (read(arr, i + j) !== read(val, j)) {
+          found = false
+          break
+        }
+      }
+      if (found) return i
+    }
+  }
+
+  return -1
+}
+
+Buffer.prototype.includes = function includes (val, byteOffset, encoding) {
+  return this.indexOf(val, byteOffset, encoding) !== -1
+}
+
+Buffer.prototype.indexOf = function indexOf (val, byteOffset, encoding) {
+  return bidirectionalIndexOf(this, val, byteOffset, encoding, true)
+}
+
+Buffer.prototype.lastIndexOf = function lastIndexOf (val, byteOffset, encoding) {
+  return bidirectionalIndexOf(this, val, byteOffset, encoding, false)
+}
+
+function hexWrite (buf, string, offset, length) {
+  offset = Number(offset) || 0
+  var remaining = buf.length - offset
+  if (!length) {
+    length = remaining
+  } else {
+    length = Number(length)
+    if (length > remaining) {
+      length = remaining
+    }
+  }
+
+  // must be an even number of digits
+  var strLen = string.length
+  if (strLen % 2 !== 0) throw new TypeError('Invalid hex string')
+
+  if (length > strLen / 2) {
+    length = strLen / 2
+  }
+  for (var i = 0; i < length; ++i) {
+    var parsed = parseInt(string.substr(i * 2, 2), 16)
+    if (isNaN(parsed)) return i
+    buf[offset + i] = parsed
+  }
+  return i
+}
+
+function utf8Write (buf, string, offset, length) {
+  return blitBuffer(utf8ToBytes(string, buf.length - offset), buf, offset, length)
+}
+
+function asciiWrite (buf, string, offset, length) {
+  return blitBuffer(asciiToBytes(string), buf, offset, length)
+}
+
+function latin1Write (buf, string, offset, length) {
+  return asciiWrite(buf, string, offset, length)
+}
+
+function base64Write (buf, string, offset, length) {
+  return blitBuffer(base64ToBytes(string), buf, offset, length)
+}
+
+function ucs2Write (buf, string, offset, length) {
+  return blitBuffer(utf16leToBytes(string, buf.length - offset), buf, offset, length)
+}
+
+Buffer.prototype.write = function write (string, offset, length, encoding) {
+  // Buffer#write(string)
+  if (offset === undefined) {
+    encoding = 'utf8'
+    length = this.length
+    offset = 0
+  // Buffer#write(string, encoding)
+  } else if (length === undefined && typeof offset === 'string') {
+    encoding = offset
+    length = this.length
+    offset = 0
+  // Buffer#write(string, offset[, length][, encoding])
+  } else if (isFinite(offset)) {
+    offset = offset | 0
+    if (isFinite(length)) {
+      length = length | 0
+      if (encoding === undefined) encoding = 'utf8'
+    } else {
+      encoding = length
+      length = undefined
+    }
+  // legacy write(string, encoding, offset, length) - remove in v0.13
+  } else {
+    throw new Error(
+      'Buffer.write(string, encoding, offset[, length]) is no longer supported'
+    )
+  }
+
+  var remaining = this.length - offset
+  if (length === undefined || length > remaining) length = remaining
+
+  if ((string.length > 0 && (length < 0 || offset < 0)) || offset > this.length) {
+    throw new RangeError('Attempt to write outside buffer bounds')
+  }
+
+  if (!encoding) encoding = 'utf8'
+
+  var loweredCase = false
+  for (;;) {
+    switch (encoding) {
+      case 'hex':
+        return hexWrite(this, string, offset, length)
+
+      case 'utf8':
+      case 'utf-8':
+        return utf8Write(this, string, offset, length)
+
+      case 'ascii':
+        return asciiWrite(this, string, offset, length)
+
+      case 'latin1':
+      case 'binary':
+        return latin1Write(this, string, offset, length)
+
+      case 'base64':
+        // Warning: maxLength not taken into account in base64Write
+        return base64Write(this, string, offset, length)
+
+      case 'ucs2':
+      case 'ucs-2':
+      case 'utf16le':
+      case 'utf-16le':
+        return ucs2Write(this, string, offset, length)
+
+      default:
+        if (loweredCase) throw new TypeError('Unknown encoding: ' + encoding)
+        encoding = ('' + encoding).toLowerCase()
+        loweredCase = true
+    }
+  }
+}
+
+Buffer.prototype.toJSON = function toJSON () {
+  return {
+    type: 'Buffer',
+    data: Array.prototype.slice.call(this._arr || this, 0)
+  }
+}
+
+function base64Slice (buf, start, end) {
+  if (start === 0 && end === buf.length) {
+    return base64.fromByteArray(buf)
+  } else {
+    return base64.fromByteArray(buf.slice(start, end))
+  }
+}
+
+function utf8Slice (buf, start, end) {
+  end = Math.min(buf.length, end)
+  var res = []
+
+  var i = start
+  while (i < end) {
+    var firstByte = buf[i]
+    var codePoint = null
+    var bytesPerSequence = (firstByte > 0xEF) ? 4
+      : (firstByte > 0xDF) ? 3
+      : (firstByte > 0xBF) ? 2
+      : 1
+
+    if (i + bytesPerSequence <= end) {
+      var secondByte, thirdByte, fourthByte, tempCodePoint
+
+      switch (bytesPerSequence) {
+        case 1:
+          if (firstByte < 0x80) {
+            codePoint = firstByte
+          }
+          break
+        case 2:
+          secondByte = buf[i + 1]
+          if ((secondByte & 0xC0) === 0x80) {
+            tempCodePoint = (firstByte & 0x1F) << 0x6 | (secondByte & 0x3F)
+            if (tempCodePoint > 0x7F) {
+              codePoint = tempCodePoint
+            }
+          }
+          break
+        case 3:
+          secondByte = buf[i + 1]
+          thirdByte = buf[i + 2]
+          if ((secondByte & 0xC0) === 0x80 && (thirdByte & 0xC0) === 0x80) {
+            tempCodePoint = (firstByte & 0xF) << 0xC | (secondByte & 0x3F) << 0x6 | (thirdByte & 0x3F)
+            if (tempCodePoint > 0x7FF && (tempCodePoint < 0xD800 || tempCodePoint > 0xDFFF)) {
+              codePoint = tempCodePoint
+            }
+          }
+          break
+        case 4:
+          secondByte = buf[i + 1]
+          thirdByte = buf[i + 2]
+          fourthByte = buf[i + 3]
+          if ((secondByte & 0xC0) === 0x80 && (thirdByte & 0xC0) === 0x80 && (fourthByte & 0xC0) === 0x80) {
+            tempCodePoint = (firstByte & 0xF) << 0x12 | (secondByte & 0x3F) << 0xC | (thirdByte & 0x3F) << 0x6 | (fourthByte & 0x3F)
+            if (tempCodePoint > 0xFFFF && tempCodePoint < 0x110000) {
+              codePoint = tempCodePoint
+            }
+          }
+      }
+    }
+
+    if (codePoint === null) {
+      // we did not generate a valid codePoint so insert a
+      // replacement char (U+FFFD) and advance only 1 byte
+      codePoint = 0xFFFD
+      bytesPerSequence = 1
+    } else if (codePoint > 0xFFFF) {
+      // encode to utf16 (surrogate pair dance)
+      codePoint -= 0x10000
+      res.push(codePoint >>> 10 & 0x3FF | 0xD800)
+      codePoint = 0xDC00 | codePoint & 0x3FF
+    }
+
+    res.push(codePoint)
+    i += bytesPerSequence
+  }
+
+  return decodeCodePointsArray(res)
+}
+
+// Based on http://stackoverflow.com/a/22747272/680742, the browser with
+// the lowest limit is Chrome, with 0x10000 args.
+// We go 1 magnitude less, for safety
+var MAX_ARGUMENTS_LENGTH = 0x1000
+
+function decodeCodePointsArray (codePoints) {
+  var len = codePoints.length
+  if (len <= MAX_ARGUMENTS_LENGTH) {
+    return String.fromCharCode.apply(String, codePoints) // avoid extra slice()
+  }
+
+  // Decode in chunks to avoid "call stack size exceeded".
+  var res = ''
+  var i = 0
+  while (i < len) {
+    res += String.fromCharCode.apply(
+      String,
+      codePoints.slice(i, i += MAX_ARGUMENTS_LENGTH)
+    )
+  }
+  return res
+}
+
+function asciiSlice (buf, start, end) {
+  var ret = ''
+  end = Math.min(buf.length, end)
+
+  for (var i = start; i < end; ++i) {
+    ret += String.fromCharCode(buf[i] & 0x7F)
+  }
+  return ret
+}
+
+function latin1Slice (buf, start, end) {
+  var ret = ''
+  end = Math.min(buf.length, end)
+
+  for (var i = start; i < end; ++i) {
+    ret += String.fromCharCode(buf[i])
+  }
+  return ret
+}
+
+function hexSlice (buf, start, end) {
+  var len = buf.length
+
+  if (!start || start < 0) start = 0
+  if (!end || end < 0 || end > len) end = len
+
+  var out = ''
+  for (var i = start; i < end; ++i) {
+    out += toHex(buf[i])
+  }
+  return out
+}
+
+function utf16leSlice (buf, start, end) {
+  var bytes = buf.slice(start, end)
+  var res = ''
+  for (var i = 0; i < bytes.length; i += 2) {
+    res += String.fromCharCode(bytes[i] + bytes[i + 1] * 256)
+  }
+  return res
+}
+
+Buffer.prototype.slice = function slice (start, end) {
+  var len = this.length
+  start = ~~start
+  end = end === undefined ? len : ~~end
+
+  if (start < 0) {
+    start += len
+    if (start < 0) start = 0
+  } else if (start > len) {
+    start = len
+  }
+
+  if (end < 0) {
+    end += len
+    if (end < 0) end = 0
+  } else if (end > len) {
+    end = len
+  }
+
+  if (end < start) end = start
+
+  var newBuf
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    newBuf = this.subarray(start, end)
+    newBuf.__proto__ = Buffer.prototype
+  } else {
+    var sliceLen = end - start
+    newBuf = new Buffer(sliceLen, undefined)
+    for (var i = 0; i < sliceLen; ++i) {
+      newBuf[i] = this[i + start]
+    }
+  }
+
+  return newBuf
+}
+
+/*
+ * Need to make sure that buffer isn't trying to write out of bounds.
+ */
+function checkOffset (offset, ext, length) {
+  if ((offset % 1) !== 0 || offset < 0) throw new RangeError('offset is not uint')
+  if (offset + ext > length) throw new RangeError('Trying to access beyond buffer length')
+}
+
+Buffer.prototype.readUIntLE = function readUIntLE (offset, byteLength, noAssert) {
+  offset = offset | 0
+  byteLength = byteLength | 0
+  if (!noAssert) checkOffset(offset, byteLength, this.length)
+
+  var val = this[offset]
+  var mul = 1
+  var i = 0
+  while (++i < byteLength && (mul *= 0x100)) {
+    val += this[offset + i] * mul
+  }
+
+  return val
+}
+
+Buffer.prototype.readUIntBE = function readUIntBE (offset, byteLength, noAssert) {
+  offset = offset | 0
+  byteLength = byteLength | 0
+  if (!noAssert) {
+    checkOffset(offset, byteLength, this.length)
+  }
+
+  var val = this[offset + --byteLength]
+  var mul = 1
+  while (byteLength > 0 && (mul *= 0x100)) {
+    val += this[offset + --byteLength] * mul
+  }
+
+  return val
+}
+
+Buffer.prototype.readUInt8 = function readUInt8 (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 1, this.length)
+  return this[offset]
+}
+
+Buffer.prototype.readUInt16LE = function readUInt16LE (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 2, this.length)
+  return this[offset] | (this[offset + 1] << 8)
+}
+
+Buffer.prototype.readUInt16BE = function readUInt16BE (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 2, this.length)
+  return (this[offset] << 8) | this[offset + 1]
+}
+
+Buffer.prototype.readUInt32LE = function readUInt32LE (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 4, this.length)
+
+  return ((this[offset]) |
+      (this[offset + 1] << 8) |
+      (this[offset + 2] << 16)) +
+      (this[offset + 3] * 0x1000000)
+}
+
+Buffer.prototype.readUInt32BE = function readUInt32BE (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 4, this.length)
+
+  return (this[offset] * 0x1000000) +
+    ((this[offset + 1] << 16) |
+    (this[offset + 2] << 8) |
+    this[offset + 3])
+}
+
+Buffer.prototype.readIntLE = function readIntLE (offset, byteLength, noAssert) {
+  offset = offset | 0
+  byteLength = byteLength | 0
+  if (!noAssert) checkOffset(offset, byteLength, this.length)
+
+  var val = this[offset]
+  var mul = 1
+  var i = 0
+  while (++i < byteLength && (mul *= 0x100)) {
+    val += this[offset + i] * mul
+  }
+  mul *= 0x80
+
+  if (val >= mul) val -= Math.pow(2, 8 * byteLength)
+
+  return val
+}
+
+Buffer.prototype.readIntBE = function readIntBE (offset, byteLength, noAssert) {
+  offset = offset | 0
+  byteLength = byteLength | 0
+  if (!noAssert) checkOffset(offset, byteLength, this.length)
+
+  var i = byteLength
+  var mul = 1
+  var val = this[offset + --i]
+  while (i > 0 && (mul *= 0x100)) {
+    val += this[offset + --i] * mul
+  }
+  mul *= 0x80
+
+  if (val >= mul) val -= Math.pow(2, 8 * byteLength)
+
+  return val
+}
+
+Buffer.prototype.readInt8 = function readInt8 (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 1, this.length)
+  if (!(this[offset] & 0x80)) return (this[offset])
+  return ((0xff - this[offset] + 1) * -1)
+}
+
+Buffer.prototype.readInt16LE = function readInt16LE (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 2, this.length)
+  var val = this[offset] | (this[offset + 1] << 8)
+  return (val & 0x8000) ? val | 0xFFFF0000 : val
+}
+
+Buffer.prototype.readInt16BE = function readInt16BE (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 2, this.length)
+  var val = this[offset + 1] | (this[offset] << 8)
+  return (val & 0x8000) ? val | 0xFFFF0000 : val
+}
+
+Buffer.prototype.readInt32LE = function readInt32LE (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 4, this.length)
+
+  return (this[offset]) |
+    (this[offset + 1] << 8) |
+    (this[offset + 2] << 16) |
+    (this[offset + 3] << 24)
+}
+
+Buffer.prototype.readInt32BE = function readInt32BE (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 4, this.length)
+
+  return (this[offset] << 24) |
+    (this[offset + 1] << 16) |
+    (this[offset + 2] << 8) |
+    (this[offset + 3])
+}
+
+Buffer.prototype.readFloatLE = function readFloatLE (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 4, this.length)
+  return ieee754.read(this, offset, true, 23, 4)
+}
+
+Buffer.prototype.readFloatBE = function readFloatBE (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 4, this.length)
+  return ieee754.read(this, offset, false, 23, 4)
+}
+
+Buffer.prototype.readDoubleLE = function readDoubleLE (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 8, this.length)
+  return ieee754.read(this, offset, true, 52, 8)
+}
+
+Buffer.prototype.readDoubleBE = function readDoubleBE (offset, noAssert) {
+  if (!noAssert) checkOffset(offset, 8, this.length)
+  return ieee754.read(this, offset, false, 52, 8)
+}
+
+function checkInt (buf, value, offset, ext, max, min) {
+  if (!Buffer.isBuffer(buf)) throw new TypeError('"buffer" argument must be a Buffer instance')
+  if (value > max || value < min) throw new RangeError('"value" argument is out of bounds')
+  if (offset + ext > buf.length) throw new RangeError('Index out of range')
+}
+
+Buffer.prototype.writeUIntLE = function writeUIntLE (value, offset, byteLength, noAssert) {
+  value = +value
+  offset = offset | 0
+  byteLength = byteLength | 0
+  if (!noAssert) {
+    var maxBytes = Math.pow(2, 8 * byteLength) - 1
+    checkInt(this, value, offset, byteLength, maxBytes, 0)
+  }
+
+  var mul = 1
+  var i = 0
+  this[offset] = value & 0xFF
+  while (++i < byteLength && (mul *= 0x100)) {
+    this[offset + i] = (value / mul) & 0xFF
+  }
+
+  return offset + byteLength
+}
+
+Buffer.prototype.writeUIntBE = function writeUIntBE (value, offset, byteLength, noAssert) {
+  value = +value
+  offset = offset | 0
+  byteLength = byteLength | 0
+  if (!noAssert) {
+    var maxBytes = Math.pow(2, 8 * byteLength) - 1
+    checkInt(this, value, offset, byteLength, maxBytes, 0)
+  }
+
+  var i = byteLength - 1
+  var mul = 1
+  this[offset + i] = value & 0xFF
+  while (--i >= 0 && (mul *= 0x100)) {
+    this[offset + i] = (value / mul) & 0xFF
+  }
+
+  return offset + byteLength
+}
+
+Buffer.prototype.writeUInt8 = function writeUInt8 (value, offset, noAssert) {
+  value = +value
+  offset = offset | 0
+  if (!noAssert) checkInt(this, value, offset, 1, 0xff, 0)
+  if (!Buffer.TYPED_ARRAY_SUPPORT) value = Math.floor(value)
+  this[offset] = (value & 0xff)
+  return offset + 1
+}
+
+function objectWriteUInt16 (buf, value, offset, littleEndian) {
+  if (value < 0) value = 0xffff + value + 1
+  for (var i = 0, j = Math.min(buf.length - offset, 2); i < j; ++i) {
+    buf[offset + i] = (value & (0xff << (8 * (littleEndian ? i : 1 - i)))) >>>
+      (littleEndian ? i : 1 - i) * 8
+  }
+}
+
+Buffer.prototype.writeUInt16LE = function writeUInt16LE (value, offset, noAssert) {
+  value = +value
+  offset = offset | 0
+  if (!noAssert) checkInt(this, value, offset, 2, 0xffff, 0)
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    this[offset] = (value & 0xff)
+    this[offset + 1] = (value >>> 8)
+  } else {
+    objectWriteUInt16(this, value, offset, true)
+  }
+  return offset + 2
+}
+
+Buffer.prototype.writeUInt16BE = function writeUInt16BE (value, offset, noAssert) {
+  value = +value
+  offset = offset | 0
+  if (!noAssert) checkInt(this, value, offset, 2, 0xffff, 0)
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    this[offset] = (value >>> 8)
+    this[offset + 1] = (value & 0xff)
+  } else {
+    objectWriteUInt16(this, value, offset, false)
+  }
+  return offset + 2
+}
+
+function objectWriteUInt32 (buf, value, offset, littleEndian) {
+  if (value < 0) value = 0xffffffff + value + 1
+  for (var i = 0, j = Math.min(buf.length - offset, 4); i < j; ++i) {
+    buf[offset + i] = (value >>> (littleEndian ? i : 3 - i) * 8) & 0xff
+  }
+}
+
+Buffer.prototype.writeUInt32LE = function writeUInt32LE (value, offset, noAssert) {
+  value = +value
+  offset = offset | 0
+  if (!noAssert) checkInt(this, value, offset, 4, 0xffffffff, 0)
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    this[offset + 3] = (value >>> 24)
+    this[offset + 2] = (value >>> 16)
+    this[offset + 1] = (value >>> 8)
+    this[offset] = (value & 0xff)
+  } else {
+    objectWriteUInt32(this, value, offset, true)
+  }
+  return offset + 4
+}
+
+Buffer.prototype.writeUInt32BE = function writeUInt32BE (value, offset, noAssert) {
+  value = +value
+  offset = offset | 0
+  if (!noAssert) checkInt(this, value, offset, 4, 0xffffffff, 0)
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    this[offset] = (value >>> 24)
+    this[offset + 1] = (value >>> 16)
+    this[offset + 2] = (value >>> 8)
+    this[offset + 3] = (value & 0xff)
+  } else {
+    objectWriteUInt32(this, value, offset, false)
+  }
+  return offset + 4
+}
+
+Buffer.prototype.writeIntLE = function writeIntLE (value, offset, byteLength, noAssert) {
+  value = +value
+  offset = offset | 0
+  if (!noAssert) {
+    var limit = Math.pow(2, 8 * byteLength - 1)
+
+    checkInt(this, value, offset, byteLength, limit - 1, -limit)
+  }
+
+  var i = 0
+  var mul = 1
+  var sub = 0
+  this[offset] = value & 0xFF
+  while (++i < byteLength && (mul *= 0x100)) {
+    if (value < 0 && sub === 0 && this[offset + i - 1] !== 0) {
+      sub = 1
+    }
+    this[offset + i] = ((value / mul) >> 0) - sub & 0xFF
+  }
+
+  return offset + byteLength
+}
+
+Buffer.prototype.writeIntBE = function writeIntBE (value, offset, byteLength, noAssert) {
+  value = +value
+  offset = offset | 0
+  if (!noAssert) {
+    var limit = Math.pow(2, 8 * byteLength - 1)
+
+    checkInt(this, value, offset, byteLength, limit - 1, -limit)
+  }
+
+  var i = byteLength - 1
+  var mul = 1
+  var sub = 0
+  this[offset + i] = value & 0xFF
+  while (--i >= 0 && (mul *= 0x100)) {
+    if (value < 0 && sub === 0 && this[offset + i + 1] !== 0) {
+      sub = 1
+    }
+    this[offset + i] = ((value / mul) >> 0) - sub & 0xFF
+  }
+
+  return offset + byteLength
+}
+
+Buffer.prototype.writeInt8 = function writeInt8 (value, offset, noAssert) {
+  value = +value
+  offset = offset | 0
+  if (!noAssert) checkInt(this, value, offset, 1, 0x7f, -0x80)
+  if (!Buffer.TYPED_ARRAY_SUPPORT) value = Math.floor(value)
+  if (value < 0) value = 0xff + value + 1
+  this[offset] = (value & 0xff)
+  return offset + 1
+}
+
+Buffer.prototype.writeInt16LE = function writeInt16LE (value, offset, noAssert) {
+  value = +value
+  offset = offset | 0
+  if (!noAssert) checkInt(this, value, offset, 2, 0x7fff, -0x8000)
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    this[offset] = (value & 0xff)
+    this[offset + 1] = (value >>> 8)
+  } else {
+    objectWriteUInt16(this, value, offset, true)
+  }
+  return offset + 2
+}
+
+Buffer.prototype.writeInt16BE = function writeInt16BE (value, offset, noAssert) {
+  value = +value
+  offset = offset | 0
+  if (!noAssert) checkInt(this, value, offset, 2, 0x7fff, -0x8000)
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    this[offset] = (value >>> 8)
+    this[offset + 1] = (value & 0xff)
+  } else {
+    objectWriteUInt16(this, value, offset, false)
+  }
+  return offset + 2
+}
+
+Buffer.prototype.writeInt32LE = function writeInt32LE (value, offset, noAssert) {
+  value = +value
+  offset = offset | 0
+  if (!noAssert) checkInt(this, value, offset, 4, 0x7fffffff, -0x80000000)
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    this[offset] = (value & 0xff)
+    this[offset + 1] = (value >>> 8)
+    this[offset + 2] = (value >>> 16)
+    this[offset + 3] = (value >>> 24)
+  } else {
+    objectWriteUInt32(this, value, offset, true)
+  }
+  return offset + 4
+}
+
+Buffer.prototype.writeInt32BE = function writeInt32BE (value, offset, noAssert) {
+  value = +value
+  offset = offset | 0
+  if (!noAssert) checkInt(this, value, offset, 4, 0x7fffffff, -0x80000000)
+  if (value < 0) value = 0xffffffff + value + 1
+  if (Buffer.TYPED_ARRAY_SUPPORT) {
+    this[offset] = (value >>> 24)
+    this[offset + 1] = (value >>> 16)
+    this[offset + 2] = (value >>> 8)
+    this[offset + 3] = (value & 0xff)
+  } else {
+    objectWriteUInt32(this, value, offset, false)
+  }
+  return offset + 4
+}
+
+function checkIEEE754 (buf, value, offset, ext, max, min) {
+  if (offset + ext > buf.length) throw new RangeError('Index out of range')
+  if (offset < 0) throw new RangeError('Index out of range')
+}
+
+function writeFloat (buf, value, offset, littleEndian, noAssert) {
+  if (!noAssert) {
+    checkIEEE754(buf, value, offset, 4, 3.4028234663852886e+38, -3.4028234663852886e+38)
+  }
+  ieee754.write(buf, value, offset, littleEndian, 23, 4)
+  return offset + 4
+}
+
+Buffer.prototype.writeFloatLE = function writeFloatLE (value, offset, noAssert) {
+  return writeFloat(this, value, offset, true, noAssert)
+}
+
+Buffer.prototype.writeFloatBE = function writeFloatBE (value, offset, noAssert) {
+  return writeFloat(this, value, offset, false, noAssert)
+}
+
+function writeDouble (buf, value, offset, littleEndian, noAssert) {
+  if (!noAssert) {
+    checkIEEE754(buf, value, offset, 8, 1.7976931348623157E+308, -1.7976931348623157E+308)
+  }
+  ieee754.write(buf, value, offset, littleEndian, 52, 8)
+  return offset + 8
+}
+
+Buffer.prototype.writeDoubleLE = function writeDoubleLE (value, offset, noAssert) {
+  return writeDouble(this, value, offset, true, noAssert)
+}
+
+Buffer.prototype.writeDoubleBE = function writeDoubleBE (value, offset, noAssert) {
+  return writeDouble(this, value, offset, false, noAssert)
+}
+
+// copy(targetBuffer, targetStart=0, sourceStart=0, sourceEnd=buffer.length)
+Buffer.prototype.copy = function copy (target, targetStart, start, end) {
+  if (!start) start = 0
+  if (!end && end !== 0) end = this.length
+  if (targetStart >= target.length) targetStart = target.length
+  if (!targetStart) targetStart = 0
+  if (end > 0 && end < start) end = start
+
+  // Copy 0 bytes; we're done
+  if (end === start) return 0
+  if (target.length === 0 || this.length === 0) return 0
+
+  // Fatal error conditions
+  if (targetStart < 0) {
+    throw new RangeError('targetStart out of bounds')
+  }
+  if (start < 0 || start >= this.length) throw new RangeError('sourceStart out of bounds')
+  if (end < 0) throw new RangeError('sourceEnd out of bounds')
+
+  // Are we oob?
+  if (end > this.length) end = this.length
+  if (target.length - targetStart < end - start) {
+    end = target.length - targetStart + start
+  }
+
+  var len = end - start
+  var i
+
+  if (this === target && start < targetStart && targetStart < end) {
+    // descending copy from end
+    for (i = len - 1; i >= 0; --i) {
+      target[i + targetStart] = this[i + start]
+    }
+  } else if (len < 1000 || !Buffer.TYPED_ARRAY_SUPPORT) {
+    // ascending copy from start
+    for (i = 0; i < len; ++i) {
+      target[i + targetStart] = this[i + start]
+    }
+  } else {
+    Uint8Array.prototype.set.call(
+      target,
+      this.subarray(start, start + len),
+      targetStart
+    )
+  }
+
+  return len
+}
+
+// Usage:
+//    buffer.fill(number[, offset[, end]])
+//    buffer.fill(buffer[, offset[, end]])
+//    buffer.fill(string[, offset[, end]][, encoding])
+Buffer.prototype.fill = function fill (val, start, end, encoding) {
+  // Handle string cases:
+  if (typeof val === 'string') {
+    if (typeof start === 'string') {
+      encoding = start
+      start = 0
+      end = this.length
+    } else if (typeof end === 'string') {
+      encoding = end
+      end = this.length
+    }
+    if (val.length === 1) {
+      var code = val.charCodeAt(0)
+      if (code < 256) {
+        val = code
+      }
+    }
+    if (encoding !== undefined && typeof encoding !== 'string') {
+      throw new TypeError('encoding must be a string')
+    }
+    if (typeof encoding === 'string' && !Buffer.isEncoding(encoding)) {
+      throw new TypeError('Unknown encoding: ' + encoding)
+    }
+  } else if (typeof val === 'number') {
+    val = val & 255
+  }
+
+  // Invalid ranges are not set to a default, so can range check early.
+  if (start < 0 || this.length < start || this.length < end) {
+    throw new RangeError('Out of range index')
+  }
+
+  if (end <= start) {
+    return this
+  }
+
+  start = start >>> 0
+  end = end === undefined ? this.length : end >>> 0
+
+  if (!val) val = 0
+
+  var i
+  if (typeof val === 'number') {
+    for (i = start; i < end; ++i) {
+      this[i] = val
+    }
+  } else {
+    var bytes = Buffer.isBuffer(val)
+      ? val
+      : utf8ToBytes(new Buffer(val, encoding).toString())
+    var len = bytes.length
+    for (i = 0; i < end - start; ++i) {
+      this[i + start] = bytes[i % len]
+    }
+  }
+
+  return this
+}
+
+// HELPER FUNCTIONS
+// ================
+
+var INVALID_BASE64_RE = /[^+\/0-9A-Za-z-_]/g
+
+function base64clean (str) {
+  // Node strips out invalid characters like \n and \t from the string, base64-js does not
+  str = stringtrim(str).replace(INVALID_BASE64_RE, '')
+  // Node converts strings with length < 2 to ''
+  if (str.length < 2) return ''
+  // Node allows for non-padded base64 strings (missing trailing ===), base64-js does not
+  while (str.length % 4 !== 0) {
+    str = str + '='
+  }
+  return str
+}
+
+function stringtrim (str) {
+  if (str.trim) return str.trim()
+  return str.replace(/^\s+|\s+$/g, '')
+}
+
+function toHex (n) {
+  if (n < 16) return '0' + n.toString(16)
+  return n.toString(16)
+}
+
+function utf8ToBytes (string, units) {
+  units = units || Infinity
+  var codePoint
+  var length = string.length
+  var leadSurrogate = null
+  var bytes = []
+
+  for (var i = 0; i < length; ++i) {
+    codePoint = string.charCodeAt(i)
+
+    // is surrogate component
+    if (codePoint > 0xD7FF && codePoint < 0xE000) {
+      // last char was a lead
+      if (!leadSurrogate) {
+        // no lead yet
+        if (codePoint > 0xDBFF) {
+          // unexpected trail
+          if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
+          continue
+        } else if (i + 1 === length) {
+          // unpaired lead
+          if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
+          continue
+        }
+
+        // valid lead
+        leadSurrogate = codePoint
+
+        continue
+      }
+
+      // 2 leads in a row
+      if (codePoint < 0xDC00) {
+        if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
+        leadSurrogate = codePoint
+        continue
+      }
+
+      // valid surrogate pair
+      codePoint = (leadSurrogate - 0xD800 << 10 | codePoint - 0xDC00) + 0x10000
+    } else if (leadSurrogate) {
+      // valid bmp char, but last char was a lead
+      if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
+    }
+
+    leadSurrogate = null
+
+    // encode utf8
+    if (codePoint < 0x80) {
+      if ((units -= 1) < 0) break
+      bytes.push(codePoint)
+    } else if (codePoint < 0x800) {
+      if ((units -= 2) < 0) break
+      bytes.push(
+        codePoint >> 0x6 | 0xC0,
+        codePoint & 0x3F | 0x80
+      )
+    } else if (codePoint < 0x10000) {
+      if ((units -= 3) < 0) break
+      bytes.push(
+        codePoint >> 0xC | 0xE0,
+        codePoint >> 0x6 & 0x3F | 0x80,
+        codePoint & 0x3F | 0x80
+      )
+    } else if (codePoint < 0x110000) {
+      if ((units -= 4) < 0) break
+      bytes.push(
+        codePoint >> 0x12 | 0xF0,
+        codePoint >> 0xC & 0x3F | 0x80,
+        codePoint >> 0x6 & 0x3F | 0x80,
+        codePoint & 0x3F | 0x80
+      )
+    } else {
+      throw new Error('Invalid code point')
+    }
+  }
+
+  return bytes
+}
+
+function asciiToBytes (str) {
+  var byteArray = []
+  for (var i = 0; i < str.length; ++i) {
+    // Node's code seems to be doing this and not & 0x7F..
+    byteArray.push(str.charCodeAt(i) & 0xFF)
+  }
+  return byteArray
+}
+
+function utf16leToBytes (str, units) {
+  var c, hi, lo
+  var byteArray = []
+  for (var i = 0; i < str.length; ++i) {
+    if ((units -= 2) < 0) break
+
+    c = str.charCodeAt(i)
+    hi = c >> 8
+    lo = c % 256
+    byteArray.push(lo)
+    byteArray.push(hi)
+  }
+
+  return byteArray
+}
+
+function base64ToBytes (str) {
+  return base64.toByteArray(base64clean(str))
+}
+
+function blitBuffer (src, dst, offset, length) {
+  for (var i = 0; i < length; ++i) {
+    if ((i + offset >= dst.length) || (i >= src.length)) break
+    dst[i + offset] = src[i]
+  }
+  return i
+}
+
+function isnan (val) {
+  return val !== val // eslint-disable-line no-self-compare
+}
+
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(6)))
+
+/***/ }),
+/* 6 */
+/***/ (function(module, exports) {
+
+var g;
+
+// This works in non-strict mode
+g = (function() {
+	return this;
+})();
+
+try {
+	// This works if eval is allowed (see CSP)
+	g = g || Function("return this")() || (1,eval)("this");
+} catch(e) {
+	// This works if the window reference is available
+	if(typeof window === "object")
+		g = window;
+}
+
+// g can still be undefined, but nothing to do about it...
+// We return undefined, instead of nothing here, so it's
+// easier to handle this case. if(!global) { ...}
+
+module.exports = g;
+
+
+/***/ }),
+/* 7 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+exports.byteLength = byteLength
+exports.toByteArray = toByteArray
+exports.fromByteArray = fromByteArray
+
+var lookup = []
+var revLookup = []
+var Arr = typeof Uint8Array !== 'undefined' ? Uint8Array : Array
+
+var code = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+for (var i = 0, len = code.length; i < len; ++i) {
+  lookup[i] = code[i]
+  revLookup[code.charCodeAt(i)] = i
+}
+
+revLookup['-'.charCodeAt(0)] = 62
+revLookup['_'.charCodeAt(0)] = 63
+
+function placeHoldersCount (b64) {
+  var len = b64.length
+  if (len % 4 > 0) {
+    throw new Error('Invalid string. Length must be a multiple of 4')
+  }
+
+  // the number of equal signs (place holders)
+  // if there are two placeholders, than the two characters before it
+  // represent one byte
+  // if there is only one, then the three characters before it represent 2 bytes
+  // this is just a cheap hack to not do indexOf twice
+  return b64[len - 2] === '=' ? 2 : b64[len - 1] === '=' ? 1 : 0
+}
+
+function byteLength (b64) {
+  // base64 is 4/3 + up to two characters of the original data
+  return (b64.length * 3 / 4) - placeHoldersCount(b64)
+}
+
+function toByteArray (b64) {
+  var i, l, tmp, placeHolders, arr
+  var len = b64.length
+  placeHolders = placeHoldersCount(b64)
+
+  arr = new Arr((len * 3 / 4) - placeHolders)
+
+  // if there are placeholders, only get up to the last complete 4 chars
+  l = placeHolders > 0 ? len - 4 : len
+
+  var L = 0
+
+  for (i = 0; i < l; i += 4) {
+    tmp = (revLookup[b64.charCodeAt(i)] << 18) | (revLookup[b64.charCodeAt(i + 1)] << 12) | (revLookup[b64.charCodeAt(i + 2)] << 6) | revLookup[b64.charCodeAt(i + 3)]
+    arr[L++] = (tmp >> 16) & 0xFF
+    arr[L++] = (tmp >> 8) & 0xFF
+    arr[L++] = tmp & 0xFF
+  }
+
+  if (placeHolders === 2) {
+    tmp = (revLookup[b64.charCodeAt(i)] << 2) | (revLookup[b64.charCodeAt(i + 1)] >> 4)
+    arr[L++] = tmp & 0xFF
+  } else if (placeHolders === 1) {
+    tmp = (revLookup[b64.charCodeAt(i)] << 10) | (revLookup[b64.charCodeAt(i + 1)] << 4) | (revLookup[b64.charCodeAt(i + 2)] >> 2)
+    arr[L++] = (tmp >> 8) & 0xFF
+    arr[L++] = tmp & 0xFF
+  }
+
+  return arr
+}
+
+function tripletToBase64 (num) {
+  return lookup[num >> 18 & 0x3F] + lookup[num >> 12 & 0x3F] + lookup[num >> 6 & 0x3F] + lookup[num & 0x3F]
+}
+
+function encodeChunk (uint8, start, end) {
+  var tmp
+  var output = []
+  for (var i = start; i < end; i += 3) {
+    tmp = (uint8[i] << 16) + (uint8[i + 1] << 8) + (uint8[i + 2])
+    output.push(tripletToBase64(tmp))
+  }
+  return output.join('')
+}
+
+function fromByteArray (uint8) {
+  var tmp
+  var len = uint8.length
+  var extraBytes = len % 3 // if we have 1 byte left, pad 2 bytes
+  var output = ''
+  var parts = []
+  var maxChunkLength = 16383 // must be multiple of 3
+
+  // go through the array every three bytes, we'll deal with trailing stuff later
+  for (var i = 0, len2 = len - extraBytes; i < len2; i += maxChunkLength) {
+    parts.push(encodeChunk(uint8, i, (i + maxChunkLength) > len2 ? len2 : (i + maxChunkLength)))
+  }
+
+  // pad the end with zeros, but make sure to not forget the extra bytes
+  if (extraBytes === 1) {
+    tmp = uint8[len - 1]
+    output += lookup[tmp >> 2]
+    output += lookup[(tmp << 4) & 0x3F]
+    output += '=='
+  } else if (extraBytes === 2) {
+    tmp = (uint8[len - 2] << 8) + (uint8[len - 1])
+    output += lookup[tmp >> 10]
+    output += lookup[(tmp >> 4) & 0x3F]
+    output += lookup[(tmp << 2) & 0x3F]
+    output += '='
+  }
+
+  parts.push(output)
+
+  return parts.join('')
+}
+
+
+/***/ }),
+/* 8 */
+/***/ (function(module, exports) {
+
+exports.read = function (buffer, offset, isLE, mLen, nBytes) {
+  var e, m
+  var eLen = nBytes * 8 - mLen - 1
+  var eMax = (1 << eLen) - 1
+  var eBias = eMax >> 1
+  var nBits = -7
+  var i = isLE ? (nBytes - 1) : 0
+  var d = isLE ? -1 : 1
+  var s = buffer[offset + i]
+
+  i += d
+
+  e = s & ((1 << (-nBits)) - 1)
+  s >>= (-nBits)
+  nBits += eLen
+  for (; nBits > 0; e = e * 256 + buffer[offset + i], i += d, nBits -= 8) {}
+
+  m = e & ((1 << (-nBits)) - 1)
+  e >>= (-nBits)
+  nBits += mLen
+  for (; nBits > 0; m = m * 256 + buffer[offset + i], i += d, nBits -= 8) {}
+
+  if (e === 0) {
+    e = 1 - eBias
+  } else if (e === eMax) {
+    return m ? NaN : ((s ? -1 : 1) * Infinity)
+  } else {
+    m = m + Math.pow(2, mLen)
+    e = e - eBias
+  }
+  return (s ? -1 : 1) * m * Math.pow(2, e - mLen)
+}
+
+exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
+  var e, m, c
+  var eLen = nBytes * 8 - mLen - 1
+  var eMax = (1 << eLen) - 1
+  var eBias = eMax >> 1
+  var rt = (mLen === 23 ? Math.pow(2, -24) - Math.pow(2, -77) : 0)
+  var i = isLE ? 0 : (nBytes - 1)
+  var d = isLE ? 1 : -1
+  var s = value < 0 || (value === 0 && 1 / value < 0) ? 1 : 0
+
+  value = Math.abs(value)
+
+  if (isNaN(value) || value === Infinity) {
+    m = isNaN(value) ? 1 : 0
+    e = eMax
+  } else {
+    e = Math.floor(Math.log(value) / Math.LN2)
+    if (value * (c = Math.pow(2, -e)) < 1) {
+      e--
+      c *= 2
+    }
+    if (e + eBias >= 1) {
+      value += rt / c
+    } else {
+      value += rt * Math.pow(2, 1 - eBias)
+    }
+    if (value * c >= 2) {
+      e++
+      c /= 2
+    }
+
+    if (e + eBias >= eMax) {
+      m = 0
+      e = eMax
+    } else if (e + eBias >= 1) {
+      m = (value * c - 1) * Math.pow(2, mLen)
+      e = e + eBias
+    } else {
+      m = value * Math.pow(2, eBias - 1) * Math.pow(2, mLen)
+      e = 0
+    }
+  }
+
+  for (; mLen >= 8; buffer[offset + i] = m & 0xff, i += d, m /= 256, mLen -= 8) {}
+
+  e = (e << mLen) | m
+  eLen += mLen
+  for (; eLen > 0; buffer[offset + i] = e & 0xff, i += d, e /= 256, eLen -= 8) {}
+
+  buffer[offset + i - d] |= s * 128
+}
+
+
+/***/ }),
+/* 9 */
+/***/ (function(module, exports) {
+
+var toString = {}.toString;
+
+module.exports = Array.isArray || function (arr) {
+  return toString.call(arr) == '[object Array]';
+};
+
+
+/***/ }),
+/* 10 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var spellingFix = __webpack_require__(1);
+var fontDetect = __webpack_require__(0);
+
+var fontTypes = {
+  unicode: "unicode",
+  uni: "unicode",
+  zawgyi: "zawgyi",
+  zaw: "zawgyi"
+};
+var mmCharacterRange = /[\u1000-\u109F]/;
+var library = {};
+
+/** Converting Libarary **/
+library.convert = {
+  unicode: {
+    zawgyi: {
+      oneTime: [[/([\u1000-\u1021](\u1039[\u1000-\u1021]|[\u103b\u103c\u103d]+)[\u102d\u102e\u1031\u1032\u1036\u1037\u103e]*)\u102f/g, '$1\u1033'], [/([\u1000-\u1021](\u1039[\u1000-\u1021]|[\u103b\u103c\u103d]+)[\u102d\u102e\u1031\u1032\u1036\u1037\u103e]*)\u1030/g, '$1\u1034'], [/([\u1000-\u1021](\u1039[\u1000-\u1021]|[\u103b\u103c\u103d]+)[\u102d\u102e\u1031\u1032\u1036\u1037\u103e]*)\u1037/g, '$1\u1094'], [/([\u1000-\u1021])\u103b([\u103d][\u103e]*)/g, '$1\u107D$2'], [/([\u102f\u1030])[\u1037\u1094]/g, '$1\u1095'], [/([\u1000-\u1021])\u103c/g, '\u103C$1'], [/([\u1000-\u1021][^\u1000-\u1021]*)\u1031/g, '\u1031$1'], [/\u103c\u1031/g, '\u1031\u103C'], [/\u1014\u103d/g, '\u108F\u103D'], [/\u104e\u1004\u103a\u1038/g, '\u104E'], [/\u102b\u103a/g, '\u105A'], [/\u103f/g, '\u1086'], [/\u1039\u101c/g, '\u1085'], [/\u1039\u1019/g, '\u107C'], [/\u1039\u1018/g, '\u107B'], [/\u1039\u1017/g, '\u107A'], [/\u1039\u1016/g, '\u1079'], [/\u1039\u1016/g, '\u1079'], [/\u1039\u1015/g, '\u1078'], [/\u1039\u1014/g, '\u1077'], [/\u1039\u1013/g, '\u1076'], [/\u1039\u1012/g, '\u1075'], [/\u1039\u1011/g, '\u1073'], [/\u1039\u1010/g, '\u1071'], [/\u1039\u100f/g, '\u1070'], [/\u100e\u1039\u100d/g, '\u106F'], [/\u100f\u1039\u100d/g, '\u1091'], [/\u100d\u1039\u100d/g, '\u106E'], [/\u1039\u100c/g, '\u106D'], [/\u1039\u100b/g, '\u106C'], [/\u1009/g, '\u106A'], [/\u1039\u1005\u103b/g, '\u1069'], [/\u1039\u1007/g, '\u1068'], [/\u1039\u1006/g, '\u1066'], [/\u1039\u1005/g, '\u1065'], [/\u1039\u1003/g, '\u1063'], [/\u100c/g, '\u1092'], [/\u1039\u1002/g, '\u1062'], [/\u1039\u1001/g, '\u1061'], [/\u103d\u103e/g, '\u108A'], [/\u103e\u1030/g, '\u1089'], [/\u1039\u1000/g, '\u1060'], [/\u100b\u1039\u100b/g, '\u1097'], [/\u1004\u103a\u1039/g, '\u1064'], [/\u103e\u102f/g, '\u1088'], [/\u1037/g, '\u1037'], [/\u103a/g, '\u1039'], [/\u103b/g, '\u103A'], [/\u103c/g, '\u103B'], [/\u103d/g, '\u103C'], [/\u103e/g, '\u103D']],
+      asFoundAs: [[/([\u103b\u103c\u103d\u103e])\u1031/g, '\u1031$1'], [/\u103b([\u1000\u1003\u1006\u100f\u1010\u1011\u1018\u101a\u101c\u101e\u101f\u1021])/g, '\u107E$1'], [/\u103b([\u1000-\u1021](\u103c\u103d|\u108a|\u103c)[\u102d\u102e])/g, '\u1083$1'], [/\u107e([\u1000-\u1021](\u103c\u103d|\u108a|\u103c)[\u102d\u102e])/g, '\u1084$1'], [/\u103b([\u1000-\u1021][\u102d\u102e])/g, '\u107F$1'], [/\u107e([\u1000-\u1021][\u102d\u102e])/g, '\u1080$1'], [/\u103b([\u1000-\u1021][\u103c])/g, '\u1081$1'], [/\u107e([\u1000-\u1021][\u103c])/g, '\u1082$1']]
+    }
+  },
+  zawgyi: {
+    unicode: {
+      oneTime: [[/([^\u1040-\u1049\+\-\*\/])?\u1040([^\u1040-\u1049\+\-\*\/])?/g, '$1\u101D$2'], [/\u103d|\u1087/g, '\u103E'], [/\u103c/g, '\u103D'], [/[\u103b\u107e-\u1084]/g, '\u103C'], [/[\u103a\u107d]/g, '\u103B'], [/\u1039/g, '\u103A'], [/[\u1094-\u1095]/g, '\u1037'], [/[\u107b\u1093]/g, '\u1039\u1018'], [/\u1033/g, '\u102F'], [/\u1034/g, '\u1030'], [/\u1088/g, '\u103E\u102F'],
+      // [/\u1064/g, '\u1004\u103a\u1039'],
+      [/\u1089/g, '\u103E\u1030'], [/\u108a/g, '\u103D\u103E'], [/\u1061/g, '\u1039\u1001'], [/\u108f/g, '\u1014'], [/\u1062/g, '\u1039\u1002'], [/\u1063/g, '\u1039\u1003'], [/\u1065/g, '\u1039\u1005'], [/\u1066/g, '\u1039\u1006'], [/\u1068/g, '\u1039\u1007'], [/\u1069/g, '\u1039\u1005\u103B'], [/\u106a/g, '\u1009'], [/\u106b/g, '\u100A'], [/\u106c/g, '\u1039\u100B'], [/\u106d/g, '\u1039\u100C'], [/\u106e/g, '\u100D\u1039\u100D'], [/\u106f/g, '\u100E\u1039\u100D'], [/\u1070/g, '\u1039\u100F'], [/\u1071/g, '\u1039\u1010'], [/\u1073/g, '\u1039\u1011'], [/\u1075/g, '\u1039\u1012'], [/\u1076/g, '\u1039\u1013'], [/\u1077/g, '\u1039\u1014'], [/\u1078/g, '\u1039\u1015'], [/\u1079/g, '\u1039\u1016'], [/\u1079/g, '\u1039\u1016'], [/\u107a/g, '\u1039\u1017'], [/\u107c/g, '\u1039\u1019'], [/\u1085/g, '\u1039\u101C'], [/\u1086/g, '\u103F'], [/\u1090/g, '\u101B'], [/\u1091/g, '\u100F\u1039\u100D'], [/\u1092/g, '\u100C'], [/\u1097/g, '\u100B\u1039\u100B'], [/\u1060/g, '\u1039\u1000'], [/\u105a/g, '\u102B\u103A'], [/\u104e/g, '\u104E\u1004\u103A\u1038'], [/\u1025\u103a/g, '\u1009\u103A'], [/([\u1000-\u1021])\u108b/g, '\u1064$1\u102D'], [/([\u1000-\u1021])\u108c/g, '\u1064$1\u102E'], [/([\u1000-\u1021])\u108d/g, '\u1064$1\u1036'], [/\u108e/g, '\u102D\u1036'], [/\u103c([\u1000-\u1021])/g, '$1\u103C'], [/\u1031([\u1000-\u1021])/g, '$1\u1031'], [/([\u103b\u103c\u103d])(\u1064)/g, '$2$1'], [/\u1031(\u1064)/g, '$1\u1031'], [/([\u1000-\u1021])(\u1064)/g, '$2$1'], [/\u0020(\u1039[\u1000-\u1021])/g, '$1'], [/\u1064/g, '\u1004\u103A\u1039']],
+      asFoundAs: [[/([\u102b\u102c\u102d\u102e\u1031\u102f\u1030\u1032\u1036\u1037\u1038])([\u103b\u103c\u103d\u103e])/g, "$2$1"], [/\u103d([\u103b\u103c])/g, '$1\u103D'], [/\u103e([\u103b\u103c\u103d])/g, '$1\u103E'], [/([\u102f\u1030])([\u102d\u102e])/g, "$2$1"], [/\u1036([\u102d\u102e\u102f\u1030])/g, '$1\u1036'], [/\u1037([\u1031\u102c\u102b\u102f\u1030\u1032])/g, '$1\u1037'], [/([\u1031\u102b\u102c])(\u1039[\u1000-\u1021])/g, "$2$1"], [/([\u102b\u102c])(\u1004\u103a\u1039)/g, "$2$1"]]
+    }
+  }
+};
+
+/**
+ * Font Converter agent
+ * @param content Text that you want to convert
+ * @param to Type of font to convert. Default: "unicode";
+ * @param from Type of font of content text
+ * @return converted text
+ */
+function fontConvert(content, to, from) {
+  if (!content) throw new Error('Content must be specified on knayi.fontConvert');
+
+  if (content === '' || !mmCharacterRange.test(content)) return content;
+
+  if (!to) throw new Error('convertTo must be specified on knayi.fontConvert');
+
+  content = content.trim().replace(/\u200B/g, '');
+  to = fontTypes[to];
+  from = fontTypes[from];
+
+  if (!to) {
+    console.error('Convert library dosen\'t this fontType to convert');
+    return content;
+  } else if (!from) {
+    from = fontDetect(content);
+  }
+
+  if (to === from) {
+    return content;
+  }
+
+  content = spellingFix(content, from);
+  var refLib = library.convert[from][to];
+
+  for (var i = 0; i < refLib.oneTime.length; i++) {
+    var rule1 = refLib.oneTime[i];
+    content = content.replace(rule1[0], rule1[1]);
+  }
+
+  for (var j = 0; j < refLib.asFoundAs.length; j++) {
+    var rule2 = refLib.asFoundAs[j];
+    while (rule2[0].test(content)) {
+      content = content.replace(rule2[0], rule2[1]);
+    }
+  }
+
+  return content;
+};
+
+module.exports = fontConvert;
+
+/***/ }),
+/* 11 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var fontDetect = __webpack_require__(0);
+
+var mmCharacterRange = /[\u1000-\u109F]/;
+var library = {};
+
+/** Syllable Libarary **/
+library.syllable = {
+  zawgyi: [[/([\u1000-\u1021\u1023-\u1027\u1029\u102a\u104c-\u104f\u1086\u108f-\u1092])/g, '\u200B$1'], [/([\u1031][\u103b\u107e-\u1084]|[\u1031\u103b\u107e-\u1084])/g, '\u200B$1'], [/([\u1031\u103b\u107e-\u1084])\u200B([\u1000-\u1021\u1025\u1029\u106A\u106B\u1086\u108F\u1090])/g, '$1$2'], [/([\u0009-\u000d\u0020\u00a0\u2000-\u200a\u2028\u2029\u202f]|>|\u201C|\u2018|\-|\(|\[|{|[\u2012-\u2014])\u200B([\u1000-\u1021\u1031\u103b\u1025\u1029\u106A\u106B\u107e-\u1084\u1086\u108F\u1090])/g, '$1$2'], [/\u200B([\u1000-\u1021\u1025\u1029\u106A\u106B\u1086\u108F\u1090]\u1039)/g, '$1'], [/(\s|\n)\u200B([\u1000-\u1021\u1023-\u1027\u1029\u102a\u104c-\u104f\u1086\u108f-\u1092])/g, '$1$2'], [/([\u1000-\u1021])\u200B([\u1000-\u1021\u1031\u103b\u107e-\u1084])/g, '$1$2']],
+  unicode: [[/(\u103A)(\u1037)/g, "$2$1"], [/([\u1000-\u1021\u1023-\u1027\u1029\u102a\u103f\u104c-\u104f])/g, '\u200B$1'], [/([\u0009-\u000d\u0020\u00a0\u2000-\u200a\u2028\u2029\u202f]|>|\u201C|\u2018|\-|\(|\[|{|[\u2012-\u2014]|\u1039)\u200B([\u1000-\u1021])/g, "$1$2"], [/\u200B(\u1004\u103A\u1039)/g, "$1"], [/\u200B([\u1000-\u1021]\u103A)/g, "$1"], [/(\s|\n)\u200B([\u1000-\u1021\u1023-\u1027\u1029\u102a\u103f\u104c-\u104f])/g, "$1$2"], [/([\u1000-\u1021])\u200B([\u1000-\u1021])/g, "$1$2"]]
+};
+
+/**
+* Syllable-Break agent
+* @param content Text content
+* @param language Language of content 'zawgyi' ? 'my'
+* @param breakpoint Default is '\u200B'
+* @return edited text
+*/
+function syllBreak(content, fontType, breakpoint) {
+  if (!content) throw new Error('Content must be specified on knayi.fontConvert');
+
+  if (content === '' || !mmCharacterRange.test(content)) return content;
+
+  content = content.trim().replace(/\u200B/g, '');
+
+  if (!fontType) fontType = fontDetect(content);
+
+  var lib = library.syllable[fontType];
+
+  for (var i = 0; i < lib.length; i++) {
+    content = content.replace(lib[i][0], lib[i][1]);
+  };
+
+  content = content.replace(/^\u200B/, '');
+
+  if (breakpoint && breakpoint !== '\u200B') return content.replace(/\u200B/g, breakpoint);
+
+  return content;
+};
+
+module.exports = syllBreak;
+
+/***/ })
+/******/ ]);
