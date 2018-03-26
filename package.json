@@ -1,6 +1,6 @@
 {
   "name": "knayi-myscript",
-  "version": "2.3.1",
+  "version": "2.4.0",
   "description": "Knayi Myanmar languages JavaScirpt library",
   "main": "main.js",
   "module": "dist/knayi-myscript.es.js",
