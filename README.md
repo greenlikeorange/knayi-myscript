@@ -76,10 +76,9 @@ knayi.syllBreak('မင်္ဂလာပါ', null, '$$') // 'မင်္ဂ�
 knayi.spellingFix('မင်္ဂလာာပါါ') // 'မင်္ဂလာပါ'
 ```
 
-## Todo
+## Build
 
-  - [ ] Contributing guide
-  - [ ] Version release note
+Start from >=2.3.0 knayi will only support build script at node >=6
 
 ## License
 [MIT](./LICENSE)
