@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="my" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>Knayi Myanmar Script</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.6.2/css/bulma.min.css">
+    <link href="https://fonts.googleapis.com/css?family=Unica+One" rel="stylesheet">
+
+    <link href="https://fonts.googleapis.com/css?family=Electrolize|Handlee|Karla|Niconne|Oleo+Script|Orbitron|Sacramento|Unica+One" rel="stylesheet">
+    <link rel="stylesheet" href='https://mmwebfonts.comquas.com/fonts/?font=zawgyi' />
+
+    <style media="screen">
+    @import url('https://mmwebfonts.comquas.com/fonts/?font=zawgyi');
+    @import url('https://fonts.googleapis.com/earlyaccess/notosansmyanmar.css');
+
+    .zawgyi { font-family: 'Zawgyi-One'; }
+    .notosansmyanmar { font-family: 'Noto Sans Myanmar', sans-serif; }
+
+    .logo { color: #16452d; font-family: 'Handlee', cursive; }
+    .logo a { color: #16452d; }
+    .badges img { padding-top: 5px; }
+
+    textarea.textarea {
+      height: 250px;
+    }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <section class="hero">
+        <div class="hero-body">
+          <div class="container">
+            <h1 class="title logo">
+              <a href="https://github.com/greenlikeorange/knayi-myscript">knayi</a>
+            </h1>
+            <h2 class="subtitle">Myanmar langauge js library
+              <p class="badges">
+                <a href="https://npmjs.org/package/knayi-myscript">
+                  <img src="https://badge.fury.io/js/knayi-myscript.png" alt=""></a>
+                <a href="#">
+                  <img src="https://api.travis-ci.org/greenlikeorange/knayi-myscript.svg?branch=master" alt=""></a>
+                <a href="https://david-dm.org/greenlikeorange/knayi-myscript">
+                  <img src="https://david-dm.org/greenlikeorange/knayi-myscript.png" alt=""></a>
+              </p>
+            </h2>
+            <div class="">
+            </div>
+            <div class="columns">
+              <div class="column">
+                <div class="field">
+                  <label class="label">Unicode</label>
+                  <div class="control">
+                    <textarea id="unicode_text" class="textarea is-hovered notosansmyanmar" type="text">သီဟိုဠ်မှ ဉာဏ်ကြီးရှင်သည် အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇလွန်ဈေးဘေးဗာဒံပင်ထက် အဓိဋ္ဌာန်လျက် ဂဃနဏဖတ်ခဲ့သည်။ယေဓမ္မာ ဟေတုပ္ပဘဝါ တေသံ ဟေတုံ တထာဂတော အာဟ တေသဉ္စ ယောနိရောဓေါ ဧဝံ ဝါဒီ မဟာသမဏော။(မြန်မာပြန်)မြတ်စွာဘုရားရှင်သည် ရှေးကပြုခဲ့ဖူးသော အကြောင်းတရားကြောင့် ဖြစ်ပေါ်လာကြသော အကျိုးတရားကို ဟောကြားတော်မူသည်။ထိုအကြောင်းတရားတို့၏ ချုပ်ငြိမ်းရာတရားတို့ကိုလည်း ဟောတော်မူ၏။ရဟန်းကြီးဖြစ်သော ဗုဒ္ဓမြတ်စွာဘုရားသည် ဤသို့သောအယူရှိတော်မူ၏။</textarea>
+                  </div>
+                </div>
+              </div>
+              <div class="column">
+                <div class="field">
+                  <label class="label">Zawgyi</label>
+                  <div class="control">
+                    <textarea id="zawgyi_text" class="textarea is-hovered zawgyi" type="text">သီဟိုဠ္မွ ဉာဏ္ႀကီးရွင္သည္ အာယုဝဍ္ဎနေဆးၫႊန္းစာကို ဇလြန္ေဈးေဘးဗာဒံပင္ထက္ အဓိ႒ာန္လ်က္ ဂဃနဏဖတ္ခဲ့သည္။ေယဓမၼာ ေဟတုပၸဘဝါ ေတသံ ေဟတုံ တထာဂေတာ အာဟ ေတသၪၥ ေယာနိေရာေဓါ ဧဝံ ဝါဒီ မဟာသမေဏာ။(ျမန္မာျပန္)ျမတ္စြာဘုရားရွင္သည္ ေရွးကျပဳခဲ့ဖူးေသာ အေၾကာင္းတရားေၾကာင့္ ျဖစ္ေပၚလာၾကေသာ အက်ိဳးတရားကို ေဟာၾကားေတာ္မူသည္။ထိုအေၾကာင္းတရားတို႔၏ ခ်ဳပ္ၿငိမ္းရာတရားတို႔ကိုလည္း ေဟာေတာ္မူ၏။ရဟန္းႀကီးျဖစ္ေသာ ဗုဒၶျမတ္စြာဘုရားသည္ ဤသို႔ေသာအယူရွိေတာ္မူ၏။</textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.slim.min.js" charset="utf-8"></script>
+    <script src="https://rawgit.com/greenlikeorange/knayi-myscript/master/dist/knayi-myscript.min.js" charset="utf-8"></script>
+
+    <script type="text/javascript">
+      (function () {
+        var $unicode_text = $('#unicode_text');
+        var $zawgyi_text = $('#zawgyi_text');
+
+        $unicode_text.keyup(function () {
+          var text = $unicode_text.val()
+          if (text) {
+            $zawgyi_text.val(knayi.fontConvert(text, 'zawgyi', 'unicode'))
+          } else {
+            $zawgyi_text.val('')
+          }
+        })
+
+        $zawgyi_text.keyup(function () {
+          var text = $zawgyi_text.val()
+          if (text) {
+            $unicode_text.val(knayi.fontConvert(text, 'unicode', 'zawgyi'))
+          } else {
+            $unicode_text.val('')
+          }
+        })
+      } ())
+    </script>
+  </body>
+</html>
