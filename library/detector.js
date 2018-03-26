@@ -45,7 +45,7 @@ function fontDetect(content, def){
 	def = def || 'zawgyi';
 
 	const detector = new myanmartools.ZawgyiDetector();
-	const zawgyiPropability = detector.getZawgyiProbability(content);
+	const zawgyiProbability = detector.getZawgyiProbability(content);
 
 	var match = {};
 
@@ -59,9 +59,9 @@ function fontDetect(content, def){
 		}
 	}
 
-	if (match.unicode > match.zawgyi && zawgyiPropability < 0.05) {
+	if (match.unicode > match.zawgyi && zawgyiProbability < 0.05) {
 		return 'unicode';
-	} else if (match.unicode < match.zawgyi && zawgyiPropability > 0.95) {
+	} else if (match.unicode < match.zawgyi && zawgyiProbability > 0.95) {
 		return 'zawgyi';
 	} else {
 		return def;
