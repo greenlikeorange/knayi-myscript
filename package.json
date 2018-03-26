@@ -39,5 +39,8 @@
     "chai": "^4.1.2",
     "mocha": "^3.5.3",
     "webpack": "^3.11.0"
+  },
+  "dependencies": {
+    "myanmar-tools": "^1.0.3"
   }
 }
