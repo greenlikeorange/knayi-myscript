@@ -71,22 +71,29 @@ window["knayi"] =
 "use strict";
 
 
-var myanmartools = __webpack_require__(3);
-var whitespace = '[\\x20\\t\\r\\n\\f]';
-var mmCharacterRange = /[\u1000-\u109F]/;
 var library = {};
+var mmCharacterRange = /[\u1000-\u109F]/;
+var whitespace = '[\\x20\\t\\r\\n\\f]';
+
+var myanmartools = __webpack_require__(3);
+var myanmartoolZawgyiDetector = new myanmartools.ZawgyiDetector();
+
+var GLOBAL_OPTIONS = {
+  use_myanmartools: false,
+  myanmartools_zg_threshold: [0.05, 0.95]
+};
 
 /** DETECTION Libarary **/
 library.detect = {
-	unicode: ['\u103E', '\u103F', '\u100A\u103A', '\u1014\u103A', '\u1004\u103A', '\u1031\u1038', '\u1031\u102C', '\u103A\u1038', '\u1035', '[\u1050-\u1059]', '^([\u1000-\u1021]\u103C|[\u1000-\u1021]\u1031)'],
-	zawgyi: ['\u102C\u1039', '\u103A\u102C', whitespace + '(\u103B|\u1031|[\u107E-\u1084])[\u1000-\u1021]', '^(\u103B|\u1031|[\u107E-\u1084])[\u1000-\u1021]', '[\u1000-\u1021]\u1039[^\u1000-\u1021]', '\u1025\u1039', '\u1039\u1038', '[\u102B-\u1030\u1031\u103A\u1038](\u103B|[\u107E-\u1084])[\u1000-\u1021]', '\u1036\u102F', '[\u1000-\u1021]\u1039\u1031', '\u1064', '\u1039' + whitespace, '\u102C\u1031', '[\u102B-\u1030\u103A\u1038]\u1031[\u1000-\u1021]', '\u1031\u1031', '\u102F\u102D', '\u1039$']
+  unicode: ['\u103E', '\u103F', '\u100A\u103A', '\u1014\u103A', '\u1004\u103A', '\u1031\u1038', '\u1031\u102C', '\u103A\u1038', '\u1035', '[\u1050-\u1059]', '^([\u1000-\u1021]\u103C|[\u1000-\u1021]\u1031)'],
+  zawgyi: ['\u102C\u1039', '\u103A\u102C', whitespace + '(\u103B|\u1031|[\u107E-\u1084])[\u1000-\u1021]', '^(\u103B|\u1031|[\u107E-\u1084])[\u1000-\u1021]', '[\u1000-\u1021]\u1039[^\u1000-\u1021]', '\u1025\u1039', '\u1039\u1038', '[\u102B-\u1030\u1031\u103A\u1038](\u103B|[\u107E-\u1084])[\u1000-\u1021]', '\u1036\u102F', '[\u1000-\u1021]\u1039\u1031', '\u1064', '\u1039' + whitespace, '\u102C\u1031', '[\u102B-\u1030\u103A\u1038]\u1031[\u1000-\u1021]', '\u1031\u1031', '\u102F\u102D', '\u1039$']
 };
 
 // Populate Detect library as RegExps
 Object.keys(library.detect).forEach(function (type) {
-	for (var i = 0; i < library.detect[type].length; i++) {
-		library.detect[type][i] = new RegExp(library.detect[type][i], 'g');
-	}
+  for (var i = 0; i < library.detect[type].length; i++) {
+    library.detect[type][i] = new RegExp(library.detect[type][i], 'g');
+  }
 });
 
 /**
@@ -95,38 +102,79 @@ Object.keys(library.detect).forEach(function (type) {
  * @param def Default return format;
  * @return unicode ? zawgyi
  */
-function fontDetect(content, def) {
-	if (!content) throw new Error('Content must be specified on knayi.fontDetect');
+function fontDetect(content, fallback_font_type) {
+  var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
 
-	if (content === '') return content;
+  if (!content) throw new Error('Content must be specified on knayi.fontDetect');
 
-	if (!mmCharacterRange.test(content)) return def;
+  if (content === '') return content;
 
-	content = content.trim().replace(/\u200B/g, '');
-	def = def || 'zawgyi';
+  if (!mmCharacterRange.test(content)) return fallback_font_type || 'en';
 
-	var detector = new myanmartools.ZawgyiDetector();
-	var zawgyiPropability = detector.getZawgyiProbability(content);
+  content = content.trim().replace(/\u200B/g, '');
+  fallback_font_type = fallback_font_type || 'zawgyi';
 
-	var match = {};
+  options = verifyOptions(options);
 
-	for (var type in library.detect) {
-		match[type] = 0;
+  if (options.use_myanmartools) {
 
-		for (var i = 0; i < library.detect[type].length; i++) {
-			var rule = library.detect[type][i];
-			var m = content.match(rule);
-			match[type] += m && m.length || 0;
-		}
-	}
+    var myanmartools_zg_probability = myanmartoolZawgyiDetector.getZawgyiProbability(content);
 
-	if (match.unicode > match.zawgyi && zawgyiPropability < 0.05) {
-		return 'unicode';
-	} else if (match.unicode < match.zawgyi && zawgyiPropability > 0.95) {
-		return 'zawgyi';
-	} else {
-		return def;
-	}
+    if (myanmartools_zg_probability < options.myanmartools_zg_threshold[0]) {
+      return 'unicode';
+    } else if (myanmartools_zg_probability > options.myanmartools_zg_threshold[1]) {
+      return 'zawgyi';
+    } else {
+      return fallback_font_type;
+    }
+  } else {
+
+    var match = {};
+
+    for (var type in library.detect) {
+      match[type] = 0;
+
+      for (var i = 0; i < library.detect[type].length; i++) {
+        var rule = library.detect[type][i];
+        var m = content.match(rule);
+        match[type] += m && m.length || 0;
+      }
+    }
+
+    if (match.unicode > match.zawgyi) {
+      return 'unicode';
+    } else if (match.unicode < match.zawgyi) {
+      return 'zawgyi';
+    } else {
+      return fallback_font_type;
+    }
+  }
+};
+
+/**
+ * set configuartion of using googlei18n/myanmar-tools
+ */
+function verifyOptions() {
+  var _ref = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {},
+      _ref$use_myanmartools = _ref.use_myanmartools,
+      use_myanmartools = _ref$use_myanmartools === undefined ? GLOBAL_OPTIONS.use_myanmartools : _ref$use_myanmartools,
+      _ref$myanmartools_zg_ = _ref.myanmartools_zg_threshold,
+      myanmartools_zg_threshold = _ref$myanmartools_zg_ === undefined ? [0.05, 0.95] : _ref$myanmartools_zg_;
+
+  // Check types
+  if (typeof myanmartools_zg_threshold[0] !== 'number' || typeof myanmartools_zg_threshold[1] !== 'number') {
+    console.error('myanmartools_zg_threshold must be [number, number]');
+    myanmartools_zg_threshold = GLOBAL_OPTIONS.myanmartools_zg_threshold;
+  }
+
+  return {
+    use_myanmartools: use_myanmartools,
+    myanmartools_zg_threshold: myanmartools_zg_threshold
+  };
+}
+
+fontDetect.__setOptions = function (options) {
+  GLOBAL_OPTIONS = verifyOptions(options);
 };
 
 module.exports = fontDetect;
@@ -202,7 +250,14 @@ var fontConvert = __webpack_require__(10);
 var syllBreak = __webpack_require__(11);
 var spellingFix = __webpack_require__(1);
 
+var setGlobalOptions = function setGlobalOptions() {
+	var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+
+	fontDetect.__setOptions(options.detector);
+};
+
 module.exports = {
+	setGlobalOptions: setGlobalOptions,
 	fontDetect: fontDetect,
 	fontConvert: fontConvert,
 	syllBreak: syllBreak,
@@ -2312,6 +2367,8 @@ for (var i = 0, len = code.length; i < len; ++i) {
   revLookup[code.charCodeAt(i)] = i
 }
 
+// Support decoding URL-safe base64 strings, as Node.js does.
+// See: https://en.wikipedia.org/wiki/Base64#URL_applications
 revLookup['-'.charCodeAt(0)] = 62
 revLookup['_'.charCodeAt(0)] = 63
 
@@ -2373,7 +2430,7 @@ function encodeChunk (uint8, start, end) {
   var tmp
   var output = []
   for (var i = start; i < end; i += 3) {
-    tmp = (uint8[i] << 16) + (uint8[i + 1] << 8) + (uint8[i + 2])
+    tmp = ((uint8[i] << 16) & 0xFF0000) + ((uint8[i + 1] << 8) & 0xFF00) + (uint8[i + 2] & 0xFF)
     output.push(tripletToBase64(tmp))
   }
   return output.join('')
@@ -2418,7 +2475,7 @@ function fromByteArray (uint8) {
 
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
-  var eLen = nBytes * 8 - mLen - 1
+  var eLen = (nBytes * 8) - mLen - 1
   var eMax = (1 << eLen) - 1
   var eBias = eMax >> 1
   var nBits = -7
@@ -2431,12 +2488,12 @@ exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   e = s & ((1 << (-nBits)) - 1)
   s >>= (-nBits)
   nBits += eLen
-  for (; nBits > 0; e = e * 256 + buffer[offset + i], i += d, nBits -= 8) {}
+  for (; nBits > 0; e = (e * 256) + buffer[offset + i], i += d, nBits -= 8) {}
 
   m = e & ((1 << (-nBits)) - 1)
   e >>= (-nBits)
   nBits += mLen
-  for (; nBits > 0; m = m * 256 + buffer[offset + i], i += d, nBits -= 8) {}
+  for (; nBits > 0; m = (m * 256) + buffer[offset + i], i += d, nBits -= 8) {}
 
   if (e === 0) {
     e = 1 - eBias
@@ -2451,7 +2508,7 @@ exports.read = function (buffer, offset, isLE, mLen, nBytes) {
 
 exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   var e, m, c
-  var eLen = nBytes * 8 - mLen - 1
+  var eLen = (nBytes * 8) - mLen - 1
   var eMax = (1 << eLen) - 1
   var eBias = eMax >> 1
   var rt = (mLen === 23 ? Math.pow(2, -24) - Math.pow(2, -77) : 0)
@@ -2484,7 +2541,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
       m = 0
       e = eMax
     } else if (e + eBias >= 1) {
-      m = (value * c - 1) * Math.pow(2, mLen)
+      m = ((value * c) - 1) * Math.pow(2, mLen)
       e = e + eBias
     } else {
       m = value * Math.pow(2, eBias - 1) * Math.pow(2, mLen)

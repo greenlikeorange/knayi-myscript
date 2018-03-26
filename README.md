@@ -15,6 +15,7 @@ Knayi Myanmar Script
 
 ## Features
  - Detector (Unicode and Zawgyi)
+ Detection now
  - Converter (Unicode and Zawgyi)
  - SyallBreak (Unicode and Zawgyi)
  - Spelling Check (Unicode and Zawgyi)
@@ -32,13 +33,13 @@ yarn add knayi-myscript
 
 Using CDN
 ```html
-<script src="https://unpkg.com/knayi-myscript@2.2.0/dist/knayi-myscript.min.js"></script>
+<script src="https://unpkg.com/knayi-myscript@latest/dist/knayi-myscript.min.js"></script>
 ```
 
 ## API
 |Method Name | Arguments | Return | Note |
 | --- | --- | --- | --- |
-| `fontDetect` | `content: String(require)` | `String` | Font Detector, it will detect unicode/zawgyi of the **content** Text. If nothing is matched or possibility are equal, it will return as 'zawgyi' or specified font type in **defaultFont** params. |
+| `fontDetect` | `content: String(require)`, <br>`fallbackFontType:, options fontName(options)`, <br>`options: Object(options)` | `String` | Font Detector, it will detect unicode/zawgyi of the **content** Text. If nothing is matched or possibility are equal, it will return as 'zawgyi' or specified font type in **fallbackFontType*, options* params. |
 | `fontConvert` | `content: String(require)`,<br>`convertTo: fontName(require)`,<br>`convertFrom: fontName(optional)`| `String` | Converting font to target font type. This method need spelling fix, so it gonna use **spellingFix** in default. **convertFrom** will be detect by **fontDetect** when you don't described.<hr> `fontName` must be one of `unicode` or `zawgyi`. |
 | `syllBreak` | `content: String(require)`,<br>`fontType: fontName(optional)`,<br>`breakPoint: String(optional)` | `String` |To make systematic word break of Myanmar text. convertFrom will be detect by fontDetect when you don't described.<hr> `fontName` must be one of `unicode` or `zawgyi`. |
 | `spellingFix` | `content: String(require)`,<br>`fontType: fontName(optional)` | `String` | **convertFrom** will be detect by **fontDetect** when you don't described. It fix spelling on Myanmar Text.<hr> `fontName` must be one of `unicode` or `zawgyi`. |
@@ -55,7 +56,7 @@ import knayi from 'knayi-myscript'
 
 ## Example
 
-- **fontDetect(content, [defaultFont])**
+- **fontDetect(content, [fallbackFontType], options)**
 ```javascript
 knayi.fontDetect('မဂၤလာပါ') // zawgyi
 knayi.fontDetect('မင်္ဂလာပါ') // unicode
@@ -75,6 +76,36 @@ knayi.syllBreak('မင်္ဂလာပါ', null, '$$') // 'မင်္ဂ�
 - **spellingFix(content, [fontType])**  
 ```javascript
 knayi.spellingFix('မင်္ဂလာာပါါ') // 'မင်္ဂလာပါ'
+```
+
+## Using googlei18n/myanmartools in detector.js
+
+Now you can now use `googlei18n/myanmartools` library in detector.
+By default `use_myanmartools` options is set to `false`.
+
+```javascript
+// Add options for single process
+knayi.fontDetect('မဂၤလာပါ', null, {use_myanmartools: true}) // this will use myanmartools
+knayi.fontDetect('မင်္ဂလာပါ') // this will use default
+
+// OR set for whole project
+knayi.setGlobalOptions({
+  detector: {
+    use_myanmartools: true
+  }
+})
+```
+
+You can also set Probability threshold percentages of zawgyi predicting by
+`myanmartools_zg_threshold` as `[lower, higher]`. Which mean if predicting
+result of myanmartools is < 0.05 detector.js assume as **unicode** or > 0.95
+it assume as **zawgyi**.
+
+```javascript
+knayi.fontDetect('မင်္ဂလာပါ', null, {
+  use_myanmartools: true,
+  myanmartools_zg_threshold: [0.05, 0.95]
+})
 ```
 
 ## Build
