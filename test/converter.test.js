@@ -7,6 +7,7 @@ describe('Converter',()=>{
 		it('Convert to Unicode',done=>{
 			knayi.fontConvert('မဂၤလာပါ','unicode','zawgyi').should.equal('မင်္ဂလာပါ');
 			knayi.fontConvert('မဂၤလာပါ','unicode').should.equal('မင်္ဂလာပါ');
+			knayi.fontConvert('ၿမိဳ ့','unicode').should.equal('မြို့');
 			done();
 		})
 	})

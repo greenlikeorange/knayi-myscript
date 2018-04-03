@@ -34,7 +34,7 @@ library.syllable = {
 */
 function syllBreak(content, fontType, breakpoint){
   if (!content)
-    throw new Error('Content must be specified on knayi.fontConvert');
+    throw new Error('Content must be specified on knayi.fontConvert.');
 
   if (content === '' || !mmCharacterRange.test(content))
     return content;

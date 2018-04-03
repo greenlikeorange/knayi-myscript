@@ -167,20 +167,20 @@ library.convert = {
  */
 function fontConvert(content, to, from) {
   if (!content)
-    throw new Error('Content must be specified on knayi.fontConvert');
+    throw new Error('Content must be specified on knayi.fontConvert.');
 
   if (content === '' || !mmCharacterRange.test(content))
     return content;
 
   if (!to)
-    throw new Error('convertTo must be specified on knayi.fontConvert')
+    throw new Error('convertTo must be specified on knayi.fontConvert.')
 
   content = content.trim().replace(/\u200B/g, '');
   to = fontTypes[to];
   from = fontTypes[from];
 
   if (!to) {
-    console.error('Convert library dosen\'t this fontType to convert')
+    console.warn('Convert library dosen\'t have this fontType.')
     return content;
   } else if (!from) {
     from = fontDetect(content);

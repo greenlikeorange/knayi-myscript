@@ -40,7 +40,7 @@ Object.keys(library.detect).forEach((type) => {
  */
 function fontDetect(content, fallback_font_type, options = {}){
 	if (!content)
-		throw new Error('Content must be specified on knayi.fontDetect');
+		throw new Error('Content must be specified on knayi.fontDetect.');
 
 	if (content === '')
 		return content;

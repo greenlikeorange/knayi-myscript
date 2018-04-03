@@ -24,7 +24,7 @@ Object.keys(library.spellingFix).forEach((sys) =>{
 */
 function spellingFix(content, fontType){
 	if (!content)
-		throw new Error('Content must be specified on knayi.fontConvert');
+		throw new Error('Content must be specified on knayi.fontConvert.');
 
 	if (content === '' || !mmCharacterRange.test(content))
 		return content;
