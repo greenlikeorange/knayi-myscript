@@ -9,6 +9,12 @@ Knayi Myanmar Script
 
 > Standalone Myanmar languages js library, to build Myanmar **Unicode** standard web.
 
+## Announce on breaking API changes from 2.4.2 -> 2.5.0
+- All throw Error are now become console.warn and console.error
+- If _content not_ found happens, #fontConvert, #spellingCheck, #syllBreak all return empty string
+- If _content not_ found happens, #fontDetect return fallback_font_type or 'en'
+- You can set silent by setting `knayi.setGlobalOptions({silent_mode: true})`
+
 ## Node Version
  - Required node version >= 4  
  Note: From version >=2.3.0 build step will only support for node >=6
