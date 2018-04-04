@@ -20,7 +20,14 @@
     .logo a { color: #16452d; }
     .badges img { padding-top: 5px; }
 
-    textarea.textarea {
+    span.highlight { background-color: yellow; display: inline-block; }
+
+    #debugging { display: none; }
+
+    .debug_content span.line {
+      display: block;
+    }
+    .textarea {
       height: 250px;
     }
     </style>
@@ -50,7 +57,11 @@
                 <div class="field">
                   <label class="label">Unicode</label>
                   <div class="control">
-                    <textarea id="unicode_text" class="textarea is-hovered notosansmyanmar" type="text">သီဟိုဠ်မှ ဉာဏ်ကြီးရှင်သည် အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇလွန်ဈေးဘေးဗာဒံပင်ထက် အဓိဋ္ဌာန်လျက် ဂဃနဏဖတ်ခဲ့သည်။ယေဓမ္မာ ဟေတုပ္ပဘဝါ တေသံ ဟေတုံ တထာဂတော အာဟ တေသဉ္စ ယောနိရောဓေါ ဧဝံ ဝါဒီ မဟာသမဏော။(မြန်မာပြန်)မြတ်စွာဘုရားရှင်သည် ရှေးကပြုခဲ့ဖူးသော အကြောင်းတရားကြောင့် ဖြစ်ပေါ်လာကြသော အကျိုးတရားကို ဟောကြားတော်မူသည်။ထိုအကြောင်းတရားတို့၏ ချုပ်ငြိမ်းရာတရားတို့ကိုလည်း ဟောတော်မူ၏။ရဟန်းကြီးဖြစ်သော ဗုဒ္ဓမြတ်စွာဘုရားသည် ဤသို့သောအယူရှိတော်မူ၏။</textarea>
+                    <textarea
+                      id="unicode_text"
+                      class="textarea is-hovered notosansmyanmar app_input"
+                      data-font-type="unicode"
+                      type="text">သီဟိုဠ်မှ ဉာဏ်ကြီးရှင်သည် အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇလွန်ဈေးဘေးဗာဒံပင်ထက် အဓိဋ္ဌာန်လျက် ဂဃနဏဖတ်ခဲ့သည်။ယေဓမ္မာ ဟေတုပ္ပဘဝါ တေသံ ဟေတုံ တထာဂတော အာဟ တေသဉ္စ ယောနိရောဓေါ ဧဝံ ဝါဒီ မဟာသမဏော။(မြန်မာပြန်)မြတ်စွာဘုရားရှင်သည် ရှေးကပြုခဲ့ဖူးသော အကြောင်းတရားကြောင့် ဖြစ်ပေါ်လာကြသော အကျိုးတရားကို ဟောကြားတော်မူသည်။ထိုအကြောင်းတရားတို့၏ ချုပ်ငြိမ်းရာတရားတို့ကိုလည်း ဟောတော်မူ၏။ရဟန်းကြီးဖြစ်သော ဗုဒ္ဓမြတ်စွာဘုရားသည် ဤသို့သောအယူရှိတော်မူ၏။</textarea>
                   </div>
                 </div>
               </div>
@@ -58,7 +69,27 @@
                 <div class="field">
                   <label class="label">Zawgyi</label>
                   <div class="control">
-                    <textarea id="zawgyi_text" class="textarea is-hovered zawgyi" type="text">သီဟိုဠ္မွ ဉာဏ္ႀကီးရွင္သည္ အာယုဝဍ္ဎနေဆးၫႊန္းစာကို ဇလြန္ေဈးေဘးဗာဒံပင္ထက္ အဓိ႒ာန္လ်က္ ဂဃနဏဖတ္ခဲ့သည္။ေယဓမၼာ ေဟတုပၸဘဝါ ေတသံ ေဟတုံ တထာဂေတာ အာဟ ေတသၪၥ ေယာနိေရာေဓါ ဧဝံ ဝါဒီ မဟာသမေဏာ။(ျမန္မာျပန္)ျမတ္စြာဘုရားရွင္သည္ ေရွးကျပဳခဲ့ဖူးေသာ အေၾကာင္းတရားေၾကာင့္ ျဖစ္ေပၚလာၾကေသာ အက်ိဳးတရားကို ေဟာၾကားေတာ္မူသည္။ထိုအေၾကာင္းတရားတို႔၏ ခ်ဳပ္ၿငိမ္းရာတရားတို႔ကိုလည္း ေဟာေတာ္မူ၏။ရဟန္းႀကီးျဖစ္ေသာ ဗုဒၶျမတ္စြာဘုရားသည္ ဤသို႔ေသာအယူရွိေတာ္မူ၏။</textarea>
+                    <textarea
+                      id="zawgyi_text"
+                      class="textarea is-hovered zawgyi app_input"
+                      data-font-type="zawgyi"
+                      type="text">သီဟိုဠ္မွ ဉာဏ္ႀကီးရွင္သည္ အာယုဝဍ္ဎနေဆးၫႊန္းစာကို ဇလြန္ေဈးေဘးဗာဒံပင္ထက္ အဓိ႒ာန္လ်က္ ဂဃနဏဖတ္ခဲ့သည္။ေယဓမၼာ ေဟတုပၸဘဝါ ေတသံ ေဟတုံ တထာဂေတာ အာဟ ေတသၪၥ ေယာနိေရာေဓါ ဧဝံ ဝါဒီ မဟာသမေဏာ။(ျမန္မာျပန္)ျမတ္စြာဘုရားရွင္သည္ ေရွးကျပဳခဲ့ဖူးေသာ အေၾကာင္းတရားေၾကာင့္ ျဖစ္ေပၚလာၾကေသာ အက်ိဳးတရားကို ေဟာၾကားေတာ္မူသည္။ထိုအေၾကာင္းတရားတို႔၏ ခ်ဳပ္ၿငိမ္းရာတရားတို႔ကိုလည္း ေဟာေတာ္မူ၏။ရဟန္းႀကီးျဖစ္ေသာ ဗုဒၶျမတ္စြာဘုရားသည္ ဤသို႔ေသာအယူရွိေတာ္မူ၏။</textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="debugging">
+              <div class="content">
+                <h4>Debuging</h4>
+              </div>
+              <div class="columns">
+                <div class="column">
+                  <div id="debug_unicode" class="content debug_content">
+                  </div>
+                </div>
+                <div class="column">
+                  <div id="debug_zawgyi" class="content debug_content">
                   </div>
                 </div>
               </div>
@@ -69,30 +100,168 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.slim.min.js" charset="utf-8"></script>
-    <script src="https://rawgit.com/greenlikeorange/knayi-myscript/master/dist/knayi-myscript.min.js" charset="utf-8"></script>
+    <!-- <script src="https://rawgit.com/greenlikeorange/knayi-myscript/master/dist/knayi-myscript.min.js" charset="utf-8"></script> -->
+    <script src="../dist/knayi-myscript.min.js" charset="utf-8">
+
+    </script>
 
     <script type="text/javascript">
       (function () {
+        console.log('knayi-myscript version: ' + knayi.version)
         var $unicode_text = $('#unicode_text');
         var $zawgyi_text = $('#zawgyi_text');
+        var $app_inputs = $('.app_input');
 
-        $unicode_text.keyup(function () {
-          var text = $unicode_text.val()
-          if (text) {
-            $zawgyi_text.val(knayi.fontConvert(text, 'zawgyi', 'unicode'))
-          } else {
-            $zawgyi_text.val('')
+        var is_debug_mode = window.location.hash
+          && window.location.hash === '#debug-mode';
+
+        function reverse_font(font_type) {
+          switch (font_type) {
+            case 'unicode':
+              return 'zawgyi';
+            case 'zawgyi':
+              return 'unicode';
+          }
+        }
+
+        $.fn.selectRange = function(start, end) {
+          // var e = $(this)[0]; // I don't know why... but $(this) don't want to work today :-/
+          // if (!e) return;
+          // else if (e.setSelectionRange) { e.setSelectionRange(start, end); } /* WebKit */
+          // else if (e.createTextRange) { var range = e.createTextRange(); range.collapse(true); range.moveEnd('character', end); range.moveStart('character', start); range.select(); } /* IE */
+          // else if (e.selectionStart) { e.selectionStart = start; e.selectionEnd = end; }
+        };
+
+        // $app_inputs.on('paste', function (event) {
+        //   event.preventDefault();
+        //   // endOffset
+        //   var pasted_text = (event.originalEvent || event)
+        //     .clipboardData.getData('text') || '';
+        //
+        //   var selection = document.getSelection();
+        //   var selectionRange;
+        //   if (selection && (selectionRange = selection.getRangeAt(0))) {
+        //     var endOffset = selectionRange.endOffset;
+        //     $(this).text(function (x, origin_text) {
+        //       return origin_text.substr(0, endOffset)
+        //         + pasted_text
+        //         + origin_text.substr(endOffset)
+        //     })
+        //
+        //     selectionRange.endOffset = endOffset + pasted_text.length;
+        //     selectionRange.startOffset = endOffset + pasted_text.length;
+        //     document.getSelection().addRange(endOffset);
+        //   } else {
+        //     $(this).text(pasted_text)
+        //   }
+        //
+        //   return;
+        // })
+
+        $app_inputs.on('keyup change paste', function (event) {
+          var $this = $(this);
+          if ($this.is(":focus")) {
+            var input_text = $this.val() || '';
+            var font_type = $this.attr('data-font-type');
+
+            if (font_type === 'unicode') {
+              $zawgyi_text.val(knayi.fontConvert(input_text, 'zawgyi', 'unicode'));
+            } else {
+              $unicode_text.val(knayi.fontConvert(input_text, 'unicode', 'zawgyi'));
+            }
           }
         })
 
-        $zawgyi_text.keyup(function () {
-          var text = $zawgyi_text.val()
-          if (text) {
-            $unicode_text.val(knayi.fontConvert(text, 'unicode', 'zawgyi'))
-          } else {
-            $unicode_text.val('')
+        /**
+         * Debuging stuff
+         **/
+        if (!is_debug_mode) { return; }
+
+        $('#debugging').show();
+        var $debug_unicode = $('#debug_unicode');
+        var $debug_zawgyi = $('#debug_zawgyi');
+
+        $app_inputs.on('select', function (event) {
+          var $app_input = $(this);
+          var selection_start = event.target.selectionStart;
+          var selection_end = event.target.selectionEnd;
+
+          var origin_font_type = $app_input.attr('data-font-type');
+          var target_font_type = reverse_font(origin_font_type);
+          var $target_output_input = origin_font_type === 'unicode'
+            ? $zawgyi_text : $unicode_text;
+
+          var origin_value = $app_input.val() || '';
+          var converted_value = $target_output_input.val();
+
+          var selected_value = origin_value.slice(selection_start, selection_end);
+          var converted_selected_value = knayi.fontConvert(selected_value, target_font_type, origin_font_type);
+
+          var regexp_of_selected_value = new RegExp(selected_value, 'g');
+          var regexp_of_converted_selected_value = new RegExp(converted_selected_value, 'g');
+
+          var match_on_origin = origin_value.slice(0, selection_end)
+            .match(regexp_of_selected_value);
+
+          if (!match_on_origin)
+            return;
+
+          // make matches
+          [].forEach.call(match_on_origin, function () {
+            regexp_of_converted_selected_value.test(converted_value);
+          })
+
+          if (!regexp_of_converted_selected_value.lastIndex)
+            return;
+
+          var highlight_start = regexp_of_converted_selected_value.lastIndex - converted_selected_value.length;
+          var highlight_end = regexp_of_converted_selected_value.lastIndex;
+
+          if (regexp_of_converted_selected_value.lastIndex) {
+            // var highlight_html = converted_value.substr(0, highlight_start)
+            //   + '<span class="highlight">'
+            //   + converted_selected_value
+            //   + '</span>'
+            //   + converted_value.substr(highlight_end);
+
+            // $target_output_input.html(highlight_html);
+            // $target_output_input.highlightWithinTextarea({
+            //     highlight: [highlight_start, highlight_end]
+            // });
+
+            // console.log("Working ", highlight_start, highlight_end)
+
+            // $target_output_input[0].setSelectionRange(highlight_start, highlight_end)
+            $target_output_input.selectRange(highlight_start, highlight_end);
+
+            var unicode_selected_value = selected_value;
+            var zawgyi_selected_value = converted_selected_value;
+
+            if (origin_font_type === 'zawgyi') {
+              unicode_selected_value = converted_selected_value;
+              zawgyi_selected_value = selected_value;
+            }
+
+            $debug_unicode.html(
+              [
+                '<b>Character codes of selected word</b>',
+                [].map.call(unicode_selected_value, function (char) {
+                  return 'u' + char.charCodeAt(0).toString(16)
+                }).join('+'),
+              ].map(function (line) { return `<span class="line">${line}</span>` })
+            );
+
+            $debug_zawgyi.html(
+              [
+                '<b>Character codes of selected word</b>',
+                [].map.call(zawgyi_selected_value, function (char) {
+                  return 'u' + char.charCodeAt(0).toString(16)
+                }).join('+'),
+              ].map(function (line) { return `<span class="line">${line}</span>` })
+            );
           }
         })
+
       } ())
     </script>
   </body>

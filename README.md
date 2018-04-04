@@ -7,7 +7,7 @@ Knayi Myanmar Script
 ![][dt-url]
 ![][license-url]
 
-> Standalone Myanmar languages JavaScript library, use to build Myanmar **Unicode** standard easily.
+> Standalone Myanmar languages js library, to build Myanmar **Unicode** standard web.
 
 ## Node Version
  - Required node version >= 4  
@@ -108,6 +108,11 @@ knayi.fontDetect('မင်္ဂလာပါ', null, {
 })
 ```
 
+## Debugging of font converting
+
+Visit [http://tools.kny.co/knayi-myscript#debug_mode](http://tools.kny.co/knayi-myscript#debug_mode)
+and select text to track how converting happened in background.
+
 ## Build
 
  - Required node >=6  
@@ -117,10 +122,10 @@ knayi.fontDetect('မင်္ဂလာပါ', null, {
 ## License
 [MIT](./LICENSE)
 
-[npm-url]: https://npmjs.org/package/knayi-myscript
+[npm-url]:https://npmjs.org/package/knayi-myscript
 [npm-image]:https://badge.fury.io/js/knayi-myscript.png
 [travis-url]:https://api.travis-ci.org/greenlikeorange/knayi-myscript.svg?branch=master
 [david-url]:https://david-dm.org/greenlikeorange/knayi-myscript
-[david-image]: https://david-dm.org/greenlikeorange/knayi-myscript.png
+[david-image]:https://david-dm.org/greenlikeorange/knayi-myscript.png
 [dt-url]:https://img.shields.io/npm/dt/knayi-myscript.svg
 [license-url]:https://img.shields.io/npm/l/knayi-myscript.svg
