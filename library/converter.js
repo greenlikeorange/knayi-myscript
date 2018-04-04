@@ -1,5 +1,6 @@
 const spellingFix = require('./spellingCheck');
 const fontDetect = require('./detector');
+const globalOptions = require('./globalOptions');
 
 const	fontTypes = {
   unicode: "unicode",
@@ -184,7 +185,7 @@ library.convert = {
  */
 function fontConvert(content, to, from) {
   if (!content) {
-    console.warn('Content must be specified on knayi.fontConvert.');
+    if (!globalOptions.isSilentMode()) console.warn('Content must be specified on knayi.fontConvert.');
     return '';
   }
 
@@ -192,7 +193,7 @@ function fontConvert(content, to, from) {
     return content;
 
   if (!to) {
-    console.error('Convert target font must be specified on knayi.fontConvert.');
+    if (!globalOptions.isSilentMode()) console.error('Convert target font must be specified on knayi.fontConvert.');
     return content;
   }
 
@@ -201,7 +202,7 @@ function fontConvert(content, to, from) {
   from = fontTypes[from];
 
   if (!to) {
-    console.error('Convert library dosen\'t have this fontType.')
+    if (!globalOptions.isSilentMode()) console.error('Convert library dosen\'t have this fontType.')
     return content;
   } else if (!from) {
     from = fontDetect(content);

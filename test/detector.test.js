@@ -2,11 +2,7 @@ var knayi = require('../main');
 var chai = require('chai');
 var should = chai.should();
 
-knayi.setGlobalOptions({
-	detector: {
-		use_myanmartools: true
-	}
-})
+knayi.setGlobalOptions({ detector: { use_myanmartools: true } })
 
 describe('Detector default mode',()=>{
 	describe('Detect Zawgyi',()=>{

@@ -1,4 +1,5 @@
 const fontDetect = require('./detector');
+const globalOptions = require('./globalOptions');
 
 const mmCharacterRange = /[\u1000-\u109F]/;
 const library = {};
@@ -24,7 +25,7 @@ Object.keys(library.spellingFix).forEach((sys) =>{
 */
 function spellingFix(content, fontType){
   if (!content) {
-    console.warn('Content must be specified on knayi.spellingFix.');
+    if (!globalOptions.isSilentMode()) console.warn('Content must be specified on knayi.spellingFix.');
     return '';
   }
 

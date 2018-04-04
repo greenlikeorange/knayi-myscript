@@ -1,4 +1,5 @@
 const fontDetect = require('./detector');
+const globalOptions = require('./globalOptions');
 
 const mmCharacterRange = /[\u1000-\u109F]/;
 const library = {};
@@ -34,7 +35,7 @@ library.syllable = {
 */
 function syllBreak(content, fontType, breakpoint){
   if (!content) {
-    console.warn('Content must be specified on knayi.syllBreak.');
+    if (!globalOptions.isSilentMode()) console.warn('Content must be specified on knayi.syllBreak.');
     return '';
   }
 

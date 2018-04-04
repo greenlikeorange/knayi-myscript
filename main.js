@@ -1,3 +1,4 @@
+const globalOptions = require('./library/globalOptions')
 const fontDetect = require('./library/detector')
 const fontConvert = require('./library/converter')
 const syllBreak = require('./library/syllBreak')
@@ -5,13 +6,9 @@ const spellingFix = require('./library/spellingCheck')
 
 const {version} = require('./package.json')
 
-const setGlobalOptions = (options = {}) => {
-	fontDetect.__setOptions(options.detector)
-}
-
 module.exports = {
 	version,
-	setGlobalOptions,
+	setGlobalOptions: globalOptions.setOptions,
 	fontDetect,
 	fontConvert,
 	syllBreak,

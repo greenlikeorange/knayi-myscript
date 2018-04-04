@@ -4,11 +4,7 @@ const whitespace = '[\\x20\\t\\r\\n\\f]';
 
 const myanmartools = require('myanmar-tools');
 const myanmartoolZawgyiDetector = new myanmartools.ZawgyiDetector();
-
-var GLOBAL_OPTIONS = {
-  use_myanmartools: false,
-  myanmartools_zg_threshold: [0.05, 0.95]
-};
+const globalOptions = require('./globalOptions');
 
 /** DETECTION Libarary **/
 library.detect = {
@@ -40,8 +36,8 @@ Object.keys(library.detect).forEach((type) => {
  */
 function fontDetect(content, fallback_font_type, options = {}){
   if (!content) {
-    console.warn('Content must be specified on knayi.fontDetect.');
-    return '';
+    if (!globalOptions.isSilentMode()) console.warn('Content must be specified on knayi.fontDetect.');
+    return fallback_font_type || 'en';
   }
 
 	if (content === '')
@@ -53,7 +49,7 @@ function fontDetect(content, fallback_font_type, options = {}){
 	content = content.trim().replace(/\u200B/g, '');
 	fallback_font_type = fallback_font_type || 'zawgyi';
 
-  options = verifyOptions(options)
+  options = globalOptions.detector(options);
 
   if (options.use_myanmartools) {
 
@@ -91,31 +87,5 @@ function fontDetect(content, fallback_font_type, options = {}){
 
   }
 };
-
-/**
- * set configuartion of using googlei18n/myanmar-tools
- */
-function verifyOptions ({
-  use_myanmartools = GLOBAL_OPTIONS.use_myanmartools,
-  myanmartools_zg_threshold = [0.05, 0.95]
-} = {}) {
-  // Check types
-  if (
-    typeof myanmartools_zg_threshold[0] !== 'number'
-    || typeof myanmartools_zg_threshold[1] !== 'number'
-  ) {
-    console.error('myanmartools_zg_threshold must be [number, number]')
-    myanmartools_zg_threshold = GLOBAL_OPTIONS.myanmartools_zg_threshold
-  }
-
-  return {
-    use_myanmartools: use_myanmartools,
-    myanmartools_zg_threshold: myanmartools_zg_threshold
-  }
-}
-
-fontDetect.__setOptions = function (options) {
-  GLOBAL_OPTIONS = verifyOptions(options)
-}
 
 module.exports = fontDetect
