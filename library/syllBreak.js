@@ -33,8 +33,10 @@ library.syllable = {
 * @return edited text
 */
 function syllBreak(content, fontType, breakpoint){
-  if (!content)
-    throw new Error('Content must be specified on knayi.fontConvert.');
+  if (!content) {
+    console.warn('Content must be specified on knayi.syllBreak.');
+    return '';
+  }
 
   if (content === '' || !mmCharacterRange.test(content))
     return content;

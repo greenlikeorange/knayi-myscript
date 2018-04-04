@@ -23,8 +23,10 @@ Object.keys(library.spellingFix).forEach((sys) =>{
 * @return edited text
 */
 function spellingFix(content, fontType){
-	if (!content)
-		throw new Error('Content must be specified on knayi.fontConvert.');
+  if (!content) {
+    console.warn('Content must be specified on knayi.spellingFix.');
+    return '';
+  }
 
 	if (content === '' || !mmCharacterRange.test(content))
 		return content;

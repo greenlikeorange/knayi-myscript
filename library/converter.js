@@ -166,21 +166,25 @@ library.convert = {
  * @return converted text
  */
 function fontConvert(content, to, from) {
-  if (!content)
-    throw new Error('Content must be specified on knayi.fontConvert.');
+  if (!content) {
+    console.warn('Content must be specified on knayi.fontConvert.');
+    return '';
+  }
 
   if (content === '' || !mmCharacterRange.test(content))
     return content;
 
-  if (!to)
-    throw new Error('convertTo must be specified on knayi.fontConvert.')
+  if (!to) {
+    console.error('Convert target font must be specified on knayi.fontConvert.');
+    return content;
+  }
 
   content = content.trim().replace(/\u200B/g, '');
   to = fontTypes[to];
   from = fontTypes[from];
 
   if (!to) {
-    console.warn('Convert library dosen\'t have this fontType.')
+    console.error('Convert library dosen\'t have this fontType.')
     return content;
   } else if (!from) {
     from = fontDetect(content);
