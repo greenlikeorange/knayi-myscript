@@ -16,6 +16,7 @@ describe('Converter',()=>{
 		it('Convert to Unicode',done=>{
 			knayi.fontConvert('မင်္ဂလာပါ','zawgyi','unicode').should.equal('မင္ၢလာပါ');
 			knayi.fontConvert('မင်္ဂလာပါ','zawgyi').should.equal('မင္ၢလာပါ');
+			knayi.fontConvert('က္ကြွှေိာ်','zawgyi').should.equal('ေၾကၠႊိာ္')
 			done();
 		})
 	})
