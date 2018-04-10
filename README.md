@@ -62,24 +62,24 @@ import knayi from 'knayi-myscript'
 
 ## Example
 
-- **fontDetect(content, [fallbackFontType] [,options])**
+- **fontDetect(content [, fallbackFontType [, options]])**
 ```javascript
 knayi.fontDetect('မဂၤလာပါ') // zawgyi
 knayi.fontDetect('မင်္ဂလာပါ') // unicode
 ```
 
-- **fontConvert(content, targetFontType [,orignalFontType])**
+- **fontConvert(content, targetFontType [, orignalFontType])**
 ```javascript
 knayi.fontConvert('မဂၤလာပါ', 'unicode', 'zawgyi') // မင်္ဂလာပါ
 knayi.fontConvert('မဂၤလာပါ', 'unicode') // မင်္ဂလာပါ
 ```
 
-- **syllBreak(content [,fontType] [,breakPoint])**
+- **syllBreak(content [, fontType [, breakWord]])**
 ```javascript
 knayi.syllBreak('မင်္ဂလာပါ', null, '$$') // 'မင်္ဂလာ$$ပါ'
 ```
 
-- **spellingFix(content [,fontType])**  
+- **spellingFix(content [, fontType])**  
 ```javascript
 knayi.spellingFix('မင်္ဂလာာပါါ') // 'မင်္ဂလာပါ'
 ```
