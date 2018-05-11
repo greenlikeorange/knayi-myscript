@@ -24,20 +24,28 @@ library.convert = {
         [/([\u1033\u1034])[\u1037\u1094]/g, "$1\u1095"],
         // [/\u107e([\u1000-\u1021])/],
 
+        [/\u103c([\u1000-\u1021][\u102f\u1030\u1039\u103b\u103d\u103e])/g, "\u1082$1"],
+
+        [/\u1004\u103a\u1039/g, "\u1064"],
+        [/\u1064([\u1000-\u1021])/g, "$1\u1064"],
+
         // ြ first
-        [/([\u1000-\u1021])\u103c/g, "\u103c$1"],
+        [/([\u1000-\u1021][^\u1000-\u1021]*)([\u103c\u1082])/g, "$2$1"],
         [/([\u1000-\u1021]\u1039)\u103c([\u1000-\u1021])/g, "\u103c$1$2"],
 
         // ေ first
         [/([\u1000-\u1021][^\u1000-\u1021]*)\u1031/g, "\u1031$1"],
         [/([\u1000-\u1021]\u1039)\u1031([\u1000-\u1021])/g, "\u1031$1$2"],
-        [/\u103c\u1031/g, "\u1031\u103c"],
+        [/\u103c\u1031/g, "\u1031\u103c"], // ြေ -> ေြ
 
-        // န | ဉ u1082 + ​(ျ ြ ွ ှ ု ူ)
-        [/\u1014([\u102f\u1030\u1039\u103b\u103c\u103d\u103e])/g, "\u108f$1"],
-        [/\u1009([\u102f\u1030\u1039\u103b\u103c\u103d\u103e])/g, "\u106a$1"],
-        [/\u103c([\u102f\u1030\u1039\u103b\u103c\u103d\u103e])/g, "\u1082$1"],
+        // နဉ + ​(ျ ြ ွ ှ ု ူ)
+        [/\u1014([\u102f\u1030\u1039\u103b\u103d\u103e])/g, "\u108f$1"],
+        [/\u103c\u1014/g, "\u103c\u108f"], // ြန
+        [/\u1009([\u102f\u1030\u1039\u103b\u103d\u103e])/g, "\u106a$1"],
+        // [/\u103c\u1009/g, "\u1081\u106a"], // ြဉ
 
+        // \u101e\u107e\u1000\u1064\u1014\u1039 
+        
         [/\u104e\u1004\u103a\u1038/g, "\u104e"],
         [/\u102b\u103a/g, "\u105a"],
         [/\u103f/g, "\u1086"],
@@ -72,7 +80,7 @@ library.convert = {
         [/\u103d\u103e/g, "\u108a"],
         [/\u103e\u1030/g, "\u1089"],
         [/\u1039\u1000/g, "\u1060"],
-        [/\u1004\u103a\u1039/g, "\u1064"],
+        
         [/\u103e\u102f/g, "\u1088"],
         // [/\u1037/g, "\u1037"],
 
@@ -84,16 +92,22 @@ library.convert = {
       ],
       asLongAsMatch: [
         // [/([\u103b\u103c\u103d\u103e])\u1031/g, "\u1031$1"],
-        [/\u103b([\u1000\u1003\u1006\u100f\u1010\u1011\u1018\u101a\u101c\u101e\u101f\u1021])/g, "\u107e$1"],
 
-        [/\u103b([\u1000-\u1021](\u103c\u103d|\u108a|\u103c)[\u102d\u102e])/g, "\u1083$1"],
+
+        [/\u103b([\u1000\u1003\u1006\u100f\u1010\u1011\u1018\u1021\u101a\u101c\u101e\u101f])/g, "\u107e$1"],
+
+        [/\u103b([\u1000-\u1021\u106a\u108f](\u103c\u103d|\u108a|\u103c)[\u102d\u102e])/g, "\u1083$1"],
         [/\u107e([\u1000-\u1021](\u103c\u103d|\u108a|\u103c)[\u102d\u102e])/g, "\u1084$1"],
 
-        [/\u103b([\u1000-\u1021][\u102d\u102e])/g, "\u107f$1"],
+        [/\u103b([\u1000-\u1021\u106a\u108f][\u102d\u102e])/g, "\u107f$1"],
         [/\u107e([\u1000-\u1021][\u102d\u102e])/g, "\u1080$1"],
+        
 
-        [/\u103b([\u1000-\u1021][\u103c\u103e\u108a])/g, "\u1081$1"],
-        [/\u107e([\u1000-\u1021][\u103c\u103e\u108a])/g, "\u1082$1"]
+        [/\u103b([\u1000-\u1021\u106a\u108f][\u103c\u103e\u108a])/g, "\u1081$1"],
+        [/\u107e([\u1000-\u1021][\u103c\u103e\u108a])/g, "\u1082$1"],
+
+        [/\u103b\u1009/g, "\u1081\u106a"],
+
       ]
     }
   },
@@ -212,22 +226,49 @@ function fontConvert(content, to, from) {
     return content;
   }
 
+  var debug_logs = {
+    to: to, from: from,
+    matched_patterns: [],
+    steps: []
+  }
+
   content = spellingFix(content, from);
   var refLib = library.convert[from][to];
 
   for (var i = 0; i < refLib.oneTime.length; i++) {
     var rule1 = refLib.oneTime[i];
+    // debugging
+    if (this.debug && rule1[0].test(content)) {
+      debug_logs.matched_patterns.push(rule1);
+      debug_logs.steps.push(content);
+    }
     content = content.replace(rule1[0], rule1[1]);
   }
 
   for (var j = 0; j < refLib.asLongAsMatch.length; j++) {
     var rule2 = refLib.asLongAsMatch[j];
+    // debugging
+    if (this.debug && rule2[0].test(content)) {
+      debug_logs.matched_patterns.push(rule2);
+      debug_logs.steps.push(content);
+    }
     while (rule2[0].test(content)) {
       content = content.replace(rule2[0], rule2[1]);
     }
   }
 
+  if (this.debug) {
+    // final
+    debug_logs.steps.push(content);
+    return debug_logs;
+  }
+
   return content;
 };
+
+fontConvert.debugging = function (param1, param2, param3) {
+  return fontConvert.apply({debug: true}, [param1, param2, param3])
+}
+
 
 module.exports = fontConvert;

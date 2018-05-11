@@ -6,7 +6,8 @@
   "module": "dist/knayi-myscript.es.js",
   "scripts": {
     "test": "mocha",
-    "build": "webpack"
+    "build": "webpack",
+    "start:dev": "webpack-dev-server --entry /entry/file"
   },
   "repository": {
     "type": "git",
@@ -37,8 +38,11 @@
     "babel-loader": "^7.1.4",
     "babel-preset-env": "^1.6.1",
     "chai": "^4.1.2",
-    "mocha": "^3.5.3",
-    "webpack": "^3.11.0"
+    "mocha": "^5.1.1",
+    "upath": "^1.0.5",
+    "webpack": "^4.8.1",
+    "webpack-cli": "^2.1.3",
+    "webpack-serve": "^0.3.2"
   },
   "dependencies": {
     "myanmar-tools": "^1.0.3"

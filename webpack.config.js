@@ -1,6 +1,7 @@
 const webpack = require('webpack');
 
 const esConfig = {
+  target: 'node',
   entry: {
     "knayi-myscript": __dirname + "/main.js"
   },
@@ -21,6 +22,7 @@ const esConfig = {
 }
 
 const legacyConfig = {
+  target: 'web',
   entry: {
     "knayi-myscript": __dirname + "/main.js",
     "knayi-myscript.min": __dirname + "/main.js",
@@ -41,7 +43,6 @@ const legacyConfig = {
     }]
   }
 }
-
 
 module.exports = [
   esConfig, legacyConfig
