@@ -1,3 +1,7 @@
+_config.yml
+.editorconfig
+.travis.yml
 *.log
+docs/
 node_modules/
-docs
+test/
