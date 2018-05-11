@@ -4,7 +4,7 @@ var should = chai.should();
 
 describe('Converter',()=>{
 	describe('Zawgyi to Unicode',()=>{
-		it('Convert to Unicode',done=>{
+		it('should become unicode',done=>{
 			knayi.fontConvert('မဂၤလာပါ','unicode','zawgyi').should.equal('မင်္ဂလာပါ');
 			knayi.fontConvert('မဂၤလာပါ','unicode').should.equal('မင်္ဂလာပါ');
 			knayi.fontConvert('ၿမိဳ ့','unicode').should.equal('မြို့');
@@ -13,9 +13,9 @@ describe('Converter',()=>{
 	})
 
 	describe('Unicode to Zawgyi',()=>{
-		it('Convert to Unicode',done=>{
-			knayi.fontConvert('မင်္ဂလာပါ','zawgyi','unicode').should.equal('မင္ၢလာပါ');
-			knayi.fontConvert('မင်္ဂလာပါ','zawgyi').should.equal('မင္ၢလာပါ');
+		it('should become zawgyi',done=>{
+			knayi.fontConvert('မင်္ဂလာပါ','zawgyi','unicode').should.equal('မဂၤလာပါ');
+			knayi.fontConvert('မင်္ဂလာပါ','zawgyi').should.equal('မဂၤလာပါ');
 			knayi.fontConvert('က္ကြွှေိာ်','zawgyi').should.equal('ေၾကၠႊိာ္')
 			done();
 		})
