@@ -18,7 +18,7 @@ describe('Converter',()=>{
 
 		it('should convert kinzi', () => {
 			knayi.fontConvert('\u1000\u103a\u108b', 'unicode', 'zawgyi').should.equal('င်္ကျိ');
-			knayi.fontConvert('\u1000\u103a\u108c', 'unicode', 'zawgyi').should.equal('င်္ကျီ');
+			knayi.fontConvert('\u1021\u1000\u103a\u108c', 'unicode', 'zawgyi').should.equal('အင်္ကျီ');
 			knayi.fontConvert('\u1000\u103a\u108d', 'unicode', 'zawgyi').should.equal('င်္ကျံ');
 		})
 	})
