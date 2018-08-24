@@ -49,6 +49,7 @@ Using CDN
 | `fontConvert` | `content: String(require)`,<br>`targetFontType: fontName(require)`,<br>`orignalFontType: fontName(optional)`| `String` | Converting font to target font type. This method need spelling fix, so it gonna use **spellingFix** in default. **convertFrom** will be detect by **fontDetect** when you don't described.<hr> `fontName` must be one of `unicode` or `zawgyi`. |
 | `syllBreak` | `content: String(require)`,<br>`fontType: fontName(optional)`,<br>`breakPoint: String(optional)` | `String` |To make systematic word break of Myanmar text. convertFrom will be detect by fontDetect when you don't described.<hr> `fontName` must be one of `unicode` or `zawgyi`. |
 | `spellingFix` | `content: String(require)`,<br>`fontType: fontName(optional)` | `String` | **convertFrom** will be detect by **fontDetect** when you don't described. It fix spelling on Myanmar Text.<hr> `fontName` must be one of `unicode` or `zawgyi`. |
+| `truncate` | `content: String(requre)`,<br>`options: Object` | `String` | Like lodash.truncate, it truncate word syllable and space. Default truncate length is 30 and you can change it in `options.length` |
 
 ## Usage
 
@@ -83,6 +84,16 @@ knayi.syllBreak('မင်္ဂလာပါ', null, '$$') // 'မင်္ဂ�
 ```javascript
 knayi.spellingFix('မင်္ဂလာာပါါ') // 'မင်္ဂလာပါ'
 ```
+
+- **truncate(content [, options])**
+```javascript
+knayi.truncate('အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇလွန်ဈေးဘေးဗာဒံပင်ထက် အဓိဋ္ဌာန်လျက် ဂဃနဏဖတ်ခဲ့သည်။', { length: 30, omission: '...' });
+// "အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဈေး..."
+```
+**options of truncate**
+- `length: Number` default is 30
+- `omission:String` default is '...'
+- `fontType: String` it automatically detect if it not specified
 
 ## Using googlei18n/myanmartools in detector.js
 
