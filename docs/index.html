@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <title>Knayi Myanmar Script</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.6.2/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.2/css/bulma.min.css">
     <link href="https://fonts.googleapis.com/css?family=Unica+One" rel="stylesheet">
 
     <link href="https://fonts.googleapis.com/css?family=Electrolize|Handlee|Karla|Niconne|Oleo+Script|Orbitron|Sacramento|Unica+One" rel="stylesheet">
@@ -13,12 +13,26 @@
     @import url('https://mmwebfonts.comquas.com/fonts/?font=zawgyi');
     @import url('https://fonts.googleapis.com/earlyaccess/notosansmyanmar.css');
 
+    #app .hide {
+      display: none;
+    }
+
     .zawgyi { font-family: 'Zawgyi-One'; }
     .notosansmyanmar { font-family: 'Noto Sans Myanmar', sans-serif; }
 
     .logo { color: #16452d; font-family: 'Handlee', cursive; }
     .logo a { color: #16452d; }
     .badges img { padding-top: 5px; }
+
+    .github {
+      font-size: 0;
+      display: inline-block;
+      width: 20px;
+      height: 38px;
+      background: url("github.png") no-repeat center;
+      background-size: 20px;
+      vertical-align: top;
+    }
 
     span.highlight { background-color: yellow; display: inline-block; }
 
@@ -45,32 +59,44 @@
   </head>
   <body>
     <div id="app">
-      <section class="hero">
-        <div class="hero-body">
+      <!-- <section class="hero"> -->
+        <!-- <div class="hero-body"> -->
           <div class="container">
-            <h1 class="title logo">
-              <a href="https://github.com/greenlikeorange/knayi-myscript">knayi</a>
-            </h1>
-            <h2 class="subtitle">Myanmar langauge js library
-              <p class="badges">
-                <a href="https://npmjs.org/package/knayi-myscript">
-                  <img src="https://badge.fury.io/js/knayi-myscript.png" alt=""></a>
-                <a href="#">
-                  <img src="https://api.travis-ci.org/greenlikeorange/knayi-myscript.svg?branch=master" alt=""></a>
-                <a href="https://david-dm.org/greenlikeorange/knayi-myscript">
-                  <img src="https://david-dm.org/greenlikeorange/knayi-myscript.png" alt=""></a>
-              </p>
-            </h2>
-            <div class="">
-            </div>
             <div class="columns">
+              <div class="column">
+                <h1 class="title logo">
+                  knayi
+                  <a class="github" href="https://github.com/greenlikeorange/knayi-myscript"></a>
+                </h1>
+                <h2 class="subtitle">Myanmar langauge js library</h2>
+              </div>
+              <div class="column">
+                <p class="badges" style="text-align: right;">
+                  <br />
+                  <a href="https://npmjs.org/package/knayi-myscript">
+                    <img src="https://badge.fury.io/js/knayi-myscript.png" alt=""></a>
+                  <a href="#">
+                    <img src="https://api.travis-ci.org/greenlikeorange/knayi-myscript.svg?branch=master" alt=""></a>
+                  <a href="https://david-dm.org/greenlikeorange/knayi-myscript">
+                    <img src="https://david-dm.org/greenlikeorange/knayi-myscript.png" alt=""></a>
+                </p>
+              </div>
+            </div>
+            
+            <div class="tabs">
+              <ul>
+                <li data-view="converting" class="view-tab is-active"><a>Font Converting</a></li>
+                <li data-view="normalization" class="view-tab" ><a>Normalization</a></li>
+              </ul>
+            </div>
+            <div id="converting_view" class="columns view">
               <div class="column">
                 <div class="field">
                   <label class="label">Unicode</label>
                   <div class="control">
                     <textarea
-                      id="unicode_text"
-                      class="textarea is-hovered notosansmyanmar app_input"
+                      id="convert_unicode_text"
+                      class="textarea is-hovered notosansmyanmar convert_input"
                       data-font-type="unicode"
                       type="text">သီဟိုဠ်မှ ဉာဏ်ကြီးရှင်သည် အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇလွန်ဈေးဘေးဗာဒံပင်ထက် အဓိဋ္ဌာန်လျက် ဂဃနဏဖတ်ခဲ့သည်။ယေဓမ္မာ ဟေတုပ္ပဘဝါ တေသံ ဟေတုံ တထာဂတော အာဟ တေသဉ္စ ယောနိရောဓေါ ဧဝံ ဝါဒီ မဟာသမဏော။(မြန်မာပြန်)မြတ်စွာဘုရားရှင်သည် ရှေးကပြုခဲ့ဖူးသော အကြောင်းတရားကြောင့် ဖြစ်ပေါ်လာကြသော အကျိုးတရားကို ဟောကြားတော်မူသည်။ထိုအကြောင်းတရားတို့၏ ချုပ်ငြိမ်းရာတရားတို့ကိုလည်း ဟောတော်မူ၏။ရဟန်းကြီးဖြစ်သော ဗုဒ္ဓမြတ်စွာဘုရားသည် ဤသို့သောအယူရှိတော်မူ၏။</textarea>
                   </div>
@@ -81,10 +107,36 @@
                   <label class="label">Zawgyi</label>
                   <div class="control">
                     <textarea
-                      id="zawgyi_text"
-                      class="textarea is-hovered zawgyi app_input"
+                      id="convert_zawgyi_text"
+                      class="textarea is-hovered zawgyi convert_input"
                       data-font-type="zawgyi"
                       type="text">သီဟိုဠ္မွ ဉာဏ္ႀကီးရွင္သည္ အာယုဝဍ္ဎနေဆးညႊန္းစာကို ဇလြန္ေဈးေဘးဗာဒံပင္ထက္ အဓိ႒ာန္လ်က္ ဂဃနဏဖတ္ခဲ့သည္။ေယဓမၼာ ေဟတုပၸဘဝါ ေတသံ ေဟတုံ တထာဂေတာ အာဟ ေတသၪၥ ေယာနိေရာေဓါ ဧဝံ ဝါဒီ မဟာသမေဏာ။(ျမန္မာျပန္)ျမတ္စြာဘုရားရွင္သည္ ေရွးကျပဳခဲ့ဖူးေသာ အေၾကာင္းတရားေၾကာင့္ ျဖစ္ေပၚလာၾကေသာ အက်ိဳးတရားကို ေဟာၾကားေတာ္မူသည္။ထိုအေၾကာင္းတရားတို့၏ ခ်ဳပ္ၿငိမ္းရာတရားတို့ကိုလည္း ေဟာေတာ္မူ၏။ရဟန္းႀကီးျဖစ္ေသာ ဗုဒၶျမတ္စြာဘုရားသည္ ဤသို့ေသာအယူရွိေတာ္မူ၏။</textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="normalization_view" class="columns hide view">
+              <div class="column">
+                <div class="field">
+                  <label class="label">Input</label>
+                  <div class="control">
+                    <textarea
+                      id="normalization_input"
+                      class="textarea is-hovered notosansmyanmar convert_input"
+                      type="text"></textarea>
+                  </div>
+                </div>
+              </div>
+              <div class="column">
+                <div class="field">
+                  <label class="label">Output</label>
+                  <div class="control">
+                    <textarea
+                      id="normalization_output"
+                      class="textarea is-hovered notosansmyanmar convert_input"
+                      disabled="disabled"
+                      type="text"></textarea>
                   </div>
                 </div>
               </div>
@@ -95,22 +147,14 @@
                 <h4>Debuging</h4>
               </div>
               <div class="columns">
-                <!-- <div class="column">
-                  <div id="debug_unicode" class="content debug_content">
-                  </div>
-                </div>
-                <div class="column">
-                  <div id="debug_zawgyi" class="content debug_content">
-                  </div>
-                </div> -->
                 <div class="column">
                   <pre id="debug_content" class="content debug_content"></pre>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        <!-- </div>
+      </section> -->
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.slim.min.js" charset="utf-8"></script>
@@ -119,15 +163,38 @@
     <script src="../dist/knayi-myscript.js"></script>
 
     <script type="text/javascript">
-      (function () {
-        console.log('knayi-myscript version: ' + knayi.version)
-        var $unicode_text = $('#unicode_text');
-        var $zawgyi_text = $('#zawgyi_text');
-        var $app_inputs = $('.app_input');
+      // (function () {
+        console.log('knayi-myscript version: ' + knayi.version);
+        
+        var $view_tabs = $('.view-tab');
+        var $views = $('.view');
+        // var $converting_view = $('#converting_view');
+        // var $normalization_view = $('#normalization_view');
+
+        var $convert_unicode_text = $('#convert_unicode_text');
+        var $convert_zawgyi_text = $('#convert_zawgyi_text');
+        var $convert_inputs = $('.convert_input');
+
+        var $normalization_input = $('#normalization_input');
+        var $normalization_output  =$('#normalization_output');
+
+        // Change view
+        $view_tabs.click(function (event) {
+          var $target = $(this);
+          var view = $target.attr('data-view');
+          
+          // set active
+          $view_tabs.removeClass('is-active');
+          $target.addClass('is-active');
+          
+          $views.addClass('hide');
+          $('#' + view + '_view').removeClass('hide');
+        });
 
         var is_debug_mode = window.location.hash
           && window.location.hash === '#debug-mode';
 
+        /** Font Conveting **/
         function reverse_font(font_type) {
           switch (font_type) {
             case 'unicode':
@@ -136,196 +203,146 @@
               return 'unicode';
           }
         }
-
-        $.fn.selectRange = function(start, end) {
-          // var e = $(this)[0]; // I don't know why... but $(this) don't want to work today :-/
-          // if (!e) return;
-          // else if (e.setSelectionRange) { e.setSelectionRange(start, end); } /* WebKit */
-          // else if (e.createTextRange) { var range = e.createTextRange(); range.collapse(true); range.moveEnd('character', end); range.moveStart('character', start); range.select(); } /* IE */
-          // else if (e.selectionStart) { e.selectionStart = start; e.selectionEnd = end; }
-        };
-
-        // $app_inputs.on('paste', function (event) {
-        //   event.preventDefault();
-        //   // endOffset
-        //   var pasted_text = (event.originalEvent || event)
-        //     .clipboardData.getData('text') || '';
-        //
-        //   var selection = document.getSelection();
-        //   var selectionRange;
-        //   if (selection && (selectionRange = selection.getRangeAt(0))) {
-        //     var endOffset = selectionRange.endOffset;
-        //     $(this).text(function (x, origin_text) {
-        //       return origin_text.substr(0, endOffset)
-        //         + pasted_text
-        //         + origin_text.substr(endOffset)
-        //     })
-        //
-        //     selectionRange.endOffset = endOffset + pasted_text.length;
-        //     selectionRange.startOffset = endOffset + pasted_text.length;
-        //     document.getSelection().addRange(endOffset);
-        //   } else {
-        //     $(this).text(pasted_text)
-        //   }
-        //
-        //   return;
-        // })
-
-        $app_inputs.on('keyup change paste', function (event) {
+        $convert_inputs.on('keyup change paste', function (event) {
           var $this = $(this);
           if ($this.is(":focus")) {
             var input_text = $this.val() || '';
             var font_type = $this.attr('data-font-type');
 
             if (font_type === 'unicode') {
-              $zawgyi_text.val(knayi.fontConvert(input_text, 'zawgyi', 'unicode'));
+              $convert_zawgyi_text.val(knayi.fontConvert(input_text, 'zawgyi', 'unicode'));
             } else {
-              $unicode_text.val(knayi.fontConvert(input_text, 'unicode', 'zawgyi'));
+              $convert_unicode_text.val(knayi.fontConvert(input_text, 'unicode', 'zawgyi'));
             }
           }
-        })
+        });
+        /** Font Conveting **/
 
-        /**
-         * Debuging stuff
-         **/
-        if (!is_debug_mode) { return; }
+        $normalization_input.on('keyup change paste', function (event) {
+          var $this = $(this);
+          var input_text = $this.val() || '';
+          $normalization_output.val(knayi.normalize(input_text));
+        });
 
-        $('#debugging').show();
-        // var $debug_unicode = $('#debug_unicode');
-        // var $debug_zawgyi = $('#debug_zawgyi');
-        var $debug_content = $('#debug_content');
+        if (is_debug_mode) {
+          $('#debugging').show();
+          var $debug_content = $('#debug_content');
 
-        $app_inputs.on('select', function (event) {
-          var $app_input = $(this);
-          var selection_start = event.target.selectionStart;
-          var selection_end = event.target.selectionEnd;
+          /** Font Convert Debuging **/
+          $convert_inputs.on('select', function (event) {
+            var $convert_input = $(this);
+            var selection_start = event.target.selectionStart;
+            var selection_end = event.target.selectionEnd;
 
-          var origin_font_type = $app_input.attr('data-font-type');
-          var target_font_type = reverse_font(origin_font_type);
-          var $target_output_input = origin_font_type === 'unicode'
-            ? $zawgyi_text : $unicode_text;
+            var origin_font_type = $convert_input.attr('data-font-type');
+            var target_font_type = reverse_font(origin_font_type);
+            var $target_output_input = origin_font_type === 'unicode'
+              ? $convert_zawgyi_text : $convert_unicode_text;
 
-          var origin_value = $app_input.val() || '';
-          var converted_value = $target_output_input.val();
+            var origin_value = $convert_input.val() || '';
+            var converted_value = $target_output_input.val();
 
-          var selected_value = origin_value.slice(selection_start, selection_end);
-          var converted_selected_value = knayi.fontConvert(selected_value, target_font_type, origin_font_type);
+            var selected_value = origin_value.slice(selection_start, selection_end);
+            var converted_selected_value = knayi.fontConvert(selected_value, target_font_type, origin_font_type);
 
-          var regexp_of_selected_value = new RegExp(selected_value, 'g');
-          var regexp_of_converted_selected_value = new RegExp(converted_selected_value, 'g');
+            var regexp_of_selected_value = new RegExp(selected_value, 'g');
+            var regexp_of_converted_selected_value = new RegExp(converted_selected_value, 'g');
 
-          var match_on_origin = origin_value.slice(0, selection_end)
-            .match(regexp_of_selected_value);
+            var match_on_origin = origin_value.slice(0, selection_end)
+              .match(regexp_of_selected_value);
 
-          if (!match_on_origin)
-            return;
+            if (!match_on_origin)
+              return;
 
-          // make matches
-          [].forEach.call(match_on_origin, function () {
-            regexp_of_converted_selected_value.test(converted_value);
-          })
+            // make matches
+            [].forEach.call(match_on_origin, function () {
+              regexp_of_converted_selected_value.test(converted_value);
+            })
 
-          if (!regexp_of_converted_selected_value.lastIndex)
-            return;
+            if (!regexp_of_converted_selected_value.lastIndex)
+              return;
 
-          var highlight_start = regexp_of_converted_selected_value.lastIndex - converted_selected_value.length;
-          var highlight_end = regexp_of_converted_selected_value.lastIndex;
+            var highlight_start = regexp_of_converted_selected_value.lastIndex - converted_selected_value.length;
+            var highlight_end = regexp_of_converted_selected_value.lastIndex;
 
-          if (regexp_of_converted_selected_value.lastIndex) {
-            // var highlight_html = converted_value.substr(0, highlight_start)
-            //   + '<span class="highlight">'
-            //   + converted_selected_value
-            //   + '</span>'
-            //   + converted_value.substr(highlight_end);
+            if (regexp_of_converted_selected_value.lastIndex) {
+              // var highlight_html = converted_value.substr(0, highlight_start)
+              //   + '<span class="highlight">'
+              //   + converted_selected_value
+              //   + '</span>'
+              //   + converted_value.substr(highlight_end);
 
-            // $target_output_input.html(highlight_html);
-            // $target_output_input.highlightWithinTextarea({
-            //     highlight: [highlight_start, highlight_end]
-            // });
+              // $target_output_input.html(highlight_html);
+              // $target_output_input.highlightWithinTextarea({
+              //     highlight: [highlight_start, highlight_end]
+              // });
 
-            // console.log("Working ", highlight_start, highlight_end)
+              // console.log("Working ", highlight_start, highlight_end)
 
-            // $target_output_input[0].setSelectionRange(highlight_start, highlight_end)
-            $target_output_input.selectRange(highlight_start, highlight_end);
+              // $target_output_input[0].setSelectionRange(highlight_start, highlight_end)
+              $target_output_input.selectRange(highlight_start, highlight_end);
 
-            var converting_debug_logs = knayi.fontConvert.debugging(selected_value, target_font_type, origin_font_type, true);
+              var converting_debug_logs = knayi.fontConvert.debugging(selected_value, target_font_type, origin_font_type, true);
 
-            var unicode_selected_value;
-            var zawgyi_selected_value;
+              var unicode_selected_value;
+              var zawgyi_selected_value;
 
-            function html_line (text) {
-              return `<span class="line">${text}</span>`
-            }
+              function html_line (text) {
+                return `<span class="line">${text}</span>`
+              }
 
-            function html_code (text) {
-              return `<code>${text}</code>`
-            }
+              function html_code (text) {
+                return `<code>${text}</code>`
+              }
 
-            var mm_characters = /[\u1000-\u109F]/;
+              var mm_characters = /[\u1000-\u109F]/;
 
-            function string_to_charcodes (text) {
-              var result = '';
-              for (var i = 0; i < text.length; i++) {
-                if (mm_characters.test(text[i])) {
-                  result += `\\u` + text[i].charCodeAt(0).toString(16);
-                  // result += '+';
-                } else {
-                  result += text[i];
+              function string_to_charcodes (text) {
+                var result = '';
+                for (var i = 0; i < text.length; i++) {
+                  if (mm_characters.test(text[i])) {
+                    result += `\\u` + text[i].charCodeAt(0).toString(16);
+                    // result += '+';
+                  } else {
+                    result += text[i];
+                  }
                 }
+
+                return result.replace(/\+$/, '');
               }
 
-              return result.replace(/\+$/, '');
-            }
+              function debugging_steps (converting_debug_logs) {
+                var matched_patterns = converting_debug_logs.matched_patterns;
+                var steps = converting_debug_logs.steps;
 
-            function debugging_steps (converting_debug_logs) {
-              var matched_patterns = converting_debug_logs.matched_patterns;
-              var steps = converting_debug_logs.steps;
-
-              var result = html_code(`<b>(orign)</b> ` + string_to_charcodes(steps[0]));
-              result += html_code('<br/ >');
-              for (var i = 0; i < matched_patterns.length; i++) {
-                var pattern = matched_patterns[i];
-                result += html_code(`<b>(match)</b> ${pattern[0].toString()} <b>-></b> ${string_to_charcodes(pattern[1].toString())}`);
-
-                result += html_code(`<b>(chars)</b> ` + string_to_charcodes(steps[i+1]));
+                var result = html_code(`<b>(orign)</b> ` + string_to_charcodes(steps[0]));
                 result += html_code('<br/ >');
+                for (var i = 0; i < matched_patterns.length; i++) {
+                  var pattern = matched_patterns[i];
+                  result += html_code(`<b>(match)</b> ${pattern[0].toString()} <b>-></b> ${string_to_charcodes(pattern[1].toString())}`);
+
+                  result += html_code(`<b>(chars)</b> ` + string_to_charcodes(steps[i+1]));
+                  result += html_code('<br/ >');
+                }
+
+                result += html_code(`<b>(final)</b> ` + string_to_charcodes(steps[i]));
+
+                return result;
               }
 
-              result += html_code(`<b>(final)</b> ` + string_to_charcodes(steps[i]));
-
-              return result;
+              $debug_content.html(
+                html_line('<b>Selected Words</b>')
+                + html_code(string_to_charcodes(selected_value))
+                + html_line('<br/ >')
+                + html_line(`<b>Converting Step [${origin_font_type} -> ${target_font_type}]</b>`)
+                + html_line('<br/ >')
+                + debugging_steps(converting_debug_logs)
+              );
             }
-
-            // if (origin_font_type === 'unicode') {
-            //   unicode_selected_value = html_line(string_to_charcodes(selected_value));
-            //   zawgyi_selected_value = debugging_steps(converting_debug_logs);
-            // } else {
-            //   zawgyi_selected_value = html_line(string_to_charcodes(selected_value));
-            //   unicode_selected_value = debugging_steps(converting_debug_logs);
-            // }
-
-            // $debug_unicode.html(
-            //   html_line('<b>Character codes of selected word</b>')
-            //   + unicode_selected_value
-            // );
-
-            // $debug_zawgyi.html(
-            //   html_line('<b>Character codes of selected word</b>')
-            //   + zawgyi_selected_value
-            // );
-
-            $debug_content.html(
-              html_line('<b>Selected Words</b>')
-              + html_code(string_to_charcodes(selected_value))
-              + html_line('<br/ >')
-              + html_line(`<b>Converting Step [${origin_font_type} -> ${target_font_type}]</b>`)
-              + html_line('<br/ >')
-              + debugging_steps(converting_debug_logs)
-            );
-          }
-        })
-
-      } ())
+          })
+          /** Font Convert Debuging **/
+        }
+      // } ())
     </script>
   </body>
 </html>
