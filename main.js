@@ -4,6 +4,7 @@ const fontConvert = require('./library/converter');
 const syllBreak = require('./library/syllBreak');
 const spellingFix = require('./library/spellingCheck');
 const truncate = require('./library/truncate');
+const normalize = require('./library/normalization');
 
 const {version} = require('./package.json');
 
@@ -15,4 +16,5 @@ module.exports = {
 	syllBreak,
 	spellingFix,
 	truncate,
+	normalize,
 };

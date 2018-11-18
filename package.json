@@ -22,6 +22,7 @@
     "Convert",
     "Detecting",
     "Localzation",
+    "Normalization",
     "JavaScript"
   ],
   "contributors": [
@@ -40,9 +41,9 @@
     "chai": "^4.2.0",
     "mocha": "^5.2.0",
     "upath": "^1.1.0",
-    "webpack": "^4.20.2",
-    "webpack-cli": "^2.1.5",
-    "webpack-serve": "^0.3.2"
+    "webpack": "^4.25.1",
+    "webpack-cli": "^3.1.2",
+    "webpack-serve": "^2.0.2"
   },
   "dependencies": {
     "myanmar-tools": "^1.1.0"

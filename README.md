@@ -25,6 +25,8 @@ Knayi Myanmar Script
  - Converter (Unicode and Zawgyi)
  - SyallBreak (Unicode and Zawgyi)
  - Spelling Check (Unicode and Zawgyi)
+ - Truncate (Unicode and Zawgyi)
+ - Normalization (Unicode only)
 
 ## Installation
 Using npm
@@ -50,6 +52,7 @@ Using CDN
 | `syllBreak` | `content: String(require)`,<br>`fontType: fontName(optional)`,<br>`breakPoint: String(optional)` | `String` |To make systematic word break of Myanmar text. convertFrom will be detect by fontDetect when you don't described.<hr> `fontName` must be one of `unicode` or `zawgyi`. |
 | `spellingFix` | `content: String(require)`,<br>`fontType: fontName(optional)` | `String` | **convertFrom** will be detect by **fontDetect** when you don't described. It fix spelling on Myanmar Text.<hr> `fontName` must be one of `unicode` or `zawgyi`. |
 | `truncate` | `content: String(requre)`,<br>`options: Object` | `String` | Like lodash.truncate, it truncate word syllable and space. Default truncate length is 30 and you can change it in `options.length` |
+| `normalize` | `content: String(requre)` | `String` | Normzliation solve some typing errors. Unlike `spellingFix` this offer more appropriate way of doing so. But this function can only solve some level of normalization. |
 
 ## Usage
 
@@ -77,29 +80,40 @@ knayi.fontConvert('မဂၤလာပါ', 'unicode') // မင်္ဂလာ�
 
 - **syllBreak(content [, fontType [, breakWord]])**
 ```javascript
-knayi.syllBreak('မင်္ဂလာပါ', null, '$$') // 'မင်္ဂလာ$$ပါ'
+knayi.syllBreak('မင်္ဂလာပါ', null, '$$')
+// output: 'မင်္ဂလာ$$ပါ'
+knayi.syllBreak('မင်္ဂလာပါ')
+// output: 'မင်္ဂလာ\u200bပါ'
 ```
 
 - **spellingFix(content [, fontType])**  
 ```javascript
-knayi.spellingFix('မင်္ဂလာာပါါ') // 'မင်္ဂလာပါ'
+knayi.spellingFix('မင်္ဂလာာပါါ') 
+// output: 'မင်္ဂလာပါ'
 ```
 
 - **truncate(content [, options])**
 ```javascript
 knayi.truncate('အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇလွန်ဈေးဘေးဗာဒံပင်ထက် အဓိဋ္ဌာန်လျက် ဂဃနဏဖတ်ခဲ့သည်။', { length: 30, omission: '...' });
-// "အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဈေး..."
+// output: "အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဈေး..."
 ```
 **options of truncate**
 - `length: Number` default is 30
 - `omission:String` default is '...'
 - `fontType: String` it automatically detect if it not specified
 
+- **normalize(content)**
+```javascript
+knayi.normalize('မိြုင်မိြုင်\nဆိုင်ဆုိင်')
+// output: မြိုင်မြိုင်\nဆိုင်ဆိုင်
+```
+
 ## Using googlei18n/myanmartools in detector.js
 
-Now you can now use `googlei18n/myanmartools` library in detector.
-By default `use_myanmartools` options is set to `false`.
+In default, knayi use own logic font dector rules, but you can choose knayi to use googlei18n/myanmartools`  
+To do that, set `use_myanmartools` option to true. By default `use_myanmartools` option is set to `false`.
 
+Example:: 
 ```javascript
 // Add options for single process
 knayi.fontDetect('မဂၤလာပါ', null, {use_myanmartools: true}) // this will use myanmartools
