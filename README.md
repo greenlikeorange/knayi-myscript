@@ -127,7 +127,7 @@ knayi.fontDetect('မင်္ဂလာပါ', null, {
 
 ## Debugging of font converting
 
-Visit [http://tools.kny.co/knayi-myscript#debug-mode](http://tools.kny.co/knayi-myscript#debug_mode)
+Visit [http://tools.kny.co/knayi-myscript#debug-mode](http://tools.kny.co/knayi-myscript#debug-mode)
 and select text to track how converting happened in background.
 
 ## Build
