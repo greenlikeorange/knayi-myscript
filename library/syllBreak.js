@@ -34,7 +34,7 @@ library.syllable = {
 * @return edited text
 */
 function syllBreak(content, fontType, breakpoint){
-  if (!content) {
+if (!content) {
     if (!globalOptions.isSilentMode()) console.warn('Content must be specified on knayi.syllBreak.');
     return '';
   }
@@ -42,7 +42,7 @@ function syllBreak(content, fontType, breakpoint){
   if (content === '' || !mmCharacterRange.test(content))
     return content;
 
-  content = content.trim().replace(/\u200B/g, '');
+  content = content.trim().replace(/\u200B/g, '');  
 
   if (!fontType)
     fontType = fontDetect(content);
