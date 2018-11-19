@@ -11,36 +11,50 @@ const _G = 'ဿ';
 const _D = '၀ ၁ ၂ ၃ ၄ ၅ ၆ ၇ ၈ ၉';
 const _P = '၊ ။';
 
-'က ဃ စ ဆ ဇ ဈ'
+function removeSpace(content) {
+  return content.replace(/\s/g, '');
+}
 
 // Syllable re-ordering
 const BURMESE = 'က-ဧဩ';
 
 const C = 'က-အ'
 // Medials
-const M = _M.replace(' ', '');
+const M = removeSpace(_M);
 // Dependent Vowel Signs
-const V = _V.replace(' ', '');
+const V = removeSpace(_V);
 // Sign Virama
-const S = _S.replace(' ', '');
+const S = removeSpace(_S);
 // Sign Asat
-const A = _A.replace(' ', '');
+const A = removeSpace(_A);
 // Dependent Various Signs
-const F = _F.replace(' ', '');
+const F = removeSpace(_F);
 // Independent Vowels, Various Signs 
-const I = _I.replace(' ', '');
+const I = removeSpace(_I);
 // Independent Vowels
-const E = _E.replace(' ', '');
+const E = removeSpace(_E);
 // THA GYI 
-const G = _G.replace(' ', '');
+const G = removeSpace(_G);
 // Digits
-const D = _D.replace(' ', '');
+const D = removeSpace(_D);
 // Punctuation Marks
-const P = _P.replace(' ', '');
+const P = removeSpace(_P);
 // ZERO
 const ZERO = '၀';
 
+const REGEX_BURMESE = new RegExp(`[${BURMESE}]`);
+
+// Brake point use for normalize
+const brakePoint = `([${C}${E}${ZERO}])([${M}${V}${A}${F}]+)`;
+const brakePointRegex = new RegExp(brakePoint, 'gm');
+
 /** Extended rules */
+
+let extendedRules = [];
+let postExtendedRules = [];
+function addReplacementRule(rulesset, [pattern, replacement]) {
+  rulesset.push([new RegExp(pattern, 'gm'), replacement]);
+}
 
 const ZERO_WA = '၀ ဝ';                // Zero to Wa lone
 const U_FIX = 'ဦ ဦ';                  // U
@@ -48,11 +62,18 @@ const AWL = 'ဩော် ဪ';               // Awl
 const DOUBLE_LONE_GYI_TIN = 'ိီ ီ';
 const DOUBLE_TA_CHAUNG_NGIN = 'ုူ ူ';
 
-const REGEX_BURMESE = new RegExp(`[${BURMESE}]`);
+// Post fix rule
+const SPACE_IN_FRONT_OF_VIRAMA = '\\s(္[က-အ]) $1';
 
-// Brake point use for normalize
-const brakePoint = `([${C}${E}${ZERO}])([${M}${V}${A}${F}]+)`;
-const brakePointRegex = new RegExp(brakePoint, 'gm');
+addReplacementRule(extendedRules, ZERO_WA.split(' '));
+addReplacementRule(extendedRules, U_FIX.split(' '));
+addReplacementRule(extendedRules, AWL.split(' '));
+addReplacementRule(extendedRules, DOUBLE_LONE_GYI_TIN.split(' '));
+addReplacementRule(extendedRules, DOUBLE_TA_CHAUNG_NGIN.split(' '));
+
+addReplacementRule(postExtendedRules, SPACE_IN_FRONT_OF_VIRAMA.split(' '));
+
+/** Extended rules */
 
 const rankingMap = {
   // M
@@ -77,25 +98,15 @@ const rankingMap = {
   'း': 16,
 };
 
-let extendedRules = [];
-function addExtededRules([pattern, replacement]) {
-  extendedRules.push([new RegExp(pattern, 'gm'), replacement]);
-}
-
-addExtededRules(ZERO_WA.split(' '));
-addExtededRules(U_FIX.split(' '));
-addExtededRules(AWL.split(' '));
-addExtededRules(DOUBLE_LONE_GYI_TIN.split(' '));
-addExtededRules(DOUBLE_TA_CHAUNG_NGIN.split(' '));
 
 // Remove duplicated
 function uniquify(array) {
   return [...(new Set(array))];
 }
 
-// Fix extended rules
-function fixExtended(content) {
-  return extendedRules.reduce((a,b) => {
+// Apply replecement rules
+function applyReplacementRules(rulesset, content) {
+  return rulesset.reduce((a,b) => {
     return a.replace(b[0], b[1]);
   }, content);
 }
@@ -109,19 +120,21 @@ function normalize(content) {
     if (!globalOptions.isSilentMode()) console.warn('Content must be specified on knayi.normalize.');
     return '';
   }
-  
-  return content
+
+  const result = content
     .replace(/\u200B/g, '')
     .replace(brakePointRegex, (m, g1, g2) => {
-      let result = g1;
+      let chunk = g1 || '';
 
       // Re-ordering
       uniquify(g2)
         .sort((a,b) => rankingMap[a] - rankingMap[b])
-        .forEach((v) => result += v);
+        .forEach((v) => chunk += v);
      
-      return fixExtended(result);
+      return applyReplacementRules(extendedRules, chunk);
     });
+  
+  return applyReplacementRules(postExtendedRules, result);
 }
 
 module.exports = normalize;
