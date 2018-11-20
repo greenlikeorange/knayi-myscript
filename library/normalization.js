@@ -15,10 +15,11 @@ function removeSpace(content) {
   return content.replace(/\s/g, '');
 }
 
-// Syllable re-ordering
+/** Syllable base reordering */
 const BURMESE = 'က-ဧဩ';
 
-const C = 'က-အ'
+const C = 'က-အ';
+const LONG_C = 'ကဃဆဏတထဘအယလသဟ';
 // Medials
 const M = removeSpace(_M);
 // Dependent Vowel Signs
@@ -44,12 +45,11 @@ const ZERO = '၀';
 
 const REGEX_BURMESE = new RegExp(`[${BURMESE}]`);
 
-// Brake point use for normalize
+// Brake point used to reorder
 const brakePoint = `([${C}${E}${ZERO}])([${M}${V}${A}${F}]+)`;
 const brakePointRegex = new RegExp(brakePoint, 'gm');
 
 /** Extended rules */
-
 let extendedRules = [];
 let postExtendedRules = [];
 function addReplacementRule(rulesset, [pattern, replacement]) {
@@ -59,22 +59,24 @@ function addReplacementRule(rulesset, [pattern, replacement]) {
 const ZERO_WA = '၀ ဝ';                // Zero to Wa lone
 const U_FIX = 'ဦ ဦ';                  // U
 const AWL = 'ဩော် ဪ';               // Awl
+// Debatable 
 const DOUBLE_LONE_GYI_TIN = 'ိီ ီ';
 const DOUBLE_TA_CHAUNG_NGIN = 'ုူ ူ';
+const ZA_MYIN_ZWAE = 'စျ ဈ';
 
 // Post fix rule
-const SPACE_IN_FRONT_OF_VIRAMA = '\\s(္[က-အ]) $1';
+const SPACE_IN_FRONT_OF_VIRAMA = `([^${LONG_C}])\\s(္[က-အ]) $1$2`;
 
 addReplacementRule(extendedRules, ZERO_WA.split(' '));
 addReplacementRule(extendedRules, U_FIX.split(' '));
 addReplacementRule(extendedRules, AWL.split(' '));
 addReplacementRule(extendedRules, DOUBLE_LONE_GYI_TIN.split(' '));
 addReplacementRule(extendedRules, DOUBLE_TA_CHAUNG_NGIN.split(' '));
+addReplacementRule(extendedRules, ZA_MYIN_ZWAE.split(' '));
 
 addReplacementRule(postExtendedRules, SPACE_IN_FRONT_OF_VIRAMA.split(' '));
 
 /** Extended rules */
-
 const rankingMap = {
   // M
   'ျ': 1,
@@ -97,7 +99,6 @@ const rankingMap = {
   '့': 15,
   'း': 16,
 };
-
 
 // Remove duplicated
 function uniquify(array) {

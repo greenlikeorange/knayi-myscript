@@ -177,6 +177,7 @@
 
         var $normalization_input = $('#normalization_input');
         var $normalization_output  =$('#normalization_output');
+        var $debug_content = $('#debug_content');
 
         // Change view
         $view_tabs.click(function (event) {
@@ -226,7 +227,6 @@
 
         if (is_debug_mode) {
           $('#debugging').show();
-          var $debug_content = $('#debug_content');
 
           /** Font Convert Debuging **/
           $convert_inputs.on('select', function (event) {
@@ -280,7 +280,7 @@
               // console.log("Working ", highlight_start, highlight_end)
 
               // $target_output_input[0].setSelectionRange(highlight_start, highlight_end)
-              $target_output_input.selectRange(highlight_start, highlight_end);
+              // $target_output_input.selectRange(highlight_start, highlight_end);
 
               var converting_debug_logs = knayi.fontConvert.debugging(selected_value, target_font_type, origin_font_type, true);
 
