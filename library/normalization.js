@@ -20,6 +20,7 @@ const BURMESE = 'က-ဧဩ';
 
 const C = 'က-အ';
 const LONG_C = 'ကဃဆဏတထဘအယလသဟ';
+const SHORT_C = 'ခဂငစဇဈဉဎဒဓနပဖဗမရဝဠ';
 // Medials
 const M = removeSpace(_M);
 // Dependent Vowel Signs
@@ -65,7 +66,7 @@ const DOUBLE_TA_CHAUNG_NGIN = 'ုူ ူ';
 const ZA_MYIN_ZWAE = 'စျ ဈ';
 
 // Post fix rule
-const SPACE_IN_FRONT_OF_VIRAMA = `([^${LONG_C}])\\s(္[က-အ]) $1$2`;
+const SPACE_IN_FRONT_OF_VIRAMA = `([${SHORT_C}])\\s(္[က-အ]) $1$2`;
 
 addReplacementRule(extendedRules, ZERO_WA.split(' '));
 addReplacementRule(extendedRules, U_FIX.split(' '));
