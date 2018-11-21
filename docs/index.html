@@ -341,6 +341,25 @@
             }
           })
           /** Font Convert Debuging **/
+
+          $normalization_input.on('select', function (event) {
+            var $convert_input = $(this);
+            var selection_start = event.target.selectionStart;
+            var selection_end = event.target.selectionEnd;
+
+            var selected_value = origin_value.slice(selection_start, selection_end);
+            
+            var normalized_value = knayi.normalize(selected_value);
+            
+            $debug_content.html(
+              html_line('<b>Selected Words</b>')
+              + html_code(selected_value)
+              + html_line('<br/ >')
+              + html_line('<b>Normalized string</b>')
+              + html_line('<br/ >')
+              + [].join.call(normalized_value, ' + ')
+            );
+          });
         }
       // } ())
     </script>
