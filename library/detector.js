@@ -21,7 +21,7 @@ library.detect = {
   ]
 };
 
-// Populate Detect library as RegExps
+// Populate Detect library as Regex
 Object.keys(library.detect).forEach((type) => {
   for (var i = 0; i < library.detect[type].length; i++) {
     library.detect[type][i] = new RegExp(library.detect[type][i], 'g');
@@ -52,7 +52,6 @@ function fontDetect(content, fallback_font_type, options = {}){
   options = globalOptions.detector(options);
 
   if (options.use_myanmartools) {
-
     var myanmartools_zg_probability = myanmartoolZawgyiDetector.getZawgyiProbability(content);
 
     if (myanmartools_zg_probability < options.myanmartools_zg_threshold[0]) {
@@ -64,7 +63,6 @@ function fontDetect(content, fallback_font_type, options = {}){
   	}
 
   } else {
-
     var match = {};
 
     for (var type in library.detect) {
