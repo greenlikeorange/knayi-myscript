@@ -42,11 +42,6 @@
       display: block;
       font-size: 13px;
     }
-    /*.debug_content pre.code {
-      display: block;
-      padding: 5px;
-      font-size: 13px;
-    }*/
     .debug_content code {
       display: block;
       font-size: 13px;
@@ -59,102 +54,98 @@
   </head>
   <body>
     <div id="app">
-      <!-- <section class="hero"> -->
-        <!-- <div class="hero-body"> -->
-          <div class="container">
-            <div class="columns">
-              <div class="column">
-                <h1 class="title logo">
-                  knayi
-                  <a class="github" href="https://github.com/greenlikeorange/knayi-myscript"></a>
-                </h1>
-                <h2 class="subtitle">Myanmar langauge js library</h2>
-              </div>
-              <div class="column">
-                <p class="badges" style="text-align: right;">
-                  <br />
-                  <a href="https://npmjs.org/package/knayi-myscript">
-                    <img src="https://badge.fury.io/js/knayi-myscript.png" alt=""></a>
-                  <a href="#">
-                    <img src="https://api.travis-ci.org/greenlikeorange/knayi-myscript.svg?branch=master" alt=""></a>
-                  <a href="https://david-dm.org/greenlikeorange/knayi-myscript">
-                    <img src="https://david-dm.org/greenlikeorange/knayi-myscript.png" alt=""></a>
-                </p>
-              </div>
-            </div>
-            
-            <div class="tabs">
-              <ul>
-                <li data-view="converting" class="view-tab is-active"><a>Font Converting</a></li>
-                <li data-view="normalization" class="view-tab" ><a>Normalization</a></li>
-              </ul>
-            </div>
-            <div id="converting_view" class="columns view">
-              <div class="column">
-                <div class="field">
-                  <label class="label">Unicode</label>
-                  <div class="control">
-                    <textarea
-                      id="convert_unicode_text"
-                      class="textarea is-hovered notosansmyanmar convert_input"
-                      data-font-type="unicode"
-                      type="text">သီဟိုဠ်မှ ဉာဏ်ကြီးရှင်သည် အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇလွန်ဈေးဘေးဗာဒံပင်ထက် အဓိဋ္ဌာန်လျက် ဂဃနဏဖတ်ခဲ့သည်။ယေဓမ္မာ ဟေတုပ္ပဘဝါ တေသံ ဟေတုံ တထာဂတော အာဟ တေသဉ္စ ယောနိရောဓေါ ဧဝံ ဝါဒီ မဟာသမဏော။(မြန်မာပြန်)မြတ်စွာဘုရားရှင်သည် ရှေးကပြုခဲ့ဖူးသော အကြောင်းတရားကြောင့် ဖြစ်ပေါ်လာကြသော အကျိုးတရားကို ဟောကြားတော်မူသည်။ထိုအကြောင်းတရားတို့၏ ချုပ်ငြိမ်းရာတရားတို့ကိုလည်း ဟောတော်မူ၏။ရဟန်းကြီးဖြစ်သော ဗုဒ္ဓမြတ်စွာဘုရားသည် ဤသို့သောအယူရှိတော်မူ၏။</textarea>
-                  </div>
-                </div>
-              </div>
-              <div class="column">
-                <div class="field">
-                  <label class="label">Zawgyi</label>
-                  <div class="control">
-                    <textarea
-                      id="convert_zawgyi_text"
-                      class="textarea is-hovered zawgyi convert_input"
-                      data-font-type="zawgyi"
-                      type="text">သီဟိုဠ္မွ ဉာဏ္ႀကီးရွင္သည္ အာယုဝဍ္ဎနေဆးညႊန္းစာကို ဇလြန္ေဈးေဘးဗာဒံပင္ထက္ အဓိ႒ာန္လ်က္ ဂဃနဏဖတ္ခဲ့သည္။ေယဓမၼာ ေဟတုပၸဘဝါ ေတသံ ေဟတုံ တထာဂေတာ အာဟ ေတသၪၥ ေယာနိေရာေဓါ ဧဝံ ဝါဒီ မဟာသမေဏာ။(ျမန္မာျပန္)ျမတ္စြာဘုရားရွင္သည္ ေရွးကျပဳခဲ့ဖူးေသာ အေၾကာင္းတရားေၾကာင့္ ျဖစ္ေပၚလာၾကေသာ အက်ိဳးတရားကို ေဟာၾကားေတာ္မူသည္။ထိုအေၾကာင္းတရားတို့၏ ခ်ဳပ္ၿငိမ္းရာတရားတို့ကိုလည္း ေဟာေတာ္မူ၏။ရဟန္းႀကီးျဖစ္ေသာ ဗုဒၶျမတ္စြာဘုရားသည္ ဤသို့ေသာအယူရွိေတာ္မူ၏။</textarea>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div id="normalization_view" class="columns hide view">
-              <div class="column">
-                <div class="field">
-                  <label class="label">Input</label>
-                  <div class="control">
-                    <textarea
-                      id="normalization_input"
-                      class="textarea is-hovered notosansmyanmar"
-                      type="text"></textarea>
-                  </div>
-                </div>
-              </div>
-              <div class="column">
-                <div class="field">
-                  <label class="label">Output</label>
-                  <div class="control">
-                    <textarea
-                      id="normalization_output"
-                      class="textarea is-hovered notosansmyanmar"
-                      disabled="disabled"
-                      type="text"></textarea>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div id="debugging">
-              <div class="content">
-                <h4>Debuging</h4>
-              </div>
-              <div class="columns">
-                <div class="column">
-                  <pre id="debug_content" class="content debug_content"></pre>
-                </div>
+      <div class="container">
+        <div class="columns">
+          <div class="column">
+            <h1 class="title logo">
+              knayi
+              <a class="github" href="https://github.com/greenlikeorange/knayi-myscript"></a>
+            </h1>
+            <h2 class="subtitle">Myanmar langauge js library</h2>
+          </div>
+          <div class="column">
+            <p class="badges" style="text-align: right;">
+              <br />
+              <a href="https://npmjs.org/package/knayi-myscript">
+                <img src="https://badge.fury.io/js/knayi-myscript.png" alt=""></a>
+              <a href="#">
+                <img src="https://api.travis-ci.org/greenlikeorange/knayi-myscript.svg?branch=master" alt=""></a>
+              <a href="https://david-dm.org/greenlikeorange/knayi-myscript">
+                <img src="https://david-dm.org/greenlikeorange/knayi-myscript.png" alt=""></a>
+            </p>
+          </div>
+        </div>
+        
+        <div class="tabs">
+          <ul>
+            <li data-view="converting" class="view-tab is-active"><a>Font Converting</a></li>
+            <li data-view="normalization" class="view-tab" ><a>Normalization</a></li>
+          </ul>
+        </div>
+        <div id="converting_view" class="columns view">
+          <div class="column">
+            <div class="field">
+              <label class="label">Unicode</label>
+              <div class="control">
+                <textarea
+                  id="convert_unicode_text"
+                  class="textarea is-hovered notosansmyanmar convert_input"
+                  data-font-type="unicode"
+                  type="text">သီဟိုဠ်မှ ဉာဏ်ကြီးရှင်သည် အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇလွန်ဈေးဘေးဗာဒံပင်ထက် အဓိဋ္ဌာန်လျက် ဂဃနဏဖတ်ခဲ့သည်။ယေဓမ္မာ ဟေတုပ္ပဘဝါ တေသံ ဟေတုံ တထာဂတော အာဟ တေသဉ္စ ယောနိရောဓေါ ဧဝံ ဝါဒီ မဟာသမဏော။(မြန်မာပြန်)မြတ်စွာဘုရားရှင်သည် ရှေးကပြုခဲ့ဖူးသော အကြောင်းတရားကြောင့် ဖြစ်ပေါ်လာကြသော အကျိုးတရားကို ဟောကြားတော်မူသည်။ထိုအကြောင်းတရားတို့၏ ချုပ်ငြိမ်းရာတရားတို့ကိုလည်း ဟောတော်မူ၏။ရဟန်းကြီးဖြစ်သော ဗုဒ္ဓမြတ်စွာဘုရားသည် ဤသို့သောအယူရှိတော်မူ၏။</textarea>
               </div>
             </div>
           </div>
-        <!-- </div>
-      </section> -->
+          <div class="column">
+            <div class="field">
+              <label class="label">Zawgyi</label>
+              <div class="control">
+                <textarea
+                  id="convert_zawgyi_text"
+                  class="textarea is-hovered zawgyi convert_input"
+                  data-font-type="zawgyi"
+                  type="text">သီဟိုဠ္မွ ဉာဏ္ႀကီးရွင္သည္ အာယုဝဍ္ဎနေဆးညႊန္းစာကို ဇလြန္ေဈးေဘးဗာဒံပင္ထက္ အဓိ႒ာန္လ်က္ ဂဃနဏဖတ္ခဲ့သည္။ေယဓမၼာ ေဟတုပၸဘဝါ ေတသံ ေဟတုံ တထာဂေတာ အာဟ ေတသၪၥ ေယာနိေရာေဓါ ဧဝံ ဝါဒီ မဟာသမေဏာ။(ျမန္မာျပန္)ျမတ္စြာဘုရားရွင္သည္ ေရွးကျပဳခဲ့ဖူးေသာ အေၾကာင္းတရားေၾကာင့္ ျဖစ္ေပၚလာၾကေသာ အက်ိဳးတရားကို ေဟာၾကားေတာ္မူသည္။ထိုအေၾကာင္းတရားတို့၏ ခ်ဳပ္ၿငိမ္းရာတရားတို့ကိုလည္း ေဟာေတာ္မူ၏။ရဟန္းႀကီးျဖစ္ေသာ ဗုဒၶျမတ္စြာဘုရားသည္ ဤသို့ေသာအယူရွိေတာ္မူ၏။</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="normalization_view" class="columns hide view">
+          <div class="column">
+            <div class="field">
+              <label class="label">Input</label>
+              <div class="control">
+                <textarea
+                  id="normalization_input"
+                  class="textarea is-hovered notosansmyanmar"
+                  type="text"></textarea>
+              </div>
+            </div>
+          </div>
+          <div class="column">
+            <div class="field">
+              <label class="label">Output</label>
+              <div class="control">
+                <textarea
+                  id="normalization_output"
+                  class="textarea is-hovered notosansmyanmar"
+                  disabled="disabled"
+                  type="text"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="debugging">
+          <div class="content">
+            <h4>Debuging</h4>
+          </div>
+          <div class="columns">
+            <div class="column">
+              <pre id="debug_content" class="content debug_content"></pre>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.slim.min.js" charset="utf-8"></script>
@@ -163,13 +154,11 @@
     <script src="../dist/knayi-myscript.js"></script>
 
     <script type="text/javascript">
-      // (function () {
+      (function () {
         console.log('knayi-myscript version: ' + knayi.version);
         
         var $view_tabs = $('.view-tab');
         var $views = $('.view');
-        // var $converting_view = $('#converting_view');
-        // var $normalization_view = $('#normalization_view');
 
         var $convert_unicode_text = $('#convert_unicode_text');
         var $convert_zawgyi_text = $('#convert_zawgyi_text');
@@ -266,22 +255,6 @@
             var highlight_end = regexp_of_converted_selected_value.lastIndex;
 
             if (regexp_of_converted_selected_value.lastIndex) {
-              // var highlight_html = converted_value.substr(0, highlight_start)
-              //   + '<span class="highlight">'
-              //   + converted_selected_value
-              //   + '</span>'
-              //   + converted_value.substr(highlight_end);
-
-              // $target_output_input.html(highlight_html);
-              // $target_output_input.highlightWithinTextarea({
-              //     highlight: [highlight_start, highlight_end]
-              // });
-
-              // console.log("Working ", highlight_start, highlight_end)
-
-              // $target_output_input[0].setSelectionRange(highlight_start, highlight_end)
-              // $target_output_input.selectRange(highlight_start, highlight_end);
-
               var converting_debug_logs = knayi.fontConvert.debugging(selected_value, target_font_type, origin_font_type, true);
 
               var unicode_selected_value;
@@ -361,7 +334,7 @@
             );
           });
         }
-      // } ())
+      } ())
     </script>
   </body>
 </html>

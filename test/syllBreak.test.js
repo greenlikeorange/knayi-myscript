@@ -4,9 +4,8 @@ var should = chai.should();
 
 describe('syllBreak',()=>{
 	describe('syllBreak Unicode',()=>{
-		it('should syllBreak for unicode',done=>{
+		it('should syllBreak for unicode',()=>{
 			knayi.syllBreak('မင်္ဂလာပါ', null, '**').should.equal('မင်္ဂလာ**ပါ');
-			done();
 		})
 	})
 })
