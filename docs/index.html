@@ -80,6 +80,7 @@
           <ul>
             <li data-view="converting" class="view-tab is-active"><a>Font Converting</a></li>
             <li data-view="normalization" class="view-tab" ><a>Normalization</a></li>
+            <li data-view="syllable" class="view-tab" ><a>Syllable Break</a></li>
           </ul>
         </div>
         <div id="converting_view" class="columns view">
@@ -135,6 +136,32 @@
           </div>
         </div>
 
+        <div id="syllable_view" class="columns hide view">
+          <div class="column">
+            <div class="field">
+              <label class="label">Input</label>
+              <div class="control">
+                <textarea
+                  id="syllable_input"
+                  class="textarea is-hovered notosansmyanmar"
+                  type="text"></textarea>
+              </div>
+            </div>
+          </div>
+          <div class="column">
+            <div class="field">
+              <label class="label">Output</label>
+              <div class="control">
+                <textarea
+                  id="syllable_output"
+                  class="textarea is-hovered notosansmyanmar"
+                  disabled="disabled"
+                  type="text"></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div id="debugging">
           <div class="content">
             <h4>Debuging</h4>
@@ -165,7 +192,10 @@
         var $convert_inputs = $('.convert_input');
 
         var $normalization_input = $('#normalization_input');
-        var $normalization_output  =$('#normalization_output');
+        var $normalization_output =$('#normalization_output');
+
+        var $syllable_input = $('#syllable_input');
+        var $syllable_output = $('#syllable_output');
         var $debug_content = $('#debug_content');
 
         // Change view
@@ -212,6 +242,12 @@
           var $this = $(this);
           var input_text = $this.val() || '';
           $normalization_output.val(knayi.normalize(input_text));
+        });
+
+        $syllable_input.on('keyup change paste', function (event) {
+          var $this = $(this);
+          var input_text = $this.val() || '';
+          $syllable_output.val(knayi.syllBreak(input_text, 'unicode', ' '));
         });
 
         if (is_debug_mode) {
