@@ -15,8 +15,12 @@ const esConfig = {
     rules: [{
       test: /\.js$/, 
       exclude: /(node_modules)/, 
-      loader: 'babel-loader', 
-      query: {presets: ['env'] } 
+      use: {
+        loader: 'babel-loader', 
+        options: {
+          presets: ['@babel/preset-env']
+        }
+      },
     }]
   }
 }
@@ -38,8 +42,12 @@ const legacyConfig = {
     rules: [{
       test: /\.js$/, 
       exclude: /(node_modules)/, 
-      loader: 'babel-loader', 
-      query: {presets: ['env'] } 
+      use: {
+        loader: 'babel-loader', 
+        options: {
+          presets: ['@babel/preset-env']
+        }
+      },
     }]
   }
 }
