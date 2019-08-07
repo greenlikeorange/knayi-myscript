@@ -18,7 +18,7 @@ function truncate(content, options) {
   if (!fontType)
     fontType = fontDetect(content);
 
-  var syllables = syllBreak(content, fontType).split(/\u200B/);
+  var syllables = syllBreak(content, fontType).split(/[\u200B\u200C]/);
 
   return syllables.reduce(function (curr, syll) {
     var left = absoulteLength - curr.length;

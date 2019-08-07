@@ -46,7 +46,7 @@ function fontDetect(content, fallback_font_type, options = {}){
 	if (!mmCharacterRange.test(content))
 		return fallback_font_type || 'en';
 
-	content = content.trim().replace(/\u200B/g, '');
+	content = content.trim().replace(/[\u200B\u200C]/g, '');
 	fallback_font_type = fallback_font_type || 'zawgyi';
 
   options = globalOptions.detector(options);

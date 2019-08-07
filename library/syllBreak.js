@@ -42,7 +42,7 @@ if (!content) {
   if (content === '' || !mmCharacterRange.test(content))
     return content;
 
-  content = content.trim().replace(/\u200B/g, '');  
+  content = content.trim().replace(/[\u200B\u200C]/g, '');  
 
   if (!fontType)
     fontType = fontDetect(content);

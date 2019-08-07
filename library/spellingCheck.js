@@ -35,7 +35,7 @@ function spellingFix(content, fontType){
 	if (!fontType)
 		fontType = fontDetect(content);
 
-	content = content.trim().replace(/\u200B/g, '');
+	content = content.trim().replace(/[\u200B\u200C]/g, '');
 
 	switch (fontType) {
 		case 'zawgyi':

@@ -222,7 +222,7 @@ function fontConvert(content, to, from) {
     return content;
   }
 
-  content = content.trim().replace(/\u200B/g, '');
+  content = content.trim().replace(/[\u200B\u200C]/g, '');
   to = fontTypes[to];
   from = fontTypes[from];
 

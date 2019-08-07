@@ -124,7 +124,7 @@ function normalize(content) {
   }
 
   const result = content
-    .replace(/\u200B/g, '')
+    .replace(/[\u200B\u200C]/g, '')
     .replace(brakePointRegex, (m, g1, g2) => {
       let chunk = g1 || '';
 
