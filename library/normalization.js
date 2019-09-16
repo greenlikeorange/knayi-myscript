@@ -90,11 +90,11 @@ const rankingMap = {
   'ာ': 7,
   'ိ': 8,
   'ီ': 9,
+  // A
+  '်': 13,
   'ု': 10,
   'ူ': 11,
   'ဲ': 12,
-  // A
-  '်': 13,
   // F
   'ံ': 14,
   '့': 15,
@@ -111,6 +111,38 @@ function applyReplacementRules(rulesset, content) {
   return rulesset.reduce((a,b) => {
     return a.replace(b[0], b[1]);
   }, content);
+}
+
+/**
+ * Fixing WaLone and YaGout
+ * @param {String} text Content
+ */
+function fixWaAndYa(text = '') {
+  function ruleFunction([num, char]) {
+    return (behind, ahead) => {
+      var isNumber = true;
+
+      if (/^[က-အါိီေဲံြျွှုူ်]/.test(ahead)) {
+        isNumber = false;
+      }
+
+      // ဝလုံး but not ၁၀လုံး
+      if (/^\s?လုံး/.test(ahead) && !/[၀-၉]\s?$/.test(behind)) {
+        isNumber = false;
+      }
+
+      if (/^\s?(ခု|ကောင်|ယောက်|ချောင်း|ရက်|လ|နှစ်|သန်း|သိန်း)/.test(ahead)) {
+        isNumber = true;
+      }
+      
+      return behind + (isNumber ? num : char) + ahead;
+    }
+  }
+
+  return text.split(/၀|ဝ/)
+    .reduce(ruleFunction(['၀', 'ဝ']))
+    .split(/၇|ရ/)
+    .reduce(ruleFunction(['၇', 'ရ']));
 }
 
 /**
@@ -136,7 +168,8 @@ function normalize(content) {
       return applyReplacementRules(extendedRules, chunk);
     });
   
-  return applyReplacementRules(postExtendedRules, result);
+  let clearText = applyReplacementRules(postExtendedRules, result);
+  return fixWaAndYa(clearText);
 }
 
 module.exports = normalize;
