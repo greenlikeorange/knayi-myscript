@@ -41,13 +41,14 @@ const G = removeSpace(_G);
 const D = removeSpace(_D);
 // Punctuation Marks
 const P = removeSpace(_P);
-// ZERO
-const ZERO = '၀';
+// NUMBER_ZERO
+const WA_LONE = 'ဝ';
+const NUMBER_ZERO = '၀';
 
 const REGEX_BURMESE = new RegExp(`[${BURMESE}]`);
 
 // Brake point used to reorder
-const brakePoint = `([${C}${E}${ZERO}])([${M}${V}${A}${F}]+)`;
+const brakePoint = `([${C}${E}${NUMBER_ZERO}])([${M}${V}${A}${F}]+)`;
 const brakePointRegex = new RegExp(brakePoint, 'gm');
 
 /** Extended rules */
@@ -57,9 +58,9 @@ function addReplacementRule(rulesset, [pattern, replacement]) {
   rulesset.push([new RegExp(pattern, 'gm'), replacement]);
 }
 
-const ZERO_WA = '၀ ဝ';                // Zero to Wa lone
-const U_FIX = 'ဦ ဦ';                  // U
-const AWL = 'ဩော် ဪ';               // Awl
+const NUMBER_ZERO_WA = '၀ ဝ';                // Zero to Wa lone
+const U_FIX = 'ဦ ဦ';                         // U
+const AWL = 'ဩော် ဪ';                      // Awl
 // Debatable 
 const DOUBLE_LONE_GYI_TIN = 'ိီ ီ';
 const DOUBLE_TA_CHAUNG_NGIN = 'ုူ ူ';
@@ -68,7 +69,7 @@ const ZA_MYIN_ZWAE = 'စျ ဈ';
 // Post fix rule
 const SPACE_IN_FRONT_OF_VIRAMA = `([${SHORT_C}])\\s(္[က-အ]) $1$2`;
 
-addReplacementRule(extendedRules, ZERO_WA.split(' '));
+addReplacementRule(extendedRules, NUMBER_ZERO_WA.split(' '));
 addReplacementRule(extendedRules, U_FIX.split(' '));
 addReplacementRule(extendedRules, AWL.split(' '));
 addReplacementRule(extendedRules, DOUBLE_LONE_GYI_TIN.split(' '));
@@ -113,28 +114,44 @@ function applyReplacementRules(rulesset, content) {
   }, content);
 }
 
+const NON_NUMBER_BEHIND = new RegExp(`${S}$`)
+const NON_NUMBER_AHEAD_SIGN = new RegExp(`^\s?[${M}${V}${S}${A}${F}]`);
+const NON_NUMBER_AHEAD_C_SIGN = new RegExp(`^\s?[${C}][${S}${A}${F}]`);
+
 /**
  * Fixing WaLone and YaGout
  * @param {String} text Content
  */
 function fixWaAndYa(text = '') {
   function ruleFunction([num, char]) {
+    const isWa = char === WA_LONE;
     return (behind, ahead) => {
-      var isNumber = true;
+      let isNumber = isWa;
 
-      if (/^[က-အါိီေဲံြျွှုူ်]/.test(ahead)) {
+      if (NON_NUMBER_BEHIND.test(behind)) {
         isNumber = false;
-      }
-
-      // ဝလုံး but not ၁၀လုံး
-      if (/^\s?လုံး/.test(ahead) && !/[၀-၉]\s?$/.test(behind)) {
-        isNumber = false;
-      }
-
-      if (/^\s?(ခု|ကောင်|ယောက်|ချောင်း|ရက်|လ|နှစ်|သန်း|သိန်း)/.test(ahead)) {
-        isNumber = true;
       }
       
+      // is ya gout
+      if (!isWa) {
+        if (/[၀-၉=+-/]\s?$/.test(behind) && /^\s|\s?[၀-၉=+-/]/.test(ahead)) {
+          isNumber = true;
+        }
+
+        if (/[၀-၉]|\s?[=+-/]/.test(ahead)) {
+          isNumber = true;
+        }
+      }
+
+      if (NON_NUMBER_AHEAD_SIGN.test(ahead) || NON_NUMBER_AHEAD_C_SIGN.test(ahead)) {
+        isNumber = false;
+      }
+      
+      // ဝလုံး but not ၁၀လုံး
+      if (isWa && /^\s?လုံး/.test(ahead) && !/[၀-၉]\s?$/.test(behind)) {
+        isNumber = false;
+      }
+
       return behind + (isNumber ? num : char) + ahead;
     }
   }
