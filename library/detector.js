@@ -2,9 +2,15 @@ const library = {};
 const mmCharacterRange = /[\u1000-\u109F]/;
 const whitespace = '[\\x20\\t\\r\\n\\f]';
 
-const myanmartools = require('myanmar-tools');
-const myanmartoolZawgyiDetector = new myanmartools.ZawgyiDetector();
 const globalOptions = require('./globalOptions');
+
+let myanmartoolZawgyiDetector;
+try {
+  const myanmartools = require('myanmar-tools');
+  myanmartoolZawgyiDetector = new myanmartools.ZawgyiDetector();
+} catch (e) {
+
+}
 
 /** DETECTION Libarary **/
 library.detect = {
@@ -51,7 +57,7 @@ function fontDetect(content, fallback_font_type, options = {}){
 
   options = globalOptions.detector(options);
 
-  if (options.use_myanmartools) {
+  if (options.use_myanmartools && myanmartoolZawgyiDetector) {
     var myanmartools_zg_probability = myanmartoolZawgyiDetector.getZawgyiProbability(content);
 
     if (myanmartools_zg_probability < options.myanmartools_zg_threshold[0]) {
