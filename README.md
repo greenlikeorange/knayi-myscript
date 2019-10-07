@@ -34,7 +34,7 @@ Using npm
 npm install knayi-myscript --save
 ```
 
-Using yran
+Using yarn
 ```bash
 yarn add knayi-myscript
 ```
@@ -51,8 +51,8 @@ Using CDN
 | `fontConvert` | `content: String(require)`,<br>`targetFontType: fontName(require)`,<br>`orignalFontType: fontName(optional)`| `String` | Converting font to target font type. This method need spelling fix, so it gonna use **spellingFix** in default. **convertFrom** will be detect by **fontDetect** when you don't described.<hr> `fontName` must be one of `unicode` or `zawgyi`. |
 | `syllBreak` | `content: String(require)`,<br>`fontType: fontName(optional)`,<br>`breakPoint: String(optional)` | `String` |To make systematic word break of Myanmar text. convertFrom will be detect by fontDetect when you don't described.<hr> `fontName` must be one of `unicode` or `zawgyi`. |
 | `spellingFix` | `content: String(require)`,<br>`fontType: fontName(optional)` | `String` | **convertFrom** will be detect by **fontDetect** when you don't described. It fix spelling on Myanmar Text.<hr> `fontName` must be one of `unicode` or `zawgyi`. |
-| `truncate` | `content: String(requre)`,<br>`options: Object` | `String` | Like lodash.truncate, it truncate word syllable and space. Default truncate length is 30 and you can change it in `options.length` |
-| `normalize` | `content: String(requre)` | `String` | Normzliation solve some typing errors. Unlike `spellingFix` this offer more appropriate way of doing so. But this function can only solve some level of normalization. |
+| `truncate` | `content: String(require)`,<br>`options: Object` | `String` | Like lodash.truncate, it truncate word syllable and space. Default truncate length is 30 and you can change it in `options.length` |
+| `normalize` | `content: String(require)` | `String` | Normalization solve some typing errors. Unlike `spellingFix`, this offer more appropriate way of doing so. But this function can only solve some level of normalization. |
 
 ## Usage
 
