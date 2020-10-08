@@ -1,0 +1,11 @@
+name: knayi-myscript
+static_sites:
+- environment_slug: html
+  github:
+    branch: main
+    deploy_on_push: true
+    repo: greenlikeorange/knayi-myscript
+  name: sample-html
+  source_dir: /docs
+  routes:
+    - path: /
