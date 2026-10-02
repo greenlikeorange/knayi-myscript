@@ -1,6 +1,6 @@
 # knayi-myscript
 
-JavaScript library for Myanmar (Burmese) text stored as Unicode or Zawgyi. Version 2.9.0. MIT license.
+JavaScript library for Myanmar (Burmese) text stored as Unicode or Zawgyi. Version 2.9.1. MIT license.
 
 It detects the encoding, converts between them, inserts syllable breaks, collapses repeated spelling marks, normalizes some Unicode typing errors, and truncates on those breaks. It does not segment dictionary words, translate, or tokenize for a language model.
 
@@ -16,7 +16,7 @@ bun add knayi-myscript
 Browser script, global name `knayi`:
 
 ```html
-<script src="https://unpkg.com/knayi-myscript@2.9.0/dist/knayi-myscript.min.js"></script>
+<script src="https://unpkg.com/knayi-myscript@2.9.1/dist/knayi-myscript.min.js"></script>
 ```
 
 ## Runtime
