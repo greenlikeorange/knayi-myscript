@@ -71,12 +71,10 @@
           <div class="column">
             <p class="badges" style="text-align: right;">
               <br />
-              <a href="https://npmjs.org/package/knayi-myscript">
-                <img src="https://badge.fury.io/js/knayi-myscript.png" alt=""></a>
-              <a href="#">
-                <img src="https://api.travis-ci.org/greenlikeorange/knayi-myscript.svg?branch=master" alt=""></a>
-              <a href="https://david-dm.org/greenlikeorange/knayi-myscript">
-                <img src="https://david-dm.org/greenlikeorange/knayi-myscript.png" alt=""></a>
+              <a href="https://www.npmjs.com/package/knayi-myscript">
+                <img src="https://img.shields.io/npm/v/knayi-myscript.svg" alt="npm version"></a>
+              <a href="https://github.com/greenlikeorange/knayi-myscript/actions/workflows/test.yml">
+                <img src="https://github.com/greenlikeorange/knayi-myscript/actions/workflows/test.yml/badge.svg?branch=master" alt="test"></a>
             </p>
           </div>
         </div>
@@ -181,9 +179,7 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.slim.min.js" charset="utf-8"></script>
-    <script src="https://rawgit.com/greenlikeorange/knayi-myscript/master/dist/knayi-myscript.min.js" charset="utf-8"></script>
-
-    <script src="../dist/knayi-myscript.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/knayi-myscript@2.9.0/dist/knayi-myscript.min.js" charset="utf-8"></script>
 
     <script type="text/javascript">
       (function () {
@@ -258,6 +254,37 @@
         if (is_debug_mode) {
           $('#debugging').show();
 
+          function html_line (text) {
+            return `<span class="line">${text}</span>`
+          }
+
+          function html_code (text) {
+            return `<code>${text}</code>`
+          }
+
+          function escape_html (text) {
+            return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+          }
+
+          function escape_regexp (text) {
+            return text.replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&');
+          }
+
+          var mm_characters = /[\u1000-\u109F]/;
+
+          function string_to_charcodes (text) {
+            var result = '';
+            for (var i = 0; i < text.length; i++) {
+              if (mm_characters.test(text[i])) {
+                result += `\\u` + text[i].charCodeAt(0).toString(16);
+              } else {
+                result += escape_html(text[i]);
+              }
+            }
+
+            return result;
+          }
+
           /** Font Convert Debuging **/
           $convert_inputs.on('select', function (event) {
             var $convert_input = $(this);
@@ -275,8 +302,8 @@
             var selected_value = origin_value.slice(selection_start, selection_end);
             var converted_selected_value = knayi.fontConvert(selected_value, target_font_type, origin_font_type);
 
-            var regexp_of_selected_value = new RegExp(selected_value, 'g');
-            var regexp_of_converted_selected_value = new RegExp(converted_selected_value, 'g');
+            var regexp_of_selected_value = new RegExp(escape_regexp(selected_value), 'g');
+            var regexp_of_converted_selected_value = new RegExp(escape_regexp(converted_selected_value), 'g');
 
             var match_on_origin = origin_value.slice(0, selection_end)
               .match(regexp_of_selected_value);
@@ -296,34 +323,11 @@
             var highlight_end = regexp_of_converted_selected_value.lastIndex;
 
             if (regexp_of_converted_selected_value.lastIndex) {
-              var converting_debug_logs = knayi.fontConvert.debugging(selected_value, target_font_type, origin_font_type, true);
+              var converting_debug_logs = knayi.fontConvert.debugging(selected_value, target_font_type, origin_font_type);
 
-              var unicode_selected_value;
-              var zawgyi_selected_value;
-
-              function html_line (text) {
-                return `<span class="line">${text}</span>`
-              }
-
-              function html_code (text) {
-                return `<code>${text}</code>`
-              }
-
-              var mm_characters = /[\u1000-\u109F]/;
-
-              function string_to_charcodes (text) {
-                var result = '';
-                for (var i = 0; i < text.length; i++) {
-                  if (mm_characters.test(text[i])) {
-                    result += `\\u` + text[i].charCodeAt(0).toString(16);
-                    // result += '+';
-                  } else {
-                    result += text[i];
-                  }
-                }
-
-                return result.replace(/\+$/, '');
-              }
+              // Text without Myanmar letters comes back as a plain string, with no steps to show.
+              if (typeof converting_debug_logs === 'string')
+                return;
 
               function debugging_steps (converting_debug_logs) {
                 var matched_patterns = converting_debug_logs.matched_patterns;
@@ -332,8 +336,8 @@
                 var result = html_code(`<b>(orign)</b> ` + string_to_charcodes(steps[0]));
                 result += html_code('<br/ >');
                 for (var i = 0; i < matched_patterns.length; i++) {
-                  var pattern = matched_patterns[i];
-                  result += html_code(`<b>(match)</b> ${pattern[0].toString()} <b>-></b> ${string_to_charcodes(pattern[1].toString())}`);
+                  // Each matched pattern is the source string of the rule's RegExp.
+                  result += html_code(`<b>(match)</b> /${string_to_charcodes(matched_patterns[i])}/`);
 
                   result += html_code(`<b>(chars)</b> ` + string_to_charcodes(steps[i+1]));
                   result += html_code('<br/ >');
@@ -357,7 +361,7 @@
           /** Font Convert Debuging **/
 
           $normalization_input.on('select', function (event) {
-            var $convert_input = $(this);
+            var origin_value = $(this).val() || '';
             var selection_start = event.target.selectionStart;
             var selection_end = event.target.selectionEnd;
 
@@ -367,11 +371,11 @@
             
             $debug_content.html(
               html_line('<b>Selected Words</b>')
-              + html_code(selected_value)
+              + html_code(escape_html(selected_value))
               + html_line('<br/ >')
               + html_line('<b>Normalized string</b>')
               + html_line('<br/ >')
-              + [].join.call(normalized_value, ' + ')
+              + escape_html([].join.call(normalized_value, ' + '))
             );
           });
         }
