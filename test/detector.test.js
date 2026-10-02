@@ -75,7 +75,7 @@ assert.equal(			knayi.fontDetect('က္က', 'unicode', toolsOptions), 'zawgyi'
 		} else {
 assert.equal(			knayi.fontDetect('က္က', 'unicode', toolsOptions), 'unicode');
 			assert.ok(myanmarToolsWarnings.some(function (message) {
-				return /myanmar-tools adapter is missing/.test(String(message));
+				return /myanmar-tools is not installed/.test(String(message));
 			}));
 		}
 	});

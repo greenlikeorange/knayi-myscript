@@ -6,27 +6,24 @@ const gate = require('./contentGate');
 
 var myanmartoolZawgyiDetector = null;
 var myanmarToolsLoadAttempted = false;
+var myanmarToolsLoadError = null;
 
 function nodeRequire(id) {
+  var proc = globalThis.process;
+  if (!proc || !proc.versions || typeof proc.versions.node !== 'string') return null;
+  var req = null;
   try {
-    var proc = globalThis.process;
-    if (!proc || !proc.versions || typeof proc.versions.node !== 'string') return null;
-    var req = null;
-    try {
-      req = module.require;
-    } catch (e) {
-      req = null;
-    }
-    if (typeof req === 'function') return req.call(module, id);
-    if (typeof proc.getBuiltinModule === 'function') {
-      var nodeModule = proc.getBuiltinModule('module');
-      if (nodeModule && typeof nodeModule.createRequire === 'function') {
-        var from = typeof __filename === 'string' ? __filename : proc.cwd() + '/package.json';
-        return nodeModule.createRequire(from)(id);
-      }
-    }
+    req = module.require;
   } catch (e) {
-    return null;
+    req = null;
+  }
+  if (typeof req === 'function') return req.call(module, id);
+  if (typeof proc.getBuiltinModule === 'function') {
+    var nodeModule = proc.getBuiltinModule('module');
+    if (nodeModule && typeof nodeModule.createRequire === 'function') {
+      var from = typeof __filename === 'string' ? __filename : proc.cwd() + '/package.json';
+      return nodeModule.createRequire(from)(id);
+    }
   }
   return null;
 }
@@ -34,11 +31,30 @@ function nodeRequire(id) {
 function loadMyanmarTools() {
   if (myanmarToolsLoadAttempted) return myanmartoolZawgyiDetector;
   myanmarToolsLoadAttempted = true;
-  var loaded = nodeRequire('myanmar-tools');
-  if (loaded && typeof loaded.ZawgyiDetector === 'function') {
-    myanmartoolZawgyiDetector = new loaded.ZawgyiDetector();
+  try {
+    var loaded = nodeRequire('myanmar-tools');
+    if (loaded && typeof loaded.ZawgyiDetector === 'function') {
+      myanmartoolZawgyiDetector = new loaded.ZawgyiDetector();
+    } else if (loaded) {
+      myanmarToolsLoadError = new Error('the package has no ZawgyiDetector export');
+    }
+  } catch (e) {
+    myanmarToolsLoadError = e;
   }
   return myanmartoolZawgyiDetector;
+}
+
+function missingMyanmarToolsMessage() {
+  var error = myanmarToolsLoadError;
+  if (!error) {
+    return 'myanmar-tools is not available in this environment; fontDetect used the rule scorer.';
+  }
+  var firstLine = String(error.message).split('\n')[0];
+  if (/MODULE_NOT_FOUND$/.test(String(error.code)) && firstLine.indexOf("'myanmar-tools'") !== -1) {
+    return 'myanmar-tools is not installed; fontDetect used the rule scorer. Install myanmar-tools@1.1.3 to use it.';
+  }
+  // myanmar-tools 1.2.0 on npm ships without build_node/, so require() fails inside the package.
+  return 'myanmar-tools could not be loaded (' + firstLine + '); fontDetect used the rule scorer. Install myanmar-tools@1.1.3.';
 }
 
 /** DETECTION Libarary **/
@@ -129,7 +145,7 @@ function fontDetect(content, fallback_font_type, options = {}){
 
   if (!loadMyanmarTools()) {
     if (!globalOptions.isSilentMode() && !warnedMissingMyanmarTools) {
-      console.warn('myanmar-tools adapter is missing; fontDetect used the rule scorer.');
+      console.warn(missingMyanmarToolsMessage());
       warnedMissingMyanmarTools = true;
     }
     return scoreWithRules(content, fallback_font_type);
