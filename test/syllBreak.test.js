@@ -25,6 +25,16 @@ assert.equal(			knayi.syllBreak('က္က', 'unicode', '|'), 'က္က');
 		it('keeps ဥ with asat, typed for ဉ, in the syllable before it', () => {
 			assert.equal(knayi.syllBreak('ညဥ့်', 'unicode', '|'), 'ညဥ့်');
 			assert.equal(knayi.syllBreak('ညဉ့်', 'unicode', '|'), 'ညဉ့်');
+			assert.equal(knayi.syllBreak('ရှဥ့်', 'unicode', '|'), 'ရှဥ့်');
+		})
+
+		it("starts a syllable with ဥ and asat after a vowel sign, as in Pa'o", () => {
+			assert.equal(knayi.syllBreak('ထွူလဲဥ်း', 'unicode', '|'), 'ထွူ|လဲ|ဥ်း');
+		})
+
+		it('keeps a consonant with asat whole when a visarga or a second dot below was typed before the asat', () => {
+			assert.equal(knayi.syllBreak('ခြငး်', 'unicode', '|'), 'ခြငး်');
+			assert.equal(knayi.syllBreak('ဖြင့့်', 'unicode', '|'), 'ဖြင့့်');
 		})
 
 		it('breaks these words where the zawgyi table does', () => {
