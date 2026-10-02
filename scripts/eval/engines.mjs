@@ -3,26 +3,31 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, execSync } from 'node:child_process';
 import { CACHE } from './datasets.mjs';
 
 export const BASELINE = process.env.KNAYI_EVAL_BASELINE || '2.8.3';
 // myanmar-tools 1.2.0 on npm has no build_node/ and cannot be loaded.
 const MYANMAR_TOOLS = '1.1.3';
 const RABBIT = '1.0.4';
+const PACKAGES = ['knayi-baseline', 'myanmar-tools', 'rabbit-node'];
 
 function install(dir) {
-  const marker = path.join(dir, 'node_modules', 'knayi-baseline', 'package.json');
-  if (fs.existsSync(marker)) return;
+  const installed = PACKAGES.every((name) => fs.existsSync(path.join(dir, 'node_modules', name, 'package.json')));
+  if (installed) return;
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, 'package.json'), '{ "private": true }\n');
   console.error('installing knayi-myscript@' + BASELINE + ', myanmar-tools@' + MYANMAR_TOOLS + ', rabbit-node@' + RABBIT + ' …');
-  execFileSync('npm', [
+  const args = [
     'install', '--no-audit', '--no-fund', '--ignore-scripts', '--no-package-lock',
     'knayi-baseline@npm:knayi-myscript@' + BASELINE,
     'myanmar-tools@' + MYANMAR_TOOLS,
     'rabbit-node@' + RABBIT
-  ], { cwd: dir, stdio: ['ignore', 'ignore', 'inherit'], shell: process.platform === 'win32' });
+  ];
+  const options = { cwd: dir, stdio: ['ignore', 'ignore', 'inherit'] };
+  // npm is npm.cmd on Windows, which needs a shell; passing one command string avoids Node's DEP0190 warning.
+  if (process.platform === 'win32') execSync('npm ' + args.map((a) => '"' + a + '"').join(' '), options);
+  else execFileSync('npm', args, options);
 }
 
 function knayiEngine(lib, name) {

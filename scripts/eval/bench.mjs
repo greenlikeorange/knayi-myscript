@@ -8,7 +8,13 @@ import { loadAll } from './datasets.mjs';
 import { loadEngines } from './engines.mjs';
 
 const args = process.argv.slice(2);
-const jsonOut = args.includes('--json') ? args[args.indexOf('--json') + 1] : null;
+function option(name) {
+  const i = args.indexOf(name);
+  if (i === -1) return null;
+  if (!args[i + 1] || args[i + 1].startsWith('--')) throw new Error(name + ' needs a file name');
+  return args[i + 1];
+}
+const jsonOut = option('--json');
 const data = await loadAll();
 const E = loadEngines();
 const cp = (n) => String.fromCodePoint(n);
@@ -23,7 +29,7 @@ function mean(fn, warmups = 3, runs = 10) {
 
 const result = {
   generatedAt: new Date().toISOString(),
-  machine: os.cpus()[0].model + ', ' + os.type() + ' ' + os.release(),
+  machine: (os.cpus()[0] ? os.cpus()[0].model : 'unknown CPU') + ', ' + os.type() + ' ' + os.release(),
   node: process.version,
   engines: { local: E.local.name, baseline: E.baseline.name }
 };
@@ -44,10 +50,12 @@ result.realText = {
 };
 
 // Long inputs that took quadratic time in 2.8.3 and 2.9.0. One run each.
-// The leading stacked ka (U+1060) makes the conversion reach the rule that was quadratic.
+// A leading stacked ka (U+1060) or kinzi (U+1064) makes the conversion reach the rule that was quadratic.
+const vowels = (n) => (cp(0x102c) + cp(0x102d)).repeat(n / 2);
 const long = [
   ...[20000, 40000, 80000].map((n) => ['fontConvert Zawgyi → Unicode, stacked ka + ' + n / 1000 + 'k alternating vowel signs',
-    (k) => k.fontConvert(cp(0x1000) + cp(0x1060) + (cp(0x102c) + cp(0x102d)).repeat(n / 2), 'unicode', 'zawgyi')]),
+    (k) => k.fontConvert(cp(0x1000) + cp(0x1060) + vowels(n), 'unicode', 'zawgyi')]),
+  ['fontConvert Zawgyi → Unicode, kinzi + 80k alternating vowel signs', (k) => k.fontConvert(cp(0x1064) + vowels(80000), 'unicode', 'zawgyi')],
   ...[50000, 100000, 200000].map((n) => ['normalize, ' + n / 1000 + 'k × ' + cp(0x101d), (k) => k.normalize(cp(0x101d).repeat(n))])
 ];
 const skipBaseline = args.includes('--skip-baseline-long');
@@ -87,7 +95,7 @@ if (args.includes('--sweep')) {
       if (t > 250) slow.push(name + ' on ' + label + ': ' + t.toFixed(0) + ' ms');
     }
   }
-  result.sweep = { runs, slowest, limit: 250, slow };
+  result.sweep = { runs, inputs: inputs.length, marks: marks.length, slowest, limit: 250, slow };
 }
 
 // Markdown for the console.

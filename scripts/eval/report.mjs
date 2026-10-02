@@ -2,36 +2,47 @@
 // Usage: node scripts/eval/report.mjs <eval.json> <bench.json> [outDir]   (outDir defaults to docs/)
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { SOURCES } from './datasets.mjs';
 
 const [evalPath, benchPath, outArg] = process.argv.slice(2);
-if (!evalPath || !benchPath) {
+if (!evalPath || !benchPath || [evalPath, benchPath, outArg].some((a) => a && a.startsWith('--'))) {
   console.error('usage: node scripts/eval/report.mjs <eval.json> <bench.json> [outDir]');
   process.exit(1);
 }
-const outDir = outArg || path.join(import.meta.dirname, '..', '..', 'docs');
+const outDir = outArg || path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'docs');
 const evalResult = JSON.parse(fs.readFileSync(evalPath, 'utf8'));
 const bench = JSON.parse(fs.readFileSync(benchPath, 'utf8'));
 
-if (evalResult.withUnlicensed || evalResult.sources.some((s) => s.unlicensed)) {
-  console.error('These results include data without a license (--with-unlicensed). Run eval again without it before publishing.');
+// Only openly licensed data may reach the page. Every row names its sources; each must be a licensed source
+// from datasets.mjs, whatever flags the JSON carries.
+const licensed = new Set(SOURCES.filter((s) => !s.unlicensed).map((s) => s.id));
+const rowSources = evalResult.sections.flatMap((s) => s.rows.map((r) => r.sources));
+if (evalResult.withUnlicensed || rowSources.some((ids) => !Array.isArray(ids) || ids.length === 0 || ids.some((id) => !licensed.has(id)))) {
+  console.error('These results include data without a license, or rows without a known source. Run eval again without --with-unlicensed.');
   process.exit(1);
 }
+const sources = SOURCES.filter((s) => rowSources.some((ids) => ids.includes(s.id)));
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const code = (s) => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>');
 const pct = (r) => (r == null ? '—' : r.pct.toFixed(1) + '%');
-const num = (n) => n.toLocaleString('en-US');
-const msText = (v, digits) => (v == null ? '—' : v.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits }) + ' ms');
+const num = (n) => esc(Number(n).toLocaleString('en-US'));
+const msText = (v, digits) => (v == null ? '—' : esc(v.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits })) + ' ms');
 const E = evalResult.engines;
-const better = { conversion: 'higher', detection: 'higher', 'unicode-flagged': 'lower', 'other-languages': 'lower' };
+const D = evalResult.datasets || {};
+// Bold marks the best value only where higher is plainly better. A detector can lower the false-positive
+// tables just by calling Zawgyi less often, so those get no bold.
+const better = { conversion: 'higher', detection: 'higher' };
 
 function bestIndexes(cells, direction, columns) {
   if (!direction) return new Set();
-  // Compare like with like: within each variant (default / evidence) separately.
+  // Compare like with like: within each variant (exact / NFC) separately.
   const groups = {};
   cells.forEach((c, i) => { if (c) (groups[columns[i].variant || ''] ||= []).push(i); });
   const best = new Set();
   for (const idx of Object.values(groups)) {
+    if (idx.length < 2) continue;
     const values = idx.map((i) => cells[i].pct);
     const target = direction === 'higher' ? Math.max(...values) : Math.min(...values);
     idx.forEach((i) => { if (Math.abs(cells[i].pct - target) < 1e-9) best.add(i); });
@@ -43,7 +54,9 @@ function sectionTable(s) {
   const variants = s.columns.some((c) => c.variant);
   const engines = [...new Set(s.columns.map((c) => c.engine))];
   let head;
+  let cols = '';
   if (variants) {
+    cols = '<colgroup><col><col></colgroup>' + engines.map(() => '<colgroup span="2"></colgroup>').join('');
     head = '<tr><th rowspan="2" scope="col">Data</th><th rowspan="2" scope="col" class="n">n</th>' +
       engines.map((e) => '<th colspan="2" scope="colgroup" class="eng">' + esc(E[e]) + '</th>').join('') + '</tr><tr>' +
       s.columns.map((c) => '<th scope="col" class="num sub">' + esc(c.variant) + '</th>').join('') + '</tr>';
@@ -56,30 +69,56 @@ function sectionTable(s) {
     return '<tr><th scope="row">' + esc(r.label) + '</th><td class="n">' + num(r.n) + '</td>' +
       r.cells.map((c, i) => '<td class="num' + (best.has(i) ? ' best' : '') + (c == null ? ' na' : '') + '">' + pct(c) + '</td>').join('') + '</tr>';
   }).join('');
-  return '<div class="scroll"><table><thead>' + head + '</thead><tbody>' + rows + '</tbody></table></div>';
+  return '<div class="scroll"><table>' + cols + '<thead>' + head + '</thead><tbody>' + rows + '</tbody></table></div>';
 }
 
+// Cell indexes follow the column order in run.mjs: per engine (local, baseline, tools, rabbit) two variants.
 const find = (id, label) => evalResult.sections.find((s) => s.id === id)?.rows.find((r) => r.label === label);
 const roundTrip = find('conversion', 'Wikipedia → Rabbit Zawgyi → back');
-const flores = find('unicode-flagged', 'FLORES-200 mya_Mymr');
-const agree = find('web-text', 'Agrees with myanmar-tools');
-const worstLong = bench.longInput.filter((r) => r.baseline != null).sort((a, b) => b.baseline - a.baseline)[0];
+const google = find('conversion', 'google/language-resources reference pairs');
+const wiki = find('unicode-flagged', 'Burmese Wikipedia sample');
+const slowestLong = bench.longInput.slice().sort((a, b) => b.local - a.local)[0];
 const tiles = [
-  roundTrip && { value: pct(roundTrip.cells[0]), label: 'Zawgyi → Unicode round trip, exact', detail: E.baseline + ': ' + pct(roundTrip.cells[1]) + ' · ' + num(roundTrip.n) + ' Wikipedia lines' },
-  flores && { value: pct(flores.cells[0]), label: 'FLORES-200 Unicode flagged as Zawgyi', detail: num(flores.n) + ' sentences, plain fontDetect' },
-  worstLong && { value: msText(worstLong.local, 0), label: 'Worst-case long input', detail: E.baseline + ': ' + msText(worstLong.baseline, 0) + ' on the same input' },
-  agree && { value: pct(agree.cells[0]), label: 'Agrees with myanmar-tools on web text', detail: num(agree.n) + ' mC4 lines where it is confident' }
+  roundTrip && {
+    value: pct(roundTrip.cells[0]), label: 'Zawgyi → Unicode round trip, exact',
+    detail: E.baseline + ': ' + pct(roundTrip.cells[2]) + ' · ' + E.tools + ': ' + pct(roundTrip.cells[4]) + ' · ' + Number(roundTrip.n).toLocaleString('en-US') + ' Wikipedia lines'
+  },
+  google && {
+    value: pct(google.cells[1]), label: 'Google reference pairs, NFC',
+    detail: E.rabbit + ': ' + pct(google.cells[7]) + ' · ' + E.tools + ': ' + pct(google.cells[5]) + ' · ' + google.n + ' pairs'
+  },
+  wiki && {
+    value: pct(wiki.cells[0]), label: 'Wikipedia lines flagged as Zawgyi',
+    detail: 'plain fontDetect; on evidence ' + pct(wiki.cells[1]) + ' · ' + E.tools + ': ' + pct(wiki.cells[4]) + ' / ' + pct(wiki.cells[5])
+  },
+  slowestLong && {
+    value: slowestLong.local.toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' ms', label: 'Slowest long input',
+    detail: E.baseline + ': ' + (slowestLong.baseline == null ? 'not run' : slowestLong.baseline.toLocaleString('en-US', { maximumFractionDigits: 0 }) + ' ms') + ' on the same input'
+  }
 ].filter(Boolean);
+
+function sizeText(id) {
+  const lines = (d) => d ? Number(d.unique).toLocaleString('en-US') + ' distinct lines' + (d.lines !== d.unique ? ' (of ' + Number(d.lines).toLocaleString('en-US') + ')' : '') : '';
+  switch (id) {
+    case 'google': return D.google ? D.google.pairs + ' pairs' : '';
+    case 'cldr': return D.cldr ? D.cldr.pairs + ' pairs, ' + D.cldr.notInGoogle + ' not in Google\'s file' : '';
+    case 'waitzar': return D.waitzar ? Number(D.waitzar.unique).toLocaleString('en-US') + ' distinct words' : '';
+    case 'wikipedia': return D.wikipedia ? Number(D.wikipedia.rows).toLocaleString('en-US') + ' of ' + Number(D.wikipedia.total).toLocaleString('en-US') + ' articles (seed ' + D.wikipedia.seed + '), ' + lines(D.wikipedia) : '';
+    case 'glotcc': return ['shn', 'mnw', 'ksw', 'blk'].filter((k) => D[k]).map((k) => k + ' ' + D[k].rows + ' documents').join(', ');
+    default: return lines(D[id]);
+  }
+}
 
 const realRows = bench.realText.rows.map((r) =>
   '<tr><th scope="row">' + esc(r.task) + '</th><td class="num">' + msText(r.local, 1) + '</td><td class="num">' + msText(r.baseline, 1) +
-  '</td><td class="num">' + (r.local / r.baseline).toFixed(2) + '×</td></tr>').join('');
+  '</td><td class="num">' + (r.baseline ? esc((r.local / r.baseline).toFixed(2)) + '×' : '—') + '</td></tr>').join('');
 const longRows = bench.longInput.map((r) =>
   '<tr><th scope="row">' + esc(r.input) + '</th><td class="num">' + msText(r.local, 0) + '</td><td class="num">' + msText(r.baseline, 0) + '</td></tr>').join('');
-const sourceRows = evalResult.sources.map((s) =>
-  '<tr><th scope="row"><a href="' + esc(s.url) + '">' + esc(s.title) + '</a></th><td>' + esc(s.use) + '</td><td>' +
+const sourceRows = sources.map((s) =>
+  '<tr><th scope="row"><a href="' + esc(s.url) + '">' + esc(s.title) + '</a></th><td>' + esc(s.use) + '</td><td>' + esc(sizeText(s.id)) + '</td><td>' +
   (s.licenseUrl ? '<a href="' + esc(s.licenseUrl) + '">' + esc(s.license) + '</a>' : esc(s.license)) + '</td></tr>').join('');
-const date = evalResult.generatedAt.slice(0, 10);
+const date = String(evalResult.generatedAt).slice(0, 10);
+const sweep = bench.sweep;
 
 const html = `<!doctype html>
 <html lang="en">
@@ -119,6 +158,8 @@ h3 { font-size: 1.05rem; margin: 28px 0 8px; }
 a { color: var(--accent); }
 .meta { color: var(--muted); font-size: .92rem; }
 .note { color: var(--muted); font-size: .92rem; margin: 0 0 12px; max-width: 70ch; }
+ul.note { padding-left: 1.2em; }
+ul.note li { margin: 4px 0; }
 code { background: var(--code); padding: 1px 5px; border-radius: 4px; font-size: .88em; }
 pre { background: var(--code); padding: 12px 14px; border-radius: 8px; overflow-x: auto; font-size: .88rem; }
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 28px 0 8px; }
@@ -146,7 +187,7 @@ footer { margin-top: 56px; color: var(--muted); font-size: .88rem; border-top: 1
 <p class="meta"><a href="./">knayi-myscript</a> · <a href="https://github.com/greenlikeorange/knayi-myscript">GitHub</a></p>
 <h1>Benchmark</h1>
 <p>How ${esc(E.local)} converts and detects Burmese text on public Zawgyi and Unicode data, next to ${esc(E.baseline)}, ${esc(E.tools)} and ${esc(E.rabbit)}.</p>
-<p class="meta">Run on ${esc(date)} · ${esc(bench.machine)} · Node ${esc(bench.node)} · every data set has an open license (see <a href="#sources">sources</a>)</p>
+<p class="meta">Run on ${esc(date)} · ${esc(bench.machine)} · Node ${esc(bench.node)} · every data set has an open license (see <a href="#sources">sources</a>) · see <a href="#limits">limits</a></p>
 </header>
 
 <section class="tiles" aria-label="Highlights">
@@ -154,28 +195,37 @@ ${tiles.map((t) => '<div class="tile"><div class="value">' + esc(t.value) + '</d
 </section>
 
 <h2>Accuracy</h2>
-<p class="note">The best value in each row is in bold. Some rows favour myanmar-tools, because their expected outputs came from Google's own tools; the note under each heading says which.</p>
+<p class="note">In the conversion and detection tables, the best value in each row is in bold. The tables of text flagged as Zawgyi have no bold: a detector can lower them just by calling Zawgyi less often, so read them next to the detection table. Every set is measured on its distinct lines.</p>
 ${evalResult.sections.map((s) => '<h3 id="' + esc(s.id) + '">' + esc(s.title) + '</h3>\n<p class="note">' + code(s.note) + '</p>\n' + sectionTable(s)).join('\n')}
 
 <h2 id="speed">Speed</h2>
 <h3>Real text</h3>
-<p class="note">${num(bench.realText.lines)} lines of FLORES-200 and Wikipedia, and their Zawgyi form made by Rabbit. Mean of 10 runs after 3 warm-ups. A ratio below 1 means ${esc(E.local)} is faster.</p>
+<p class="note">${num(bench.realText.lines)} distinct lines of FLORES-200 and Wikipedia, and their Zawgyi form made by Rabbit. Mean of 10 runs after 3 warm-ups. Timings depend on the machine, so compare the ratio: below 1 means ${esc(E.local)} is faster.</p>
 <div class="scroll"><table><thead><tr><th scope="col">Task</th><th scope="col" class="num">${esc(E.local)}</th><th scope="col" class="num">${esc(E.baseline)}</th><th scope="col" class="num">ratio</th></tr></thead><tbody>${realRows}</tbody></table></div>
 <h3>Long input</h3>
 <p class="note">Inputs that took quadratic time before 2.9.1. One run each.</p>
 <div class="scroll"><table><thead><tr><th scope="col">Input</th><th scope="col" class="num">${esc(E.local)}</th><th scope="col" class="num">${esc(E.baseline)}</th></tr></thead><tbody>${longRows}</tbody></table></div>
-${bench.sweep ? '<p class="note">Sweep: every Myanmar code point repeated 30,000 times and every pair of marks repeated 10,000 times, through every call form. ' +
-  num(bench.sweep.runs) + ' runs, slowest ' + bench.sweep.slowest.toFixed(0) + ' ms, ' + bench.sweep.slow.length + ' over ' + bench.sweep.limit + ' ms.</p>' : ''}
+${sweep ? '<p class="note">Sweep of ' + num(sweep.inputs) + ' long inputs: every Myanmar code point repeated 30,000 times, every ordered pair of ' +
+  num(sweep.marks) + ' marks repeated 10,000 times, and three base letters each followed by every mark, through 8 call forms. ' +
+  num(sweep.runs) + ' runs, slowest ' + msText(sweep.slowest, 0) + ', ' + num(sweep.slow.length) + ' over ' + msText(sweep.limit, 0) + '.</p>' : ''}
+
+<h2 id="limits">Limits</h2>
+<ul class="note">
+<li>The reference pairs are few, and both sets come from Google's i18n work. CLDR's expected output follows ICU, the converter myanmar-tools ships, and in at least one pair it expects ICU's own ordering of asat before tall aa.</li>
+<li>Exact match counts canonically equivalent spellings as different; the NFC column does not.</li>
+<li>The round trip uses Rabbit to make the Zawgyi input, so Rabbit is not scored on it.</li>
+<li>The Unicode sets contain a few lines of real Zawgyi text, so their labels are slightly noisy.</li>
+<li>The Wikipedia and GlotCC rows come from the current revision of those datasets; the Wikipedia rows are 25 random blocks picked with a fixed seed.</li>
+<li>Timings are from one machine. Compare ratios, not absolute times.</li>
+</ul>
 
 <h2 id="sources">Sources and licenses</h2>
-<p class="note">The data is downloaded when the benchmark runs and is not copied into this repository. GitHub files are pinned to a commit, mC4 to a revision, and every download to a sha256. Only aggregate numbers are published here.</p>
-<div class="scroll"><table><thead><tr><th scope="col">Data</th><th scope="col">Used for</th><th scope="col">License</th></tr></thead><tbody>${sourceRows}</tbody></table></div>
+<p class="note">The data is downloaded when the benchmark runs and is not copied into this repository. Every download must match a pinned sha256; GitHub files are also pinned to a commit, mC4 to a revision and Okell to a Zenodo record. Only aggregate numbers are published here.</p>
+<div class="scroll"><table><thead><tr><th scope="col">Data</th><th scope="col">Used for</th><th scope="col">Size</th><th scope="col">License</th></tr></thead><tbody>${sourceRows}</tbody></table></div>
 
 <h2 id="reproduce">Reproduce</h2>
-<pre>npm run eval -- --json eval.json
-npm run bench -- --sweep --json bench.json
-node scripts/eval/report.mjs eval.json bench.json</pre>
-<p class="note">Raw results: <a href="benchmark.json">benchmark.json</a>. Method and caveats: <a href="https://github.com/greenlikeorange/knayi-myscript/blob/master/scripts/eval/README.md">scripts/eval/README.md</a>.</p>
+<pre>npm run bench:page</pre>
+<p class="note">That runs <code>npm run eval</code> and <code>npm run bench -- --sweep</code> and rebuilds this page. Raw results: <a href="benchmark.json">benchmark.json</a>. Method: <a href="https://github.com/greenlikeorange/knayi-myscript/blob/master/scripts/eval/README.md">scripts/eval/README.md</a>.</p>
 
 <footer>Generated by scripts/eval/report.mjs on ${esc(evalResult.generatedAt)}.</footer>
 </main>
