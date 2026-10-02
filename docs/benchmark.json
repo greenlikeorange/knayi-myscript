@@ -1,6 +1,6 @@
 {
   "eval": {
-    "generatedAt": "2026-10-02T17:56:28.135Z",
+    "generatedAt": "2026-10-02T19:10:25.231Z",
     "node": "v26.5.0",
     "platform": "Darwin 27.0.0",
     "withUnlicensed": false,
@@ -773,7 +773,7 @@
     ]
   },
   "bench": {
-    "generatedAt": "2026-10-02T17:56:28.265Z",
+    "generatedAt": "2026-10-02T19:10:25.367Z",
     "machine": "Apple M3 Max, Darwin 27.0.0",
     "node": "v26.5.0",
     "engines": {
@@ -785,73 +785,73 @@
       "rows": [
         {
           "task": "fontDetect",
-          "local": 33.8635416,
-          "baseline": 32.9879708
+          "local": 36.2829707,
+          "baseline": 35.4021499
         },
         {
           "task": "fontConvert Zawgyi → Unicode, source detected",
-          "local": 127.7459916,
-          "baseline": 128.76352500000002
+          "local": 138.85711650000002,
+          "baseline": 137.64115840000002
         },
         {
           "task": "fontConvert Unicode → Zawgyi",
-          "local": 108.61583769999997,
-          "baseline": 106.93188339999999
+          "local": 119.05647919999998,
+          "baseline": 115.85270820000001
         },
         {
           "task": "syllBreak",
-          "local": 41.23194149999999,
-          "baseline": 32.2836165
+          "local": 42.5941793,
+          "baseline": 33.84385819999999
         },
         {
           "task": "normalize",
-          "local": 159.4002876,
-          "baseline": 165.1697541
+          "local": 163.8638666,
+          "baseline": 169.4047
         }
       ]
     },
     "longInput": [
       {
         "input": "fontConvert Zawgyi → Unicode, stacked ka + 20k alternating vowel signs",
-        "local": 0.498583,
-        "baseline": 412.245833
+        "local": 0.483,
+        "baseline": 444.666583
       },
       {
         "input": "fontConvert Zawgyi → Unicode, stacked ka + 40k alternating vowel signs",
-        "local": 0.848083,
-        "baseline": 1627.0065
+        "local": 0.881416,
+        "baseline": 1751.187209
       },
       {
         "input": "fontConvert Zawgyi → Unicode, stacked ka + 80k alternating vowel signs",
-        "local": 1.813667,
-        "baseline": 6449.164084
+        "local": 1.861,
+        "baseline": 7013.905542
       },
       {
         "input": "fontConvert Zawgyi → Unicode, kinzi + 80k alternating vowel signs",
-        "local": 1.901958,
-        "baseline": 6451.029334
+        "local": 1.867667,
+        "baseline": 7040.169459
       },
       {
         "input": "normalize, 50k × ဝ",
-        "local": 4.62175,
-        "baseline": 63.105625
+        "local": 3.881291,
+        "baseline": 72.032125
       },
       {
         "input": "normalize, 100k × ဝ",
-        "local": 8.708792,
-        "baseline": 576.479084
+        "local": 8.456542,
+        "baseline": 715.548875
       },
       {
         "input": "normalize, 200k × ဝ",
-        "local": 17.043667,
-        "baseline": 3305.729459
+        "local": 17.917667,
+        "baseline": 4034.071291
       }
     ],
     "sweep": {
       "runs": 8472,
       "inputs": 1059,
       "marks": 29,
-      "slowest": 10.998958,
+      "slowest": 11.364417,
       "limit": 250,
       "slow": []
     }
