@@ -5,11 +5,13 @@
 ```bash
 npm run eval                 # accuracy tables
 npm run eval -- --json out.json
+npm run eval -- --with-unlicensed   # also the 2018 query log, which has no license (local use only)
 npm run bench                # speed on real text and long input
 npm run bench -- --sweep     # also every code point and mark pair as a long input
+npm run bench:page           # run both and rebuild docs/benchmark.html and docs/benchmark.json
 ```
 
-They need Node 22 or newer and network access the first time. Downloads go to `.eval-cache/` (ignored by git) and are reused after that. Nothing is copied into the repository: some sources have no license or a non-commercial one.
+They need Node 22 or newer and network access the first time. Downloads go to `.eval-cache/` (ignored by git) and are reused after that. Nothing is copied into the repository.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
@@ -26,7 +28,7 @@ There is no large public corpus of human-typed Zawgyi with a human-checked Unico
 | --- | --- | --- | --- | --- |
 | [google/language-resources `zawgyi_unicode_test.tsv`](https://github.com/google/language-resources/blob/master/my/zawgyi_unicode_test.tsv) | conversion, gold | 82 pairs | Apache-2.0 | Real snippets, one per Zawgyi code point. Unicode written by Google. |
 | [CLDR `my-t-my-s0-zawgyi.txt`](https://github.com/unicode-org/cldr/blob/main/common/testData/transforms/my-t-my-s0-zawgyi.txt) | conversion, gold | 93 pairs | Unicode License | Expected output follows ICU, the converter myanmar-tools ships. |
-| [sven-oly/Zawgyi-Unicode](https://github.com/sven-oly/Zawgyi-Unicode) 2018 top 10k search queries | detection | 8,481 labelled queries | none stated | Real typing. Labels come from myanmar-tools; only rows where its C++ and JS detectors agree are used. Contains adult queries. |
+| [sven-oly/Zawgyi-Unicode](https://github.com/sven-oly/Zawgyi-Unicode) 2018 top 10k search queries | detection, **opt-in only** | 8,481 labelled queries | none stated | Read only with `--with-unlicensed` and never published. Real typing. Labels come from myanmar-tools; only rows where its C++ and JS detectors agree are used. Contains adult queries. |
 | [WaitZar `words.zawgyi.txt`](https://github.com/yathit/waitzar/blob/master/FontConvertTester/words.zawgyi.txt) | detection | 2,404 words | Apache-2.0 | Hand-typed Zawgyi dictionary words. |
 | [FLORES-200](https://github.com/facebookresearch/flores/tree/main/flores200) `mya_Mymr` dev + devtest | Unicode flagged as Zawgyi | 2,009 sentences | CC BY-SA 4.0 | Clean, translated by professionals. |
 | [Burmese Wikipedia](https://huggingface.co/datasets/wikimedia/wikipedia) `20231101.my` | Unicode flagged as Zawgyi; round trip; speed | 1,000 articles, sampled | CC BY-SA | Rows 0–99, 10,000–10,099, … through the datasets-server. |
@@ -52,3 +54,11 @@ Rows whose labels or expected outputs came from Google's tools favour myanmar-to
 - **Real text:** FLORES and the Wikipedia sample, with their Zawgyi form made by Rabbit. Mean of 10 runs after 3 warm-ups.
 - **Long input:** the inputs that took quadratic time before 2.9.1, with a stacked consonant in front so the conversion reaches the rule that was slow. One run each.
 - **Sweep (`--sweep`):** every Myanmar code point repeated 30,000 times and every pair of marks repeated 10,000 times, through every call form. It flags any run over 250 ms.
+
+## Published page
+
+`npm run bench:page` runs both scripts and `report.mjs`, which writes `docs/benchmark.html` and the raw `docs/benchmark.json`. GitHub Pages serves `docs/` from `master`, so the page appears at <https://knayi-myscript.kny.co/benchmark.html> once it is merged.
+
+- **Licensed data only.** `report.mjs` refuses results made with `--with-unlicensed`, so the page only uses openly licensed data.
+- **Aggregate numbers only.** It publishes percentages and timings, never the text itself, and lists every source with its license.
+- **Rebuild on release.** Run `npm run bench:page` before a release and commit the two files. The numbers depend on the machine; the page says which one was used.

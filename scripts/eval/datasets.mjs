@@ -112,7 +112,30 @@ async function hfSample(id) {
 const read = (p) => fs.readFileSync(p, 'utf8').replace(BOM, '');
 const myanmarLines = (text) => text.split('\n').map((l) => l.trim()).filter((l) => MYANMAR.test(l));
 
-export async function loadAll() {
+// Where each data set comes from and under which terms. `unlicensed` sources are only read with --with-unlicensed
+// and are never part of the published benchmark.
+export const SOURCES = [
+  { id: 'google', title: 'google/language-resources zawgyi_unicode_test.tsv', url: 'https://github.com/google/language-resources/blob/master/my/zawgyi_unicode_test.tsv',
+    license: 'Apache-2.0', licenseUrl: 'https://github.com/google/language-resources/blob/master/LICENSE', use: 'Conversion, gold pairs' },
+  { id: 'cldr', title: 'Unicode CLDR my-t-my-s0-zawgyi.txt', url: 'https://github.com/unicode-org/cldr/blob/main/common/testData/transforms/my-t-my-s0-zawgyi.txt',
+    license: 'Unicode License V3', licenseUrl: 'https://github.com/unicode-org/cldr/blob/main/LICENSE', use: 'Conversion, gold pairs' },
+  { id: 'waitzar', title: 'WaitZar words.zawgyi.txt', url: 'https://github.com/yathit/waitzar/blob/master/FontConvertTester/words.zawgyi.txt',
+    license: 'Apache-2.0', licenseUrl: 'https://github.com/yathit/waitzar/blob/master/LICENSE', use: 'Detection of hand-typed Zawgyi' },
+  { id: 'flores', title: 'FLORES-200 mya_Mymr (dev + devtest)', url: 'https://github.com/facebookresearch/flores/tree/main/flores200',
+    license: 'CC BY-SA 4.0', licenseUrl: 'https://creativecommons.org/licenses/by-sa/4.0/', use: 'Unicode flagged as Zawgyi; speed' },
+  { id: 'wikipedia', title: 'Burmese Wikipedia (wikimedia/wikipedia 20231101.my), 1,000 articles', url: 'https://huggingface.co/datasets/wikimedia/wikipedia',
+    license: 'CC BY-SA 3.0 and GFDL', licenseUrl: 'https://creativecommons.org/licenses/by-sa/3.0/', use: 'Unicode flagged as Zawgyi; round trip; speed' },
+  { id: 'okell', title: 'John Okell, A Corpus of Modern Burmese', url: 'https://zenodo.org/records/1202324',
+    license: 'CC BY 4.0', licenseUrl: 'https://creativecommons.org/licenses/by/4.0/', use: 'Unicode flagged as Zawgyi' },
+  { id: 'glotcc', title: "GlotCC-V1 Shan, Mon, S'gaw Karen, Pa'o", url: 'https://huggingface.co/datasets/cis-lmu/GlotCC-V1',
+    license: 'CC0 1.0 (text from Common Crawl, whose terms of use apply)', licenseUrl: 'https://creativecommons.org/publicdomain/zero/1.0/', use: 'Other Myanmar-script languages flagged as Zawgyi' },
+  { id: 'mc4', title: 'mC4 c4-my validation (allenai/c4)', url: 'https://huggingface.co/datasets/allenai/c4',
+    license: 'ODC-BY (text from Common Crawl, whose terms of use apply)', licenseUrl: 'https://opendatacommons.org/licenses/by/1-0/', use: 'Web text without labels' },
+  { id: 'queries', title: 'sven-oly/Zawgyi-Unicode 2018 top 10k search queries', url: 'https://github.com/sven-oly/Zawgyi-Unicode',
+    license: 'none stated', licenseUrl: null, use: 'Detection of real search queries (opt-in only)', unlicensed: true }
+];
+
+export async function loadAll({ withUnlicensed = false } = {}) {
   const google = read(await file('google')).split('\n').slice(1)
     .map((l) => l.split('\t'))
     .filter((r) => r.length >= 3 && r[1] && r[2] && !/EXAMPLE NEEDED/.test(r.join(' ')))
@@ -124,9 +147,10 @@ export async function loadAll() {
     .filter((r) => r.length >= 2 && r[0] && r[1])
     .map((r) => [r[0], r[1].trimEnd()]);
 
+  // No license is stated for the query log, so it is only read on request.
   // Columns: query, freq, then the C++ and the JS myanmar-tools detector (p, converted, same?, class).
   // A row is labelled only when both detectors give the same class, Z (Zawgyi) or U (Unicode).
-  const queries = read(await file('queries')).split('\n').slice(2)
+  const queries = !withUnlicensed ? null : read(await file('queries')).split('\n').slice(2)
     .map((l) => l.split('\t'))
     .filter((r) => r.length > 9 && r[0] && r[5] === r[9] && (r[5] === 'Z' || r[5] === 'U'))
     .map((r) => ({ text: r[0], label: r[5] === 'Z' ? 'zawgyi' : 'unicode' }));

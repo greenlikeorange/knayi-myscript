@@ -1,15 +1,16 @@
 // Speed of this checkout next to the published baseline, on real text and on long inputs.
-// Usage: node scripts/eval/bench.mjs [--sweep] [--skip-baseline-long]
+// Usage: node scripts/eval/bench.mjs [--sweep] [--skip-baseline-long] [--json bench.json]
 //   --sweep               also run every Myanmar code point and mark pair as a long input (this checkout only)
 //   --skip-baseline-long  skip the baseline on long inputs (2.8.3 takes several seconds on them)
+import fs from 'node:fs';
 import os from 'node:os';
 import { loadAll } from './datasets.mjs';
 import { loadEngines } from './engines.mjs';
 
 const args = process.argv.slice(2);
+const jsonOut = args.includes('--json') ? args[args.indexOf('--json') + 1] : null;
 const data = await loadAll();
 const E = loadEngines();
-const versions = [E.local, E.baseline];
 const cp = (n) => String.fromCodePoint(n);
 
 const ms = (fn) => { const start = process.hrtime.bigint(); fn(); return Number(process.hrtime.bigint() - start) / 1e6; };
@@ -20,8 +21,12 @@ function mean(fn, warmups = 3, runs = 10) {
   return total / runs;
 }
 
-console.log('# knayi benchmark\n');
-console.log(os.cpus()[0].model + ', ' + os.type() + ' ' + os.release() + ', Node ' + process.version + '\n');
+const result = {
+  generatedAt: new Date().toISOString(),
+  machine: os.cpus()[0].model + ', ' + os.type() + ' ' + os.release(),
+  node: process.version,
+  engines: { local: E.local.name, baseline: E.baseline.name }
+};
 
 // Real text: FLORES-200 and the Wikipedia sample, plus their Zawgyi form made by Rabbit.
 const unicode = data.flores.concat(data.wikipedia);
@@ -33,12 +38,10 @@ const tasks = [
   ['syllBreak', (k) => () => unicode.forEach((t) => k.syllBreak(t, 'unicode'))],
   ['normalize', (k) => () => unicode.forEach((t) => k.normalize(t))]
 ];
-console.log('## Real text (' + unicode.length.toLocaleString('en-US') + ' lines, mean of 10 runs after 3 warm-ups)\n');
-console.log('| Task | ' + versions.map((v) => v.name).join(' | ') + ' |');
-console.log('| --- | ' + versions.map(() => '---:').join(' | ') + ' |');
-for (const [name, make] of tasks) {
-  console.log('| ' + name + ' | ' + versions.map((v) => mean(make(v.lib)).toFixed(1) + ' ms').join(' | ') + ' |');
-}
+result.realText = {
+  lines: unicode.length,
+  rows: tasks.map(([task, make]) => ({ task, local: mean(make(E.local.lib)), baseline: mean(make(E.baseline.lib)) }))
+};
 
 // Long inputs that took quadratic time in 2.8.3 and 2.9.0. One run each.
 // The leading stacked ka (U+1060) makes the conversion reach the rule that was quadratic.
@@ -47,13 +50,12 @@ const long = [
     (k) => k.fontConvert(cp(0x1000) + cp(0x1060) + (cp(0x102c) + cp(0x102d)).repeat(n / 2), 'unicode', 'zawgyi')]),
   ...[50000, 100000, 200000].map((n) => ['normalize, ' + n / 1000 + 'k × ' + cp(0x101d), (k) => k.normalize(cp(0x101d).repeat(n))])
 ];
-const longVersions = args.includes('--skip-baseline-long') ? [E.local] : versions;
-console.log('\n## Long input (one run)\n');
-console.log('| Input | ' + longVersions.map((v) => v.name).join(' | ') + ' |');
-console.log('| --- | ' + longVersions.map(() => '---:').join(' | ') + ' |');
-for (const [name, run] of long) {
-  console.log('| ' + name + ' | ' + longVersions.map((v) => ms(() => run(v.lib)).toFixed(0) + ' ms').join(' | ') + ' |');
-}
+const skipBaseline = args.includes('--skip-baseline-long');
+result.longInput = long.map(([input, run]) => ({
+  input,
+  local: ms(() => run(E.local.lib)),
+  baseline: skipBaseline ? null : ms(() => run(E.baseline.lib))
+}));
 
 if (args.includes('--sweep')) {
   // Every Myanmar code point repeated, and every pair of marks alternating, through every call form.
@@ -85,7 +87,25 @@ if (args.includes('--sweep')) {
       if (t > 250) slow.push(name + ' on ' + label + ': ' + t.toFixed(0) + ' ms');
     }
   }
-  console.log('\n## Sweep (' + E.local.name + ')\n');
-  console.log(runs.toLocaleString('en-US') + ' runs, slowest ' + slowest.toFixed(0) + ' ms, over 250 ms: ' + slow.length);
-  slow.slice(0, 20).forEach((line) => console.log('- ' + line));
+  result.sweep = { runs, slowest, limit: 250, slow };
+}
+
+// Markdown for the console.
+const local = E.local.name + ' (this checkout)';
+console.log('# knayi benchmark\n\n' + result.machine + ', Node ' + result.node + '\n');
+console.log('## Real text (' + result.realText.lines.toLocaleString('en-US') + ' lines, mean of 10 runs after 3 warm-ups)\n');
+console.log('| Task | ' + local + ' | ' + E.baseline.name + ' |\n| --- | ---: | ---: |');
+for (const r of result.realText.rows) console.log('| ' + r.task + ' | ' + r.local.toFixed(1) + ' ms | ' + r.baseline.toFixed(1) + ' ms |');
+console.log('\n## Long input (one run)\n');
+console.log('| Input | ' + local + ' | ' + E.baseline.name + ' |\n| --- | ---: | ---: |');
+for (const r of result.longInput) console.log('| ' + r.input + ' | ' + r.local.toFixed(0) + ' ms | ' + (r.baseline == null ? 'skipped' : r.baseline.toFixed(0) + ' ms') + ' |');
+if (result.sweep) {
+  console.log('\n## Sweep (' + local + ')\n');
+  console.log(result.sweep.runs.toLocaleString('en-US') + ' runs, slowest ' + result.sweep.slowest.toFixed(0) + ' ms, over 250 ms: ' + result.sweep.slow.length);
+  result.sweep.slow.slice(0, 20).forEach((line) => console.log('- ' + line));
+}
+
+if (jsonOut) {
+  fs.writeFileSync(jsonOut, JSON.stringify(result, null, 2) + '\n');
+  console.error('wrote ' + jsonOut);
 }

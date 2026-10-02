@@ -55,7 +55,7 @@ export function loadEngines() {
   };
 
   return {
-    local: knayiEngine(local, 'knayi ' + local.version + ' (this checkout)'),
+    local: { ...knayiEngine(local, 'knayi ' + local.version), checkout: true },
     baseline: knayiEngine(baseline, 'knayi ' + baseline.version),
     tools: {
       name: 'myanmar-tools ' + MYANMAR_TOOLS,
