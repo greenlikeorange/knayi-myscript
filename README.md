@@ -109,7 +109,7 @@ The rule scorer does not count a consonant, `U+1039`, consonant sequence such as
 
 Returns a string. `targetFontType` is required. When `originalFontType` is omitted, `fontDetect` chooses it.
 
-When the two fonts differ, spelling fix runs on the source font first. When they are the same, the trimmed text is returned and spelling fix does not run.
+The text is trimmed first. Zero-width spaces (`U+200B`) and non-joiners (`U+200C`) are kept, because they mark word breaks. When the two fonts are the same, the trimmed text is returned.
 
 ```javascript
 knayi.fontConvert('မဂၤလာပါ', 'unicode', 'zawgyi') // 'မင်္ဂလာပါ'
@@ -122,7 +122,37 @@ knayi.fontConvert(null, 'unicode') // ''
 knayi.fontConvert('က') // 'က'  (no target font; warns)
 ```
 
-`fontConvert.debugging(content, targetFontType, originalFontType)` returns `{ to, from, matched_patterns, steps }`. `steps` is an array of strings. The last step equals `fontConvert` for the same arguments. `matched_patterns` is an array of pattern source strings.
+`fontConvert.debugging(content, targetFontType, originalFontType)` returns `{ to, from, matched_patterns, steps }`. `steps` is an array of strings. The last step equals `fontConvert` for the same arguments. From Unicode, `matched_patterns` holds the source of each rule pattern that matched. From Zawgyi or Win, it names each stage that changed the text: `sequences`, `glyphs`, `syllables`, `zero as wa`, `NFC`.
+
+### Zawgyi to Unicode
+
+Zawgyi stores text in the order the glyphs are drawn: ေ and medial ra before the consonant, kinzi and stacked consonants after it, and the marks in any order. knayi reads each Zawgyi glyph as Unicode characters and writes every syllable in Unicode storage order ([UTN #11](https://www.unicode.org/notes/tn11/)). Win fonts use the same rules.
+
+```javascript
+knayi.fontConvert('ေယာက္်ား', 'unicode', 'zawgyi') // 'ယောက်ျား'
+knayi.fontConvert('ေစ်း', 'unicode', 'zawgyi') // 'ဈေး'
+knayi.fontConvert('ႏို္င္ငံ', 'unicode', 'zawgyi') // 'နိုင်ငံ'
+knayi.fontConvert('ၿမိဳ ့', 'unicode', 'zawgyi') // 'မြို့'
+```
+
+- **Marks:** a mark typed twice counts once.
+- **Asat on a consonant:** stored right after the consonant, before the medials and vowels: ယောက်ျား, ကျွန်ုပ်, ခ်ျ.
+- **Asat stored last:**
+  - after ာ, as in ကျော်, even when typed before the ာ of a word with no medial (ကော်ဖီ);
+  - with a dot below (ကြောင့်);
+  - after medial ha (ရှ်).
+- **Asat dropped:** typed with ိ or ီ, or on a stacked consonant, an asat is a slip (နိုင်ငံ, ကုလသမဂ္ဂ).
+- **Letters Zawgyi draws alike:**
+  - စ with medial ya is ဈ (ဈေး);
+  - ဥ with a stacked consonant, asat or ာ is ဉ (ပဉ္စ, ဉာဏ်);
+  - ၄ before င်း is ၎ (၎င်း);
+  - ၇ with a vowel sign or medial is ရ (ရေး).
+- **Zero:** `၀` is also ဝ. A zero stays a digit next to a digit or an arithmetic sign, or across a decimal point from a digit (၁၀၀, ၅.၀).
+- **Spaces:** a space typed before a mark only moved the mark, so it is dropped: `ၿမိဳ ့` is မြို့ and `တစ္ခ ု` is တစ်ခု. A line break stays.
+- **Zero-width characters:** a zero-width space or non-joiner typed inside a syllable moves to the end of the syllable.
+- **NFC:** the result is NFC.
+
+Converting from Unicode collapses a mark typed twice in a row, as `spellingFix` does, then applies knayi's pattern rules.
 
 ### Win fonts
 
@@ -137,10 +167,8 @@ knayi.fontConvert('jrefrm', 'unicode') // 'jrefrm'  (no source font: plain ASCII
 
 knayi converts Win to Unicode only. Any other target returns the text unchanged, with an error unless silent.
 
-- Win text is stored in drawing order: ေ and medial ra before the consonant, kinzi and stacked consonants after it. knayi reads each Win glyph as Unicode characters and writes every syllable in Unicode storage order, so `ajumifh` (asat before the dot below) becomes ကြောင့် with the dot below first. A mark typed twice counts once.
-- An asat typed before a vowel sign belongs to the consonant and is stored right after it: `a,musfm;` is ယောက်ျား and `usGefkyf` is ကျွန်ုပ်.
-- `0` is both ဝ and ၀ in Win. A zero next to a digit stays a digit. `ps`, `Mo`, `aMomf` and `OD` become ဈ, ဩ, ဪ and ဦ.
-- The result is NFC.
+- Win text is stored in drawing order, like Zawgyi, and knayi converts it with the same rules (see [Zawgyi to Unicode](#zawgyi-to-unicode)). So `ajumifh` (asat before the dot below) becomes ကြောင့် with the dot below first, `a,musfm;` is ယောက်ျား and `usGefkyf` is ကျွန်ုပ်.
+- `0` is both ဝ and ၀ in Win, and `7` can be ရ, as in Zawgyi. `ps`, `Mo`, `aMomf` and `OD` become ဈ, ဩ, ဪ and ဦ.
 - Text read as ISO-8859-1 instead of Windows-1252 converts the same way.
 - Fractions become text such as ၁/၂. Dingbats become the Unicode symbols they show. The vendor logo at byte 0xB0 is dropped.
 - English typed in another font run is ASCII too. Once the font names are gone, convert only the Win text.

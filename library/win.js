@@ -7,22 +7,20 @@
 // Conversion:
 // 1. Letters Win has no glyph for are typed as look-alike sequences (ps, Mo, aMomf, OD).
 // 2. Each Win glyph becomes Unicode characters, with its role in the syllable.
-// 3. Each syllable is written in Unicode storage order (Unicode Technical Note #11): kinzi, consonant,
-//    stacked consonant, then medials, vowels and tones in their fixed order.
-// 4. A zero that is not part of a number becomes wa, and the result is NFC.
+// 3. Each syllable is written in Unicode storage order (storageOrder.js), a zero that is not part of a
+//    number becomes wa, and the result is NFC.
 //
 // The table covers every code point Win Innwa 4 (2004) maps. Win Researcher, Win Kalaw and the other Win
 // fonts share this encoding. Wwin_Burmese and other ASCII fonts use different mappings and are not covered.
 
-const has = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
+const storageOrder = require('./storageOrder');
 
-// Roles of a glyph in a syllable.
-const BASE = 'base'; // consonant, independent vowel, digit or symbol: starts a syllable
-const PRE = 'pre'; // drawn before the consonant (e, medial ra): belongs to the next base
-const MARK = 'mark'; // medial, vowel sign or tone
-const STACK = 'stack'; // stacked consonant under the base
-const KINZI = 'kinzi'; // kinzi, drawn over the base and stored before it
-const TEXT = 'text'; // anything else: ends the syllable
+const BASE = storageOrder.ROLES.BASE;
+const PRE = storageOrder.ROLES.PRE;
+const MARK = storageOrder.ROLES.MARK;
+const STACK = storageOrder.ROLES.STACK;
+const KINZI = storageOrder.ROLES.KINZI;
+const TEXT = storageOrder.ROLES.TEXT;
 
 const KINZI_TEXT = '\u1004\u103A\u1039';
 
@@ -233,131 +231,15 @@ const SEQUENCES = [
   [/OD/g, '\u1026'] // OD: uu (u + ii)
 ];
 
-// Unicode storage order of what follows the base (Unicode Technical Note #11). Marks in the same group
-// keep the order they were typed in.
-const MARK_ORDER = [
-  '\u103B', // medial ya
-  '\u103C', // medial ra
-  '\u103D', // medial wa
-  '\u103E', // medial ha
-  '\u1031', // e
-  '\u102D\u102E\u1032', // upper vowels
-  '\u102F\u1030', // lower vowels
-  '\u102B\u102C', // aa
-  '\u1036', // anusvara
-  '\u1037', // dot below
-  '\u103A', // asat
-  '\u1038' // visarga
-];
-
-const ASAT = '\u103A';
-// An asat typed before one of these vowel signs belongs to the consonant (see arrange).
-const VOWELS_AFTER_EARLY_ASAT = '\u102B\u102C\u102F\u1030'; // aa, tall aa, u, uu
-
-// A zero that is not next to a digit or an arithmetic sign is wa.
-const ZERO_AS_WA = /(^|[^\u1040-\u1049+\-*\/])\u1040(?![\u1040-\u1049+\-*\/])/g;
-
-const MYANMAR_LETTER = /^[\u1000-\u102A\u103F\u104C-\u104F]$/;
-
-function rank(mark) {
-  for (var i = 0; i < MARK_ORDER.length; i++) {
-    if (MARK_ORDER[i].indexOf(mark) >= 0) return i;
-  }
-  return MARK_ORDER.length;
-}
-
-function glyphOf(ch) {
-  if (has(WIN, ch)) return WIN[ch];
-  // Letters made by the sequences above, and anything the table does not know.
-  return [MYANMAR_LETTER.test(ch) ? BASE : TEXT, ch];
-}
-
-// Each glyph as Unicode characters, still in the order it was typed. For debugging only.
-function glyphs(content) {
-  var out = '';
-  for (var i = 0; i < content.length; i++) {
-    var glyph = glyphOf(content[i]);
-    out += glyph[1] + (glyph[2] || '');
-  }
-  return out;
-}
-
-// Writes each syllable in Unicode order: kinzi, base, stacked consonants, then the marks by MARK_ORDER.
-function arrange(content) {
-  var out = '';
-  var syllable = null;
-  var pending = ''; // e and medial ra waiting for the base they are drawn around
-
-  function close() {
-    if (!syllable) return;
-    var marks = [];
-    syllable.marks.forEach(function (mark) {
-      if (marks.indexOf(mark) < 0) marks.push(mark); // a mark typed twice counts once
-    });
-    // Asat typed before a vowel sign kills the consonant itself, as in yauk-kya (man) and kyun-up (I), and
-    // is stored right after it. Otherwise it follows the vowel, as in kyaw.
-    var asat = marks.indexOf(ASAT);
-    var early = asat >= 0 && marks.slice(asat + 1).some(function (mark) { return VOWELS_AFTER_EARLY_ASAT.indexOf(mark) >= 0; });
-    if (early) marks.splice(asat, 1);
-    marks.sort(function (a, b) { return rank(a) - rank(b); });
-    out += syllable.kinzi + syllable.base + (early ? ASAT : '') + syllable.stack + marks.join('');
-    syllable = null;
-  }
-
-  for (var i = 0; i < content.length; i++) {
-    var glyph = glyphOf(content[i]);
-    var role = glyph[0];
-    var text = glyph[1];
-    var extra = glyph[2] || '';
-    if (role === BASE) {
-      close();
-      syllable = { kinzi: '', base: text, stack: '', marks: pending.split('') };
-      pending = '';
-    } else if (role === PRE) {
-      close();
-      pending += text;
-    } else if (syllable && role !== TEXT) {
-      if (role === STACK) syllable.stack += text;
-      if (role === KINZI) syllable.kinzi = text;
-      var marks = (role === MARK ? text : '') + extra;
-      for (var m = 0; m < marks.length; m++) syllable.marks.push(marks[m]);
-    } else {
-      // Text, or a mark with no base before it: written as it is.
-      close();
-      out += pending + text + extra;
-      pending = '';
-    }
-  }
-  close();
-  return out + pending;
-}
+const FONT = storageOrder.font(WIN, SEQUENCES);
 
 // Win -> Unicode. With debug, returns { matched_patterns, steps } like fontConvert.debugging.
 function toUnicode(content, debug) {
-  var steps = [content];
-  var patterns = [];
-  function step(name, text) {
-    if (text !== steps[steps.length - 1]) {
-      patterns.push(name);
-      steps.push(text);
-    }
-    return text;
-  }
-
-  var text = content;
-  for (var s = 0; s < SEQUENCES.length; s++) {
-    text = text.replace(SEQUENCES[s][0], SEQUENCES[s][1]);
-  }
-  text = step('sequences', text);
-  if (debug) step('glyphs', glyphs(text));
-  var result = step('syllables', arrange(text));
-  result = step('zero as wa', result.replace(ZERO_AS_WA, '$1\u101D'));
-  result = step('NFC', result.normalize('NFC'));
-  return debug ? { matched_patterns: patterns, steps: steps } : result;
+  return storageOrder.toUnicode(content, FONT, debug);
 }
 
 module.exports = {
   toUnicode: toUnicode,
   // For scripts/eval/win-glyphs.mjs, which draws the table for review.
-  tables: { WIN: WIN, SEQUENCES: SEQUENCES, ROLES: { BASE: BASE, PRE: PRE, MARK: MARK, STACK: STACK, KINZI: KINZI, TEXT: TEXT } }
+  tables: { WIN: WIN, SEQUENCES: SEQUENCES, ROLES: storageOrder.ROLES }
 };

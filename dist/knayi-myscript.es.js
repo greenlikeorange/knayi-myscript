@@ -349,90 +349,6 @@ var require_syllable = __commonJS({
             [/\u103b\u1009/g, "\u1081\u106A"]
           ]
         }
-      },
-      zawgyi: {
-        unicode: {
-          oneTime: [
-            // A zero not next to a digit or an operator is the letter wa typed as ၀. Inside numbers it stays a digit.
-            [/(^|[^\u1040-\u1049\+\-\*\/])\u1040(?![\u1040-\u1049\+\-\*\/])/g, "$1\u101D"],
-            [/\u103d|\u1087/g, "\u103E"],
-            [/\u103c/g, "\u103D"],
-            [/[\u103b\u107e-\u1084]/g, "\u103C"],
-            [/[\u103a\u107d]/g, "\u103B"],
-            [/\u1039/g, "\u103A"],
-            [/[\u1094-\u1095]/g, "\u1037"],
-            [/\s([\u1037])/g, "$1"],
-            // remove space infront
-            [/[\u107b\u1093]/g, "\u1039\u1018"],
-            [/\u1033/g, "\u102F"],
-            [/\u1034/g, "\u1030"],
-            [/\u1088/g, "\u103E\u102F"],
-            // [/\u1064/g, '\u1004\u103a\u1039'],
-            [/\u1089/g, "\u103E\u1030"],
-            [/\u108a/g, "\u103D\u103E"],
-            [/\u1061/g, "\u1039\u1001"],
-            [/\u108f/g, "\u1014"],
-            [/\u1062/g, "\u1039\u1002"],
-            [/\u1063/g, "\u1039\u1003"],
-            [/\u1065/g, "\u1039\u1005"],
-            [/[\u1066\u1067]/g, "\u1039\u1006"],
-            [/\u1068/g, "\u1039\u1007"],
-            [/\u1069/g, "\u1039\u1005\u103B"],
-            [/\u106a/g, "\u1009"],
-            [/\u106b/g, "\u100A"],
-            [/\u106c/g, "\u1039\u100B"],
-            [/\u106d/g, "\u1039\u100C"],
-            [/\u106e/g, "\u100D\u1039\u100D"],
-            [/\u106f/g, "\u100D\u1039\u100E"],
-            [/\u1070/g, "\u1039\u100F"],
-            [/[\u1071\u1072]/g, "\u1039\u1010"],
-            [/[\u1073\u1074]/g, "\u1039\u1011"],
-            [/\u1075/g, "\u1039\u1012"],
-            [/\u1076/g, "\u1039\u1013"],
-            [/\u1077/g, "\u1039\u1014"],
-            [/\u1078/g, "\u1039\u1015"],
-            [/\u1079/g, "\u1039\u1016"],
-            [/\u1079/g, "\u1039\u1016"],
-            [/\u107a/g, "\u1039\u1017"],
-            [/\u107c/g, "\u1039\u1019"],
-            [/\u1085/g, "\u1039\u101C"],
-            [/\u1086/g, "\u103F"],
-            [/\u1090/g, "\u101B"],
-            [/\u1091/g, "\u100F\u1039\u100D"],
-            [/\u1092/g, "\u100B\u1039\u100C"],
-            [/\u1097/g, "\u100B\u1039\u100B"],
-            [/\u1060/g, "\u1039\u1000"],
-            [/\u105a/g, "\u102B\u103A"],
-            [/\u104e/g, "\u104E\u1004\u103A\u1038"],
-            [/\u1025\u103a/g, "\u1009\u103A"],
-            // The tail is optional so each run of marks is read once (linear time); without a tail, $2 is empty and the run stays.
-            // The third item is the character the rule needs; the rule is skipped when the text has none.
-            [/([\u102b\u102c\u102d\u102e\u102f\u1030\u1031\u1032\u1036\u1037\u1038\u103b\u103c\u103d\u103e]+)(\u1039[\u1000-\u1021])?/g, "$2$1", "\u1039"],
-            // eg: က + ျ ြ ွ ှ ံ ့ ိ ီ ု ူ +​ င်္ီ
-            [/([\u1000-\u1021])([\u103b\u103c\u103d\u103e\u1037\u102f\u1030\u102d\u102e\u1036]*)\u108b/g, "$1\u1064$2\u102D"],
-            [/([\u1000-\u1021])([\u103b\u103c\u103d\u103e\u1037\u102f\u1030\u102d\u102e\u1036]*)\u108c/g, "$1\u1064$2\u102E"],
-            [/([\u1000-\u1021])([\u103b\u103c\u103d\u103e\u1037\u102f\u1030\u102d\u102e\u1036]*)\u108d/g, "$1\u1064$2\u1036"],
-            [/\u108e/g, "\u102D\u1036"],
-            [/\u103c([\u1000-\u1021])/g, "$1\u103C"],
-            [/\u1031([\u1000-\u1021])/g, "$1\u1031"],
-            [/([\u102b\u102c\u102d\u102e\u102f\u1030\u1031\u1032\u1036\u1037\u1038\u103b\u103c\u103d\u103e]+)(\u1064)?/g, "$2$1", "\u1064"],
-            // [/([\u103b\u103c\u103d])(\u1064)/g, '$2$1'],
-            [/\u1031(\u1064)/g, "$1\u1031"],
-            [/([\u1000-\u1021])(\u1064)/g, "$2$1"],
-            [/\u0020(\u1039[\u1000-\u1021])/g, "$1"],
-            [/\u1064/g, "\u1004\u103A\u1039"]
-          ],
-          asLongAsMatch: [
-            [/([\u102b\u102c\u102d\u102e\u1031\u102f\u1030\u1032\u1036\u1037\u1038])([\u103b\u103c\u103d\u103e])/g, "$2$1"],
-            [/\u103d([\u103b\u103c])/g, "$1\u103D"],
-            [/\u103e([\u103b\u103c\u103d])/g, "$1\u103E"],
-            [/([\u102f\u1030])([\u102d\u102e])/g, "$2$1"],
-            [/\u1036([\u102d\u102e\u102f\u1030])/g, "$1\u1036"],
-            [/\u1037([\u1031\u102c\u102b\u102f\u1030\u1032])/g, "$1\u1037"],
-            [/([\u1031\u102b\u102c])(\u1039[\u1000-\u1021])/g, "$2$1"],
-            [/([\u102b\u102c])(\u1004\u103a\u1039)/g, "$2$1"]
-          ]
-        }
       }
     };
     var C = "\u1000-\u1021";
@@ -706,7 +622,6 @@ var require_syllable = __commonJS({
       return re.test(content);
     }
     function replaceOnce(content, rule) {
-      if (rule[2] && content.indexOf(rule[2]) === -1) return content;
       var re = rule[0];
       re.lastIndex = 0;
       return content.replace(re, rule[1]);
@@ -758,42 +673,259 @@ var require_syllable = __commonJS({
   }
 });
 
-// library/spellingCheck.js
-var require_spellingCheck = __commonJS({
-  "library/spellingCheck.js"(exports, module) {
-    var fontDetect2 = require_detector();
-    var globalOptions = require_globalOptions();
-    var gate = require_contentGate();
-    var syllable = require_syllable();
-    function spellingFix2(content, fontType) {
-      content = gate.toText(content);
-      if (gate.isMissing(content)) {
-        if (!globalOptions.isSilentMode()) console.warn("Content must be specified on knayi.spellingFix.");
-        return "";
-      }
-      if (!gate.hasMyanmar(content))
-        return content;
-      if (!fontType)
-        fontType = fontDetect2(content);
-      else
-        fontType = gate.resolveFont(fontType) || fontType;
-      content = gate.cleanText(content, true);
-      return syllable.collapseMarks(content, fontType);
-    }
-    module.exports = spellingFix2;
-  }
-});
-
-// library/win.js
-var require_win = __commonJS({
-  "library/win.js"(exports, module) {
-    var has = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
+// library/storageOrder.js
+var require_storageOrder = __commonJS({
+  "library/storageOrder.js"(exports, module) {
     var BASE = "base";
     var PRE = "pre";
     var MARK = "mark";
     var STACK = "stack";
     var KINZI = "kinzi";
     var TEXT = "text";
+    var MARK_ORDER = [
+      "\u103B",
+      // medial ya
+      "\u103C",
+      // medial ra
+      "\u103D",
+      // medial wa
+      "\u103E",
+      // medial ha
+      "\u1031",
+      // e
+      "\u102D\u102E\u1032",
+      // upper vowels
+      "\u102F\u1030",
+      // lower vowels
+      "\u102B\u102C",
+      // aa
+      "\u1036",
+      // anusvara
+      "\u1037",
+      // dot below
+      "\u103A",
+      // asat
+      "\u1038"
+      // visarga
+    ];
+    var LAST_MEDIAL = 3;
+    var ASAT = "\u103A";
+    var VISARGA = "\u1038";
+    var AA = "\u102B\u102C";
+    var I = "\u102D\u102E";
+    var DOT_BELOW = "\u1037";
+    var MEDIALS = "\u103B\u103C\u103D\u103E";
+    var MEDIAL_YA = "\u103B";
+    var MEDIAL_HA = "\u103E";
+    var CA = "\u1005";
+    var JHA = "\u1008";
+    var U = "\u1025";
+    var NYA = "\u1009";
+    var SEVEN = "\u1047";
+    var RA = "\u101B";
+    var DIGIT = /[\u1040-\u1049]/;
+    var NEXT_TO_ZERO_IN_NUMBER = /[\u1040-\u1049+\-*\/]/;
+    var DECIMAL_POINT = /[.,]/;
+    var RANK = {};
+    MARK_ORDER.forEach(function(group, index) {
+      for (var i = 0; i < group.length; i++) RANK[group[i]] = index;
+    });
+    function rank(mark) {
+      var index = RANK[mark];
+      return index === void 0 ? MARK_ORDER.length : index;
+    }
+    function hasAny(marks, set, end) {
+      var stop = end === void 0 ? marks.length : end;
+      for (var i = 0; i < stop; i++) {
+        if (set.indexOf(marks[i]) >= 0) return true;
+      }
+      return false;
+    }
+    function isMyanmarLetter(code) {
+      return code >= 4096 && code <= 4138 || code === 4159 || code >= 4172 && code <= 4175;
+    }
+    function isSpace(code) {
+      return code === 32 || code === 160;
+    }
+    function isZeroWidth(code) {
+      return code === 8203 || code === 8204 || code === 8205 || code === 8288 || code === 65279;
+    }
+    function order(syllable) {
+      var base = syllable.base;
+      var stack = syllable.stack;
+      if (!syllable.marks.length && !stack) return syllable.kinzi + base;
+      var marks = [];
+      for (var m = 0; m < syllable.marks.length; m++) {
+        if (marks.indexOf(syllable.marks[m]) < 0) marks.push(syllable.marks[m]);
+      }
+      var early = false;
+      var afterMedials = false;
+      var asat = marks.indexOf(ASAT);
+      var hasAa = hasAny(marks, AA);
+      if (asat >= 0) {
+        var slip = !hasAa && hasAny(marks, I);
+        var last = marks.indexOf(DOT_BELOW) >= 0 || hasAa && (hasAny(marks, AA, asat) || !hasAny(marks, MEDIALS));
+        if (slip || !last) {
+          marks.splice(asat, 1);
+          if (!slip && !stack) {
+            if (marks.indexOf(MEDIAL_HA) >= 0) afterMedials = true;
+            else early = true;
+          }
+        }
+      }
+      var ya = marks.indexOf(MEDIAL_YA);
+      if (ya >= 0 && stack.slice(-1) === CA) {
+        stack = stack.slice(0, -1) + JHA;
+        marks.splice(ya, 1);
+      } else if (ya >= 0 && base === CA && !stack) {
+        base = JHA;
+        marks.splice(ya, 1);
+      }
+      if (base === U && (stack || early || afterMedials || marks.indexOf(ASAT) >= 0 || hasAa)) {
+        base = NYA;
+      }
+      var marksBesidesVisarga = marks.length - (marks.indexOf(VISARGA) >= 0 ? 1 : 0);
+      if (base === SEVEN && (early || afterMedials || marksBesidesVisarga > 0)) {
+        base = RA;
+      }
+      var sorted = [];
+      for (var n = 0; n < marks.length; n++) {
+        var at = sorted.length;
+        while (at > 0 && rank(sorted[at - 1]) > rank(marks[n])) at--;
+        sorted.splice(at, 0, marks[n]);
+      }
+      if (afterMedials) {
+        var medials = 0;
+        while (medials < sorted.length && rank(sorted[medials]) <= LAST_MEDIAL) medials++;
+        sorted.splice(medials, 0, ASAT);
+      }
+      return syllable.kinzi + base + stack + (early ? ASAT : "") + sorted.join("");
+    }
+    function glyph(role, text, extra) {
+      return {
+        role,
+        text,
+        extra,
+        // The characters that join the syllable's marks (for e and medial ra, the next syllable's).
+        marks: ((role === MARK || role === PRE ? text : "") + extra).split("")
+      };
+    }
+    function font(table, sequences) {
+      var glyphs = /* @__PURE__ */ new Map();
+      Object.keys(table).forEach(function(ch) {
+        var entry = table[ch];
+        glyphs.set(ch.charCodeAt(0), glyph(entry[0], entry[1], entry[2] || ""));
+      });
+      for (var code = 4096; code <= 4175; code++) {
+        if (!glyphs.has(code) && isMyanmarLetter(code)) glyphs.set(code, glyph(BASE, String.fromCharCode(code), ""));
+      }
+      return { glyphs, sequences };
+    }
+    function arrange(content, glyphs) {
+      var out = "";
+      var syllable = null;
+      var pending = [];
+      function close() {
+        if (!syllable) return;
+        out += order(syllable) + syllable.after;
+        syllable = null;
+      }
+      function write(text) {
+        close();
+        out += pending.join("") + text;
+        pending = [];
+      }
+      for (var i = 0; i < content.length; i++) {
+        var code = content.charCodeAt(i);
+        var zeroWidth = isZeroWidth(code);
+        if (syllable && (zeroWidth || isSpace(code))) {
+          syllable.after += content.charAt(i);
+          if (zeroWidth) syllable.kept += content.charAt(i);
+          continue;
+        }
+        if (zeroWidth) {
+          out += content.charAt(i);
+          continue;
+        }
+        var g = glyphs.get(code);
+        if (g === void 0) {
+          write(content.charAt(i));
+        } else if (g.role === BASE) {
+          close();
+          syllable = { kinzi: "", base: g.text, stack: "", marks: pending, after: "", kept: "" };
+          pending = [];
+        } else if (g.role === PRE) {
+          close();
+          for (var p = 0; p < g.marks.length; p++) pending.push(g.marks[p]);
+        } else if (syllable && g.role !== TEXT) {
+          syllable.after = syllable.kept;
+          if (g.role === STACK) syllable.stack += g.text;
+          if (g.role === KINZI) syllable.kinzi = g.text;
+          for (var m = 0; m < g.marks.length; m++) syllable.marks.push(g.marks[m]);
+        } else {
+          write(g.text + g.extra);
+        }
+      }
+      close();
+      return out + pending.join("");
+    }
+    function glyphsInTypedOrder(content, glyphs) {
+      var out = "";
+      for (var i = 0; i < content.length; i++) {
+        var g = glyphs.get(content.charCodeAt(i));
+        out += g === void 0 ? content.charAt(i) : g.text + g.extra;
+      }
+      return out;
+    }
+    function zeroAsWa(text) {
+      return text.replace(/\u1040/g, function(zero, at) {
+        var before = text.charAt(at - 1);
+        var after = text.charAt(at + 1);
+        if (NEXT_TO_ZERO_IN_NUMBER.test(before) || NEXT_TO_ZERO_IN_NUMBER.test(after)) return zero;
+        if (DECIMAL_POINT.test(before) && DIGIT.test(text.charAt(at - 2))) return zero;
+        if (DECIMAL_POINT.test(after) && DIGIT.test(text.charAt(at + 2))) return zero;
+        return "\u101D";
+      });
+    }
+    function toUnicode(content, font2, debug) {
+      var steps = [content];
+      var patterns = [];
+      function step(name, text2) {
+        if (text2 !== steps[steps.length - 1]) {
+          patterns.push(name);
+          steps.push(text2);
+        }
+        return text2;
+      }
+      var text = content;
+      for (var s = 0; s < font2.sequences.length; s++) {
+        text = text.replace(font2.sequences[s][0], font2.sequences[s][1]);
+      }
+      text = step("sequences", text);
+      if (debug) step("glyphs", glyphsInTypedOrder(text, font2.glyphs));
+      var result = step("syllables", arrange(text, font2.glyphs));
+      result = step("zero as wa", zeroAsWa(result));
+      result = step("NFC", result.normalize("NFC"));
+      return debug ? { matched_patterns: patterns, steps } : result;
+    }
+    module.exports = {
+      ROLES: { BASE, PRE, MARK, STACK, KINZI, TEXT },
+      font,
+      toUnicode
+    };
+  }
+});
+
+// library/win.js
+var require_win = __commonJS({
+  "library/win.js"(exports, module) {
+    var storageOrder = require_storageOrder();
+    var BASE = storageOrder.ROLES.BASE;
+    var PRE = storageOrder.ROLES.PRE;
+    var MARK = storageOrder.ROLES.MARK;
+    var STACK = storageOrder.ROLES.STACK;
+    var KINZI = storageOrder.ROLES.KINZI;
+    var TEXT = storageOrder.ROLES.TEXT;
     var KINZI_TEXT = "\u1004\u103A\u1039";
     var WIN = {
       // Consonants and independent letters
@@ -1131,126 +1263,205 @@ var require_win = __commonJS({
       [/OD/g, "\u1026"]
       // OD: uu (u + ii)
     ];
-    var MARK_ORDER = [
-      "\u103B",
-      // medial ya
-      "\u103C",
-      // medial ra
-      "\u103D",
-      // medial wa
-      "\u103E",
-      // medial ha
-      "\u1031",
-      // e
-      "\u102D\u102E\u1032",
-      // upper vowels
-      "\u102F\u1030",
-      // lower vowels
-      "\u102B\u102C",
-      // aa
-      "\u1036",
-      // anusvara
-      "\u1037",
-      // dot below
-      "\u103A",
-      // asat
-      "\u1038"
-      // visarga
-    ];
-    var ASAT = "\u103A";
-    var VOWELS_AFTER_EARLY_ASAT = "\u102B\u102C\u102F\u1030";
-    var ZERO_AS_WA = /(^|[^\u1040-\u1049+\-*\/])\u1040(?![\u1040-\u1049+\-*\/])/g;
-    var MYANMAR_LETTER = /^[\u1000-\u102A\u103F\u104C-\u104F]$/;
-    function rank(mark) {
-      for (var i = 0; i < MARK_ORDER.length; i++) {
-        if (MARK_ORDER[i].indexOf(mark) >= 0) return i;
-      }
-      return MARK_ORDER.length;
-    }
-    function glyphOf(ch) {
-      if (has(WIN, ch)) return WIN[ch];
-      return [MYANMAR_LETTER.test(ch) ? BASE : TEXT, ch];
-    }
-    function glyphs(content) {
-      var out = "";
-      for (var i = 0; i < content.length; i++) {
-        var glyph = glyphOf(content[i]);
-        out += glyph[1] + (glyph[2] || "");
-      }
-      return out;
-    }
-    function arrange(content) {
-      var out = "";
-      var syllable = null;
-      var pending = "";
-      function close() {
-        if (!syllable) return;
-        var marks2 = [];
-        syllable.marks.forEach(function(mark) {
-          if (marks2.indexOf(mark) < 0) marks2.push(mark);
-        });
-        var asat = marks2.indexOf(ASAT);
-        var early = asat >= 0 && marks2.slice(asat + 1).some(function(mark) {
-          return VOWELS_AFTER_EARLY_ASAT.indexOf(mark) >= 0;
-        });
-        if (early) marks2.splice(asat, 1);
-        marks2.sort(function(a, b) {
-          return rank(a) - rank(b);
-        });
-        out += syllable.kinzi + syllable.base + (early ? ASAT : "") + syllable.stack + marks2.join("");
-        syllable = null;
-      }
-      for (var i = 0; i < content.length; i++) {
-        var glyph = glyphOf(content[i]);
-        var role = glyph[0];
-        var text = glyph[1];
-        var extra = glyph[2] || "";
-        if (role === BASE) {
-          close();
-          syllable = { kinzi: "", base: text, stack: "", marks: pending.split("") };
-          pending = "";
-        } else if (role === PRE) {
-          close();
-          pending += text;
-        } else if (syllable && role !== TEXT) {
-          if (role === STACK) syllable.stack += text;
-          if (role === KINZI) syllable.kinzi = text;
-          var marks = (role === MARK ? text : "") + extra;
-          for (var m = 0; m < marks.length; m++) syllable.marks.push(marks[m]);
-        } else {
-          close();
-          out += pending + text + extra;
-          pending = "";
-        }
-      }
-      close();
-      return out + pending;
-    }
+    var FONT = storageOrder.font(WIN, SEQUENCES);
     function toUnicode(content, debug) {
-      var steps = [content];
-      var patterns = [];
-      function step(name, text2) {
-        if (text2 !== steps[steps.length - 1]) {
-          patterns.push(name);
-          steps.push(text2);
-        }
-        return text2;
-      }
-      var text = content;
-      for (var s = 0; s < SEQUENCES.length; s++) {
-        text = text.replace(SEQUENCES[s][0], SEQUENCES[s][1]);
-      }
-      text = step("sequences", text);
-      if (debug) step("glyphs", glyphs(text));
-      var result = step("syllables", arrange(text));
-      result = step("zero as wa", result.replace(ZERO_AS_WA, "$1\u101D"));
-      result = step("NFC", result.normalize("NFC"));
-      return debug ? { matched_patterns: patterns, steps } : result;
+      return storageOrder.toUnicode(content, FONT, debug);
     }
     module.exports = {
       toUnicode,
       // For scripts/eval/win-glyphs.mjs, which draws the table for review.
-      tables: { WIN, SEQUENCES, ROLES: { BASE, PRE, MARK, STACK, KINZI, TEXT } }
+      tables: { WIN, SEQUENCES, ROLES: storageOrder.ROLES }
+    };
+  }
+});
+
+// library/zawgyi.js
+var require_zawgyi = __commonJS({
+  "library/zawgyi.js"(exports, module) {
+    var storageOrder = require_storageOrder();
+    var BASE = storageOrder.ROLES.BASE;
+    var PRE = storageOrder.ROLES.PRE;
+    var MARK = storageOrder.ROLES.MARK;
+    var STACK = storageOrder.ROLES.STACK;
+    var KINZI = storageOrder.ROLES.KINZI;
+    var KINZI_TEXT = "\u1004\u103A\u1039";
+    var ZAWGYI = {
+      // Letters in another shape
+      "\u106A": [BASE, "\u1009"],
+      // nya, small, for a mark below
+      "\u106B": [BASE, "\u100A"],
+      // nnya, short
+      "\u108F": [BASE, "\u1014"],
+      // na, short, for a mark below
+      "\u1090": [BASE, "\u101B"],
+      // ra, short, for a mark below
+      "\u1086": [BASE, "\u103F"],
+      // great sa
+      "\u104E": [BASE, "\u104E\u1004\u103A\u1038"],
+      // lagaung, drawn with its nga, asat and visarga
+      // Two consonants in one glyph
+      "\u106E": [BASE, "\u100D\u1039\u100D"],
+      // dda + dda
+      "\u106F": [BASE, "\u100D\u1039\u100E"],
+      // dda + ddha
+      "\u1091": [BASE, "\u100F\u1039\u100D"],
+      // nna + dda
+      "\u1092": [BASE, "\u100B\u1039\u100C"],
+      // tta + ttha
+      "\u1097": [BASE, "\u100B\u1039\u100B"],
+      // tta + tta
+      // Vowel signs, tones and asat
+      "\u102B": [MARK, "\u102B"],
+      // tall aa
+      "\u102C": [MARK, "\u102C"],
+      // aa
+      "\u105A": [MARK, "\u102B\u103A"],
+      // tall aa with asat
+      "\u102D": [MARK, "\u102D"],
+      // i
+      "\u102E": [MARK, "\u102E"],
+      // ii
+      "\u108E": [MARK, "\u102D\u1036"],
+      // i with anusvara
+      "\u102F": [MARK, "\u102F"],
+      // u
+      "\u1033": [MARK, "\u102F"],
+      // u, long
+      "\u1030": [MARK, "\u1030"],
+      // uu
+      "\u1034": [MARK, "\u1030"],
+      // uu, long
+      "\u1031": [PRE, "\u1031"],
+      // e
+      "\u1032": [MARK, "\u1032"],
+      // ai
+      "\u1036": [MARK, "\u1036"],
+      // anusvara
+      "\u1037": [MARK, "\u1037"],
+      // dot below
+      "\u1094": [MARK, "\u1037"],
+      // dot below, moved right
+      "\u1095": [MARK, "\u1037"],
+      // dot below, moved further right
+      "\u1038": [MARK, "\u1038"],
+      // visarga
+      "\u1039": [MARK, "\u103A"],
+      // asat
+      // Kinzi
+      "\u1064": [KINZI, KINZI_TEXT],
+      "\u108B": [KINZI, KINZI_TEXT, "\u102D"],
+      // kinzi with i
+      "\u108C": [KINZI, KINZI_TEXT, "\u102E"],
+      // kinzi with ii
+      "\u108D": [KINZI, KINZI_TEXT, "\u1036"],
+      // kinzi with anusvara
+      // Medials
+      "\u103A": [MARK, "\u103B"],
+      // ya
+      "\u107D": [MARK, "\u103B"],
+      // ya, short
+      "\u103C": [MARK, "\u103D"],
+      // wa
+      "\u103D": [MARK, "\u103E"],
+      // ha
+      "\u1087": [MARK, "\u103E"],
+      // ha, short
+      "\u103E": [MARK, "\u103E"],
+      // Unicode's ha, which Zawgyi does not use, in mixed text
+      "\u108A": [MARK, "\u103D\u103E"],
+      // wa with ha
+      "\u1088": [MARK, "\u103E\u102F"],
+      // ha with u
+      "\u1089": [MARK, "\u103E\u1030"],
+      // ha with uu
+      "\u103B": [PRE, "\u103C"],
+      // ra, narrow
+      "\u107E": [PRE, "\u103C"],
+      // ra, wide
+      "\u107F": [PRE, "\u103C"],
+      // ra, narrow, cut for an upper vowel
+      "\u1080": [PRE, "\u103C"],
+      // ra, wide, cut for an upper vowel
+      "\u1081": [PRE, "\u103C"],
+      // ra, narrow, cut for a lower mark
+      "\u1082": [PRE, "\u103C"],
+      // ra, wide, cut for a lower mark
+      "\u1083": [PRE, "\u103C"],
+      // ra, narrow, cut at both ends
+      "\u1084": [PRE, "\u103C"],
+      // ra, wide, cut at both ends
+      // Stacked consonants
+      "\u1060": [STACK, "\u1039\u1000"],
+      // ka
+      "\u1061": [STACK, "\u1039\u1001"],
+      // kha
+      "\u1062": [STACK, "\u1039\u1002"],
+      // ga
+      "\u1063": [STACK, "\u1039\u1003"],
+      // gha
+      "\u1065": [STACK, "\u1039\u1005"],
+      // ca
+      "\u1066": [STACK, "\u1039\u1006"],
+      // cha
+      "\u1067": [STACK, "\u1039\u1006"],
+      // cha, other width
+      "\u1068": [STACK, "\u1039\u1007"],
+      // ja
+      "\u1069": [STACK, "\u1039\u1008"],
+      // jha
+      "\u106C": [STACK, "\u1039\u100B"],
+      // tta
+      "\u106D": [STACK, "\u1039\u100C"],
+      // ttha
+      "\u1070": [STACK, "\u1039\u100F"],
+      // nna
+      "\u1071": [STACK, "\u1039\u1010"],
+      // ta
+      "\u1072": [STACK, "\u1039\u1010"],
+      // ta, narrow
+      "\u1073": [STACK, "\u1039\u1011"],
+      // tha
+      "\u1074": [STACK, "\u1039\u1011"],
+      // tha, other width
+      "\u1075": [STACK, "\u1039\u1012"],
+      // da
+      "\u1076": [STACK, "\u1039\u1013"],
+      // dha
+      "\u1077": [STACK, "\u1039\u1014"],
+      // na
+      "\u1078": [STACK, "\u1039\u1015"],
+      // pa
+      "\u1079": [STACK, "\u1039\u1016"],
+      // pha
+      "\u107A": [STACK, "\u1039\u1017"],
+      // ba
+      "\u107B": [STACK, "\u1039\u1018"],
+      // bha
+      "\u1093": [STACK, "\u1039\u1018"],
+      // bha, other shape
+      "\u107C": [STACK, "\u1039\u1019"],
+      // ma
+      "\u1085": [STACK, "\u1039\u101C"],
+      // la
+      "\u1096": [STACK, "\u1039\u1010", "\u103D"]
+      // ta, with wa
+    };
+    for (digit = 4160; digit <= 4169; digit++) {
+      ZAWGYI[String.fromCharCode(digit)] = [BASE, String.fromCharCode(digit)];
+    }
+    var digit;
+    var SEQUENCES = [
+      [/(^|[^\u1040-\u1049])\u1044\u1004\u1039\u1038/g, "$1\u104E"],
+      // the digit four typed for lagaung
+      [/\u104E\u1004\u1039\u1038/g, "\u104E"]
+      // lagaung typed with the nga, asat and visarga it draws
+    ];
+    var FONT = storageOrder.font(ZAWGYI, SEQUENCES);
+    function toUnicode(content, debug) {
+      return storageOrder.toUnicode(content, FONT, debug);
+    }
+    module.exports = {
+      toUnicode
     };
   }
 });
@@ -1258,12 +1469,13 @@ var require_win = __commonJS({
 // library/converter.js
 var require_converter = __commonJS({
   "library/converter.js"(exports, module) {
-    var spellingFix2 = require_spellingCheck();
     var fontDetect2 = require_detector();
     var globalOptions = require_globalOptions();
     var gate = require_contentGate();
     var syllable = require_syllable();
     var win = require_win();
+    var zawgyi = require_zawgyi();
+    var DRAWING_ORDER_FONTS = { win, zawgyi };
     function fontConvert2(content, to, from) {
       content = gate.toText(content);
       if (gate.isMissing(content)) {
@@ -1276,7 +1488,7 @@ var require_converter = __commonJS({
         if (!globalOptions.isSilentMode()) console.error("Convert target font must be specified on knayi.fontConvert.");
         return content;
       }
-      content = gate.cleanText(content, true);
+      content = content.trim();
       to = gate.resolveFont(to);
       from = gate.resolveFont(from);
       if (!to) {
@@ -1293,14 +1505,14 @@ var require_converter = __commonJS({
         return content;
       }
       var debug = this && this.debug;
-      if (from === "win") return winToUnicode(content, debug);
-      content = spellingFix2(content, from);
+      if (DRAWING_ORDER_FONTS[from]) return drawingOrderToUnicode(content, from, debug);
+      content = syllable.collapseMarks(content, from);
       return syllable.convertText(content, from, to, debug);
     }
-    function winToUnicode(content, debug) {
-      var result = win.toUnicode(content, debug);
+    function drawingOrderToUnicode(content, from, debug) {
+      var result = DRAWING_ORDER_FONTS[from].toUnicode(content, debug);
       if (!debug) return result;
-      return { to: "unicode", from: "win", matched_patterns: result.matched_patterns, steps: result.steps };
+      return { to: "unicode", from, matched_patterns: result.matched_patterns, steps: result.steps };
     }
     fontConvert2.debugging = function(param1, param2, param3) {
       return fontConvert2.apply({ debug: true }, [param1, param2, param3]);
@@ -1332,6 +1544,32 @@ var require_syllBreak = __commonJS({
       return syllable.joinParts(syllable.breakParts(content, fontType), breakpoint);
     }
     module.exports = syllBreak2;
+  }
+});
+
+// library/spellingCheck.js
+var require_spellingCheck = __commonJS({
+  "library/spellingCheck.js"(exports, module) {
+    var fontDetect2 = require_detector();
+    var globalOptions = require_globalOptions();
+    var gate = require_contentGate();
+    var syllable = require_syllable();
+    function spellingFix2(content, fontType) {
+      content = gate.toText(content);
+      if (gate.isMissing(content)) {
+        if (!globalOptions.isSilentMode()) console.warn("Content must be specified on knayi.spellingFix.");
+        return "";
+      }
+      if (!gate.hasMyanmar(content))
+        return content;
+      if (!fontType)
+        fontType = fontDetect2(content);
+      else
+        fontType = gate.resolveFont(fontType) || fontType;
+      content = gate.cleanText(content, true);
+      return syllable.collapseMarks(content, fontType);
+    }
+    module.exports = spellingFix2;
   }
 });
 

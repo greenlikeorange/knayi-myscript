@@ -1,0 +1,133 @@
+const { describe, it } = require('node:test');
+const assert = require('node:assert/strict');
+const knayi = require('../main');
+
+// Zawgyi strings are written in the order Zawgyi text is typed. Most come from real web text.
+const toUnicode = (zawgyi) => knayi.fontConvert(zawgyi, 'unicode', 'zawgyi');
+const ZWSP = '\u200B';
+
+describe('Zawgyi', () => {
+  describe('Zawgyi to Unicode', () => {
+    it('moves e and medial ra, typed before the consonant, after it', () => {
+      assert.equal(toUnicode('ေရးျမန္'), 'ရေးမြန်');
+      assert.equal(toUnicode('ႀကီး'), 'ကြီး');
+      assert.equal(toUnicode('ေရြႊ'), 'ရွှေ');
+    });
+
+    it('moves kinzi, typed after the consonant, before it', () => {
+      assert.equal(toUnicode('သေဘၤာ'), 'သင်္ဘော');
+      assert.equal(toUnicode('သခ်ၤာ'), 'သင်္ချာ');
+      assert.equal(toUnicode('ေယာကၤ်ား'), 'ယောင်္ကျား');
+      assert.equal(toUnicode('သခ်ႋဳင္း'), 'သင်္ချိုင်း');
+    });
+
+    it('reads stacked consonants, including stacked ta with wa', () => {
+      assert.equal(toUnicode('ဗုဒၶ'), 'ဗုဒ္ဓ');
+      assert.equal(toUnicode('ပန႖'), 'ပန္တွ');
+      assert.equal(toUnicode('အိျႏၵာ'), 'အိန္ဒြာ');
+    });
+
+    it('writes each syllable in Unicode order', () => {
+      assert.equal(toUnicode('ေကာငး္'), 'ကောင်း');
+      assert.equal(toUnicode('ဖြ့ံ'), 'ဖွံ့');
+      assert.equal(toUnicode('ေပ့ါ'), 'ပေါ့');
+    });
+
+    it('counts a mark typed twice once', () => {
+      assert.equal(toUnicode('အမႈုိက္'), 'အမှိုက်');
+      assert.equal(toUnicode('ဒီျမိဳ႔ဳ'), 'ဒီမြို့');
+    });
+  });
+
+  describe('asat', () => {
+    it('stores an asat on a consonant right after it, as Unicode Technical Note #11 does', () => {
+      assert.equal(toUnicode('ေယာက္်ား'), 'ယောက်ျား');
+      assert.equal(toUnicode('ေယာက်္ား'), 'ယောက်ျား');
+      assert.equal(toUnicode('ကၽြႏ္ုပ္'), 'ကျွန်ုပ်');
+      assert.equal(toUnicode('ကၽြႏု္ပ္'), 'ကျွန်ုပ်');
+      assert.equal(toUnicode('ေပ့ခ်္'), 'ပေ့ခ်ျ');
+    });
+
+    it('stores an asat after medial ha, aa and a dot below last', () => {
+      assert.equal(toUnicode('ေဒ့ရွ္'), 'ဒေ့ရှ်');
+      assert.equal(toUnicode('ေက်ာ္'), 'ကျော်');
+      assert.equal(toUnicode('ေပၚ'), 'ပေါ်');
+      assert.equal(toUnicode('ယာဥ္'), 'ယာဉ်');
+      assert.equal(knayi.fontConvert('ေကာင့္', 'unicode', 'zawgyi'), '\u1000\u1031\u102C\u1004\u1037\u103A');
+    });
+
+    it('stores the asat of aw typed before aa last', () => {
+      assert.equal(toUnicode('ေက္ာဖီ'), 'ကော်ဖီ');
+      assert.equal(toUnicode('ကၽြန္ေတ္ာ'), 'ကျွန်တော်');
+    });
+
+    it('drops an asat typed with i or on a stacked consonant', () => {
+      assert.equal(toUnicode('ႏို္င္ငံ'), 'နိုင်ငံ');
+      assert.equal(toUnicode('အိ္မ္'), 'အိမ်');
+      assert.equal(toUnicode('ႏြားႏိုု့္'), 'နွားနို့');
+      assert.equal(toUnicode('ကုလသမဂၢ္'), 'ကုလသမဂ္ဂ');
+      assert.equal(toUnicode('ဓမၼ္တာ'), 'ဓမ္မတာ');
+    });
+  });
+
+  describe('letters Zawgyi draws alike', () => {
+    it('reads ca with medial ya as jha', () => {
+      assert.equal(toUnicode('ေစ်း'), 'ဈေး');
+      assert.equal(toUnicode('မဇၥ်'), 'မဇ္ဈ');
+      assert.equal(toUnicode('မဇၩ'), 'မဇ္ဈ');
+    });
+
+    it('reads the digit four typed for lagaung as lagaung', () => {
+      assert.equal(toUnicode('၄င္း၏'), '၎င်း၏');
+      assert.equal(toUnicode('၎င္းတို႔'), '၎င်းတို့');
+      assert.equal(toUnicode('၎တို႔'), '၎င်းတို့');
+      assert.equal(toUnicode('၁၄ ရက္'), '၁၄ ရက်');
+    });
+
+    it('reads u with a stacked consonant, asat or aa as nya', () => {
+      assert.equal(toUnicode('ပဥၥ'), 'ပဉ္စ');
+      assert.equal(toUnicode('ဥာဏ္'), 'ဉာဏ်');
+      assert.equal(toUnicode('ညဥ့္'), 'ညဉ့်');
+      assert.equal(toUnicode('ဥံဳ'), 'ဥုံ');
+      assert.equal(toUnicode('ဦး'), 'ဦး');
+    });
+
+    it('reads seven with a vowel sign or medial as ra', () => {
+      assert.equal(toUnicode('ေ၇း'), 'ရေး');
+      assert.equal(toUnicode('၁၇း၂၁'), '၁၇း၂၁');
+    });
+
+    it('reads zero as wa unless it is part of a number', () => {
+      assert.equal(toUnicode('ေ၀၀ါး'), 'ဝေဝါး');
+      assert.equal(toUnicode('၅.၀'), '၅.၀');
+      assert.equal(toUnicode('၀.၅'), '၀.၅');
+    });
+  });
+
+  describe('spaces and zero-width characters', () => {
+    it('drops a space typed before a mark, which only moved the mark', () => {
+      assert.equal(toUnicode('ေအာက္ေမ ႔မိပါတယ္'), 'အောက်မေ့မိပါတယ်');
+      assert.equal(toUnicode('တဲ ႔ အၿဖစ္'), 'တဲ့ အဖြစ်');
+      assert.equal(toUnicode('တစ္ခ ု ရွိ'), 'တစ်ခု ရှိ');
+      assert.equal(toUnicode('လို\n့'), 'လို\n့');
+    });
+
+    it('keeps zero-width spaces, after the syllable they were typed in', () => {
+      assert.equal(toUnicode('တစ္' + ZWSP + 'ခု'), 'တစ်' + ZWSP + 'ခု');
+      assert.equal(toUnicode('က်င္' + ZWSP + 'းပ'), 'ကျင်း' + ZWSP + 'ပ');
+      assert.equal(toUnicode('ေ' + ZWSP + 'က'), ZWSP + 'ကေ');
+      assert.equal(toUnicode('အ\u200Cေန'), 'အ\u200Cနေ');
+    });
+  });
+
+  describe('debugging', () => {
+    it('names each stage and ends with the converted text', () => {
+      const log = knayi.fontConvert.debugging('ေက်ာ္', 'unicode', 'zawgyi');
+      assert.equal(log.from, 'zawgyi');
+      assert.equal(log.to, 'unicode');
+      assert.deepEqual(log.matched_patterns, ['glyphs', 'syllables']);
+      assert.equal(log.steps[0], 'ေက်ာ္');
+      assert.equal(log.steps[log.steps.length - 1], 'ကျော်');
+    });
+  });
+});

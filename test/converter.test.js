@@ -40,6 +40,9 @@ assert.equal(			knayi.fontConvert('င်္ကျိ', 'zawgyi', 'unicode'), '\
 assert.equal(			knayi.fontConvert('င်္ကျီ', 'zawgyi', 'unicode'), '\u1000\u108c\u103a');
 assert.equal(			knayi.fontConvert('င်္ကျံ', 'zawgyi', 'unicode'), '\u1000\u108d\u103a');
 		})
+		it('keeps zero-width spaces', () => {
+assert.equal(			knayi.fontConvert('မြန်\u200Bမာ', 'zawgyi', 'unicode'), 'ျမန္\u200Bမာ');
+		})
 	})
 
 	describe('content gate', () => {
@@ -55,8 +58,8 @@ assert.equal(			knayi.fontConvert('abc', 'unicode'), 'abc');
 assert.equal(			knayi.fontConvert('က'), 'က');
 		})
 
-		it('trims and strips zero-width before rejecting an unknown font', () => {
-assert.equal(			knayi.fontConvert(' က \u200B', 'nope'), 'က ');
+		it('trims, and keeps zero-width spaces, before rejecting an unknown font', () => {
+assert.equal(			knayi.fontConvert(' က \u200B', 'nope'), 'က \u200B');
 		})
 
 		it('skips spelling fix when the source and target fonts match', () => {
