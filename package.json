@@ -15,9 +15,6 @@
     "dist/knayi-myscript.js",
     "dist/knayi-myscript.min.js"
   ],
-  "engines": {
-    "node": ">=22"
-  },
   "scripts": {
     "pretest": "node scripts/build.js",
     "test": "node --test && tsc -p typecheck/tsconfig.json --noEmit",

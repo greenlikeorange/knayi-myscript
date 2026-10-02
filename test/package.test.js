@@ -27,4 +27,8 @@ describe('package', () => {
       assert.equal(esm[name], knayi[name], 'main.js is missing named export ' + name);
     }
   });
+
+  it('does not set a Node engine range', () => {
+    assert.equal(pkg.engines, undefined);
+  });
 });

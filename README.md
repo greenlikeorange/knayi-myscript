@@ -21,7 +21,7 @@ Browser script, global name `knayi`:
 
 ## Runtime
 
-Node.js 22 or newer. Node 24 is the long-term support release used for development. Node 22 remains supported. Yarn 1 refuses to install when Node is older than 22. npm and pnpm warn and continue.
+Node.js 16 or newer, checked on Node 16, 18, 20, and 26. Building and testing the package needs Node 22 or newer. Node 24 is the version in `.nvmrc`.
 
 ```javascript
 const knayi = require('knayi-myscript')
