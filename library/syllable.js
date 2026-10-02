@@ -158,7 +158,8 @@ const convertRules = {
 
 
         // The tail is optional so each run of marks is read once (linear time); without a tail, $2 is empty and the run stays.
-        [/([\u102b\u102c\u102d\u102e\u102f\u1030\u1031\u1032\u1036\u1037\u1038\u103b\u103c\u103d\u103e]+)(\u1039[\u1000-\u1021])?/g, '$2$1'],
+        // The third item is the character the rule needs; the rule is skipped when the text has none.
+        [/([\u102b\u102c\u102d\u102e\u102f\u1030\u1031\u1032\u1036\u1037\u1038\u103b\u103c\u103d\u103e]+)(\u1039[\u1000-\u1021])?/g, '$2$1', '\u1039'],
         // eg: က + ျ ြ ွ ှ ံ ့ ိ ီ ု ူ +​ င်္ီ
         [/([\u1000-\u1021])([\u103b\u103c\u103d\u103e\u1037\u102f\u1030\u102d\u102e\u1036]*)\u108b/g, '$1\u1064$2\u102d'],
         [/([\u1000-\u1021])([\u103b\u103c\u103d\u103e\u1037\u102f\u1030\u102d\u102e\u1036]*)\u108c/g, '$1\u1064$2\u102e'],
@@ -166,7 +167,7 @@ const convertRules = {
         [/\u108e/g, '\u102d\u1036'],
         [/\u103c([\u1000-\u1021])/g, '$1\u103c'],
         [/\u1031([\u1000-\u1021])/g, '$1\u1031'],
-        [/([\u102b\u102c\u102d\u102e\u102f\u1030\u1031\u1032\u1036\u1037\u1038\u103b\u103c\u103d\u103e]+)(\u1064)?/g, '$2$1'],
+        [/([\u102b\u102c\u102d\u102e\u102f\u1030\u1031\u1032\u1036\u1037\u1038\u103b\u103c\u103d\u103e]+)(\u1064)?/g, '$2$1', '\u1064'],
         // [/([\u103b\u103c\u103d])(\u1064)/g, '$2$1'],
         [/\u1031(\u1064)/g, '$1\u1031'],
         [/([\u1000-\u1021])(\u1064)/g, '$2$1'],
@@ -470,6 +471,7 @@ function ruleMatches(rule, content) {
 }
 
 function replaceOnce(content, rule) {
+  if (rule[2] && content.indexOf(rule[2]) === -1) return content;
   var re = rule[0];
   re.lastIndex = 0;
   return content.replace(re, rule[1]);

@@ -385,7 +385,8 @@ var knayi = (() => {
               [/\u104e/g, "\u104E\u1004\u103A\u1038"],
               [/\u1025\u103a/g, "\u1009\u103A"],
               // The tail is optional so each run of marks is read once (linear time); without a tail, $2 is empty and the run stays.
-              [/([\u102b\u102c\u102d\u102e\u102f\u1030\u1031\u1032\u1036\u1037\u1038\u103b\u103c\u103d\u103e]+)(\u1039[\u1000-\u1021])?/g, "$2$1"],
+              // The third item is the character the rule needs; the rule is skipped when the text has none.
+              [/([\u102b\u102c\u102d\u102e\u102f\u1030\u1031\u1032\u1036\u1037\u1038\u103b\u103c\u103d\u103e]+)(\u1039[\u1000-\u1021])?/g, "$2$1", "\u1039"],
               // eg: က + ျ ြ ွ ှ ံ ့ ိ ီ ု ူ +​ င်္ီ
               [/([\u1000-\u1021])([\u103b\u103c\u103d\u103e\u1037\u102f\u1030\u102d\u102e\u1036]*)\u108b/g, "$1\u1064$2\u102D"],
               [/([\u1000-\u1021])([\u103b\u103c\u103d\u103e\u1037\u102f\u1030\u102d\u102e\u1036]*)\u108c/g, "$1\u1064$2\u102E"],
@@ -393,7 +394,7 @@ var knayi = (() => {
               [/\u108e/g, "\u102D\u1036"],
               [/\u103c([\u1000-\u1021])/g, "$1\u103C"],
               [/\u1031([\u1000-\u1021])/g, "$1\u1031"],
-              [/([\u102b\u102c\u102d\u102e\u102f\u1030\u1031\u1032\u1036\u1037\u1038\u103b\u103c\u103d\u103e]+)(\u1064)?/g, "$2$1"],
+              [/([\u102b\u102c\u102d\u102e\u102f\u1030\u1031\u1032\u1036\u1037\u1038\u103b\u103c\u103d\u103e]+)(\u1064)?/g, "$2$1", "\u1064"],
               // [/([\u103b\u103c\u103d])(\u1064)/g, '$2$1'],
               [/\u1031(\u1064)/g, "$1\u1031"],
               [/([\u1000-\u1021])(\u1064)/g, "$2$1"],
@@ -669,6 +670,7 @@ var knayi = (() => {
         return re.test(content);
       }
       function replaceOnce(content, rule) {
+        if (rule[2] && content.indexOf(rule[2]) === -1) return content;
         var re = rule[0];
         re.lastIndex = 0;
         return content.replace(re, rule[1]);

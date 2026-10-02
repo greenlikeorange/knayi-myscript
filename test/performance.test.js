@@ -14,9 +14,13 @@ function timed(fn) {
 
 describe('long input', () => {
   it('converts a long run of vowel signs in linear time', () => {
-    const text = '\u102c\u102d'.repeat(40000);
-    const ms = timed(() => knayi.fontConvert(text, 'unicode', 'zawgyi'));
-    assert.ok(ms < LIMIT_MS, 'fontConvert took ' + ms.toFixed(0) + 'ms');
+    // A stacked ka (U+1060) or a kinzi (U+1064) makes the conversion reach the two rules that were quadratic;
+    // without them those rules are skipped.
+    for (const head of ['\u1000\u1060', '\u1064']) {
+      const text = head + '\u102c\u102d'.repeat(40000);
+      const ms = timed(() => knayi.fontConvert(text, 'unicode', 'zawgyi'));
+      assert.ok(ms < LIMIT_MS, 'fontConvert took ' + ms.toFixed(0) + 'ms');
+    }
   });
 
   it('normalizes a long run of wa in linear time', () => {
