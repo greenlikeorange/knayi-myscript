@@ -1652,7 +1652,7 @@ var require_main = __commonJS({
     var spellingFix2 = require_spellingCheck();
     var truncate2 = require_truncate();
     var normalize2 = require_normalization();
-    var version2 = "2.9.1";
+    var version2 = "2.10.0";
     var setGlobalOptions2 = globalOptions.setOptions;
     module.exports = {
       version: version2,

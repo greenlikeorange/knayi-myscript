@@ -1632,7 +1632,7 @@ var knayi = (() => {
       var spellingFix = require_spellingCheck();
       var truncate = require_truncate();
       var normalize = require_normalization();
-      var version = "2.9.1";
+      var version = "2.10.0";
       var setGlobalOptions = globalOptions.setOptions;
       module.exports = {
         version,
