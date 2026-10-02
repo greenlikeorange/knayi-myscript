@@ -11,7 +11,8 @@
 <style>
 /*
   Every feature on this page is supported by at least 98% of the browsers caniuse can identify
-  (grid, custom properties, flex gap, clamp(), :focus-visible, prefers-color-scheme, ES2015).
+  (grid, custom properties, flex gap, clamp(), :focus-visible, prefers-color-scheme, ES2015,
+  and String.padStart, NodeList.forEach and Element.append from the same browser generation).
   Not used because support is lower: :has(), container queries, CSS nesting, text-wrap: balance,
   dvh units, the resize property.
 */
@@ -162,6 +163,7 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; }
 .btn:hover { background: var(--code); }
 .btn-accent { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .btn-accent:hover { background: var(--accent); opacity: .9; }
+.btn:disabled, select:disabled, textarea:disabled { opacity: .5; cursor: not-allowed; }
 
 .notice {
   display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 10px;
@@ -251,6 +253,7 @@ select {
     <span class="version" id="version" hidden></span>
     <nav class="links" aria-label="Project">
       <a href="https://github.com/greenlikeorange/knayi-myscript#readme">Docs</a>
+      <a href="benchmark.html">Benchmark</a>
       <a href="https://www.npmjs.com/package/knayi-myscript">npm</a>
       <a href="https://github.com/greenlikeorange/knayi-myscript">
         <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
@@ -419,12 +422,18 @@ select {
 
 <p class="sr-only" id="announcer" aria-live="polite"></p>
 
-<script src="https://cdn.jsdelivr.net/npm/knayi-myscript@2.9.0/dist/knayi-myscript.min.js" charset="utf-8"></script>
+<script src="https://cdn.jsdelivr.net/npm/knayi-myscript@2.9.0/dist/knayi-myscript.min.js" integrity="sha384-e5I7kiycpbm2Sp5wq1MbZFPjTmICVw9wlLcJ/+go7MS0AQUbBwlRzg6OZsOcYJR9" crossorigin="anonymous"></script>
 <script>
 (() => {
   'use strict';
 
   const byId = (id) => document.getElementById(id);
+
+  // The install snippet comes from the script tag the page loads, so its version and hash cannot drift apart.
+  // It is filled in before the load check so it still shows when the library fails to load.
+  const libraryTag = document.querySelector('script[src*="knayi-myscript"]');
+  byId('snippet-cdn').textContent = `<script src="${libraryTag.src}"` +
+    (libraryTag.integrity ? ` integrity="${libraryTag.integrity}" crossorigin="anonymous"` : '') + '><\/script>';
 
   if (typeof window.knayi === 'undefined') {
     byId('load-error').hidden = false;
@@ -442,7 +451,11 @@ select {
 
   const plural = (n, one, many) => `${n.toLocaleString()} ${n === 1 ? one : many}`;
   const codePoints = (text) => Array.from(text, (ch) => 'U+' + ch.codePointAt(0).toString(16).toUpperCase().padStart(4, '0')).join(' ');
-  const announce = (message) => { byId('announcer').textContent = message; };
+  // Clearing first makes screen readers read the same message again.
+  const announce = (message) => {
+    byId('announcer').textContent = '';
+    setTimeout(() => { byId('announcer').textContent = message; }, 50);
+  };
 
   function useFont(el, font) {
     el.classList.toggle('zg', font === 'zawgyi');
@@ -450,11 +463,8 @@ select {
     el.lang = font === 'zawgyi' ? 'my-Qaag' : 'my';
   }
 
-  // Version and install snippet come from the script tag the page loads, so they cannot drift apart.
-  const libraryUrl = document.querySelector('script[src*="knayi-myscript"]').src;
   byId('version').textContent = 'v' + knayi.version;
   byId('version').hidden = false;
-  byId('snippet-cdn').textContent = `<script src="${libraryUrl}"><\/script>`;
 
   /* Tabs */
   const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
@@ -486,6 +496,8 @@ select {
 
   /* Copy and clear */
   function legacyCopy(text) {
+    // Selecting the hidden textarea moves focus; give it back to the button afterwards.
+    const previous = document.activeElement;
     const area = document.createElement('textarea');
     area.value = text;
     area.setAttribute('readonly', '');
@@ -496,6 +508,7 @@ select {
     let copied = false;
     try { copied = document.execCommand('copy'); } catch (error) { copied = false; }
     document.body.removeChild(area);
+    if (previous && typeof previous.focus === 'function') previous.focus();
     return copied;
   }
 
@@ -511,6 +524,10 @@ select {
     button.addEventListener('click', () => {
       const source = byId(button.dataset.copy);
       const text = source.tagName === 'TEXTAREA' ? source.value : source.textContent;
+      if (!text) {
+        announce('Nothing to copy.');
+        return;
+      }
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(
           () => showCopied(button, true),
@@ -541,7 +558,10 @@ select {
       byId('count-' + font).textContent = plural(text.length, 'character', 'characters');
       // Ties go to the box's own encoding, so a single letter typed so far never raises the notice.
       const detected = font === lastEdited && MYANMAR.test(text) ? knayi.fontDetect(text, font) : font;
-      byId('notice-' + font).hidden = detected === font;
+      const notice = byId('notice-' + font);
+      const show = detected !== font;
+      if (show && notice.hidden) announce(notice.querySelector('span').textContent);
+      notice.hidden = !show;
     });
   }
 
@@ -700,6 +720,7 @@ select {
     box.addEventListener('select', () => {
       if (!isDebugging()) return;
       const selected = box.value.slice(box.selectionStart, box.selectionEnd);
+      if (!selected) return;
       const to = OTHER_FONT[from];
       const logs = knayi.fontConvert.debugging(selected, to, from);
       // Text without Myanmar letters comes back as a plain string, with no steps to show.
