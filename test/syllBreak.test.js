@@ -11,6 +11,29 @@ assert.equal(			knayi.syllBreak('မင်္ဂလာပါ', null, '**'), 'မ
 assert.equal(			knayi.syllBreak('က္က', 'unicode', '|'), 'က္က');
 		})
 
+		it('keeps a consonant with dot below and asat in the syllable before it', () => {
+			assert.equal(knayi.syllBreak('ဖြင့်', 'unicode', '|'), 'ဖြင့်');
+			assert.equal(knayi.syllBreak('ကြောင့်', 'unicode', '|'), 'ကြောင့်');
+			assert.equal(knayi.syllBreak('ထို့ကြောင့်', 'unicode', '|'), 'ထို့|ကြောင့်');
+			assert.equal(knayi.syllBreak('ကြည့်ရှု', 'unicode', '|'), 'ကြည့်|ရှု');
+		})
+
+		it('reads asat typed before the dot below the same way', () => {
+			assert.equal(knayi.syllBreak('\u1016\u103c\u1004\u103a\u1037', 'unicode', '|'), '\u1016\u103c\u1004\u1037\u103a');
+		})
+
+		it('keeps ဥ with asat, typed for ဉ, in the syllable before it', () => {
+			assert.equal(knayi.syllBreak('ညဥ့်', 'unicode', '|'), 'ညဥ့်');
+			assert.equal(knayi.syllBreak('ညဉ့်', 'unicode', '|'), 'ညဉ့်');
+		})
+
+		it('breaks these words where the zawgyi table does', () => {
+			for (const word of ['ဖြင့်', 'ကြောင့်', 'နှင့်', 'ထို့ကြောင့်', 'ကြည့်ရှု']) {
+				const pieces = knayi.syllBreak(word, 'unicode', '|').split('|').map((piece) => knayi.fontConvert(piece, 'zawgyi', 'unicode'));
+				assert.equal(knayi.syllBreak(knayi.fontConvert(word, 'zawgyi', 'unicode'), 'zawgyi', '|'), pieces.join('|'));
+			}
+		})
+
 		it('splits a virama stack on the zawgyi table', () => {
 assert.equal(			knayi.syllBreak('က္က', 'zawgyi', '|'), 'က္|က');
 		})

@@ -672,7 +672,9 @@ var require_syllable = __commonJS({
         [/([\u1000-\u1021\u1023-\u1027\u1029\u102a\u103f\u104c-\u104f])/g, "\u200B$1"],
         [/([\u0009-\u000d\u0020\u00a0\u2000-\u200a\u2028\u2029\u202f]|>|\u201C|\u2018|\-|\(|\[|{|[\u2012-\u2014]|\u1039)\u200B([\u1000-\u1021])/g, "$1$2"],
         [/\u200B(\u1004\u103A\u1039\u1037)/g, "$1"],
-        [/\u200B([\u1000-\u1021]\u103A)/g, "$1"],
+        // A consonant with asat closes the syllable before it, also with the dot below that the first rule puts
+        // before the asat (င့်). ဥ takes asat only when typed for ဉ, as in ညဥ့်, so it counts too.
+        [/\u200B([\u1000-\u1021\u1025]\u1037?\u103A)/g, "$1"],
         [/(\s|\n)\u200B([\u1000-\u1021\u1023-\u1027\u1029\u102a\u103f\u104c-\u104f])/g, "$1$2"],
         [/([\u1000-\u1021])\u200B([\u1000-\u1021])/g, "$1$2"]
       ]
