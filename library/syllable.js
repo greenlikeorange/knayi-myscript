@@ -156,7 +156,8 @@ const convertRules = {
 
 
 
-        [/([\u102b\u102c\u102d\u102e\u102f\u1030\u1031\u1032\u1036\u1037\u1038\u103b\u103c\u103d\u103e]+)(\u1039[\u1000-\u1021])/g, '$2$1'],
+        // The tail is optional so each run of marks is read once (linear time); without a tail, $2 is empty and the run stays.
+        [/([\u102b\u102c\u102d\u102e\u102f\u1030\u1031\u1032\u1036\u1037\u1038\u103b\u103c\u103d\u103e]+)(\u1039[\u1000-\u1021])?/g, '$2$1'],
         // eg: က + ျ ြ ွ ှ ံ ့ ိ ီ ု ူ +​ င်္ီ
         [/([\u1000-\u1021])([\u103b\u103c\u103d\u103e\u1037\u102f\u1030\u102d\u102e\u1036]*)\u108b/g, '$1\u1064$2\u102d'],
         [/([\u1000-\u1021])([\u103b\u103c\u103d\u103e\u1037\u102f\u1030\u102d\u102e\u1036]*)\u108c/g, '$1\u1064$2\u102e'],
@@ -164,7 +165,7 @@ const convertRules = {
         [/\u108e/g, '\u102d\u1036'],
         [/\u103c([\u1000-\u1021])/g, '$1\u103c'],
         [/\u1031([\u1000-\u1021])/g, '$1\u1031'],
-        [/([\u102b\u102c\u102d\u102e\u102f\u1030\u1031\u1032\u1036\u1037\u1038\u103b\u103c\u103d\u103e]+)\u1064/g, '\u1064$1'],
+        [/([\u102b\u102c\u102d\u102e\u102f\u1030\u1031\u1032\u1036\u1037\u1038\u103b\u103c\u103d\u103e]+)(\u1064)?/g, '$2$1'],
         // [/([\u103b\u103c\u103d])(\u1064)/g, '$2$1'],
         [/\u1031(\u1064)/g, '$1\u1031'],
         [/([\u1000-\u1021])(\u1064)/g, '$2$1'],
@@ -260,25 +261,31 @@ const NON_NUMBER_AHEAD_SIGN = new RegExp("^[" + M + V + S + A + F + "]");
 const NON_NUMBER_AHEAD_C_SIGN = new RegExp("^[" + C + "][" + S + A + F + "]");
 
 function fixWaAndYa(text) {
-  function ruleFunction(num, char) {
+  // `tail` is the last two characters of the text rebuilt so far; the end-anchored checks never need more.
+  // Keeping pieces in an array avoids re-reading the whole growing string at every split (quadratic time).
+  function rebuild(content, splitter, num, char) {
     var isWa = char === WA_LONE;
-    return function (behind, ahead) {
+    var parts = content.split(splitter);
+    var out = [parts[0]];
+    var tail = parts[0].slice(-2);
+    for (var i = 1; i < parts.length; i++) {
+      var ahead = parts[i];
       var isNumber = isWa;
-      if (NON_NUMBER_BEHIND.test(behind)) isNumber = false;
+      if (NON_NUMBER_BEHIND.test(tail)) isNumber = false;
       if (!isWa) {
-        if (/[၀-၉=+-/]\s?$/.test(behind) && /^\s|\s?[၀-၉=+-/]/.test(ahead)) isNumber = true;
+        if (/[၀-၉=+-/]\s?$/.test(tail) && /^\s|\s?[၀-၉=+-/]/.test(ahead)) isNumber = true;
         if (/[၀-၉]|\s?[=+-/]/.test(ahead)) isNumber = true;
       }
       if (NON_NUMBER_AHEAD_SIGN.test(ahead) || NON_NUMBER_AHEAD_C_SIGN.test(ahead)) isNumber = false;
-      if (isWa && /^\s?လုံး/.test(ahead) && !/[၀-၉]\s?$/.test(behind)) isNumber = false;
-      return behind + (isNumber ? num : char) + ahead;
-    };
+      if (isWa && /^\s?လုံး/.test(ahead) && !/[၀-၉]\s?$/.test(tail)) isNumber = false;
+      var letter = isNumber ? num : char;
+      out.push(letter, ahead);
+      tail = ahead.length >= 2 ? ahead.slice(-2) : (tail + letter + ahead).slice(-2);
+    }
+    return out.join("");
   }
-  return String(text == null ? "" : text)
-    .split(/၀|ဝ/)
-    .reduce(ruleFunction("၀", "ဝ"))
-    .split(/၇|ရ/)
-    .reduce(ruleFunction("၇", "ရ"));
+  var content = String(text == null ? "" : text);
+  return rebuild(rebuild(content, /၀|ဝ/, "၀", "ဝ"), /၇|ရ/, "၇", "ရ");
 }
 
 function parseChunks(content) {
@@ -491,8 +498,10 @@ function convertText(content, from, to, debug) {
   }
 
   for (var i = 0; i < refLib.oneTime.length; i++) {
-    record(refLib.oneTime[i], content);
-    content = replaceOnce(content, refLib.oneTime[i]);
+    var next = replaceOnce(content, refLib.oneTime[i]);
+    // Rules with an optional tail match every run of marks; log only the ones that changed the text.
+    if (next !== content) record(refLib.oneTime[i], content);
+    content = next;
   }
   for (var j = 0; j < refLib.asLongAsMatch.length; j++) {
     record(refLib.asLongAsMatch[j], content);
