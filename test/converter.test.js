@@ -20,6 +20,12 @@ assert.equal(			knayi.fontConvert('\u1000\u103a\u108b', 'unicode', 'zawgyi'), '�
 assert.equal(			knayi.fontConvert('\u1021\u1000\u103a\u108c', 'unicode', 'zawgyi'), 'အင်္ကျီ');
 assert.equal(			knayi.fontConvert('\u1000\u103a\u108d', 'unicode', 'zawgyi'), 'င်္ကျံ');
 		})
+
+		it('reads the dda and ddha ligature as dda over ddha', () => {
+			assert.equal(knayi.fontConvert('\u106f', 'unicode', 'zawgyi'), '\u100d\u1039\u100e');
+			assert.equal(knayi.fontConvert('\u101d\u106f\u1014', 'unicode', 'zawgyi'), '\u101d\u100d\u1039\u100e\u1014');
+			assert.equal(knayi.fontConvert('\u101d\u100d\u1039\u100e\u1014', 'zawgyi', 'unicode'), '\u101d\u106f\u1014');
+		})
 	})
 
 	describe('Unicode to Zawgyi',()=>{
