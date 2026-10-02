@@ -54,60 +54,41 @@ function nextToDigit(text, i) {
     (isSeparator(text.charAt(i + 1)) && isDigit(text.charAt(i + 2)));
 }
 
+// A bare wa or ra: no mark after it, and not starting a closed syllable.
+const BARE = '[\u101D\u101B](?![\u102B-\u103E]|[\u1000-\u1021][\u1037\u1038]*[\u103A\u1039])';
+// A run of digits and bare wa or ra, with at most one decimal point or thousands separator between two of
+// them. (Requiring a digit in the pattern itself would backtrack over long runs of wa.)
+const PART = '(?:[\u1040-\u1049]|' + BARE + ')';
+const RUN = new RegExp(PART + '(?:[.,]?' + PART + ')*', 'g');
+const HAS_DIGIT = /[\u1040-\u1049]/;
+
 // Zero and seven look like wa and ra, and each is typed for the other. Only clear cases change.
 function lookAlikes(text) {
-  var chars = text.split('');
-
   // A zero or seven is a letter when it carries a mark (a visarga after digits is a colon, as in 7:30) or
   // starts a closed syllable. So is a zero inside a word with no digit next to it.
-  for (var i = 0; i < chars.length; i++) {
-    var ch = chars[i];
-    if (ch !== ZERO && ch !== SEVEN) continue;
+  text = text.replace(/[\u1040\u1047]/g, function (ch, i) {
     var next = text.charAt(i + 1);
     var letter = (isMark(next) && next !== VISARGA) || startsClosedSyllable(text, i) ||
       (ch === ZERO && isWordChar(text.charAt(i - 1)) && !nextToDigit(text, i));
-    if (letter) chars[i] = ch === ZERO ? WA : RA;
-  }
-  text = chars.join('');
+    return letter ? (ch === ZERO ? WA : RA) : ch;
+  });
 
-  // A bare wa or ra (no mark, not starting a closed syllable) in a run of digits is a digit. Wa or ra glued
-  // to the word before the number stays a letter, and so does ra glued to the word after it.
-  function inNumber(at) {
-    var c = text.charAt(at);
-    if (isDigit(c)) return true;
-    return (c === WA || c === RA) && !isMark(text.charAt(at + 1)) && !startsClosedSyllable(text, at);
-  }
-  var start = 0;
-  while (start < text.length) {
-    if (!inNumber(start)) {
-      start++;
-      continue;
+  // A bare wa or ra in a number is a digit. Wa or ra glued to the word before the number stays a letter, and
+  // so does ra glued to the word after it.
+  return text.replace(RUN, function (run, start) {
+    if (!HAS_DIGIT.test(run)) return run;
+    var glued = isWordChar(text.charAt(start - 1));
+    var after = text.charAt(start + run.length);
+    var out = '';
+    for (var k = 0; k < run.length; k++) {
+      var c = run.charAt(k);
+      if (isDigit(c)) glued = false;
+      else if (!glued && c === WA) c = ZERO;
+      else if (!glued && c === RA && (k + 1 < run.length || !isWordChar(after))) c = SEVEN;
+      out += c;
     }
-    var end = start;
-    var digits = false;
-    while (end < text.length) {
-      if (inNumber(end)) {
-        digits = digits || isDigit(text.charAt(end));
-        end++;
-      } else if (end > start && isSeparator(text.charAt(end)) && inNumber(end + 1)) {
-        end++;
-      } else {
-        break;
-      }
-    }
-    if (digits) {
-      var from = start;
-      if (isWordChar(text.charAt(start - 1))) {
-        while (!isDigit(text.charAt(from))) from++;
-      }
-      for (var k = from; k < end; k++) {
-        if (text.charAt(k) === WA) chars[k] = ZERO;
-        if (text.charAt(k) === RA && (k + 1 < end || !isWordChar(text.charAt(end)))) chars[k] = SEVEN;
-      }
-    }
-    start = end;
-  }
-  return chars.join('');
+    return out;
+  });
 }
 
 function fixTypos(text) {

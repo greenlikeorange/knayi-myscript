@@ -611,52 +611,30 @@ var require_typingFixes = __commonJS({
     function nextToDigit(text, i) {
       return isDigit(text.charAt(i - 1)) || isDigit(text.charAt(i + 1)) || isSeparator(text.charAt(i - 1)) && isDigit(text.charAt(i - 2)) || isSeparator(text.charAt(i + 1)) && isDigit(text.charAt(i + 2));
     }
+    var BARE = "[\u101D\u101B](?![\u102B-\u103E]|[\u1000-\u1021][\u1037\u1038]*[\u103A\u1039])";
+    var PART = "(?:[\u1040-\u1049]|" + BARE + ")";
+    var RUN = new RegExp(PART + "(?:[.,]?" + PART + ")*", "g");
+    var HAS_DIGIT = /[\u1040-\u1049]/;
     function lookAlikes(text) {
-      var chars = text.split("");
-      for (var i = 0; i < chars.length; i++) {
-        var ch = chars[i];
-        if (ch !== ZERO && ch !== SEVEN) continue;
+      text = text.replace(/[\u1040\u1047]/g, function(ch, i) {
         var next = text.charAt(i + 1);
         var letter = isMark(next) && next !== VISARGA || startsClosedSyllable(text, i) || ch === ZERO && isWordChar(text.charAt(i - 1)) && !nextToDigit(text, i);
-        if (letter) chars[i] = ch === ZERO ? WA : RA;
-      }
-      text = chars.join("");
-      function inNumber(at) {
-        var c = text.charAt(at);
-        if (isDigit(c)) return true;
-        return (c === WA || c === RA) && !isMark(text.charAt(at + 1)) && !startsClosedSyllable(text, at);
-      }
-      var start = 0;
-      while (start < text.length) {
-        if (!inNumber(start)) {
-          start++;
-          continue;
+        return letter ? ch === ZERO ? WA : RA : ch;
+      });
+      return text.replace(RUN, function(run, start) {
+        if (!HAS_DIGIT.test(run)) return run;
+        var glued = isWordChar(text.charAt(start - 1));
+        var after = text.charAt(start + run.length);
+        var out = "";
+        for (var k = 0; k < run.length; k++) {
+          var c = run.charAt(k);
+          if (isDigit(c)) glued = false;
+          else if (!glued && c === WA) c = ZERO;
+          else if (!glued && c === RA && (k + 1 < run.length || !isWordChar(after))) c = SEVEN;
+          out += c;
         }
-        var end = start;
-        var digits = false;
-        while (end < text.length) {
-          if (inNumber(end)) {
-            digits = digits || isDigit(text.charAt(end));
-            end++;
-          } else if (end > start && isSeparator(text.charAt(end)) && inNumber(end + 1)) {
-            end++;
-          } else {
-            break;
-          }
-        }
-        if (digits) {
-          var from = start;
-          if (isWordChar(text.charAt(start - 1))) {
-            while (!isDigit(text.charAt(from))) from++;
-          }
-          for (var k = from; k < end; k++) {
-            if (text.charAt(k) === WA) chars[k] = ZERO;
-            if (text.charAt(k) === RA && (k + 1 < end || !isWordChar(text.charAt(end)))) chars[k] = SEVEN;
-          }
-        }
-        start = end;
-      }
-      return chars.join("");
+        return out;
+      });
     }
     function fixTypos(text) {
       for (var t = 0; t < TYPOS.length; t++) {
@@ -734,6 +712,7 @@ var require_storageOrder = __commonJS({
     var DIGIT = /[\u1040-\u1049]/;
     var NEXT_TO_ZERO_IN_NUMBER = /[\u1040-\u1049+\-*\/]/;
     var DECIMAL_POINT = /[.,]/;
+    var RANKS = [];
     var RANK = {};
     MARK_ORDER.forEach(function(group, index) {
       for (var i = 0; i < group.length; i++) RANK[group[i]] = index;
@@ -799,7 +778,7 @@ var require_storageOrder = __commonJS({
         base = RA;
       }
       var lower = hasAny(marks, LOWER_VOWELS);
-      var ranks = [];
+      var ranks = RANKS;
       for (var r = 0; r < marks.length; r++) {
         var markRank = rank(marks[r]);
         if (markRank === AI_ANUSVARA && !lower) {
@@ -807,16 +786,21 @@ var require_storageOrder = __commonJS({
           var beforeAa = aa > r && !(marks[r] === ANUSVARA && marks[aa] === AA_TALL);
           if (beforeAa) markRank = LOWER_RANK;
         }
-        ranks.push(markRank);
+        ranks[r] = markRank;
       }
-      var sorted = [];
-      var sortedRanks = [];
-      for (var n = 0; n < marks.length; n++) {
-        var at = sorted.length;
-        while (at > 0 && sortedRanks[at - 1] > ranks[n]) at--;
-        sorted.splice(at, 0, marks[n]);
-        sortedRanks.splice(at, 0, ranks[n]);
+      for (var n = 1; n < marks.length; n++) {
+        var mark = marks[n];
+        var markRankN = ranks[n];
+        var at = n - 1;
+        while (at >= 0 && ranks[at] > markRankN) {
+          marks[at + 1] = marks[at];
+          ranks[at + 1] = ranks[at];
+          at--;
+        }
+        marks[at + 1] = mark;
+        ranks[at + 1] = markRankN;
       }
+      var sorted = marks;
       if (afterMedials) {
         var medials = 0;
         while (medials < sorted.length && rank(sorted[medials]) <= LAST_MEDIAL) medials++;

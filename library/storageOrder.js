@@ -62,6 +62,7 @@ const DECIMAL_POINT = /[.,]/;
 
 // MARK_ORDER index of each mark. Read with a plain lookup: its keys are single characters, which never name
 // an Object.prototype property.
+const RANKS = []; // scratch for order's sort
 const RANK = {};
 MARK_ORDER.forEach(function (group, index) {
   for (var i = 0; i < group.length; i++) RANK[group[i]] = index;
@@ -151,7 +152,7 @@ function order(syllable) {
   // to sit on the consonant, as Mon and Karen write it (khr-anusvara-aa, Christ): it stays there, except
   // anusvara before tall aa, which UTN #11 does not allow.
   var lower = hasAny(marks, LOWER_VOWELS);
-  var ranks = [];
+  var ranks = RANKS; // reused: order never runs inside itself
   for (var r = 0; r < marks.length; r++) {
     var markRank = rank(marks[r]);
     if (markRank === AI_ANUSVARA && !lower) {
@@ -159,16 +160,22 @@ function order(syllable) {
       var beforeAa = aa > r && !(marks[r] === ANUSVARA && marks[aa] === AA_TALL);
       if (beforeAa) markRank = LOWER_RANK;
     }
-    ranks.push(markRank);
+    ranks[r] = markRank;
   }
-  var sorted = []; // insertion sort: stable, and syllables have few marks
-  var sortedRanks = [];
-  for (var n = 0; n < marks.length; n++) {
-    var at = sorted.length;
-    while (at > 0 && sortedRanks[at - 1] > ranks[n]) at--;
-    sorted.splice(at, 0, marks[n]);
-    sortedRanks.splice(at, 0, ranks[n]);
+  // Insertion sort in place: stable, and syllables have few marks.
+  for (var n = 1; n < marks.length; n++) {
+    var mark = marks[n];
+    var markRankN = ranks[n];
+    var at = n - 1;
+    while (at >= 0 && ranks[at] > markRankN) {
+      marks[at + 1] = marks[at];
+      ranks[at + 1] = ranks[at];
+      at--;
+    }
+    marks[at + 1] = mark;
+    ranks[at + 1] = markRankN;
   }
+  var sorted = marks;
   if (afterMedials) {
     var medials = 0;
     while (medials < sorted.length && rank(sorted[medials]) <= LAST_MEDIAL) medials++;
