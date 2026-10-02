@@ -52,7 +52,7 @@ These paths load without an `exports` map:
 
 ## Font names
 
-`unicode`, `uni`, `zawgyi`, and `zaw`. `uni` is Unicode. `zaw` is Zawgyi. Any other string is an unknown font.
+`unicode`, `uni`, `zawgyi`, `zaw`, and `win`. `uni` is Unicode. `zaw` is Zawgyi. `win` is the Win Innwa family of legacy fonts, which `fontConvert` converts to Unicode. Any other string is an unknown font.
 
 ## Missing content
 
@@ -123,6 +123,28 @@ knayi.fontConvert('က') // 'က'  (no target font; warns)
 ```
 
 `fontConvert.debugging(content, targetFontType, originalFontType)` returns `{ to, from, matched_patterns, steps }`. `steps` is an array of strings. The last step equals `fontConvert` for the same arguments. `matched_patterns` is an array of pattern source strings.
+
+### Win fonts
+
+Win Innwa, Win Researcher, Win Kalaw and the other Win fonts by WinMyanmar Systems (1992–2005) draw Burmese glyphs on the keys that type them. Win text is ASCII and Latin-1: `jrefrm` shows as မြန်မာ in a Win font. Name the source font, because `fontDetect` never returns `win`.
+
+```javascript
+knayi.fontConvert('jrefrm', 'unicode', 'win') // 'မြန်မာ'
+knayi.fontConvert('ajumifh', 'unicode', 'win') // 'ကြောင့်'
+knayi.fontConvert('ZvGefaps;', 'unicode', 'win') // 'ဇလွန်ဈေး'
+knayi.fontConvert('jrefrm', 'unicode') // 'jrefrm'  (no source font: plain ASCII)
+```
+
+knayi converts Win to Unicode only. Any other target returns the text unchanged, with an error unless silent.
+
+- Win text is stored in drawing order: ေ and medial ra before the consonant, kinzi and stacked consonants after it. knayi reads each Win glyph as Unicode characters and writes every syllable in Unicode storage order, so `ajumifh` (asat before the dot below) becomes ကြောင့် with the dot below first. A mark typed twice counts once.
+- An asat typed before a vowel sign belongs to the consonant and is stored right after it: `a,musfm;` is ယောက်ျား and `usGefkyf` is ကျွန်ုပ်.
+- `0` is both ဝ and ၀ in Win. A zero next to a digit stays a digit. `ps`, `Mo`, `aMomf` and `OD` become ဈ, ဩ, ဪ and ဦ.
+- The result is NFC.
+- Text read as ISO-8859-1 instead of Windows-1252 converts the same way.
+- Fractions become text such as ၁/၂. Dingbats become the Unicode symbols they show. The vendor logo at byte 0xB0 is dropped.
+- English typed in another font run is ASCII too. Once the font names are gone, convert only the Win text.
+- Wwin_Burmese and other ASCII fonts use different mappings and are not supported.
 
 ## syllBreak(content, fontType?, breakPoint?)
 

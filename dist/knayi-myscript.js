@@ -53,7 +53,8 @@ var knayi = (() => {
         unicode: "unicode",
         uni: "unicode",
         zawgyi: "zawgyi",
-        zaw: "zawgyi"
+        zaw: "zawgyi",
+        win: "win"
       };
       function isMissing(content) {
         return !content;
@@ -763,6 +764,477 @@ var knayi = (() => {
     }
   });
 
+  // library/win.js
+  var require_win = __commonJS({
+    "library/win.js"(exports, module) {
+      var has = (object, key) => Object.prototype.hasOwnProperty.call(object, key);
+      var BASE = "base";
+      var PRE = "pre";
+      var MARK = "mark";
+      var STACK = "stack";
+      var KINZI = "kinzi";
+      var TEXT = "text";
+      var KINZI_TEXT = "\u1004\u103A\u1039";
+      var WIN = {
+        // Consonants and independent letters
+        "u": [BASE, "\u1000"],
+        // ka
+        "c": [BASE, "\u1001"],
+        // kha
+        "*": [BASE, "\u1002"],
+        // ga
+        "C": [BASE, "\u1003"],
+        // gha
+        "i": [BASE, "\u1004"],
+        // nga
+        "p": [BASE, "\u1005"],
+        // ca
+        "q": [BASE, "\u1006"],
+        // cha
+        "Z": [BASE, "\u1007"],
+        // ja
+        "n": [BASE, "\u100A"],
+        // nya
+        "\xF1": [BASE, "\u100A"],
+        // n tilde: nya, short
+        "#": [BASE, "\u100B"],
+        // tta
+        "X": [BASE, "\u100C"],
+        // ttha
+        "!": [BASE, "\u100D"],
+        // dda
+        "\xA1": [BASE, "\u100E"],
+        // inverted exclamation: ddha
+        "P": [BASE, "\u100F"],
+        // nna
+        "w": [BASE, "\u1010"],
+        // ta
+        "x": [BASE, "\u1011"],
+        // tha
+        "'": [BASE, "\u1012"],
+        // da
+        '"': [BASE, "\u1013"],
+        // dha
+        "e": [BASE, "\u1014"],
+        // na
+        "E": [BASE, "\u1014"],
+        // na, short
+        "y": [BASE, "\u1015"],
+        // pa
+        "z": [BASE, "\u1016"],
+        // pha
+        "A": [BASE, "\u1017"],
+        // ba
+        "b": [BASE, "\u1018"],
+        // bha
+        "r": [BASE, "\u1019"],
+        // ma
+        ",": [BASE, "\u101A"],
+        // ya
+        "&": [BASE, "\u101B"],
+        // ra
+        "\xBD": [BASE, "\u101B"],
+        // one half: ra, short
+        "v": [BASE, "\u101C"],
+        // la
+        "o": [BASE, "\u101E"],
+        // sa
+        "[": [BASE, "\u101F"],
+        // ha
+        "V": [BASE, "\u1020"],
+        // lla
+        "t": [BASE, "\u1021"],
+        // a
+        "\xA3": [BASE, "\u1023"],
+        // pound: i
+        "\xFE": [BASE, "\u1024"],
+        // thorn: ii
+        "O": [BASE, "\u1025"],
+        // u
+        "{": [BASE, "\u1027"],
+        // e
+        "\xCD": [BASE, "\u1009"],
+        // I acute: nnya, narrow
+        "\xDA": [BASE, "\u1009"],
+        // U acute: nnya, wide
+        "\xF3": [BASE, "\u103F"],
+        // o acute: great sa
+        "\xD3": [BASE, "\u1009\u102C"],
+        // O acute: nnya with aa
+        // Two consonants in one glyph
+        "@": [BASE, "\u100F\u1039\u100D"],
+        // nna + dda
+        "|": [BASE, "\u100B\u1039\u100C"],
+        // tta + ttha
+        "\xA5": [BASE, "\u100B\u1039\u100B"],
+        // yen: tta + tta
+        "\xD7": [BASE, "\u100D\u1039\u100D"],
+        // multiplication: dda + dda
+        "\xB9": [BASE, "\u100D\u1039\u100E"],
+        // superscript one: dda + ddha
+        "$": [BASE, "\u1000\u103B\u1015\u103A"],
+        // kyat
+        // Vowel signs, tones and asat
+        "m": [MARK, "\u102C"],
+        // aa
+        "g": [MARK, "\u102B"],
+        // tall aa
+        ":": [MARK, "\u102B\u103A"],
+        // tall aa with asat
+        "d": [MARK, "\u102D"],
+        // i
+        "D": [MARK, "\u102E"],
+        // ii
+        "k": [MARK, "\u102F"],
+        // u
+        "K": [MARK, "\u102F"],
+        // u, long
+        "l": [MARK, "\u1030"],
+        // uu
+        "L": [MARK, "\u1030"],
+        // uu, long
+        "J": [MARK, "\u1032"],
+        // ai
+        "H": [MARK, "\u1036"],
+        // anusvara
+        "\xF0": [MARK, "\u102D\u1036"],
+        // eth: i with anusvara
+        "h": [MARK, "\u1037"],
+        // dot below
+        "U": [MARK, "\u1037"],
+        // dot below, right
+        "Y": [MARK, "\u1037"],
+        // dot below, further right
+        ";": [MARK, "\u1038"],
+        // visarga
+        "f": [MARK, "\u103A"],
+        // asat
+        "a": [PRE, "\u1031"],
+        // e
+        // Kinzi
+        "F": [KINZI, KINZI_TEXT],
+        "\xD8": [KINZI, KINZI_TEXT, "\u102D"],
+        // O stroke: kinzi with i
+        "\xD0": [KINZI, KINZI_TEXT, "\u102E"],
+        // eth: kinzi with ii
+        "\xF8": [KINZI, KINZI_TEXT, "\u1036"],
+        // o stroke: kinzi with anusvara
+        // Medials
+        "s": [MARK, "\u103B"],
+        // ya
+        "\xDF": [MARK, "\u103B"],
+        // sharp s: ya, long
+        "G": [MARK, "\u103D"],
+        // wa
+        "S": [MARK, "\u103E"],
+        // ha
+        "\xA7": [MARK, "\u103E"],
+        // section: ha, short
+        "T": [MARK, "\u103D\u103E"],
+        // wa with ha
+        "I": [MARK, "\u103E\u102F"],
+        // ha with u
+        "\xAA": [MARK, "\u103E\u1030"],
+        // feminine ordinal: ha with uu
+        "Q": [MARK, "\u103B\u103E"],
+        // ya with ha
+        "R": [MARK, "\u103B\u103D"],
+        // ya with wa
+        "W": [MARK, "\u103B\u103D\u103E"],
+        // ya with wa and ha
+        "j": [PRE, "\u103C"],
+        // ra, narrow
+        "M": [PRE, "\u103C"],
+        // ra, wide
+        "N": [PRE, "\u103C"],
+        // ra, narrow, cut for an upper vowel
+        "B": [PRE, "\u103C"],
+        // ra, wide, cut for an upper vowel
+        "`": [PRE, "\u103C"],
+        // ra, narrow, cut for a lower mark
+        "~": [PRE, "\u103C"],
+        // ra, wide, cut for a lower mark
+        ">": [PRE, "\u103C\u103D"],
+        // ra, narrow, with wa
+        "<": [PRE, "\u103C\u103D"],
+        // ra, wide, with wa
+        "\xFB": [PRE, "\u103C\u102F"],
+        // u circumflex: ra, narrow, with u
+        "\xEA": [PRE, "\u103C\u102F"],
+        // e circumflex: ra, wide, with u
+        // Stacked consonants
+        "\xFA": [STACK, "\u1039\u1000"],
+        // u acute: ka
+        "\xA9": [STACK, "\u1039\u1001"],
+        // copyright: kha
+        "\xBE": [STACK, "\u1039\u1002"],
+        // three quarters: ga
+        "\xA2": [STACK, "\u1039\u1003"],
+        // cent: gha
+        "\xF6": [STACK, "\u1039\u1005"],
+        // o umlaut: ca
+        "\xE4": [STACK, "\u1039\u1006"],
+        // a umlaut: cha
+        "\xC6": [STACK, "\u1039\u1007"],
+        // AE: ja
+        "\xD1": [STACK, "\u1039\u1008"],
+        // N tilde: jha
+        "\xB3": [STACK, "\u1039\u100B"],
+        // superscript three: tta
+        "\xB2": [STACK, "\u1039\u100C"],
+        // superscript two: ttha
+        "\xD6": [STACK, "\u1039\u100F"],
+        // O umlaut: nna
+        "\xE5": [STACK, "\u1039\u1010"],
+        // a ring: ta, wide
+        "\xC5": [STACK, "\u1039\u1010"],
+        // A ring: ta, narrow
+        "\xAC": [STACK, "\u1039\u1011"],
+        // not: tha, wide
+        "\xA6": [STACK, "\u1039\u1011"],
+        // broken bar: tha, narrow
+        "\xB4": [STACK, "\u1039\u1012"],
+        // acute: da
+        "\xA8": [STACK, "\u1039\u1013"],
+        // diaeresis: dha
+        "\xE9": [STACK, "\u1039\u1014"],
+        // e acute: na
+        "\xDC": [STACK, "\u1039\u1015"],
+        // U umlaut: pa
+        "\xE6": [STACK, "\u1039\u1016"],
+        // ae: pha
+        "\xC1": [STACK, "\u1039\u1017"],
+        // A acute: ba
+        "\xC7": [STACK, "\u1039\u1018"],
+        // C cedilla: bha
+        "\xAE": [STACK, "\u1039\u1019"],
+        // registered: ma
+        "\u2019": [STACK, "\u1039\u101C"],
+        // right quote (0x92): la
+        "\xC9": [STACK, "\u1039\u1010", "\u103D"],
+        // E acute: ta, with wa
+        // Digits and Burmese punctuation. Win has no glyph for wa and types it as zero.
+        "0": [BASE, "\u1040"],
+        "1": [BASE, "\u1041"],
+        "2": [BASE, "\u1042"],
+        "3": [BASE, "\u1043"],
+        "4": [BASE, "\u1044"],
+        "5": [BASE, "\u1045"],
+        "6": [BASE, "\u1046"],
+        "7": [BASE, "\u1047"],
+        "8": [BASE, "\u1048"],
+        "9": [BASE, "\u1049"],
+        "?": [TEXT, "\u104A"],
+        // little section
+        "/": [TEXT, "\u104B"],
+        // section
+        "\xFC": [BASE, "\u104C"],
+        // u umlaut: locative
+        "\xED": [BASE, "\u104D"],
+        // i acute: completed
+        "\xA4": [BASE, "\u104E"],
+        // currency sign: aforementioned
+        "\\": [BASE, "\u104F"],
+        // genitive
+        // Fractions. Unicode has no Burmese fraction characters.
+        "\u0192": [TEXT, "\u1041/\u1042"],
+        // 0x83
+        "\u201E": [TEXT, "\u1041/\u1043"],
+        // 0x84
+        "\u2026": [TEXT, "\u1042/\u1043"],
+        // 0x85
+        "\u2020": [TEXT, "\u1041/\u1044"],
+        // 0x86
+        "\u2021": [TEXT, "\u1043/\u1044"],
+        // 0x87
+        "\u02C6": [TEXT, "\u1041/\u1045"],
+        // 0x88
+        "\u2030": [TEXT, "\u1042/\u1045"],
+        // 0x89
+        "\u0160": [TEXT, "\u1043/\u1045"],
+        // 0x8A
+        "\u2039": [TEXT, "\u1044/\u1045"],
+        // 0x8B
+        // Latin punctuation the font moves to other keys
+        "]": [TEXT, "\u2018"],
+        "}": [TEXT, "\u2019"],
+        "^": [TEXT, "/"],
+        "_": [TEXT, "\xD7"],
+        "\xAB": [TEXT, "["],
+        "\xBB": [TEXT, "]"],
+        "\xB5": [TEXT, "!"],
+        "\u03BC": [TEXT, "!"],
+        "\xBF": [TEXT, "?"],
+        "\xE7": [TEXT, ","],
+        "\xBC": [TEXT, "-"],
+        "\u2010": [TEXT, "-"],
+        "\xE8": [TEXT, "_"],
+        "\xCA": [TEXT, " "],
+        // E circumflex: a blank glyph
+        // Dingbats. The vendor logo at 0xB0 has no text and is dropped.
+        "\u201A": [TEXT, "\u260E"],
+        // 0x82 telephone
+        "\xC0": [TEXT, "\u2666"],
+        "\xC2": [TEXT, "\u2714"],
+        "\xC3": [TEXT, "\u2663"],
+        "\xC4": [TEXT, "\u2731"],
+        "\xE0": [TEXT, "\u2665"],
+        "\xE1": [TEXT, "\u27A4"],
+        "\xE2": [TEXT, "\u2718"],
+        "\xE3": [TEXT, "\u2660"],
+        "\xB6": [TEXT, "\u25C4"],
+        "\xB0": [TEXT, ""]
+      };
+      var CP1252 = {
+        "\u201A": "\x82",
+        "\u0192": "\x83",
+        "\u201E": "\x84",
+        "\u2026": "\x85",
+        "\u2020": "\x86",
+        "\u2021": "\x87",
+        "\u02C6": "\x88",
+        "\u2030": "\x89",
+        "\u0160": "\x8A",
+        "\u2039": "\x8B",
+        "\u2019": "\x92"
+      };
+      Object.keys(CP1252).forEach(function(ch) {
+        WIN[CP1252[ch]] = WIN[ch];
+      });
+      var SEQUENCES = [
+        [/a[Mj]omf/g, "\u102A"],
+        // aMomf: au (e + medial ra around sa + aa + asat)
+        [/[Mj]o/g, "\u1029"],
+        // Mo: o (medial ra around sa)
+        [/p[s\u00DF]/g, "\u1008"],
+        // ps: jha (ca + medial ya)
+        [/OD/g, "\u1026"]
+        // OD: uu (u + ii)
+      ];
+      var MARK_ORDER = [
+        "\u103B",
+        // medial ya
+        "\u103C",
+        // medial ra
+        "\u103D",
+        // medial wa
+        "\u103E",
+        // medial ha
+        "\u1031",
+        // e
+        "\u102D\u102E\u1032",
+        // upper vowels
+        "\u102F\u1030",
+        // lower vowels
+        "\u102B\u102C",
+        // aa
+        "\u1036",
+        // anusvara
+        "\u1037",
+        // dot below
+        "\u103A",
+        // asat
+        "\u1038"
+        // visarga
+      ];
+      var ASAT = "\u103A";
+      var VOWELS_AFTER_EARLY_ASAT = "\u102B\u102C\u102F\u1030";
+      var ZERO_AS_WA = /(^|[^\u1040-\u1049+\-*\/])\u1040(?![\u1040-\u1049+\-*\/])/g;
+      var MYANMAR_LETTER = /^[\u1000-\u102A\u103F\u104C-\u104F]$/;
+      function rank(mark) {
+        for (var i = 0; i < MARK_ORDER.length; i++) {
+          if (MARK_ORDER[i].indexOf(mark) >= 0) return i;
+        }
+        return MARK_ORDER.length;
+      }
+      function glyphOf(ch) {
+        if (has(WIN, ch)) return WIN[ch];
+        return [MYANMAR_LETTER.test(ch) ? BASE : TEXT, ch];
+      }
+      function glyphs(content) {
+        var out = "";
+        for (var i = 0; i < content.length; i++) {
+          var glyph = glyphOf(content[i]);
+          out += glyph[1] + (glyph[2] || "");
+        }
+        return out;
+      }
+      function arrange(content) {
+        var out = "";
+        var syllable = null;
+        var pending = "";
+        function close() {
+          if (!syllable) return;
+          var marks2 = [];
+          syllable.marks.forEach(function(mark) {
+            if (marks2.indexOf(mark) < 0) marks2.push(mark);
+          });
+          var asat = marks2.indexOf(ASAT);
+          var early = asat >= 0 && marks2.slice(asat + 1).some(function(mark) {
+            return VOWELS_AFTER_EARLY_ASAT.indexOf(mark) >= 0;
+          });
+          if (early) marks2.splice(asat, 1);
+          marks2.sort(function(a, b) {
+            return rank(a) - rank(b);
+          });
+          out += syllable.kinzi + syllable.base + (early ? ASAT : "") + syllable.stack + marks2.join("");
+          syllable = null;
+        }
+        for (var i = 0; i < content.length; i++) {
+          var glyph = glyphOf(content[i]);
+          var role = glyph[0];
+          var text = glyph[1];
+          var extra = glyph[2] || "";
+          if (role === BASE) {
+            close();
+            syllable = { kinzi: "", base: text, stack: "", marks: pending.split("") };
+            pending = "";
+          } else if (role === PRE) {
+            close();
+            pending += text;
+          } else if (syllable && role !== TEXT) {
+            if (role === STACK) syllable.stack += text;
+            if (role === KINZI) syllable.kinzi = text;
+            var marks = (role === MARK ? text : "") + extra;
+            for (var m = 0; m < marks.length; m++) syllable.marks.push(marks[m]);
+          } else {
+            close();
+            out += pending + text + extra;
+            pending = "";
+          }
+        }
+        close();
+        return out + pending;
+      }
+      function toUnicode(content, debug) {
+        var steps = [content];
+        var patterns = [];
+        function step(name, text2) {
+          if (text2 !== steps[steps.length - 1]) {
+            patterns.push(name);
+            steps.push(text2);
+          }
+          return text2;
+        }
+        var text = content;
+        for (var s = 0; s < SEQUENCES.length; s++) {
+          text = text.replace(SEQUENCES[s][0], SEQUENCES[s][1]);
+        }
+        text = step("sequences", text);
+        if (debug) step("glyphs", glyphs(text));
+        var result = step("syllables", arrange(text));
+        result = step("zero as wa", result.replace(ZERO_AS_WA, "$1\u101D"));
+        result = step("NFC", result.normalize("NFC"));
+        return debug ? { matched_patterns: patterns, steps } : result;
+      }
+      module.exports = {
+        toUnicode,
+        // For scripts/eval/win-glyphs.mjs, which draws the table for review.
+        tables: { WIN, SEQUENCES, ROLES: { BASE, PRE, MARK, STACK, KINZI, TEXT } }
+      };
+    }
+  });
+
   // library/converter.js
   var require_converter = __commonJS({
     "library/converter.js"(exports, module) {
@@ -771,13 +1243,14 @@ var knayi = (() => {
       var globalOptions = require_globalOptions();
       var gate = require_contentGate();
       var syllable = require_syllable();
+      var win = require_win();
       function fontConvert(content, to, from) {
         content = gate.toText(content);
         if (gate.isMissing(content)) {
           if (!globalOptions.isSilentMode()) console.warn("Content must be specified on knayi.fontConvert.");
           return "";
         }
-        if (!gate.hasMyanmar(content))
+        if (gate.resolveFont(from) !== "win" && !gate.hasMyanmar(content))
           return content;
         if (!to) {
           if (!globalOptions.isSilentMode()) console.error("Convert target font must be specified on knayi.fontConvert.");
@@ -795,8 +1268,19 @@ var knayi = (() => {
         if (to === from) {
           return content;
         }
+        if (to === "win" || from === "win" && to !== "unicode") {
+          if (!globalOptions.isSilentMode()) console.error("knayi.fontConvert converts Win text to Unicode only.");
+          return content;
+        }
+        var debug = this && this.debug;
+        if (from === "win") return winToUnicode(content, debug);
         content = spellingFix(content, from);
-        return syllable.convertText(content, from, to, this && this.debug);
+        return syllable.convertText(content, from, to, debug);
+      }
+      function winToUnicode(content, debug) {
+        var result = win.toUnicode(content, debug);
+        if (!debug) return result;
+        return { to: "unicode", from: "win", matched_patterns: result.matched_patterns, steps: result.steps };
       }
       fontConvert.debugging = function(param1, param2, param3) {
         return fontConvert.apply({ debug: true }, [param1, param2, param3]);

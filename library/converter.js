@@ -3,6 +3,7 @@ const fontDetect = require('./detector');
 const globalOptions = require('./globalOptions');
 const gate = require('./contentGate');
 const syllable = require('./syllable');
+const win = require('./win');
 
 function fontConvert(content, to, from) {
   content = gate.toText(content);
@@ -11,7 +12,8 @@ function fontConvert(content, to, from) {
     return '';
   }
 
-  if (!gate.hasMyanmar(content))
+  // Win text is ASCII, so it has no Myanmar letters to find.
+  if (gate.resolveFont(from) !== 'win' && !gate.hasMyanmar(content))
     return content;
 
   if (!to) {
@@ -34,8 +36,25 @@ function fontConvert(content, to, from) {
     return content;
   }
 
+  // Win is a source font only: knayi converts Win text to Unicode.
+  if (to === 'win' || (from === 'win' && to !== 'unicode')) {
+    if (!globalOptions.isSilentMode()) console.error('knayi.fontConvert converts Win text to Unicode only.');
+    return content;
+  }
+
+  var debug = this && this.debug;
+  if (from === 'win') return winToUnicode(content, debug);
+
   content = spellingFix(content, from);
-  return syllable.convertText(content, from, to, this && this.debug);
+  return syllable.convertText(content, from, to, debug);
+}
+
+// Win has its own rules in library/win.js. The debugging log has the same shape as the other conversions
+// and ends with the converted text.
+function winToUnicode(content, debug) {
+  var result = win.toUnicode(content, debug);
+  if (!debug) return result;
+  return { to: 'unicode', from: 'win', matched_patterns: result.matched_patterns, steps: result.steps };
 }
 
 fontConvert.debugging = function (param1, param2, param3) {
