@@ -103,7 +103,8 @@ const convertRules = {
   zawgyi: {
     unicode: {
       oneTime: [
-        [/([^\u1040-\u1049\+\-\*\/])?\u1040([^\u1040-\u1049\+\-\*\/])?/g, '$1\u101d$2'],
+        // A zero not next to a digit or an operator is the letter wa typed as ၀. Inside numbers it stays a digit.
+        [/(^|[^\u1040-\u1049\+\-\*\/])\u1040(?![\u1040-\u1049\+\-\*\/])/g, '$1\u101d'],
         [/\u103d|\u1087/g, '\u103e'],
         [/\u103c/g, '\u103d'],
         [/[\u103b\u107e-\u1084]/g, '\u103c'],
