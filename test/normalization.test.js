@@ -40,4 +40,25 @@ describe('normalization', () => {
 				.should.equal('၁၀ရက်၁၀ လ ၂၀၁၀ နှစ်။ ဝါး ၁၀၇ ချောင်း ကို ဝင်္ကမ္ဘာထဲမှာ ဝင်းဝင်းနဲ့ ဝမ်းပြည့်အောင်ဝါး။ ၀၁-၅၀၀၀၀၇၅၇ ကိုခေါ် ဝမ်းနည်းပါတယ်လို့ ဝင်္ကဝုတ္တိတွေပြော ရ္က ဝ္က။');
 		});
 	});
+
+	describe('canonical marks', () => {
+		it('collapses mixed lone-gyi-tin', () => {
+			knayi.normalize('ကိီ').should.equal('ကီ');
+		})
+
+		it('turns a lone wa into digit zero', () => {
+			knayi.normalize('ဝ').should.equal('၀');
+		})
+
+		it('keeps surrounding spaces', () => {
+			knayi.normalize(' မိြုင် ').should.equal(' မြိုင် ');
+		})
+	})
+});
+
+after(function () {
+	knayi.setGlobalOptions({
+		silent_mode: false,
+		detector: { use_myanmartools: false, myanmartools_zg_threshold: [0.05, 0.95] }
+	});
 });

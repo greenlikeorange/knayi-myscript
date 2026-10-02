@@ -10,13 +10,18 @@ var OPTIONS = {
 /**
  * set configuartion of using googlei18n/myanmar-tools
  */
-function detector ({
-  use_myanmartools = OPTIONS.detector.use_myanmartools,
-  myanmartools_zg_threshold = [0.05, 0.95]
-} = {}) {
-  // Check types
+function detector (incoming) {
+  incoming = incoming || {};
+  var use_myanmartools = Object.prototype.hasOwnProperty.call(incoming, 'use_myanmartools')
+    ? incoming.use_myanmartools
+    : OPTIONS.detector.use_myanmartools;
+  var myanmartools_zg_threshold = Object.prototype.hasOwnProperty.call(incoming, 'myanmartools_zg_threshold')
+    ? incoming.myanmartools_zg_threshold
+    : OPTIONS.detector.myanmartools_zg_threshold;
+
   if (
-    typeof myanmartools_zg_threshold[0] !== 'number'
+    !Array.isArray(myanmartools_zg_threshold)
+    || typeof myanmartools_zg_threshold[0] !== 'number'
     || typeof myanmartools_zg_threshold[1] !== 'number'
   ) {
     console.error('myanmartools_zg_threshold must be [number, number]')
@@ -25,7 +30,7 @@ function detector ({
 
   return {
     use_myanmartools: use_myanmartools,
-    myanmartools_zg_threshold: myanmartools_zg_threshold
+    myanmartools_zg_threshold: myanmartools_zg_threshold.slice()
   }
 }
 
