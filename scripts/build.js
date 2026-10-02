@@ -9,25 +9,38 @@ const entry = path.join(root, 'main.js');
 fs.mkdirSync(dist, { recursive: true });
 
 const shared = {
-  entryPoints: [entry],
   bundle: true,
   legalComments: 'none',
   logLevel: 'warning'
 };
 
+// Bundlers follow the `module` field for both `import { fontConvert }` and `require()`,
+// so the ESM build needs every main.js export as a named export, not only a default.
+const esmEntry = {
+  contents:
+    "import knayi from './main.js';\n" +
+    'export const { ' + Object.keys(require(entry)).join(', ') + ' } = knayi;\n' +
+    'export default knayi;\n',
+  resolveDir: root,
+  sourcefile: 'esm-entry.js'
+};
+
 Promise.all([
   esbuild.build(Object.assign({}, shared, {
+    stdin: esmEntry,
     format: 'esm',
     platform: 'neutral',
     outfile: path.join(dist, 'knayi-myscript.mjs')
   })),
   esbuild.build(Object.assign({}, shared, {
+    entryPoints: [entry],
     format: 'iife',
     platform: 'browser',
     globalName: 'knayi',
     outfile: path.join(dist, 'knayi-myscript.js')
   })),
   esbuild.build(Object.assign({}, shared, {
+    entryPoints: [entry],
     format: 'iife',
     platform: 'browser',
     globalName: 'knayi',

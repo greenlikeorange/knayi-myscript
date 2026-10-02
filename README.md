@@ -35,7 +35,7 @@ import knayi from 'knayi-myscript'
 import knayi from 'knayi-myscript'
 ```
 
-TypeScript types are `index.d.ts`. Import the whole object. `import { fontConvert } from 'knayi-myscript'` is not a supported export.
+TypeScript types are `index.d.ts`. Named imports such as `import { fontConvert } from 'knayi-myscript'` work in Node and in bundlers, next to the default import.
 
 In Node, `require` and `import` both load `main.js` and share `setGlobalOptions`. A bundler that follows the `module` field loads `dist/knayi-myscript.es.js` instead. That file is a second copy. If one part of an app uses `main.js` and another uses `dist/knayi-myscript.es.js`, silent mode and detector settings do not cross between them.
 
