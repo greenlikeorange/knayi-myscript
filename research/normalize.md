@@ -41,7 +41,7 @@ What 2.9 got wrong:
 **Unicode Technical Note #11 order**, as in Zawgyi conversion (`research/zawgyi-to-unicode.md`):
 - an asat on a consonant comes before the medials (ခ်ျ), except after medial ha (ရှ်);
 - with ု alone it comes before the vowel (ကျွန်ုပ်);
-- typed after ေ or aa, it goes last (ကျော်).
+- typed after aa, it goes last (ကျော်).
 2.10 adds one rule here: an asat typed after ေ goes last too. Otherwise a second pass would read `ခ်ေ` as a stray ေ.
 
 **ai and anusvara** go after a lower vowel and aa, as UTN #11's constraints require; Burmese never combines them. Mon, Karen and Pa'o do (တုဲ, လှာဲ). With no lower vowel, either may also be typed before aa, to sit on the consonant (Karen ခရံာ်, Christ, 37 lines). It stays there, except anusvara before tall aa, which UTN #11 does not allow.
@@ -91,12 +91,12 @@ On the benchmark page, the Wikipedia round trip (Wikipedia → Rabbit's Zawgyi �
 Letters and marks the Burmese rules do not know end a syllable and stay where they are. What still changes is mostly:
 - NFC, and UTN #11 order;
 - ဝ typed in numbers;
-- the Burmese look-alikes: Mon ဝဥ္ဇ, and Pa'o စျ, which may be right there.
+- the Burmese look-alike fixes: Mon ဝဥ္ဇ becomes ဝဉ္ဇ, and Pa'o စျ becomes ဈ, which may not be right in Pa'o.
 
 ## 6. Speed
 
-- **Real text:** 4.6 million characters of Wikipedia and Okell text take about 850 ms, as in 2.9.
-- **Worst cases stay linear:** a million marks on one consonant, a million ေ with or without consonants, a million digits or stacked consonants each take under 200 ms.
+- **Real text:** 4.6 million characters of Wikipedia and Okell text take about 550 ms (2.9: about 830 ms). Zawgyi conversion with the shared typing fixes is as fast as before them.
+- **Worst cases stay linear:** a million marks on one consonant, a million ေ with or without consonants, and a million wa, digits, stacked consonants or kinzi each take about 200 ms or less.
 
 ## 7. Open questions
 
