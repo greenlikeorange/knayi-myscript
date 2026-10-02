@@ -4,6 +4,8 @@ JavaScript library for Myanmar (Burmese) text stored as Unicode or Zawgyi. Versi
 
 It detects the encoding, converts between them, inserts syllable breaks, collapses repeated spelling marks, normalizes some Unicode typing errors, and truncates on those breaks. It does not segment dictionary words, translate, or tokenize for a language model.
 
+Try every function in the browser at <https://greenlikeorange.github.io/knayi-myscript/>.
+
 Install it from npm. npm, Yarn, pnpm, and Bun all read that registry.
 
 ```bash
@@ -186,4 +188,4 @@ knayi.truncate(null) // ''
 - `dist/knayi-myscript.js`
 - `dist/knayi-myscript.min.js`
 
-`npm run eval` measures conversion and detection on public Zawgyi and Unicode data, next to a published knayi release, myanmar-tools, and Rabbit. `npm run bench` measures speed on real text and long input. Both download their data on first use. See [scripts/eval/README.md](scripts/eval/README.md). The latest results are published at <https://knayi-myscript.kny.co/benchmark.html>.
+`npm run eval` measures conversion and detection on public Zawgyi and Unicode data, next to a published knayi release, myanmar-tools, and Rabbit. `npm run bench` measures speed on real text and long input. Both download their data on first use. See [scripts/eval/README.md](scripts/eval/README.md). The latest results are published at <https://greenlikeorange.github.io/knayi-myscript/benchmark.html>.
