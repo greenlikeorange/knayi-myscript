@@ -1,22 +1,52 @@
 const library = {};
-const mmCharacterRange = /[\u1000-\u109F]/;
 const whitespace = '[\\x20\\t\\r\\n\\f]';
 
 const globalOptions = require('./globalOptions');
+const gate = require('./contentGate');
 
-let myanmartoolZawgyiDetector;
-try {
-  const myanmartools = require('myanmar-tools');
-  myanmartoolZawgyiDetector = new myanmartools.ZawgyiDetector();
-} catch (e) {
+var myanmartoolZawgyiDetector = null;
+var myanmarToolsLoadAttempted = false;
 
+function nodeRequire(id) {
+  try {
+    var proc = globalThis.process;
+    if (!proc || !proc.versions || typeof proc.versions.node !== 'string') return null;
+    var req = null;
+    try {
+      req = module.require;
+    } catch (e) {
+      req = null;
+    }
+    if (typeof req === 'function') return req.call(module, id);
+    if (typeof proc.getBuiltinModule === 'function') {
+      var nodeModule = proc.getBuiltinModule('module');
+      if (nodeModule && typeof nodeModule.createRequire === 'function') {
+        var from = typeof __filename === 'string' ? __filename : proc.cwd() + '/package.json';
+        return nodeModule.createRequire(from)(id);
+      }
+    }
+  } catch (e) {
+    return null;
+  }
+  return null;
+}
+
+function loadMyanmarTools() {
+  if (myanmarToolsLoadAttempted) return myanmartoolZawgyiDetector;
+  myanmarToolsLoadAttempted = true;
+  var loaded = nodeRequire('myanmar-tools');
+  if (loaded && typeof loaded.ZawgyiDetector === 'function') {
+    myanmartoolZawgyiDetector = new loaded.ZawgyiDetector();
+  }
+  return myanmartoolZawgyiDetector;
 }
 
 /** DETECTION Libarary **/
 library.detect = {
   unicode: [
     '\u103e', '\u103f', '\u100a\u103a', '\u1014\u103a', '\u1004\u103a', '\u1031\u1038', '\u1031\u102c',
-    '\u103a\u1038', '\u1035', '[\u1050-\u1059]', '^([\u1000-\u1021]\u103c|[\u1000-\u1021]\u1031)'
+    '\u103a\u1038', '\u1035', '[\u1050-\u1059]', '^([\u1000-\u1021]\u103c|[\u1000-\u1021]\u1031)',
+    '[\u1000-\u1021]\u103b', '[\u1000-\u1021]\u1039[\u1000-\u1021]'
   ],
   zawgyi : [
     '\u102c\u1039', '\u103a\u102c', whitespace+'(\u103b|\u1031|[\u107e-\u1084])[\u1000-\u1021]'
@@ -34,6 +64,41 @@ Object.keys(library.detect).forEach((type) => {
   }
 });
 
+function scoreWithRules(content, fallback) {
+  var match = {};
+
+  for (var type in library.detect) {
+    match[type] = 0;
+
+    for (var i = 0; i < library.detect[type].length; i++) {
+      var found = content.match(library.detect[type][i]);
+      match[type] += (found && found.length) || 0;
+    }
+  }
+
+  if (match.unicode > match.zawgyi) return 'unicode';
+  if (match.unicode < match.zawgyi) return 'zawgyi';
+  return fallback;
+}
+
+function scoreWithMyanmarTools(content, fallback, threshold) {
+  var probability = myanmartoolZawgyiDetector.getZawgyiProbability(content);
+
+  if (probability < threshold[0]) return 'unicode';
+  if (probability > threshold[1]) return 'zawgyi';
+  return fallback;
+}
+
+var warnedMissingMyanmarTools = false;
+
+function chooseAdapter(options) {
+  if (options.adapter === 'rules' || options.adapter === 'myanmartools') {
+    return options.adapter;
+  }
+  if (options.use_myanmartools) return 'myanmartools';
+  return 'rules';
+}
+
 /**
  * Font Type Detector agent
  * @param content Text to make a detection
@@ -41,55 +106,34 @@ Object.keys(library.detect).forEach((type) => {
  * @return unicode ? zawgyi
  */
 function fontDetect(content, fallback_font_type, options = {}){
-  if (!content) {
+  if (gate.isMissing(content)) {
     if (!globalOptions.isSilentMode()) console.warn('Content must be specified on knayi.fontDetect.');
     return fallback_font_type || 'en';
   }
 
-	if (content === '')
-		return content;
-
-	if (!mmCharacterRange.test(content))
+	if (!gate.hasMyanmar(content))
 		return fallback_font_type || 'en';
 
-	content = content.trim().replace(/[\u200B\u200C]/g, '');
+	content = gate.cleanText(content, true);
 	fallback_font_type = fallback_font_type || 'zawgyi';
 
+  var requestedAdapter = options.adapter;
   options = globalOptions.detector(options);
+  if (requestedAdapter) options.adapter = requestedAdapter;
 
-  if (options.use_myanmartools && myanmartoolZawgyiDetector) {
-    var myanmartools_zg_probability = myanmartoolZawgyiDetector.getZawgyiProbability(content);
-
-    if (myanmartools_zg_probability < options.myanmartools_zg_threshold[0]) {
-  		return 'unicode';
-  	} else if (myanmartools_zg_probability > options.myanmartools_zg_threshold[1]) {
-  		return 'zawgyi';
-  	} else {
-  		return fallback_font_type;
-  	}
-
-  } else {
-    var match = {};
-
-    for (var type in library.detect) {
-  		match[type] = 0;
-
-  		for (var i = 0; i < library.detect[type].length; i++) {
-  			var rule = library.detect[type][i]
-  			var m = content.match(rule);
-  			match[type] += (m && m.length) || 0;
-  		}
-  	}
-
-    if (match.unicode > match.zawgyi) {
-  		return 'unicode';
-  	} else if (match.unicode < match.zawgyi) {
-  		return 'zawgyi';
-  	} else {
-  		return fallback_font_type;
-  	}
-
+  if (chooseAdapter(options) === 'rules') {
+    return scoreWithRules(content, fallback_font_type);
   }
+
+  if (!loadMyanmarTools()) {
+    if (!globalOptions.isSilentMode() && !warnedMissingMyanmarTools) {
+      console.warn('myanmar-tools adapter is missing; fontDetect used the rule scorer.');
+      warnedMissingMyanmarTools = true;
+    }
+    return scoreWithRules(content, fallback_font_type);
+  }
+
+  return scoreWithMyanmarTools(content, fallback_font_type, options.myanmartools_zg_threshold);
 };
 
 module.exports = fontDetect

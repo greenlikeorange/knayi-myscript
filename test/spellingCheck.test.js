@@ -1,17 +1,43 @@
+const { describe, it, before, after } = require('node:test');
+const assert = require('node:assert/strict');
 var knayi = require('../main');
-var chai = require('chai');
-var should = chai.should();
-
 describe('spellingFix',()=>{
 	describe('spellingFix Unicode',()=>{
 		it('should fix for unicode',()=>{
-			knayi.spellingFix('မင်္ဂလာာပါါ','unicode').should.equal('မင်္ဂလာပါ');
+assert.equal(			knayi.spellingFix('မင်္ဂလာာပါါ','unicode'), 'မင်္ဂလာပါ');
 		})
 	})
 
 	describe('spellingFix Zawgyi',()=>{
 		it('should fix for zawgyi',()=>{
-			knayi.spellingFix('မဂၤလာပါါ').should.equal('မဂၤလာပါ');
+assert.equal(			knayi.spellingFix('မဂၤလာပါါ'), 'မဂၤလာပါ');
+		})
+
+		it('collapses a repeated zawgyi mark', () => {
+assert.equal(			knayi.spellingFix('\u1033\u1033', 'zawgyi'), '\u1033');
+		})
+	})
+
+	describe('spelling policies', () => {
+		it('leaves mixed unicode vowels for spellingFix', () => {
+assert.equal(			knayi.spellingFix('ကိီ', 'unicode'), 'ကိီ');
+		})
+	})
+
+	describe('font aliases', () => {
+		it('treats zaw as zawgyi', () => {
+assert.equal(			knayi.spellingFix('\u1033\u1033', 'zaw'), '\u1033');
+		})
+
+		it('treats uni as the unicode mark list', () => {
+assert.equal(			knayi.spellingFix('\u1033\u1033', 'uni'), '\u1033\u1033');
 		})
 	})
 })
+
+after(function () {
+	knayi.setGlobalOptions({
+		silent_mode: false,
+		detector: { use_myanmartools: false, myanmartools_zg_threshold: [0.05, 0.95] }
+	});
+});

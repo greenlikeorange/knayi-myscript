@@ -1,8 +1,7 @@
 const fontDetect = require('./detector');
-const syllBreak = require('./syllBreak');
 const globalOptions = require('./globalOptions');
-
-const mmCharacterRange = /[\u1000-\u109F]/;
+const gate = require('./contentGate');
+const syllable = require('./syllable');
 
 function truncate(content, options) {
   options = options || {};
@@ -12,13 +11,20 @@ function truncate(content, options) {
   
   var absoulteLength = length - omission.length;
 
-  if (content === '' || !mmCharacterRange.test(content))
+  if (content == null) {
+    if (!globalOptions.isSilentMode()) console.warn('Content must be specified on knayi.truncate.');
+    return '';
+  }
+
+  if (content === '' || !gate.hasMyanmar(content))
     return content.substr(0, absoulteLength) + omission;
 
   if (!fontType)
     fontType = fontDetect(content);
+  else
+    fontType = gate.resolveFont(fontType) || fontType;
 
-  var syllables = syllBreak(content, fontType).split(/[\u200B\u200C]/);
+  var syllables = syllable.breakParts(gate.cleanText(content, true), fontType);
 
   return syllables.reduce(function (curr, syll) {
     var left = absoulteLength - curr.length;

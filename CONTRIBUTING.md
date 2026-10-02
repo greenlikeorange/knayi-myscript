@@ -83,7 +83,7 @@ If this seems like a lot or you aren't able to do all this setup, you might also
 
 If you want to go the usual route and run the project locally, though:
 
-* [Install Node.js](https://nodejs.org/en/download/)
+* [Install Node.js](https://nodejs.org/en/download/) 22 or newer
 * [Fork the project](https://guides.github.com/activities/forking/#fork)
 
 Then in your terminal:

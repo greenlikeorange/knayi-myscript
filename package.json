@@ -1,13 +1,29 @@
 {
   "name": "knayi-myscript",
-  "version": "2.8.4",
+  "version": "2.9.0",
   "description": "Knayi Myanmar languages JavaScirpt library",
-  "main": "main.js",
-  "module": "dist/knayi-myscript.es.js",
+  "main": "./main.js",
+  "module": "./dist/knayi-myscript.es.js",
+  "types": "./index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "main.js",
+    "index.d.ts",
+    "library",
+    "dist/knayi-myscript.mjs",
+    "dist/knayi-myscript.es.js",
+    "dist/knayi-myscript.js",
+    "dist/knayi-myscript.min.js"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "test": "mocha",
-    "build": "webpack",
-    "start:dev": "webpack-dev-server --entry /entry/file"
+    "pretest": "node scripts/build.js",
+    "test": "node --test && tsc -p typecheck/tsconfig.json --noEmit",
+    "test:bun": "bun scripts/bun-contract.js && bun scripts/bun-esm.mjs",
+    "test:pack": "node scripts/check-packed.mjs",
+    "build": "node scripts/build.js"
   },
   "repository": {
     "type": "git",
@@ -29,29 +45,21 @@
     "greenlikeorange <ty@kny.co>",
     "Aung Myo Kyaw <me@aungmyokyaw.com>"
   ],
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com/"
-  },
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/greenlikeorange/knayi-myscript/issues"
   },
   "homepage": "https://github.com/greenlikeorange/knayi-myscript",
   "devDependencies": {
-    "@babel/core": "^7.7.2",
-    "@babel/preset-env": "^7.7.1",
-    "babel-core": "^6.26.3",
-    "babel-loader": "^8.0.6",
-    "babel-preset-env": "^1.7.0",
-    "chai": "^4.2.0",
-    "mocha": "^6.2.2",
-    "upath": "^1.2.0",
-    "weallcontribute": "^1.0.9",
-    "webpack": "^4.41.2",
-    "webpack-cli": "^3.3.10",
-    "webpack-serve": "^3.2.0"
+    "esbuild": "^0.25.0",
+    "typescript": "^5.9.3"
   },
-  "optionalDependencies": {
+  "peerDependencies": {
     "myanmar-tools": "^1.1.2"
+  },
+  "peerDependenciesMeta": {
+    "myanmar-tools": {
+      "optional": true
+    }
   }
 }
