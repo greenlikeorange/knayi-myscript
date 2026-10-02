@@ -187,14 +187,6 @@ const convertRules = {
   }
 };
 
-const MEDIALS = "ျြွှ";
-const VOWELS = "ါာိီုူေဲ";
-const TONES = "ံ့း";
-const ASAT = "်";
-const VIRAMA = "္";
-const KINZI = "င်္";
-const CONSONANT = /[က-အ]/;
-
 const C = "က-အ";
 const SHORT_C = "ခဂငစဇဈဉဎဒဓနပဖဗမရဝဠ";
 const M = "ျြွှ";
@@ -202,6 +194,13 @@ const V = "ါာိီုူေဲ";
 const S = "္";
 const A = "်";
 const F = "ံ့း";
+const MEDIALS = M;
+const VOWELS = V;
+const TONES = F;
+const ASAT = A;
+const VIRAMA = S;
+const KINZI = "\u1004" + ASAT + VIRAMA;
+const CONSONANT = new RegExp("[" + C + "]");
 const E = "ဣဥဦဩ၎";
 const WA_LONE = "ဝ";
 const NUMBER_ZERO = "၀";
@@ -283,7 +282,8 @@ function fixWaAndYa(text) {
 
 function parseChunks(content) {
   var chunks = [];
-  var re = new RegExp(brakePoint.source, brakePoint.flags);
+  var re = brakePoint;
+  re.lastIndex = 0;
   var last = 0;
   var match;
   while ((match = re.exec(content))) {
@@ -397,15 +397,22 @@ function serializeUnicode(syllables) {
   }).join("");
 }
 
+function compileCollapse(chars) {
+  return chars.split(" ").map(function (ch) {
+    return [new RegExp("[" + ch + "]{2,}", "g"), ch];
+  });
+}
+
 const COLLAPSE = {
-  unicode: "\u102b \u102c \u102d \u102e \u102f \u1030 \u1031 \u1032 \u1036 \u1037 \u1038 \u103a \u103b \u103c \u103d \u103e \u1039".split(" "),
-  zawgyi: "\u102b \u102c \u102d \u102e \u102f \u1030 \u1031 \u1032 \u1033 \u1034 \u1036 \u1037 \u1038 \u1039 \u103a \u103b \u103c \u103d \u105a \u1060 \u1061 \u1062 \u1063 \u1064 \u1065 \u1066 \u1067 \u1068 \u1069 \u106a \u106b \u106c \u106d \u1070 \u1071 \u1072 \u1073 \u1074 \u1075 \u1076 \u1077 \u1078 \u1079 \u107a \u107b \u107c \u107d \u107e \u107f \u1080 \u1081 \u1082 \u1083 \u1084 \u1085 \u1087 \u1088 \u1089 \u108a \u108b \u108c \u108d \u108e \u1093 \u1094 \u1095 \u1096".split(" ")
+  unicode: compileCollapse("\u102b \u102c \u102d \u102e \u102f \u1030 \u1031 \u1032 \u1036 \u1037 \u1038 \u103a \u103b \u103c \u103d \u103e \u1039"),
+  zawgyi: compileCollapse("\u102b \u102c \u102d \u102e \u102f \u1030 \u1031 \u1032 \u1033 \u1034 \u1036 \u1037 \u1038 \u1039 \u103a \u103b \u103c \u103d \u105a \u1060 \u1061 \u1062 \u1063 \u1064 \u1065 \u1066 \u1067 \u1068 \u1069 \u106a \u106b \u106c \u106d \u1070 \u1071 \u1072 \u1073 \u1074 \u1075 \u1076 \u1077 \u1078 \u1079 \u107a \u107b \u107c \u107d \u107e \u107f \u1080 \u1081 \u1082 \u1083 \u1084 \u1085 \u1087 \u1088 \u1089 \u108a \u108b \u108c \u108d \u108e \u1093 \u1094 \u1095 \u1096")
 };
 
 function collapseMarks(content, fontType) {
-  var marks = COLLAPSE[fontType] || COLLAPSE.unicode;
-  for (var i = 0; i < marks.length; i++) {
-    content = content.replace(new RegExp("[" + marks[i] + "]{2,}", "g"), marks[i]);
+  var rules = COLLAPSE[fontType] || COLLAPSE.unicode;
+  for (var i = 0; i < rules.length; i++) {
+    rules[i][0].lastIndex = 0;
+    content = content.replace(rules[i][0], rules[i][1]);
   }
   return content;
 }
@@ -435,6 +442,7 @@ function breakParts(content, fontType) {
   var rules = BREAK_RULES[fontType];
   var text = content;
   for (var i = 0; i < rules.length; i++) {
+    rules[i][0].lastIndex = 0;
     text = text.replace(rules[i][0], rules[i][1]);
   }
   text = text.replace(/^\u200B/, "");
@@ -446,16 +454,24 @@ function joinParts(parts, breakpoint) {
   return parts.join(breakChar);
 }
 
-function fresh(rule) {
-  return new RegExp(rule.source, rule.flags);
+function ruleMatches(rule, content) {
+  var re = rule[0];
+  re.lastIndex = 0;
+  return re.test(content);
+}
+
+function replaceOnce(content, rule) {
+  var re = rule[0];
+  re.lastIndex = 0;
+  return content.replace(re, rule[1]);
 }
 
 function replaceRepeated(content, rule) {
   var guard = 0;
   while (guard < 40) {
     guard += 1;
-    if (!fresh(rule[0]).test(content)) break;
-    var next = content.replace(fresh(rule[0]), rule[1]);
+    if (!ruleMatches(rule, content)) break;
+    var next = replaceOnce(content, rule);
     if (next === content) break;
     content = next;
   }
@@ -468,14 +484,14 @@ function convertText(content, from, to, debug) {
 
   function record(rule, current) {
     if (!logs) return;
-    if (!fresh(rule[0]).test(current)) return;
+    if (!ruleMatches(rule, current)) return;
     logs.matched_patterns.push(rule[0].source);
     logs.steps.push(current);
   }
 
   for (var i = 0; i < refLib.oneTime.length; i++) {
     record(refLib.oneTime[i], content);
-    content = content.replace(fresh(refLib.oneTime[i][0]), refLib.oneTime[i][1]);
+    content = replaceOnce(content, refLib.oneTime[i]);
   }
   for (var j = 0; j < refLib.asLongAsMatch.length; j++) {
     record(refLib.asLongAsMatch[j], content);

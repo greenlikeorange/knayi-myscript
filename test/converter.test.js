@@ -1,7 +1,6 @@
+const { describe, it, before, after } = require('node:test');
+const assert = require('node:assert/strict');
 var knayi = require('../main');
-var chai = require('chai');
-var should = chai.should();
-
 function toCharCode(letter) {
 	return [].map
 		.call(letter, (character) => `\\u${character.charCodeAt(0).toString(16)}`)
@@ -11,65 +10,65 @@ function toCharCode(letter) {
 describe('Converter',()=>{
 	describe('Zawgyi to Unicode',()=>{
 		it('should become unicode', () =>{
-			knayi.fontConvert('မဂၤလာပါ','unicode','zawgyi').should.equal('မင်္ဂလာပါ');
-			knayi.fontConvert('မဂၤလာပါ','unicode').should.equal('မင်္ဂလာပါ');
-			knayi.fontConvert('ၿမိဳ ့','unicode').should.equal('မြို့');
+assert.equal(			knayi.fontConvert('မဂၤလာပါ','unicode','zawgyi'), 'မင်္ဂလာပါ');
+assert.equal(			knayi.fontConvert('မဂၤလာပါ','unicode'), 'မင်္ဂလာပါ');
+assert.equal(			knayi.fontConvert('ၿမိဳ ့','unicode'), 'မြို့');
 		})
 
 		it('should convert kinzi', () => {
-			knayi.fontConvert('\u1000\u103a\u108b', 'unicode', 'zawgyi').should.equal('င်္ကျိ');
-			knayi.fontConvert('\u1021\u1000\u103a\u108c', 'unicode', 'zawgyi').should.equal('အင်္ကျီ');
-			knayi.fontConvert('\u1000\u103a\u108d', 'unicode', 'zawgyi').should.equal('င်္ကျံ');
+assert.equal(			knayi.fontConvert('\u1000\u103a\u108b', 'unicode', 'zawgyi'), 'င်္ကျိ');
+assert.equal(			knayi.fontConvert('\u1021\u1000\u103a\u108c', 'unicode', 'zawgyi'), 'အင်္ကျီ');
+assert.equal(			knayi.fontConvert('\u1000\u103a\u108d', 'unicode', 'zawgyi'), 'င်္ကျံ');
 		})
 	})
 
 	describe('Unicode to Zawgyi',()=>{
 		it('should become zawgyi', () =>{
-			knayi.fontConvert('မင်္ဂလာပါ','zawgyi','unicode').should.equal('မဂၤလာပါ');
-			knayi.fontConvert('မင်္ဂလာပါ','zawgyi').should.equal('မဂၤလာပါ');
-			knayi.fontConvert('က္ကြွှေိာ်','zawgyi').should.equal('ေၾကၠႊိာ္')
+assert.equal(			knayi.fontConvert('မင်္ဂလာပါ','zawgyi','unicode'), 'မဂၤလာပါ');
+assert.equal(			knayi.fontConvert('မင်္ဂလာပါ','zawgyi'), 'မဂၤလာပါ');
+assert.equal(			knayi.fontConvert('က္ကြွှေိာ်','zawgyi'), 'ေၾကၠႊိာ္')
 		})
 
 		it('should convert kinzi', () => {
-			knayi.fontConvert('င်္ကျိ', 'zawgyi', 'unicode').should.equal('\u1000\u108b\u103a');
-			knayi.fontConvert('င်္ကျီ', 'zawgyi', 'unicode').should.equal('\u1000\u108c\u103a');
-			knayi.fontConvert('င်္ကျံ', 'zawgyi', 'unicode').should.equal('\u1000\u108d\u103a');
+assert.equal(			knayi.fontConvert('င်္ကျိ', 'zawgyi', 'unicode'), '\u1000\u108b\u103a');
+assert.equal(			knayi.fontConvert('င်္ကျီ', 'zawgyi', 'unicode'), '\u1000\u108c\u103a');
+assert.equal(			knayi.fontConvert('င်္ကျံ', 'zawgyi', 'unicode'), '\u1000\u108d\u103a');
 		})
 	})
 
 	describe('content gate', () => {
 		it('returns empty when content is missing', () => {
-			knayi.fontConvert(null, 'unicode').should.equal('');
+assert.equal(			knayi.fontConvert(null, 'unicode'), '');
 		})
 
 		it('returns non-Myanmar text unchanged', () => {
-			knayi.fontConvert('abc', 'unicode').should.equal('abc');
+assert.equal(			knayi.fontConvert('abc', 'unicode'), 'abc');
 		})
 
 		it('returns the original text when the target font is missing', () => {
-			knayi.fontConvert('က').should.equal('က');
+assert.equal(			knayi.fontConvert('က'), 'က');
 		})
 
 		it('trims and strips zero-width before rejecting an unknown font', () => {
-			knayi.fontConvert(' က \u200B', 'nope').should.equal('က ');
+assert.equal(			knayi.fontConvert(' က \u200B', 'nope'), 'က ');
 		})
 
 		it('skips spelling fix when the source and target fonts match', () => {
-			knayi.fontConvert(' ကာာ ', 'unicode', 'unicode').should.equal('ကာာ');
+assert.equal(			knayi.fontConvert(' ကာာ ', 'unicode', 'unicode'), 'ကာာ');
 		})
 
 		it('accepts uni and zaw aliases when the source is named', () => {
-			knayi.fontConvert('မဂၤလာပါ', 'uni', 'zaw').should.equal('မင်္ဂလာပါ');
+assert.equal(			knayi.fontConvert('မဂၤလာပါ', 'uni', 'zaw'), 'မင်္ဂလာပါ');
 		})
 	})
 
 	describe('unicode ya', () => {
 		it('keeps Unicode ya when the source font is omitted', () => {
-			knayi.fontConvert('ကျ', 'unicode').should.equal('ကျ');
+assert.equal(			knayi.fontConvert('ကျ', 'unicode'), 'ကျ');
 		})
 
 		it('keeps Unicode ya when the source font is unicode', () => {
-			knayi.fontConvert('ကျ', 'unicode', 'unicode').should.equal('ကျ');
+assert.equal(			knayi.fontConvert('ကျ', 'unicode', 'unicode'), 'ကျ');
 		})
 	})
 
@@ -78,11 +77,11 @@ describe('Converter',()=>{
 			var input = 'က္ကြွှေိာ်';
 			var plain = knayi.fontConvert(input, 'zawgyi', 'unicode');
 			var debug = knayi.fontConvert.debugging(input, 'zawgyi', 'unicode');
-			plain.should.equal('ေၾကၠႊိာ္');
-			debug.should.be.an('object');
-			debug.steps[debug.steps.length - 1].should.equal(plain);
+assert.equal(			plain, 'ေၾကၠႊိာ္');
+			assert.equal(typeof debug, 'object');
+assert.equal(			debug.steps[debug.steps.length - 1], plain);
 			debug.matched_patterns.forEach(function (pattern) {
-				pattern.should.be.a('string');
+				assert.equal(typeof pattern, 'string');
 			});
 		})
 	})

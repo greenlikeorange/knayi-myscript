@@ -1,37 +1,36 @@
+const { describe, it, before, after } = require('node:test');
+const assert = require('node:assert/strict');
 var knayi = require('../main');
-var chai = require('chai');
-var should = chai.should();
-
 describe('spellingFix',()=>{
 	describe('spellingFix Unicode',()=>{
 		it('should fix for unicode',()=>{
-			knayi.spellingFix('မင်္ဂလာာပါါ','unicode').should.equal('မင်္ဂလာပါ');
+assert.equal(			knayi.spellingFix('မင်္ဂလာာပါါ','unicode'), 'မင်္ဂလာပါ');
 		})
 	})
 
 	describe('spellingFix Zawgyi',()=>{
 		it('should fix for zawgyi',()=>{
-			knayi.spellingFix('မဂၤလာပါါ').should.equal('မဂၤလာပါ');
+assert.equal(			knayi.spellingFix('မဂၤလာပါါ'), 'မဂၤလာပါ');
 		})
 
 		it('collapses a repeated zawgyi mark', () => {
-			knayi.spellingFix('\u1033\u1033', 'zawgyi').should.equal('\u1033');
+assert.equal(			knayi.spellingFix('\u1033\u1033', 'zawgyi'), '\u1033');
 		})
 	})
 
 	describe('spelling policies', () => {
 		it('leaves mixed unicode vowels for spellingFix', () => {
-			knayi.spellingFix('ကိီ', 'unicode').should.equal('ကိီ');
+assert.equal(			knayi.spellingFix('ကိီ', 'unicode'), 'ကိီ');
 		})
 	})
 
 	describe('font aliases', () => {
 		it('treats zaw as zawgyi', () => {
-			knayi.spellingFix('\u1033\u1033', 'zaw').should.equal('\u1033');
+assert.equal(			knayi.spellingFix('\u1033\u1033', 'zaw'), '\u1033');
 		})
 
 		it('treats uni as the unicode mark list', () => {
-			knayi.spellingFix('\u1033\u1033', 'uni').should.equal('\u1033\u1033');
+assert.equal(			knayi.spellingFix('\u1033\u1033', 'uni'), '\u1033\u1033');
 		})
 	})
 })

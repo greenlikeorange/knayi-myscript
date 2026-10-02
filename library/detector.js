@@ -4,12 +4,41 @@ const whitespace = '[\\x20\\t\\r\\n\\f]';
 const globalOptions = require('./globalOptions');
 const gate = require('./contentGate');
 
-let myanmartoolZawgyiDetector;
-try {
-  const myanmartools = require('myanmar-tools');
-  myanmartoolZawgyiDetector = new myanmartools.ZawgyiDetector();
-} catch (e) {
+var myanmartoolZawgyiDetector = null;
+var myanmarToolsLoadAttempted = false;
 
+function nodeRequire(id) {
+  try {
+    var proc = globalThis.process;
+    if (!proc || !proc.versions || typeof proc.versions.node !== 'string') return null;
+    var req = null;
+    try {
+      req = module.require;
+    } catch (e) {
+      req = null;
+    }
+    if (typeof req === 'function') return req.call(module, id);
+    if (typeof proc.getBuiltinModule === 'function') {
+      var nodeModule = proc.getBuiltinModule('module');
+      if (nodeModule && typeof nodeModule.createRequire === 'function') {
+        var from = typeof __filename === 'string' ? __filename : proc.cwd() + '/package.json';
+        return nodeModule.createRequire(from)(id);
+      }
+    }
+  } catch (e) {
+    return null;
+  }
+  return null;
+}
+
+function loadMyanmarTools() {
+  if (myanmarToolsLoadAttempted) return myanmartoolZawgyiDetector;
+  myanmarToolsLoadAttempted = true;
+  var loaded = nodeRequire('myanmar-tools');
+  if (loaded && typeof loaded.ZawgyiDetector === 'function') {
+    myanmartoolZawgyiDetector = new loaded.ZawgyiDetector();
+  }
+  return myanmartoolZawgyiDetector;
 }
 
 /** DETECTION Libarary **/
@@ -96,7 +125,7 @@ function fontDetect(content, fallback_font_type, options = {}){
     return scoreWithRules(content, fallback_font_type);
   }
 
-  if (!myanmartoolZawgyiDetector) {
+  if (!loadMyanmarTools()) {
     if (!globalOptions.isSilentMode() && !warnedMissingMyanmarTools) {
       console.warn('myanmar-tools adapter is missing; fontDetect used the rule scorer.');
       warnedMissingMyanmarTools = true;

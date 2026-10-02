@@ -6,7 +6,7 @@ const spellingFix = require('./library/spellingCheck');
 const truncate = require('./library/truncate');
 const normalize = require('./library/normalization');
 
-const {version} = require('./package.json');
+const version = '2.9.0';
 
 module.exports = {
 	version,
