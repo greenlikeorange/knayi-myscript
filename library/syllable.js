@@ -433,11 +433,14 @@ const BREAK_RULES = {
     [/([\u1031][\u103b\u107e-\u1084]|[\u1031\u103b\u107e-\u1084])/g, "\u200B$1"],
     [/([\u1031\u103b\u107e-\u1084])\u200B([\u1000-\u1021\u1025\u1029\u106A\u106B\u1086\u108F\u1090])/g, "$1$2"],
     [/([\u0009-\u000d\u0020\u00a0\u2000-\u200a\u2028\u2029\u202f]|>|\u201C|\u2018|\-|\(|\[|{|[\u2012-\u2014])\u200B([\u1000-\u1021\u1031\u103b\u1025\u1029\u106A\u106B\u107e-\u1084\u1086\u108F\u1090])/g, "$1$2"],
-    // A consonant with asat (U+1039 in Zawgyi) closes the syllable before it, also with a dot below typed first (င့္).
-    [/\u200B([\u1000-\u1021\u1025\u1029\u106A\u106B\u1086\u108F\u1090][\u1037\u1094\u1095]?\u1039)/g, "$1"],
+    // A consonant with asat (U+1039 in Zawgyi) closes the syllable before it, also when a dot below or a visarga
+    // was typed before the asat (င့္, ငး္).
+    [/\u200B([\u1000-\u1021\u1025\u1029\u106A\u106B\u1086\u108F\u1090][\u1037\u1038\u1094\u1095]*\u1039)/g, "$1"],
     // Zawgyi writes kinzi (ၤ, or U+108B-U+108D with a vowel) after the consonant it sits on, but it is the
     // final nga of the syllable before, so that consonant and any ေ or medial ra typed before it stay there.
-    [/\u200B([\u1031\u103b\u107e-\u1084]*[\u1000-\u1021][\u1064\u108b-\u108d])/g, "$1"],
+    // S'gaw Karen uses U+1064 as a tone mark, and its text is often detected as Zawgyi, so the rule is off for
+    // text with a Karen vowel plus asat (ၢ် or ၣ်), which Zawgyi text practically never contains.
+    [/\u200B([\u1031\u103b\u107e-\u1084]*[\u1000-\u1021][\u1064\u108b-\u108d])/g, "$1", /[\u1062\u1063]\u103a/],
     [/(\s|\n)\u200B([\u1000-\u1021\u1023-\u1027\u1029\u102a\u104c-\u104f\u1086\u108f-\u1092])/g, "$1$2"],
     // A bare consonant joins the next letter, as in Unicode. A consonant typed after ေ or a medial ra
     // (U+1031, U+103B, U+107E-U+1084) already has its marks, like ကြ in Unicode, so it ends its syllable:
@@ -459,6 +462,8 @@ function breakParts(content, fontType) {
   var rules = BREAK_RULES[fontType];
   var text = content;
   for (var i = 0; i < rules.length; i++) {
+    // A third item is a pattern that turns the rule off for the whole text (see the Zawgyi kinzi rule).
+    if (rules[i][2] && rules[i][2].test(content)) continue;
     rules[i][0].lastIndex = 0;
     text = text.replace(rules[i][0], rules[i][1]);
   }

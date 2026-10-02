@@ -50,6 +50,16 @@ assert.equal(			knayi.syllBreak('က္က', 'zawgyi', '|'), 'က္|က');
 			assert.equal(knayi.syllBreak('ျခေသၤ့', 'zawgyi', '|'), 'ျခေသၤ့'); // ခြင်္သေ့
 			assert.equal(knayi.syllBreak('ေရာမလကၤာ', 'zawgyi', '|'), 'ေရာ|မလကၤာ'); // ရော|မလင်္ကာ
 		})
+
+		it('keeps a consonant with asat whole when a visarga or a second dot below was typed before the asat', () => {
+			assert.equal(knayi.syllBreak('ျခငး္', 'zawgyi', '|'), 'ျခငး္');
+			assert.equal(knayi.syllBreak('ျဖင့့္', 'zawgyi', '|'), 'ျဖင့့္');
+		})
+
+		it("leaves S'gaw Karen text detected as Zawgyi alone: its U+1064 is a tone mark, not kinzi", () => {
+			assert.equal(knayi.fontDetect('တၢ်မၤလိ'), 'zawgyi');
+			assert.equal(knayi.syllBreak('တၢ်မၤလိ', null, '|'), 'တၢ်|မၤ|လိ');
+		})
 	})
 
 	describe('font aliases', () => {
