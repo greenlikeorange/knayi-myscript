@@ -16,6 +16,52 @@ assert.equal(			knayi.syllBreak('က္က', 'zawgyi', '|'), 'က္|က');
 		})
 	})
 
+	describe('syllBreak Zawgyi', () => {
+		// Zawgyi types ေ and the medial ra before the consonant, so ၾက is a whole syllable, like ကြ in Unicode.
+		it('ends a syllable after a consonant typed with ေ or a medial ra', () => {
+			assert.equal(knayi.syllBreak('ၾကပါ', 'zawgyi', '|'), 'ၾက|ပါ'); // ကြ|ပါ
+			assert.equal(knayi.syllBreak('ေသခ်ာ', 'zawgyi', '|'), 'ေသ|ခ်ာ'); // သေ|ချာ
+			assert.equal(knayi.syllBreak('ေၾကညာ', 'zawgyi', '|'), 'ေၾက|ညာ'); // ကြေ|ညာ
+			assert.equal(knayi.syllBreak('ေဆာင္ရြက္ေနၾကပါသည္', 'zawgyi', '|'), 'ေဆာင္|ရြက္|ေန|ၾက|ပါ|သည္'); // ဆောင်|ရွက်|နေ|ကြ|ပါ|သည်
+		})
+
+		it('treats every medial ra form the same way', () => {
+			for (const ra of ['\u103b', '\u107e', '\u107f', '\u1080', '\u1081', '\u1082', '\u1083', '\u1084']) {
+				assert.equal(knayi.syllBreak(ra + '\u1000\u1015\u102b', 'zawgyi', '|'), ra + '\u1000|\u1015\u102b');
+			}
+		})
+
+		it('still joins a bare consonant to the next letter, as in Unicode', () => {
+			assert.equal(knayi.syllBreak('ကက', 'zawgyi', '|'), 'ကက'); // ကက
+			assert.equal(knayi.syllBreak('ကေလး', 'zawgyi', '|'), 'ကေလး'); // ကလေး
+			assert.equal(knayi.syllBreak('ကၾကပါ', 'zawgyi', '|'), 'ကၾက|ပါ'); // ကကြ|ပါ
+		})
+
+		it('keeps a consonant with asat in the syllable before it, also after a dot below', () => {
+			assert.equal(knayi.syllBreak('ျဖင့္', 'zawgyi', '|'), 'ျဖင့္'); // ဖြင့်
+			assert.equal(knayi.syllBreak('ေၾကာင့္', 'zawgyi', '|'), 'ေၾကာင့္'); // ကြောင့်
+			assert.equal(knayi.syllBreak('ႏွင့္', 'zawgyi', '|'), 'ႏွင့္'); // နှင့်
+			for (const dot of ['\u1037', '\u1094', '\u1095']) {
+				assert.equal(knayi.syllBreak('\u103b\u1016\u1004' + dot + '\u1039', 'zawgyi', '|'), '\u103b\u1016\u1004' + dot + '\u1039');
+			}
+		})
+
+		it('keeps a consonant carrying kinzi in the syllable before it', () => {
+			assert.equal(knayi.syllBreak('ျခေသၤ့', 'zawgyi', '|'), 'ျခေသၤ့'); // ခြင်္သေ့
+			assert.equal(knayi.syllBreak('ေရာမလကၤာ', 'zawgyi', '|'), 'ေရာ|မလကၤာ'); // ရော|မလင်္ကာ
+		})
+
+		it('keeps a consonant with asat whole when a visarga or a second dot below was typed before the asat', () => {
+			assert.equal(knayi.syllBreak('ျခငး္', 'zawgyi', '|'), 'ျခငး္');
+			assert.equal(knayi.syllBreak('ျဖင့့္', 'zawgyi', '|'), 'ျဖင့့္');
+		})
+
+		it("leaves S'gaw Karen text detected as Zawgyi alone: its U+1064 is a tone mark, not kinzi", () => {
+			assert.equal(knayi.fontDetect('တၢ်မၤလိ'), 'zawgyi');
+			assert.equal(knayi.syllBreak('တၢ်မၤလိ', null, '|'), 'တၢ်|မၤ|လိ');
+		})
+	})
+
 	describe('font aliases', () => {
 		it('accepts uni as unicode', () => {
 assert.equal(			knayi.syllBreak('က', 'uni'), 'က');
