@@ -130,6 +130,7 @@ Returns one string. The default break character is `U+200B`. This is the current
 knayi.syllBreak('မင်္ဂလာပါ', null, '$$') // 'မင်္ဂလာ$$ပါ'
 knayi.syllBreak('မင်္ဂလာပါ') // 'မင်္ဂလာ' + '\u200b' + 'ပါ'
 knayi.syllBreak('မြန်မာ', 'unicode', '|') // 'မြန်|မာ'
+knayi.syllBreak('ထို့ကြောင့်', 'unicode', '|') // 'ထို့|ကြောင့်'
 knayi.syllBreak('က္က', 'unicode', '|') // 'က္က'
 knayi.syllBreak('က္က', 'zawgyi', '|') // 'က္|က'
 knayi.syllBreak('က္က', 'uni', '|') // 'က္က'
