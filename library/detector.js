@@ -46,7 +46,9 @@ library.detect = {
   unicode: [
     '\u103e', '\u103f', '\u100a\u103a', '\u1014\u103a', '\u1004\u103a', '\u1031\u1038', '\u1031\u102c',
     '\u103a\u1038', '\u1035', '[\u1050-\u1059]', '^([\u1000-\u1021]\u103c|[\u1000-\u1021]\u1031)',
-    '[\u1000-\u1021]\u103b', '[\u1000-\u1021]\u1039[\u1000-\u1021]'
+    // Zawgyi writes medial ra as U+103B before its consonant, so only count ya-pin when no consonant follows.
+    // C + U+1039 + C is left out: it is a Pali stack in Unicode but asat + next syllable in Zawgyi.
+    '[\u1000-\u1021]\u103b(?![\u1000-\u1021])'
   ],
   zawgyi : [
     '\u102c\u1039', '\u103a\u102c', whitespace+'(\u103b|\u1031|[\u107e-\u1084])[\u1000-\u1021]'

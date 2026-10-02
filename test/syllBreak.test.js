@@ -25,7 +25,7 @@ assert.equal(			knayi.syllBreak('က္က', 'uni', '|'), 'က္က');
 
 	describe('detected font', () => {
 		it('keeps a virama stack together when detection runs', () => {
-assert.equal(			knayi.syllBreak('က္က', null, '|'), 'က္က');
+assert.equal(			knayi.syllBreak('ရန်ကုန်တက္ကသိုလ်', null, '|'), 'ရန်|ကုန်|တက္ကသိုလ်');
 		})
 	})
 })

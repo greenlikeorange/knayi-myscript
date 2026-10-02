@@ -97,7 +97,7 @@ knayi.fontDetect('မင်္ဂလာပါ', null, {
 
 `setGlobalOptions({ detector: { use_myanmartools: true } })` changes the default. An explicit `adapter` on a later call wins. A later call that only sets `use_myanmartools` keeps a previously stored threshold.
 
-On `က္က`, the rule scorer returns `'unicode'`. `myanmar-tools` can return `'zawgyi'` because its probability falls between the thresholds.
+The rule scorer does not count a consonant, `U+1039`, consonant sequence such as `က္က` as Unicode. In Zawgyi, `U+1039` is the visible asat, so `ပ္က` is a common Zawgyi sequence. A lone stack is a tie and returns the fallback. In longer Unicode text such as `ရန်ကုန်တက္ကသိုလ်`, the other signs decide.
 
 ## fontConvert(content, targetFontType, originalFontType?)
 
