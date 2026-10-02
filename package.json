@@ -52,7 +52,7 @@
     "typescript": "^5.9.3"
   },
   "peerDependencies": {
-    "myanmar-tools": "^1.1.2"
+    "myanmar-tools": ">=1.1.2 <1.2.0"
   },
   "peerDependenciesMeta": {
     "myanmar-tools": {

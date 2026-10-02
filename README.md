@@ -79,10 +79,10 @@ knayi.fontDetect('က', 'unicode') // 'unicode'
 knayi.fontDetect(null) // 'en'
 ```
 
-`options.adapter` chooses the detector for that call. `'rules'` is the built-in scorer and the default. `'myanmartools'` uses the `myanmar-tools` package. Install it only for that adapter:
+`options.adapter` chooses the detector for that call. `'rules'` is the built-in scorer and the default. `'myanmartools'` uses the `myanmar-tools` package. Install it only for that adapter, and use 1.1.x: `myanmar-tools` 1.2.0 on npm was published without its built files and cannot be loaded.
 
 ```bash
-npm install myanmar-tools
+npm install myanmar-tools@1.1.3
 ```
 
 ```javascript

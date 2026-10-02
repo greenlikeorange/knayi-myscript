@@ -31,4 +31,8 @@ describe('package', () => {
   it('does not set a Node engine range', () => {
     assert.equal(pkg.engines, undefined);
   });
+
+  it('keeps myanmar-tools below the broken 1.2.0 release', () => {
+    assert.equal(pkg.peerDependencies['myanmar-tools'], '>=1.1.2 <1.2.0');
+  });
 });
