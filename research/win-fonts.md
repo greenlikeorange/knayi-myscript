@@ -152,13 +152,13 @@ How it was made:
 
 `node scripts/eval/win-glyphs.mjs path/to/WININNWA.TTF` draws each Win glyph next to its Unicode text, for review.
 
-**The rules.** knayi's own, written from Unicode's storage order (Unicode Technical Note #11):
+**The rules.** knayi's own, written from Unicode's storage order (Unicode Technical Note #11). Since 2.10, Win and Zawgyi share them in `library/storageOrder.js`; [zawgyi-to-unicode.md](zawgyi-to-unicode.md) has the rules added for Zawgyi, which apply to Win too.
 - **Sequences first:** `ps`, `Mo`, `aMomf` and `OD` become ဈ, ဩ, ဪ and ဦ.
 - **Syllables:** a base starts a syllable. ေ and medial ra are typed before the base and belong to the next one; marks, stacked consonants and kinzi belong to the current one. A mark typed twice counts once.
 - **Syllable order:** each syllable is written as kinzi, base, stacked consonant, then the marks in storage order: medials ျ ြ ွ ှ, ေ, upper vowels, lower vowels, ါ ာ, ံ, ့, ်, း.
-- **Early asat:** an asat typed before a vowel sign kills the consonant itself and is stored right after it, as in ယောက်ျား and ကျွန်ုပ်. Typed after the vowel, it comes late, as in ကျော်.
+- **Asat:** an asat that sits on the consonant is stored right after it, as in ယောက်ျား and ကျွန်ုပ်. It comes last after ာ, as in ကျော်.
 - **Medial ra with a mark:** the four medial ra glyphs that also draw ွ or ု give both to the next base.
-- **Zero:** `0` becomes ဝ unless it is next to a digit or an arithmetic sign.
+- **Zero:** `0` becomes ဝ unless it is part of a number.
 - **Last step:** the result is NFC.
 
 **Decisions.**
@@ -175,7 +175,7 @@ How it was made:
 ## 6. Open questions and next steps
 
 1. **Review the table.** A second reader of Burmese should check the review page. The least certain glyph is `É`, read as stacked ္တ with ွ.
-2. **Look-alike digits:** `7` and `8` typed for ရ and ဂ stay digits, as in knayi's Zawgyi conversion. Fixing them needs context rules, as for zero.
+2. **Look-alike digits:** since 2.10, `7` with a vowel sign or medial is read as ရ. `8` typed for ဂ stays a digit.
 3. **Evaluation:** add Win to `scripts/eval`:
    - the ufc and python-myanmar pairs, pinned by sha256;
    - Win text made from the licensed Unicode corpora by an outside converter, converted back with knayi;
