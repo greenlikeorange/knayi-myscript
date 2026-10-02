@@ -255,8 +255,9 @@ function applyReplacementRules(rules, content) {
 }
 
 const NON_NUMBER_BEHIND = new RegExp(S + "$");
-const NON_NUMBER_AHEAD_SIGN = new RegExp("^\\s?[" + M + V + S + A + F + "]");
-const NON_NUMBER_AHEAD_C_SIGN = new RegExp("^\\s?[" + C + "][" + S + A + F + "]");
+// No optional space here: a sign after a space belongs to the next word, so "၂၀ ခံ" keeps its zero (as in 2.8.3).
+const NON_NUMBER_AHEAD_SIGN = new RegExp("^[" + M + V + S + A + F + "]");
+const NON_NUMBER_AHEAD_C_SIGN = new RegExp("^[" + C + "][" + S + A + F + "]");
 
 function fixWaAndYa(text) {
   function ruleFunction(num, char) {

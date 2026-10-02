@@ -56,6 +56,12 @@ assert.equal(			knayi.normalize('ဝ'), '၀');
 		it('keeps surrounding spaces', () => {
 assert.equal(			knayi.normalize(' မိြုင် '), ' မြိုင် ');
 		})
+
+		it('keeps a zero digit before a space and a marked syllable', () => {
+assert.equal(			knayi.normalize('လူ ၂၀ ခံရသည်'), 'လူ ၂၀ ခံရသည်');
+assert.equal(			knayi.normalize('အမှတ် ၁၀ စံချိန်'), 'အမှတ် ၁၀ စံချိန်');
+assert.equal(			knayi.normalize('၂၀ ခံ'), '၂၀ ခံ');
+		})
 	})
 });
 
