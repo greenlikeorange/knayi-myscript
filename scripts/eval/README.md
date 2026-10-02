@@ -58,7 +58,7 @@ Rows whose labels or expected outputs came from Google's tools favour myanmar-to
 
 ## Published page
 
-`npm run bench:page` runs both scripts and `report.mjs`, which writes `docs/benchmark.html` and the raw `docs/benchmark.json`. GitHub Pages serves `docs/` from `master`, so the page appears at <https://knayi-myscript.kny.co/benchmark.html> once it is merged.
+`npm run bench:page` runs both scripts and `report.mjs`, which writes `docs/benchmark.html` and the raw `docs/benchmark.json`. GitHub Pages serves `docs/` from `main`, so the page appears at <https://greenlikeorange.github.io/knayi-myscript/benchmark.html> once it is merged.
 
 - **Licensed data only.** Every result row names its sources. `report.mjs` refuses any row whose source isn't openly licensed in `datasets.mjs`, and any run made with `--with-unlicensed`.
 - **Aggregate numbers only.** It publishes percentages and timings, never the text itself, and lists every source with its size and license.
