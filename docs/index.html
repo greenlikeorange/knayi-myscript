@@ -1,385 +1,735 @@
-<!DOCTYPE html>
-<html lang="my" dir="ltr">
-  <head>
-    <meta charset="utf-8">
-    <title>Knayi Myanmar Script</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.2/css/bulma.min.css">
-    <link href="https://fonts.googleapis.com/css?family=Unica+One" rel="stylesheet">
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>knayi: Zawgyi and Unicode tools for Myanmar text</title>
+<meta name="description" content="Convert Myanmar text between Zawgyi and Unicode, fix common Unicode typing errors and break syllables in your browser with the knayi-myscript JavaScript library.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Handlee&family=Noto+Sans+Myanmar:wght@400;600&display=swap">
+<style>
+/*
+  Every feature on this page is supported by at least 98% of the browsers caniuse can identify
+  (grid, custom properties, flex gap, clamp(), :focus-visible, prefers-color-scheme, ES2015).
+  Not used because support is lower: :has(), container queries, CSS nesting, text-wrap: balance,
+  dvh units, the resize property.
+*/
+@font-face {
+  font-family: 'Zawgyi-One';
+  src: local('Zawgyi-One'), url('fonts/zawgyi.woff') format('woff'), url('fonts/zawgyi.ttf') format('truetype');
+  font-display: swap;
+}
 
-    <link href="https://fonts.googleapis.com/css?family=Electrolize|Handlee|Karla|Niconne|Oleo+Script|Orbitron|Sacramento|Unica+One" rel="stylesheet">
+:root {
+  --bg: #fbfaf7; --surface: #ffffff; --text: #1d2420; --muted: #5d6a63; --line: #e3e6e1;
+  --accent: #16452d; --accent-soft: #e6f0ea; --on-accent: #ffffff; --code: #f1f3ef;
+  --field: #ffffff; --output: #f6f7f4; --focus: #2f7a52;
+  --warn: #6e4400; --warn-soft: #fcf0d4; --mark: #fbe39a; --mark-text: #1d2420;
+  --danger: #8f1d1d; --danger-soft: #fbe7e7;
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%235d6a63' stroke-width='1.6'/%3E%3C/svg%3E");
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mm: "Noto Sans Myanmar", "Myanmar Text", "Myanmar MN", Padauk, sans-serif;
+  --font-zg: "Zawgyi-One", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --radius: 10px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111513; --surface: #181d1a; --text: #e7ece9; --muted: #9aa8a0; --line: #2a322e;
+    --accent: #8fd1ad; --accent-soft: #1d2b24; --on-accent: #0f1a14; --code: #222a26;
+    --field: #141916; --output: #1c221f; --focus: #8fd1ad;
+    --warn: #f3c770; --warn-soft: #33290f; --mark: #6b5513; --mark-text: #fff6d6;
+    --danger: #f3a5a5; --danger-soft: #3a1b1b;
+    --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%239aa8a0' stroke-width='1.6'/%3E%3C/svg%3E");
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111513; --surface: #181d1a; --text: #e7ece9; --muted: #9aa8a0; --line: #2a322e;
+  --accent: #8fd1ad; --accent-soft: #1d2b24; --on-accent: #0f1a14; --code: #222a26;
+  --field: #141916; --output: #1c221f; --focus: #8fd1ad;
+  --warn: #f3c770; --warn-soft: #33290f; --mark: #6b5513; --mark-text: #fff6d6;
+  --danger: #f3a5a5; --danger-soft: #3a1b1b;
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%239aa8a0' stroke-width='1.6'/%3E%3C/svg%3E");
+  color-scheme: dark;
+}
 
-    <style>
-      @font-face {
-        font-family:'Zawgyi-One';
-        src:local('Zawgyi-One'), url('fonts/zawgyi.woff') format('woff'), url('fonts/zawgyi.ttf') format('ttf');
-      }
-    </style>
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 16px/1.6 var(--font-ui);
+}
+a { color: var(--accent); }
+code { font-family: var(--font-mono); font-size: .88em; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 16px; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
 
-    <style media="screen">
-    @import url('https://fonts.googleapis.com/earlyaccess/notosansmyanmar.css');
+/* Header */
+.site-header { background: var(--surface); border-bottom: 1px solid var(--line); }
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-height: 60px; padding-top: 8px; padding-bottom: 8px; }
+.brand {
+  font-family: Handlee, cursive; font-size: 1.9rem; line-height: 1;
+  color: var(--accent); text-decoration: none;
+}
+.version {
+  font-size: .75rem; font-weight: 600; line-height: 1; color: var(--accent);
+  background: var(--accent-soft); border-radius: 999px; padding: 5px 9px;
+}
+.links { display: flex; gap: 2px; margin-left: auto; }
+.links a {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px;
+  color: var(--muted); text-decoration: none; font-size: .95rem;
+}
+.links a:hover { color: var(--text); background: var(--code); }
+.links svg { width: 18px; height: 18px; }
 
-    #app .hide {
-      display: none;
-    }
+/* Intro */
+.intro { padding: 40px 0 8px; }
+h1 {
+  margin: 0 0 10px; color: var(--text); line-height: 1.2; letter-spacing: -.01em;
+  font-size: clamp(1.6rem, 1.15rem + 1.8vw, 2.3rem);
+}
+.lede { margin: 0; max-width: 64ch; color: var(--muted); font-size: 1.05rem; }
 
-    .zawgyi { font-family: 'Zawgyi-One'; }
-    .notosansmyanmar { font-family: 'Noto Sans Myanmar', sans-serif; }
+.alert {
+  margin: 24px 0 0; padding: 12px 14px; border-radius: var(--radius);
+  background: var(--danger-soft); color: var(--danger); font-weight: 500;
+}
 
-    .logo { color: #16452d; font-family: 'Handlee', cursive; }
-    .logo a { color: #16452d; }
-    .badges img { padding-top: 5px; }
+/* Tabs */
+.tabs {
+  display: inline-flex; gap: 4px; max-width: 100%; margin: 28px 0 20px; padding: 4px;
+  background: var(--code); border: 1px solid var(--line); border-radius: 12px;
+}
+.tabs [role="tab"] {
+  appearance: none; border: 0; border-radius: 8px; padding: 9px 18px; cursor: pointer;
+  background: transparent; color: var(--muted); font: 600 .95rem/1.2 var(--font-ui); white-space: nowrap;
+  transition: background-color .15s, color .15s;
+}
+.tabs [role="tab"]:hover { color: var(--text); }
+.tabs [role="tab"][aria-selected="true"] {
+  background: var(--surface); color: var(--accent);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .08), 0 0 0 1px var(--line);
+}
 
-    .github {
-      font-size: 0;
-      display: inline-block;
-      width: 20px;
-      height: 38px;
-      background: url("github.png") no-repeat center;
-      background-size: 20px;
-      vertical-align: top;
-    }
+.hint { margin: 0 0 16px; max-width: 72ch; color: var(--muted); }
 
-    span.highlight { background-color: yellow; display: inline-block; }
+/* Text fields */
+.pair { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.arrow { justify-self: center; align-self: center; color: var(--muted); line-height: 0; transform: rotate(90deg); }
+.field {
+  display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 12px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  transition: border-color .15s, box-shadow .15s;
+}
+.field:focus-within { border-color: var(--focus); box-shadow: 0 0 0 3px var(--accent-soft); }
+.field-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; min-height: 32px; }
+.field-title { font-weight: 600; }
+.field-note { color: var(--muted); font-size: .82rem; }
+.tools { display: flex; gap: 6px; margin-left: auto; align-self: center; }
+.field-foot {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px;
+  min-height: 1.5em; color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums;
+}
 
-    #debugging { display: none; }
+textarea, .output {
+  display: block; width: 100%;
+  /* Equal min and max width keep a resized textarea in its column without the resize property. */
+  min-width: 100%; max-width: 100%; min-height: 15rem; margin: 0; padding: 10px 12px;
+  border: 0; border-radius: 6px; background: var(--field); color: var(--text);
+  font-size: 1.08rem; line-height: 1.9;
+}
+textarea:focus, .output:focus { outline: none; }
+textarea[readonly], .output { background: var(--output); }
+.output { max-height: 30rem; overflow: auto; white-space: pre-wrap; word-wrap: break-word; }
+.mm { font-family: var(--font-mm); }
+.zg { font-family: var(--font-zg); }
+mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; }
 
-    .debug_content span.line {
-      display: block;
-      font-size: 13px;
-    }
-    .debug_content code {
-      display: block;
-      font-size: 13px;
-    }
+.btn {
+  appearance: none; display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--text);
+  font: 500 .85rem/1.2 var(--font-ui); white-space: nowrap;
+  transition: background-color .15s, border-color .15s;
+}
+.btn:hover { background: var(--code); }
+.btn-accent { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn-accent:hover { background: var(--accent); opacity: .9; }
 
-    .textarea {
-      height: 250px;
-    }
-    </style>
-  </head>
-  <body>
-    <div id="app">
-      <div class="container">
-        <div class="columns">
-          <div class="column">
-            <h1 class="title logo">
-              knayi
-              <a class="github" href="https://github.com/greenlikeorange/knayi-myscript"></a>
-            </h1>
-            <h2 class="subtitle">Myanmar langauge js library</h2>
-          </div>
-          <div class="column">
-            <p class="badges" style="text-align: right;">
-              <br />
-              <a href="https://www.npmjs.com/package/knayi-myscript">
-                <img src="https://img.shields.io/npm/v/knayi-myscript.svg" alt="npm version"></a>
-              <a href="https://github.com/greenlikeorange/knayi-myscript/actions/workflows/test.yml">
-                <img src="https://github.com/greenlikeorange/knayi-myscript/actions/workflows/test.yml/badge.svg?branch=master" alt="test"></a>
-            </p>
+.notice {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 10px;
+  border-radius: 8px; background: var(--warn-soft); color: var(--warn); font-size: .9rem;
+}
+
+/* Options */
+.options { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin: 0 0 16px; }
+.option { display: inline-flex; align-items: center; gap: 8px; }
+.option label { font-weight: 600; font-size: .95rem; }
+select {
+  appearance: none; padding: 7px 32px 7px 10px; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 8px; color: var(--text);
+  background: var(--surface) var(--chevron) no-repeat right 11px center / 12px 8px;
+  font: 400 .95rem/1.3 var(--font-ui);
+}
+.chip {
+  font-size: .82rem; font-weight: 600; color: var(--accent);
+  background: var(--accent-soft); border-radius: 999px; padding: 4px 10px;
+}
+
+/* Normalization changes */
+.changes {
+  margin-top: 16px; padding: 0 14px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+}
+.changes summary { padding: 10px 0; cursor: pointer; font-weight: 600; }
+.changes ol { margin: 0 0 12px; padding: 0; list-style: none; }
+.changes li {
+  display: grid; grid-template-columns: auto auto auto minmax(0, 1fr); align-items: baseline; gap: 4px 10px;
+  padding: 8px 0; border-top: 1px solid var(--line);
+}
+.changes .mm { font-size: 1.15rem; line-height: 1.8; }
+.changes .to { color: var(--muted); }
+.cp { font-family: var(--font-mono); font-size: .78rem; color: var(--muted); }
+
+/* Debug */
+#debug-mode:not(:target) { display: none; }
+.debug { margin-top: 40px; }
+.debug h2 { margin: 0 0 6px; font-size: 1.2rem; }
+.debug-content {
+  min-height: 4rem; margin: 0; padding: 12px 14px; overflow-x: auto;
+  background: var(--code); border-radius: var(--radius);
+  font: .8rem/1.6 var(--font-mono); white-space: pre-wrap; word-break: break-all;
+}
+.debug-content .gap { margin-top: 10px; }
+
+/* Footer */
+.site-footer {
+  margin-top: 64px; padding: 32px 0 40px; border-top: 1px solid var(--line);
+  background: var(--surface); color: var(--muted); font-size: .92rem;
+}
+.site-footer h2 { margin: 0 0 12px; color: var(--text); font-size: 1.1rem; }
+.snippet {
+  display: flex; align-items: center; gap: 8px; margin: 0 0 8px; padding: 6px 6px 6px 12px;
+  background: var(--code); border: 1px solid var(--line); border-radius: 8px;
+}
+.snippet code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; color: var(--text); padding: 4px 0; }
+.site-footer .note { margin: 12px 0 0; }
+.meta-row {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+  margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line);
+}
+.meta-row p { margin: 0; }
+.badges { display: flex; gap: 6px; }
+.badges img { display: block; height: 20px; }
+
+@media (max-width: 559px) {
+  .tabs { display: flex; }
+  .tabs [role="tab"] { flex: 1; padding: 9px 6px; }
+  .links a { padding: 6px 8px; }
+}
+@media (min-width: 760px) {
+  .pair { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+  .pair.two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .arrow { transform: none; margin-top: 2.5rem; align-self: start; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
+</style>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap bar">
+    <a class="brand" href="./">knayi</a>
+    <span class="version" id="version" hidden></span>
+    <nav class="links" aria-label="Project">
+      <a href="https://github.com/greenlikeorange/knayi-myscript#readme">Docs</a>
+      <a href="https://www.npmjs.com/package/knayi-myscript">npm</a>
+      <a href="https://github.com/greenlikeorange/knayi-myscript">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="intro">
+    <h1>Zawgyi and Unicode tools for Myanmar text</h1>
+    <p class="lede">knayi-myscript is a JavaScript library for Myanmar (Burmese) text. It detects whether text is Zawgyi or Unicode, converts between them, fixes common Unicode typing errors and breaks syllables. The tools below run the library in your browser. Nothing you type is sent anywhere.</p>
+    <noscript><p class="alert">The tools on this page need JavaScript.</p></noscript>
+    <p class="alert" id="load-error" role="alert" hidden>The knayi library did not load from jsDelivr. Check your connection or content blocker, then reload the page.</p>
+  </section>
+
+  <div class="tabs" role="tablist" aria-label="Tools">
+    <button type="button" role="tab" id="tab-convert" aria-controls="panel-convert" aria-selected="true">Convert</button>
+    <button type="button" role="tab" id="tab-normalize" aria-controls="panel-normalize" aria-selected="false" tabindex="-1">Normalize</button>
+    <button type="button" role="tab" id="tab-syllable" aria-controls="panel-syllable" aria-selected="false" tabindex="-1">Syllable break</button>
+  </div>
+
+  <section class="panel" role="tabpanel" id="panel-convert" aria-labelledby="tab-convert">
+    <p class="hint">Type or paste in either box. The other box converts as you type.</p>
+    <div class="pair">
+      <div class="field">
+        <div class="field-head">
+          <label class="field-title" for="convert-unicode">Unicode</label>
+          <span class="field-note">Standard encoding</span>
+          <div class="tools">
+            <button type="button" class="btn" data-copy="convert-unicode" aria-label="Copy Unicode text">Copy</button>
+            <button type="button" class="btn" data-clear="convert-unicode" aria-label="Clear Unicode text">Clear</button>
           </div>
         </div>
-        
-        <div class="tabs">
-          <ul>
-            <li data-view="converting" class="view-tab is-active"><a>Font Converting</a></li>
-            <li data-view="normalization" class="view-tab" ><a>Normalization</a></li>
-            <li data-view="syllable" class="view-tab" ><a>Syllable Break</a></li>
-          </ul>
+        <textarea id="convert-unicode" class="mm" lang="my" rows="9" spellcheck="false">သီဟိုဠ်မှ ဉာဏ်ကြီးရှင်သည် အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇလွန်ဈေးဘေးဗာဒံပင်ထက် အဓိဋ္ဌာန်လျက် ဂဃနဏဖတ်ခဲ့သည်။ယေဓမ္မာ ဟေတုပ္ပဘဝါ တေသံ ဟေတုံ တထာဂတော အာဟ တေသဉ္စ ယောနိရောဓေါ ဧဝံ ဝါဒီ မဟာသမဏော။(မြန်မာပြန်)မြတ်စွာဘုရားရှင်သည် ရှေးကပြုခဲ့ဖူးသော အကြောင်းတရားကြောင့် ဖြစ်ပေါ်လာကြသော အကျိုးတရားကို ဟောကြားတော်မူသည်။ထိုအကြောင်းတရားတို့၏ ချုပ်ငြိမ်းရာတရားတို့ကိုလည်း ဟောတော်မူ၏။ရဟန်းကြီးဖြစ်သော ဗုဒ္ဓမြတ်စွာဘုရားသည် ဤသို့သောအယူရှိတော်မူ၏။</textarea>
+        <div class="notice" id="notice-unicode" hidden>
+          <span>This looks like Zawgyi text.</span>
+          <button type="button" class="btn btn-accent" data-move="unicode">Move it to Zawgyi</button>
         </div>
-        <div id="converting_view" class="columns view">
-          <div class="column">
-            <div class="field">
-              <label class="label">Unicode</label>
-              <div class="control">
-                <textarea
-                  id="convert_unicode_text"
-                  class="textarea is-hovered notosansmyanmar convert_input"
-                  data-font-type="unicode"
-                  type="text">သီဟိုဠ်မှ ဉာဏ်ကြီးရှင်သည် အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇလွန်ဈေးဘေးဗာဒံပင်ထက် အဓိဋ္ဌာန်လျက် ဂဃနဏဖတ်ခဲ့သည်။ယေဓမ္မာ ဟေတုပ္ပဘဝါ တေသံ ဟေတုံ တထာဂတော အာဟ တေသဉ္စ ယောနိရောဓေါ ဧဝံ ဝါဒီ မဟာသမဏော။(မြန်မာပြန်)မြတ်စွာဘုရားရှင်သည် ရှေးကပြုခဲ့ဖူးသော အကြောင်းတရားကြောင့် ဖြစ်ပေါ်လာကြသော အကျိုးတရားကို ဟောကြားတော်မူသည်။ထိုအကြောင်းတရားတို့၏ ချုပ်ငြိမ်းရာတရားတို့ကိုလည်း ဟောတော်မူ၏။ရဟန်းကြီးဖြစ်သော ဗုဒ္ဓမြတ်စွာဘုရားသည် ဤသို့သောအယူရှိတော်မူ၏။</textarea>
-              </div>
-            </div>
-          </div>
-          <div class="column">
-            <div class="field">
-              <label class="label">Zawgyi</label>
-              <div class="control">
-                <textarea
-                  id="convert_zawgyi_text"
-                  class="textarea is-hovered zawgyi convert_input"
-                  data-font-type="zawgyi"
-                  type="text">သီဟိုဠ္မွ ဉာဏ္ႀကီးရွင္သည္ အာယုဝဍ္ဎနေဆးညႊန္းစာကို ဇလြန္ေဈးေဘးဗာဒံပင္ထက္ အဓိ႒ာန္လ်က္ ဂဃနဏဖတ္ခဲ့သည္။ေယဓမၼာ ေဟတုပၸဘဝါ ေတသံ ေဟတုံ တထာဂေတာ အာဟ ေတသၪၥ ေယာနိေရာေဓါ ဧဝံ ဝါဒီ မဟာသမေဏာ။(ျမန္မာျပန္)ျမတ္စြာဘုရားရွင္သည္ ေရွးကျပဳခဲ့ဖူးေသာ အေၾကာင္းတရားေၾကာင့္ ျဖစ္ေပၚလာၾကေသာ အက်ိဳးတရားကို ေဟာၾကားေတာ္မူသည္။ထိုအေၾကာင္းတရားတို့၏ ခ်ဳပ္ၿငိမ္းရာတရားတို့ကိုလည္း ေဟာေတာ္မူ၏။ရဟန္းႀကီးျဖစ္ေသာ ဗုဒၶျမတ္စြာဘုရားသည္ ဤသို့ေသာအယူရွိေတာ္မူ၏။</textarea>
-              </div>
-            </div>
-          </div>
-        </div>
+        <div class="field-foot"><span id="count-unicode"></span></div>
+      </div>
 
-        <div id="normalization_view" class="columns hide view">
-          <div class="column">
-            <div class="field">
-              <label class="label">Input</label>
-              <div class="control">
-                <textarea
-                  id="normalization_input"
-                  class="textarea is-hovered notosansmyanmar"
-                  type="text"></textarea>
-              </div>
-            </div>
-          </div>
-          <div class="column">
-            <div class="field">
-              <label class="label">Output</label>
-              <div class="control">
-                <textarea
-                  id="normalization_output"
-                  class="textarea is-hovered notosansmyanmar"
-                  disabled="disabled"
-                  type="text"></textarea>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div class="arrow" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16M16 4l4 4-4 4M20 16H4M8 12l-4 4 4 4"/></svg>
+      </div>
 
-        <div id="syllable_view" class="columns hide view">
-          <div class="column">
-            <div class="field">
-              <label class="label">Input</label>
-              <div class="control">
-                <textarea
-                  id="syllable_input"
-                  class="textarea is-hovered notosansmyanmar"
-                  type="text"></textarea>
-              </div>
-            </div>
-          </div>
-          <div class="column">
-            <div class="field">
-              <label class="label">Output</label>
-              <div class="control">
-                <textarea
-                  id="syllable_output"
-                  class="textarea is-hovered notosansmyanmar"
-                  disabled="disabled"
-                  type="text"></textarea>
-              </div>
-            </div>
+      <div class="field">
+        <div class="field-head">
+          <label class="field-title" for="convert-zawgyi">Zawgyi</label>
+          <span class="field-note">Legacy font encoding</span>
+          <div class="tools">
+            <button type="button" class="btn" data-copy="convert-zawgyi" aria-label="Copy Zawgyi text">Copy</button>
+            <button type="button" class="btn" data-clear="convert-zawgyi" aria-label="Clear Zawgyi text">Clear</button>
           </div>
         </div>
-
-        <div id="debugging">
-          <div class="content">
-            <h4>Debuging</h4>
-          </div>
-          <div class="columns">
-            <div class="column">
-              <pre id="debug_content" class="content debug_content"></pre>
-            </div>
-          </div>
+        <textarea id="convert-zawgyi" class="zg" lang="my-Qaag" rows="9" spellcheck="false">သီဟိုဠ္မွ ဉာဏ္ႀကီးရွင္သည္ အာယုဝဍ္ဎနေဆးညႊန္းစာကို ဇလြန္ေဈးေဘးဗာဒံပင္ထက္ အဓိ႒ာန္လ်က္ ဂဃနဏဖတ္ခဲ့သည္။ေယဓမၼာ ေဟတုပၸဘဝါ ေတသံ ေဟတုံ တထာဂေတာ အာဟ ေတသၪၥ ေယာနိေရာေဓါ ဧဝံ ဝါဒီ မဟာသမေဏာ။(ျမန္မာျပန္)ျမတ္စြာဘုရားရွင္သည္ ေရွးကျပဳခဲ့ဖူးေသာ အေၾကာင္းတရားေၾကာင့္ ျဖစ္ေပၚလာၾကေသာ အက်ိဳးတရားကို ေဟာၾကားေတာ္မူသည္။ထိုအေၾကာင္းတရားတို့၏ ခ်ဳပ္ၿငိမ္းရာတရားတို့ကိုလည္း ေဟာေတာ္မူ၏။ရဟန္းႀကီးျဖစ္ေသာ ဗုဒၶျမတ္စြာဘုရားသည္ ဤသို့ေသာအယူရွိေတာ္မူ၏။</textarea>
+        <div class="notice" id="notice-zawgyi" hidden>
+          <span>This looks like Unicode text.</span>
+          <button type="button" class="btn btn-accent" data-move="zawgyi">Move it to Unicode</button>
         </div>
+        <div class="field-foot"><span id="count-zawgyi"></span></div>
       </div>
     </div>
+  </section>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.slim.min.js" charset="utf-8"></script>
-    <script src="https://cdn.jsdelivr.net/npm/knayi-myscript@2.9.0/dist/knayi-myscript.min.js" charset="utf-8"></script>
+  <section class="panel" role="tabpanel" id="panel-normalize" aria-labelledby="tab-normalize" hidden>
+    <p class="hint">Puts marks in the right order and fixes a few common typing errors in Unicode text, such as the digit ၀ typed for the letter ဝ. Changed syllables are highlighted.</p>
+    <div class="pair two">
+      <div class="field">
+        <div class="field-head">
+          <label class="field-title" for="normalize-input">Unicode text</label>
+          <div class="tools">
+            <button type="button" class="btn" data-clear="normalize-input" aria-label="Clear text to normalize">Clear</button>
+          </div>
+        </div>
+        <textarea id="normalize-input" class="mm" lang="my" rows="9" spellcheck="false">ကျွန်တော် မြန်မာစာကုိ ၀ါသနာပါတယ်။ ၇ေကူးဖုိ့ ၀င်လာပေ့ါ။ ကျောင်းသား ၁၀ ယောက် ရှိတယ်။</textarea>
+        <div class="field-foot"><span id="count-normalize"></span></div>
+      </div>
+      <div class="field">
+        <div class="field-head">
+          <span class="field-title" id="normalize-output-label">Normalized</span>
+          <div class="tools">
+            <button type="button" class="btn" data-copy="normalize-output" aria-label="Copy normalized text">Copy</button>
+          </div>
+        </div>
+        <div id="normalize-output" class="output mm" lang="my" role="region" aria-labelledby="normalize-output-label" tabindex="0"></div>
+        <div class="field-foot"><span id="normalize-status"></span></div>
+      </div>
+    </div>
+    <details class="changes" id="normalize-changes" hidden>
+      <summary id="normalize-summary">What changed</summary>
+      <ol id="normalize-list"></ol>
+    </details>
+  </section>
 
-    <script type="text/javascript">
-      (function () {
-        console.log('knayi-myscript version: ' + knayi.version);
-        
-        var $view_tabs = $('.view-tab');
-        var $views = $('.view');
+  <section class="panel" role="tabpanel" id="panel-syllable" aria-labelledby="tab-syllable" hidden>
+    <p class="hint">Inserts a break between syllables. Spaces already count as breaks. The library does not split dictionary words.</p>
+    <div class="options">
+      <div class="option">
+        <label for="syllable-font">Encoding</label>
+        <select id="syllable-font">
+          <option value="">Detect</option>
+          <option value="unicode">Unicode</option>
+          <option value="zawgyi">Zawgyi</option>
+        </select>
+      </div>
+      <div class="option">
+        <label for="syllable-separator">Break with</label>
+        <select id="syllable-separator">
+          <option value="bar">Bar ( | )</option>
+          <option value="space">Space</option>
+          <option value="dot">Middle dot ( · )</option>
+          <option value="zwsp">Zero-width space</option>
+          <option value="newline">New line</option>
+        </select>
+      </div>
+      <span class="chip" id="syllable-detected" hidden></span>
+    </div>
+    <div class="pair two">
+      <div class="field">
+        <div class="field-head">
+          <label class="field-title" for="syllable-input">Text</label>
+          <div class="tools">
+            <button type="button" class="btn" data-clear="syllable-input" aria-label="Clear text to break">Clear</button>
+          </div>
+        </div>
+        <textarea id="syllable-input" class="mm" lang="my" rows="9" spellcheck="false">မင်္ဂလာပါ။ မြန်မာစာကို လေ့လာကြပါစို့။</textarea>
+        <div class="field-foot"><span id="count-syllable-input"></span></div>
+      </div>
+      <div class="field">
+        <div class="field-head">
+          <label class="field-title" for="syllable-output">Syllables</label>
+          <div class="tools">
+            <button type="button" class="btn" data-copy="syllable-output" aria-label="Copy syllables">Copy</button>
+          </div>
+        </div>
+        <textarea id="syllable-output" class="mm" lang="my" rows="9" spellcheck="false" readonly></textarea>
+        <div class="field-foot"><span id="syllable-count"></span></div>
+      </div>
+    </div>
+  </section>
 
-        var $convert_unicode_text = $('#convert_unicode_text');
-        var $convert_zawgyi_text = $('#convert_zawgyi_text');
-        var $convert_inputs = $('.convert_input');
+  <section class="debug" id="debug-mode" aria-labelledby="debug-title">
+    <h2 id="debug-title">Conversion steps</h2>
+    <p class="hint">Select text in a Convert box to see each rule that matched, or in the Normalize input to see its characters. <a href="#">Close</a></p>
+    <div class="debug-content" id="debug-content"></div>
+  </section>
+</main>
 
-        var $normalization_input = $('#normalization_input');
-        var $normalization_output =$('#normalization_output');
+<footer class="site-footer">
+  <div class="wrap">
+    <h2>Use it in your project</h2>
+    <div class="snippet"><code id="snippet-npm">npm install knayi-myscript</code><button type="button" class="btn" data-copy="snippet-npm" aria-label="Copy npm install command">Copy</button></div>
+    <div class="snippet"><code id="snippet-cdn"></code><button type="button" class="btn" data-copy="snippet-cdn" aria-label="Copy script tag">Copy</button></div>
+    <p class="note">The script build sets a global <code>knayi</code>. The <a href="https://github.com/greenlikeorange/knayi-myscript#readme">README</a> documents every function.</p>
+    <div class="meta-row">
+      <p>MIT license · <a href="https://github.com/greenlikeorange/knayi-myscript/issues">Report a problem</a> · <a href="#debug-mode">Conversion steps</a></p>
+      <p class="badges">
+        <a href="https://www.npmjs.com/package/knayi-myscript"><img src="https://img.shields.io/npm/v/knayi-myscript.svg" alt="npm version" width="80" height="20"></a>
+        <a href="https://github.com/greenlikeorange/knayi-myscript/actions/workflows/test.yml"><img src="https://github.com/greenlikeorange/knayi-myscript/actions/workflows/test.yml/badge.svg?branch=master" alt="test" width="100" height="20"></a>
+      </p>
+    </div>
+  </div>
+</footer>
 
-        var $syllable_input = $('#syllable_input');
-        var $syllable_output = $('#syllable_output');
-        var $debug_content = $('#debug_content');
+<p class="sr-only" id="announcer" aria-live="polite"></p>
 
-        // Change view
-        $view_tabs.click(function (event) {
-          var $target = $(this);
-          var view = $target.attr('data-view');
-          
-          // set active
-          $view_tabs.removeClass('is-active');
-          $target.addClass('is-active');
-          
-          $views.addClass('hide');
-          $('#' + view + '_view').removeClass('hide');
-        });
+<script src="https://cdn.jsdelivr.net/npm/knayi-myscript@2.9.0/dist/knayi-myscript.min.js" charset="utf-8"></script>
+<script>
+(() => {
+  'use strict';
 
-        var is_debug_mode = window.location.hash
-          && window.location.hash === '#debug-mode';
+  const byId = (id) => document.getElementById(id);
 
-        /** Font Conveting **/
-        function reverse_font(font_type) {
-          switch (font_type) {
-            case 'unicode':
-              return 'zawgyi';
-            case 'zawgyi':
-              return 'unicode';
-          }
+  if (typeof window.knayi === 'undefined') {
+    byId('load-error').hidden = false;
+    document.querySelectorAll('textarea, button, select').forEach((el) => { el.disabled = true; });
+    return;
+  }
+  const knayi = window.knayi;
+  console.log('knayi-myscript version: ' + knayi.version);
+
+  const MYANMAR = /[\u1000-\u109F]/;
+  const FONT_NAMES = { unicode: 'Unicode', zawgyi: 'Zawgyi' };
+  const OTHER_FONT = { unicode: 'zawgyi', zawgyi: 'unicode' };
+  // A private-use character marks syllable breaks when the page needs the pieces, not a display string.
+  const BREAK = '\uE000';
+
+  const plural = (n, one, many) => `${n.toLocaleString()} ${n === 1 ? one : many}`;
+  const codePoints = (text) => Array.from(text, (ch) => 'U+' + ch.codePointAt(0).toString(16).toUpperCase().padStart(4, '0')).join(' ');
+  const announce = (message) => { byId('announcer').textContent = message; };
+
+  function useFont(el, font) {
+    el.classList.toggle('zg', font === 'zawgyi');
+    el.classList.toggle('mm', font !== 'zawgyi');
+    el.lang = font === 'zawgyi' ? 'my-Qaag' : 'my';
+  }
+
+  // Version and install snippet come from the script tag the page loads, so they cannot drift apart.
+  const libraryUrl = document.querySelector('script[src*="knayi-myscript"]').src;
+  byId('version').textContent = 'v' + knayi.version;
+  byId('version').hidden = false;
+  byId('snippet-cdn').textContent = `<script src="${libraryUrl}"><\/script>`;
+
+  /* Tabs */
+  const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+  function selectTab(tab, moveFocus) {
+    tabs.forEach((t) => {
+      const selected = t === tab;
+      t.setAttribute('aria-selected', String(selected));
+      t.tabIndex = selected ? 0 : -1;
+      byId(t.getAttribute('aria-controls')).hidden = !selected;
+    });
+    if (moveFocus) tab.focus();
+  }
+  tabs.forEach((tab, i) => {
+    tab.addEventListener('click', () => selectTab(tab, false));
+    tab.addEventListener('keydown', (event) => {
+      const last = tabs.length - 1;
+      const target = {
+        ArrowRight: tabs[i === last ? 0 : i + 1],
+        ArrowLeft: tabs[i === 0 ? last : i - 1],
+        Home: tabs[0],
+        End: tabs[last]
+      }[event.key];
+      if (target) {
+        event.preventDefault();
+        selectTab(target, true);
+      }
+    });
+  });
+
+  /* Copy and clear */
+  function legacyCopy(text) {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    let copied = false;
+    try { copied = document.execCommand('copy'); } catch (error) { copied = false; }
+    document.body.removeChild(area);
+    return copied;
+  }
+
+  function showCopied(button, copied) {
+    if (!button.dataset.label) button.dataset.label = button.textContent;
+    button.textContent = copied ? 'Copied' : 'Copy failed';
+    announce(copied ? 'Copied to the clipboard.' : 'Could not copy. Select the text and copy it yourself.');
+    clearTimeout(Number(button.dataset.timer));
+    button.dataset.timer = String(setTimeout(() => { button.textContent = button.dataset.label; }, 1500));
+  }
+
+  document.querySelectorAll('[data-copy]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const source = byId(button.dataset.copy);
+      const text = source.tagName === 'TEXTAREA' ? source.value : source.textContent;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(
+          () => showCopied(button, true),
+          () => showCopied(button, legacyCopy(text))
+        );
+      } else {
+        showCopied(button, legacyCopy(text));
+      }
+    });
+  });
+
+  document.querySelectorAll('[data-clear]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const box = byId(button.dataset.clear);
+      box.value = '';
+      box.dispatchEvent(new Event('input'));
+      box.focus();
+    });
+  });
+
+  /* Convert */
+  const convertBoxes = { unicode: byId('convert-unicode'), zawgyi: byId('convert-zawgyi') };
+  let lastEdited = null;
+
+  function updateConvertInfo() {
+    Object.keys(convertBoxes).forEach((font) => {
+      const text = convertBoxes[font].value;
+      byId('count-' + font).textContent = plural(text.length, 'character', 'characters');
+      // Ties go to the box's own encoding, so a single letter typed so far never raises the notice.
+      const detected = font === lastEdited && MYANMAR.test(text) ? knayi.fontDetect(text, font) : font;
+      byId('notice-' + font).hidden = detected === font;
+    });
+  }
+
+  function convertFrom(font) {
+    const text = convertBoxes[font].value;
+    const target = OTHER_FONT[font];
+    convertBoxes[target].value = text ? knayi.fontConvert(text, target, font) : '';
+    updateConvertInfo();
+  }
+
+  Object.keys(convertBoxes).forEach((font) => {
+    convertBoxes[font].addEventListener('input', () => {
+      lastEdited = font;
+      convertFrom(font);
+    });
+  });
+
+  document.querySelectorAll('[data-move]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const from = button.dataset.move;
+      const to = OTHER_FONT[from];
+      convertBoxes[to].value = convertBoxes[from].value;
+      lastEdited = to;
+      convertFrom(to);
+      convertBoxes[to].focus();
+      announce(`Moved the text to the ${FONT_NAMES[to]} box.`);
+    });
+  });
+
+  /* Syllables */
+
+  // Splits text into syllables and the whitespace between them. syllBreak trims the edges and drops
+  // zero-width spaces, so the edges are kept here, and null means the pieces do not rebuild the text.
+  function syllableParts(text, font) {
+    const lead = /^\s*/.exec(text)[0];
+    const core = text.slice(lead.length).replace(/\s+$/, '');
+    const trail = text.slice(lead.length + core.length);
+    const parts = lead ? [lead] : [];
+    if (core) {
+      knayi.syllBreak(core, font, BREAK).split(BREAK).forEach((piece) => {
+        piece.split(/(\s+)/).forEach((part) => { if (part) parts.push(part); });
+      });
+    }
+    if (trail) parts.push(trail);
+    return parts.join('') === text ? parts : null;
+  }
+
+  function countSyllables(text, font) {
+    if (!text.trim()) return 0;
+    return knayi.syllBreak(text, font, BREAK).split(BREAK)
+      .reduce((total, piece) => total + piece.split(/\s+/).filter(Boolean).length, 0);
+  }
+
+  /* Normalize */
+  const normalizeInput = byId('normalize-input');
+  const normalizeOutput = byId('normalize-output');
+
+  function changeItem(before, after) {
+    const item = document.createElement('li');
+    const from = document.createElement('span');
+    from.className = 'mm';
+    from.lang = 'my';
+    from.textContent = before;
+    const arrow = document.createElement('span');
+    arrow.className = 'to';
+    arrow.textContent = '→';
+    const to = from.cloneNode(false);
+    to.textContent = after;
+    const points = document.createElement('span');
+    points.className = 'cp';
+    points.textContent = `${codePoints(before)} → ${codePoints(after)}`;
+    item.append(from, arrow, to, points);
+    return item;
+  }
+
+  function renderNormalize() {
+    const input = normalizeInput.value;
+    const output = input ? knayi.normalize(input) : '';
+    byId('count-normalize').textContent = plural(input.length, 'character', 'characters');
+
+    const before = input ? syllableParts(input, 'unicode') : [];
+    const after = output ? syllableParts(output, 'unicode') : [];
+    const changes = [];
+    normalizeOutput.textContent = '';
+    if (before && after && before.length === after.length) {
+      after.forEach((part, i) => {
+        if (part === before[i]) {
+          normalizeOutput.appendChild(document.createTextNode(part));
+          return;
         }
-        $convert_inputs.on('keyup change paste', function (event) {
-          var $this = $(this);
-          if ($this.is(":focus")) {
-            var input_text = $this.val() || '';
-            var font_type = $this.attr('data-font-type');
+        const mark = document.createElement('mark');
+        mark.textContent = part;
+        normalizeOutput.appendChild(mark);
+        changes.push([before[i], part]);
+      });
+    } else {
+      normalizeOutput.textContent = output;
+    }
 
-            if (font_type === 'unicode') {
-              $convert_zawgyi_text.val(knayi.fontConvert(input_text, 'zawgyi', 'unicode'));
-            } else {
-              $convert_unicode_text.val(knayi.fontConvert(input_text, 'unicode', 'zawgyi'));
-            }
-          }
-        });
-        /** Font Conveting **/
+    let status = '';
+    if (input && output === input) status = 'No changes. The text is already normalized.';
+    else if (changes.length) status = plural(changes.length, 'syllable changed', 'syllables changed');
+    else if (input) status = 'The text changed.';
+    byId('normalize-status').textContent = status;
 
-        $normalization_input.on('keyup change paste', function (event) {
-          var $this = $(this);
-          var input_text = $this.val() || '';
-          $normalization_output.val(knayi.normalize(input_text));
-        });
+    const list = byId('normalize-list');
+    list.textContent = '';
+    changes.forEach(([from, to]) => list.appendChild(changeItem(from, to)));
+    byId('normalize-summary').textContent = `What changed (${changes.length})`;
+    byId('normalize-changes').hidden = changes.length === 0;
+  }
+  normalizeInput.addEventListener('input', renderNormalize);
 
-        $syllable_input.on('keyup change paste', function (event) {
-          var $this = $(this);
-          var input_text = $this.val() || '';
-          $syllable_output.val(knayi.syllBreak(input_text, 'unicode', ' '));
-        });
+  /* Syllable break */
+  const SEPARATORS = { bar: ' | ', space: ' ', dot: ' · ', zwsp: '\u200B', newline: '\n' };
+  const syllableInput = byId('syllable-input');
+  const syllableOutput = byId('syllable-output');
+  const syllableFont = byId('syllable-font');
+  const syllableSeparator = byId('syllable-separator');
 
-        if (is_debug_mode) {
-          $('#debugging').show();
+  function renderSyllables() {
+    const text = syllableInput.value;
+    const chosen = syllableFont.value;
+    const font = chosen || (MYANMAR.test(text) ? knayi.fontDetect(text, 'unicode') : 'unicode');
+    useFont(syllableInput, font);
+    useFont(syllableOutput, font);
 
-          function html_line (text) {
-            return `<span class="line">${text}</span>`
-          }
+    const detected = byId('syllable-detected');
+    detected.hidden = Boolean(chosen) || !MYANMAR.test(text);
+    detected.textContent = 'Detected: ' + FONT_NAMES[font];
 
-          function html_code (text) {
-            return `<code>${text}</code>`
-          }
+    syllableOutput.value = text ? knayi.syllBreak(text, font, SEPARATORS[syllableSeparator.value]) : '';
+    byId('count-syllable-input').textContent = plural(text.length, 'character', 'characters');
+    byId('syllable-count').textContent = plural(countSyllables(text, font), 'syllable', 'syllables');
+  }
+  syllableInput.addEventListener('input', renderSyllables);
+  syllableFont.addEventListener('change', renderSyllables);
+  syllableSeparator.addEventListener('change', renderSyllables);
 
-          function escape_html (text) {
-            return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-          }
+  /* Debug mode: open with #debug-mode in the address bar */
+  const debugContent = byId('debug-content');
+  const isDebugging = () => window.location.hash === '#debug-mode';
+  const escapes = (text) => Array.from(text, (ch) => (MYANMAR.test(ch) ? '\\u' + ch.charCodeAt(0).toString(16) : ch)).join('');
 
-          function escape_regexp (text) {
-            return text.replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&');
-          }
+  function debugLine(label, value, gap) {
+    const line = document.createElement('div');
+    if (gap) line.className = 'gap';
+    const name = document.createElement('b');
+    name.textContent = label;
+    line.append(name, ' ', value);
+    debugContent.appendChild(line);
+  }
 
-          var mm_characters = /[\u1000-\u109F]/;
+  Object.keys(convertBoxes).forEach((from) => {
+    const box = convertBoxes[from];
+    box.addEventListener('select', () => {
+      if (!isDebugging()) return;
+      const selected = box.value.slice(box.selectionStart, box.selectionEnd);
+      const to = OTHER_FONT[from];
+      const logs = knayi.fontConvert.debugging(selected, to, from);
+      // Text without Myanmar letters comes back as a plain string, with no steps to show.
+      if (typeof logs === 'string') return;
+      debugContent.textContent = '';
+      debugLine('Selected', escapes(selected));
+      debugLine('Converting', `${FONT_NAMES[from]} → ${FONT_NAMES[to]}`);
+      debugLine('(origin)', escapes(logs.steps[0]), true);
+      logs.matched_patterns.forEach((source, i) => {
+        // Each matched pattern is the source string of the rule's RegExp.
+        debugLine('(match)', `/${escapes(source)}/`, true);
+        debugLine('(chars)', escapes(logs.steps[i + 1]));
+      });
+      debugLine('(final)', escapes(logs.steps[logs.steps.length - 1]), true);
+    });
+  });
 
-          function string_to_charcodes (text) {
-            var result = '';
-            for (var i = 0; i < text.length; i++) {
-              if (mm_characters.test(text[i])) {
-                result += `\\u` + text[i].charCodeAt(0).toString(16);
-              } else {
-                result += escape_html(text[i]);
-              }
-            }
+  normalizeInput.addEventListener('select', () => {
+    if (!isDebugging()) return;
+    const selected = normalizeInput.value.slice(normalizeInput.selectionStart, normalizeInput.selectionEnd);
+    if (!selected) return;
+    debugContent.textContent = '';
+    debugLine('Selected', escapes(selected));
+    debugLine('Normalized', Array.from(knayi.normalize(selected), escapes).join(' + '), true);
+  });
 
-            return result;
-          }
-
-          /** Font Convert Debuging **/
-          $convert_inputs.on('select', function (event) {
-            var $convert_input = $(this);
-            var selection_start = event.target.selectionStart;
-            var selection_end = event.target.selectionEnd;
-
-            var origin_font_type = $convert_input.attr('data-font-type');
-            var target_font_type = reverse_font(origin_font_type);
-            var $target_output_input = origin_font_type === 'unicode'
-              ? $convert_zawgyi_text : $convert_unicode_text;
-
-            var origin_value = $convert_input.val() || '';
-            var converted_value = $target_output_input.val();
-
-            var selected_value = origin_value.slice(selection_start, selection_end);
-            var converted_selected_value = knayi.fontConvert(selected_value, target_font_type, origin_font_type);
-
-            var regexp_of_selected_value = new RegExp(escape_regexp(selected_value), 'g');
-            var regexp_of_converted_selected_value = new RegExp(escape_regexp(converted_selected_value), 'g');
-
-            var match_on_origin = origin_value.slice(0, selection_end)
-              .match(regexp_of_selected_value);
-
-            if (!match_on_origin)
-              return;
-
-            // make matches
-            [].forEach.call(match_on_origin, function () {
-              regexp_of_converted_selected_value.test(converted_value);
-            })
-
-            if (!regexp_of_converted_selected_value.lastIndex)
-              return;
-
-            var highlight_start = regexp_of_converted_selected_value.lastIndex - converted_selected_value.length;
-            var highlight_end = regexp_of_converted_selected_value.lastIndex;
-
-            if (regexp_of_converted_selected_value.lastIndex) {
-              var converting_debug_logs = knayi.fontConvert.debugging(selected_value, target_font_type, origin_font_type);
-
-              // Text without Myanmar letters comes back as a plain string, with no steps to show.
-              if (typeof converting_debug_logs === 'string')
-                return;
-
-              function debugging_steps (converting_debug_logs) {
-                var matched_patterns = converting_debug_logs.matched_patterns;
-                var steps = converting_debug_logs.steps;
-
-                var result = html_code(`<b>(orign)</b> ` + string_to_charcodes(steps[0]));
-                result += html_code('<br/ >');
-                for (var i = 0; i < matched_patterns.length; i++) {
-                  // Each matched pattern is the source string of the rule's RegExp.
-                  result += html_code(`<b>(match)</b> /${string_to_charcodes(matched_patterns[i])}/`);
-
-                  result += html_code(`<b>(chars)</b> ` + string_to_charcodes(steps[i+1]));
-                  result += html_code('<br/ >');
-                }
-
-                result += html_code(`<b>(final)</b> ` + string_to_charcodes(steps[i]));
-
-                return result;
-              }
-
-              $debug_content.html(
-                html_line('<b>Selected Words</b>')
-                + html_code(string_to_charcodes(selected_value))
-                + html_line('<br/ >')
-                + html_line(`<b>Converting Step [${origin_font_type} -> ${target_font_type}]</b>`)
-                + html_line('<br/ >')
-                + debugging_steps(converting_debug_logs)
-              );
-            }
-          })
-          /** Font Convert Debuging **/
-
-          $normalization_input.on('select', function (event) {
-            var origin_value = $(this).val() || '';
-            var selection_start = event.target.selectionStart;
-            var selection_end = event.target.selectionEnd;
-
-            var selected_value = origin_value.slice(selection_start, selection_end);
-            
-            var normalized_value = knayi.normalize(selected_value);
-            
-            $debug_content.html(
-              html_line('<b>Selected Words</b>')
-              + html_code(escape_html(selected_value))
-              + html_line('<br/ >')
-              + html_line('<b>Normalized string</b>')
-              + html_line('<br/ >')
-              + escape_html([].join.call(normalized_value, ' + '))
-            );
-          });
-        }
-      } ())
-    </script>
-  </body>
+  updateConvertInfo();
+  renderNormalize();
+  renderSyllables();
+})();
+</script>
+</body>
 </html>
