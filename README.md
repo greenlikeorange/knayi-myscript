@@ -134,9 +134,12 @@ knayi.syllBreak('က္က', 'unicode', '|') // 'က္က'
 knayi.syllBreak('က္က', 'zawgyi', '|') // 'က္|က'
 knayi.syllBreak('က္က', 'uni', '|') // 'က္က'
 knayi.syllBreak('ကက', 'unicode', '|') // 'ကက'
+knayi.syllBreak('ၾကပါ', 'zawgyi', '|') // 'ၾက|ပါ'
 ```
 
 When `fontType` is omitted, detection runs first. Unknown font names throw.
+
+Zawgyi types ေ and the medial ra before the consonant. A consonant typed after them ends its syllable, as ကြ does in Unicode.
 
 ## spellingFix(content, fontType?)
 
