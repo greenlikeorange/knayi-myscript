@@ -1,6 +1,7 @@
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 var syllable = require('../library/syllable');
+var normalize = require('../library/normalization');
 describe('syllable', function () {
 	it('parses an onset, a medial, and an asat coda', function () {
 		var parsed = syllable.parseUnicode('မြန်');
@@ -20,7 +21,7 @@ assert.equal(		syllable.serializeUnicode(parsed), 'င်္ဂ');
 	});
 
 	it('keeps normalize and spelling collapse as two policies', function () {
-assert.equal(		syllable.normalizeText('ကိီ'), 'ကီ');
+assert.equal(		normalize('ကိီ'), 'ကီ');
 assert.equal(		syllable.collapseMarks('ကိီ', 'unicode'), 'ကိီ');
 	});
 

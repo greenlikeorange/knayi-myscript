@@ -122,7 +122,7 @@ knayi.fontConvert(null, 'unicode') // ''
 knayi.fontConvert('က') // 'က'  (no target font; warns)
 ```
 
-`fontConvert.debugging(content, targetFontType, originalFontType)` returns `{ to, from, matched_patterns, steps }`. `steps` is an array of strings. The last step equals `fontConvert` for the same arguments. From Unicode, `matched_patterns` holds the source of each rule pattern that matched. From Zawgyi or Win, it names each stage that changed the text: `sequences`, `glyphs`, `syllables`, `zero as wa`, `NFC`.
+`fontConvert.debugging(content, targetFontType, originalFontType)` returns `{ to, from, matched_patterns, steps }`. `steps` is an array of strings. The last step equals `fontConvert` for the same arguments. From Unicode, `matched_patterns` holds the source of each rule pattern that matched. From Zawgyi or Win, it names each stage that changed the text: `sequences`, `glyphs`, `syllables`, `zero as wa`, `look-alikes`, `typos`, `NFC`.
 
 ### Zawgyi to Unicode
 
@@ -148,6 +148,7 @@ knayi.fontConvert('ၿမိဳ ့', 'unicode', 'zawgyi') // 'မြို့'
   - ၄ before င်း is ၎ (၎င်း);
   - ၇ with a vowel sign or medial is ရ (ရေး).
 - **Zero:** `၀` is also ဝ. A zero stays a digit next to a digit or an arithmetic sign, or across a decimal point from a digit (၁၀၀, ၅.၀).
+- **Typing fixes, as in [normalize](#normalizecontent):** ဝ or ရ typed in a number is a digit (`၂ဝ၁၉` is ၂၀၁၉). ၇ starting a closed syllable is ရ (ဆိုရင်). ိ with ီ is ီ (ဦး), and ု with ူ is ူ.
 - **Spaces:** a space typed before a mark only moved the mark, so it is dropped: `ၿမိဳ ့` is မြို့ and `တစ္ခ ု` is တစ်ခု. A line break stays.
 - **Zero-width characters:** a zero-width space or non-joiner typed inside a syllable moves to the end of the syllable.
 - **NFC:** the result is NFC.
@@ -207,15 +208,35 @@ knayi.spellingFix('\u1033\u1033', 'zaw') // '\u1033'
 
 ## normalize(content)
 
-Unicode only. Reorders marks in a cluster, applies a small set of typing fixes, and rewrites some `ဝ` / `၀` and `ရ` / `၇` pairs. It keeps surrounding spaces. It is not the same operation as `spellingFix`.
+Unicode only, written for Burmese. Puts every syllable in Unicode storage order ([UTN #11](https://www.unicode.org/notes/tn11/)) with the rules of [Zawgyi to Unicode](#zawgyi-to-unicode), makes a few typing fixes, and returns NFC.
+- **What stays the same:** text that is already right, text normalized a second time, and the output of `fontConvert` all come back unchanged.
+- **What it keeps:** surrounding spaces, zero-width spaces and joiners.
+
+It is not the same operation as `spellingFix`.
 
 ```javascript
 knayi.normalize('မိြုင်မိြုင်\nဆိုင်ဆုိင်') // 'မြိုင်မြိုင်\nဆိုင်ဆိုင်'
 knayi.normalize(' မိြုင် ') // ' မြိုင် '
+knayi.normalize('ယောကျ်ား') // 'ယောက်ျား'
+knayi.normalize('လည်းေကာင်း') // 'လည်းကောင်း'
+knayi.normalize('၂ဝ၁၉') // '၂၀၁၉'
 knayi.normalize('ကိီ') // 'ကီ'
-knayi.normalize('ဝ') // '၀'
-knayi.normalize('ဦ') // 'ဦ'
+knayi.normalize('ဝ') // 'ဝ'
 ```
+
+- **Order:** marks typed in any order are sorted, and a mark typed twice counts once. Asat goes where UTN #11 puts it (ကျွန်ုပ်, ခ်ျ, ရှ်), and the dot below comes before asat, as NFC requires.
+- **Zawgyi typing habits:**
+  - ေ or medial ra typed before its consonant moves after it: `လည်းေကာင်း` is လည်းကောင်း.
+  - A space typed before a mark is dropped (`သုံ း` is သုံး). A line break stays.
+- **Look-alikes:** only clear cases change.
+  - ဝ and ရ inside a number are digits: `၄ဝဝ` is ၄၀၀.
+  - ၀ and ၇ that carry a vowel sign or start a closed syllable are letters, as is ၀ inside a word: `ဘ၀` is ဘဝ, `ဆို၇င်` is ဆိုရင်.
+  - Words such as လုံးဝ, ဘဝ and ထာဝရ, and numbers such as ၁၉၇၇, stay as they are.
+- **Spelling:**
+  - စ with medial ya is ဈ.
+  - ဥ with asat, aa or a stacked consonant is ဉ (ညဉ့်, ဉာဏ်), except right after a vowel sign, where Pa'o writes ဥ်း.
+  - ၄င်း is ၎င်း, ိ with ီ is ီ, ု with ူ is ူ, and ဩော် is ဪ.
+- **Other languages:** Mon, Karen, Pa'o and Shan letters stay as they are, and so do spellings that differ from Burmese (တုဲ, ခရံာ်).
 
 ## truncate(content, options?)
 
