@@ -7,8 +7,14 @@ const FONT_ALIASES = {
   zaw: 'zawgyi'
 };
 
+// null, undefined, '', 0, false, and NaN are missing content, as in 2.8.3.
 function isMissing(content) {
-  return content == null || content === '';
+  return !content;
+}
+
+// String objects behave like the strings they wrap.
+function toText(content) {
+  return Object.prototype.toString.call(content) === '[object String]' ? String(content) : content;
 }
 
 function hasMyanmar(content) {
@@ -30,6 +36,7 @@ function cleanText(content, trim) {
 
 module.exports = {
   isMissing,
+  toText,
   hasMyanmar,
   resolveFont,
   cleanText

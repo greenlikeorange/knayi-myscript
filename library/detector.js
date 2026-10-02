@@ -124,6 +124,7 @@ function chooseAdapter(options) {
  * @return unicode ? zawgyi
  */
 function fontDetect(content, fallback_font_type, options = {}){
+  content = gate.toText(content);
   if (gate.isMissing(content)) {
     if (!globalOptions.isSilentMode()) console.warn('Content must be specified on knayi.fontDetect.');
     return fallback_font_type || 'en';

@@ -52,15 +52,17 @@ These paths load without an `exports` map:
 
 ## Missing content
 
-`null`, `undefined`, and `''` are missing content.
+`null`, `undefined`, `''`, `0`, `false`, and `NaN` are missing content, as in 2.8.3.
 
 | Function | Missing content |
 | --- | --- |
 | `fontDetect` | The fallback, or `'en'` when the fallback is omitted. Warns unless silent. |
 | `fontConvert`, `syllBreak`, `spellingFix`, `normalize` | `''`. Warns unless silent. |
-| `truncate` | `''`. Warns unless silent. |
+| `truncate` | `''`. Warns unless silent. An empty string `''` returns the omission instead. |
 
 Text with no Myanmar letters (`U+1000`–`U+109F`) is returned unchanged by detect, convert, break, spelling fix, and normalize. `fontDetect` returns the fallback or `'en'`. `truncate` still appends the omission.
+
+Other values, such as numbers and objects, are returned unchanged the same way, and no function throws on them. `truncate` turns them into strings first, like `lodash.truncate`. `String` objects work like the strings they hold.
 
 `setGlobalOptions({ silent_mode: true })` hides those warnings. The option applies to the copy of the library that received the call.
 

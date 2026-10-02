@@ -4,6 +4,7 @@ const gate = require('./contentGate');
 const syllable = require('./syllable');
 
 function spellingFix(content, fontType){
+  content = gate.toText(content);
   if (gate.isMissing(content)) {
     if (!globalOptions.isSilentMode()) console.warn('Content must be specified on knayi.spellingFix.');
     return '';

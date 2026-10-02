@@ -5,6 +5,7 @@ const gate = require('./contentGate');
 const syllable = require('./syllable');
 
 function fontConvert(content, to, from) {
+  content = gate.toText(content);
   if (gate.isMissing(content)) {
     if (!globalOptions.isSilentMode()) console.warn('Content must be specified on knayi.fontConvert.');
     return '';
