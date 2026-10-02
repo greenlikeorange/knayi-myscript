@@ -25,6 +25,12 @@ const esmEntry = {
   sourcefile: 'esm-entry.js'
 };
 
+// `var knayi` is only global in a classic <script>. When a bundler imports the file, it is module scoped,
+// so the script build also sets the global itself, as 2.8.3's `window.knayi = ...` did.
+const browserGlobal = {
+  js: '(typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : window).knayi = knayi;'
+};
+
 Promise.all([
   esbuild.build(Object.assign({}, shared, {
     stdin: esmEntry,
@@ -37,6 +43,7 @@ Promise.all([
     format: 'iife',
     platform: 'browser',
     globalName: 'knayi',
+    footer: browserGlobal,
     outfile: path.join(dist, 'knayi-myscript.js')
   })),
   esbuild.build(Object.assign({}, shared, {
@@ -44,6 +51,7 @@ Promise.all([
     format: 'iife',
     platform: 'browser',
     globalName: 'knayi',
+    footer: browserGlobal,
     minify: true,
     outfile: path.join(dist, 'knayi-myscript.min.js')
   }))

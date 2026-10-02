@@ -5,7 +5,10 @@
   "main": "./main.js",
   "module": "./dist/knayi-myscript.es.js",
   "types": "./index.d.ts",
-  "sideEffects": false,
+  "sideEffects": [
+    "./dist/knayi-myscript.js",
+    "./dist/knayi-myscript.min.js"
+  ],
   "files": [
     "main.js",
     "index.d.ts",
