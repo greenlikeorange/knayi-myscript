@@ -20,7 +20,7 @@
   ],
   "scripts": {
     "pretest": "node scripts/build.js",
-    "test": "node --test && tsc -p typecheck/tsconfig.json --noEmit",
+    "test": "node --test && tsc -p typecheck/tsconfig.json --noEmit && tsc -p typecheck/tsconfig.no-interop.json --noEmit",
     "test:bun": "bun scripts/bun-contract.js && bun scripts/bun-esm.mjs",
     "test:pack": "node scripts/check-packed.mjs",
     "build": "node scripts/build.js"

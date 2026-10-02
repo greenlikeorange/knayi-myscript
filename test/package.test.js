@@ -28,6 +28,11 @@ describe('package', () => {
     }
   });
 
+  it('has a non-enumerable default export for TypeScript without esModuleInterop', () => {
+    assert.equal(knayi.default, knayi);
+    assert.equal(Object.keys(knayi).includes('default'), false);
+  });
+
   it('does not set a Node engine range', () => {
     assert.equal(pkg.engines, undefined);
   });

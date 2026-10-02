@@ -20,3 +20,7 @@ module.exports = {
 	truncate,
 	normalize,
 };
+
+// TypeScript without esModuleInterop compiles `import knayi from` to `require(...).default`.
+// Non-enumerable, so Object.keys and Node's named-export scan stay the same.
+Object.defineProperty(module.exports, 'default', { value: module.exports });
