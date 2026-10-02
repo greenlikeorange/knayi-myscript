@@ -67,13 +67,15 @@ describe('detector adapters', () => {
 			tools = require('myanmar-tools');
 		} catch (e) {}
 
-assert.equal(		knayi.fontDetect('က္က', null, { adapter: 'rules' }), 'unicode');
+		var toolsOptions = { adapter: 'myanmartools', myanmartools_zg_threshold: [0.05, 0.9] };
+
+assert.equal(		knayi.fontDetect('က္က', 'unicode', { adapter: 'rules' }), 'unicode');
 		if (tools) {
-assert.equal(			knayi.fontDetect('က္က', null, { adapter: 'myanmartools' }), 'zawgyi');
+assert.equal(			knayi.fontDetect('က္က', 'unicode', toolsOptions), 'zawgyi');
 		} else {
-assert.equal(			knayi.fontDetect('က္က', null, { adapter: 'myanmartools' }), 'unicode');
+assert.equal(			knayi.fontDetect('က္က', 'unicode', toolsOptions), 'unicode');
 			assert.ok(myanmarToolsWarnings.some(function (message) {
-				return /myanmar-tools adapter is missing/.test(String(message));
+				return /myanmar-tools is not installed/.test(String(message));
 			}));
 		}
 	});
@@ -84,8 +86,25 @@ describe('unicode signatures', () => {
 assert.equal(		knayi.fontDetect('ကျ'), 'unicode');
 	})
 
-	it('scores a virama stack as unicode', () => {
-assert.equal(		knayi.fontDetect('က္က'), 'unicode');
+	it('scores a virama stack as unicode when other Unicode signs are present', () => {
+assert.equal(		knayi.fontDetect('ရန်ကုန်တက္ကသိုလ်'), 'unicode');
+	})
+})
+
+describe('zawgyi asat before a consonant', () => {
+	it('does not read consonant + U+1039 + consonant as a Unicode stack', () => {
+assert.equal(		knayi.fontDetect('ကပ္ကေတာ့'), 'zawgyi');
+assert.equal(		knayi.fontDetect('ျမန္မာနိုင္ငံ'), 'zawgyi');
+assert.equal(		knayi.fontDetect('အင္တာနက္ ဆက္သြယ္မႈ'), 'zawgyi');
+	})
+
+	it('converts it when the source font is detected', () => {
+assert.equal(		knayi.fontConvert('ျမန္မာနိုင္ငံ', 'unicode'), 'မြန်မာနိုင်ငံ');
+	})
+
+	it('leaves a bare stack to the fallback', () => {
+assert.equal(		knayi.fontDetect('က္က'), 'zawgyi');
+assert.equal(		knayi.fontDetect('က္က', 'unicode'), 'unicode');
 	})
 })
 

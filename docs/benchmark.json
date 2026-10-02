@@ -1,0 +1,859 @@
+{
+  "eval": {
+    "generatedAt": "2026-10-02T19:10:25.231Z",
+    "node": "v26.5.0",
+    "platform": "Darwin 27.0.0",
+    "withUnlicensed": false,
+    "engines": {
+      "local": "knayi 2.9.1",
+      "baseline": "knayi 2.8.3",
+      "tools": "myanmar-tools 1.1.3",
+      "rabbit": "Rabbit 1.0.4"
+    },
+    "datasets": {
+      "google": {
+        "pairs": 80
+      },
+      "cldr": {
+        "pairs": 89,
+        "notInGoogle": 11
+      },
+      "waitzar": {
+        "lines": 2404,
+        "unique": 2390
+      },
+      "flores": {
+        "lines": 2009,
+        "unique": 2009
+      },
+      "okell": {
+        "lines": 17828,
+        "unique": 16924
+      },
+      "mc4": {
+        "lines": 14304,
+        "unique": 14304
+      },
+      "wikipedia": {
+        "dataset": "wikimedia/wikipedia",
+        "config": "20231101.my",
+        "total": 109310,
+        "rows": 1000,
+        "seed": 20261002,
+        "lines": 7855,
+        "unique": 4812
+      },
+      "shn": {
+        "dataset": "cis-lmu/GlotCC-V1",
+        "config": "shn-Mymr",
+        "total": 648,
+        "rows": 648,
+        "seed": null,
+        "lines": 17089,
+        "unique": 9923
+      },
+      "mnw": {
+        "dataset": "cis-lmu/GlotCC-V1",
+        "config": "mnw-Mymr",
+        "total": 24,
+        "rows": 24,
+        "seed": null,
+        "lines": 2743,
+        "unique": 2270
+      },
+      "ksw": {
+        "dataset": "cis-lmu/GlotCC-V1",
+        "config": "ksw-Mymr",
+        "total": 40,
+        "rows": 40,
+        "seed": null,
+        "lines": 1213,
+        "unique": 673
+      },
+      "blk": {
+        "dataset": "cis-lmu/GlotCC-V1",
+        "config": "blk-Mymr",
+        "total": 34,
+        "rows": 34,
+        "seed": null,
+        "lines": 1730,
+        "unique": 770
+      }
+    },
+    "sources": [
+      {
+        "id": "google",
+        "title": "google/language-resources zawgyi_unicode_test.tsv",
+        "url": "https://github.com/google/language-resources/blob/master/my/zawgyi_unicode_test.tsv",
+        "license": "Apache-2.0",
+        "licenseUrl": "https://github.com/google/language-resources/blob/master/LICENSE",
+        "use": "Conversion reference pairs"
+      },
+      {
+        "id": "cldr",
+        "title": "Unicode CLDR my-t-my-s0-zawgyi.txt",
+        "url": "https://github.com/unicode-org/cldr/blob/main/common/testData/transforms/my-t-my-s0-zawgyi.txt",
+        "license": "Unicode License V3",
+        "licenseUrl": "https://github.com/unicode-org/cldr/blob/main/LICENSE",
+        "use": "Conversion reference pairs (ICU)"
+      },
+      {
+        "id": "waitzar",
+        "title": "WaitZar words.zawgyi.txt",
+        "url": "https://github.com/yathit/waitzar/blob/master/FontConvertTester/words.zawgyi.txt",
+        "license": "Apache-2.0",
+        "licenseUrl": "https://github.com/yathit/waitzar/blob/master/LICENSE",
+        "use": "Detection of hand-typed Zawgyi"
+      },
+      {
+        "id": "flores",
+        "title": "FLORES-200 mya_Mymr (dev + devtest)",
+        "url": "https://github.com/facebookresearch/flores/tree/main/flores200",
+        "license": "CC BY-SA 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+        "use": "Unicode flagged as Zawgyi; speed"
+      },
+      {
+        "id": "wikipedia",
+        "title": "Burmese Wikipedia (wikimedia/wikipedia 20231101.my), 1,000 articles in 25 seeded random blocks",
+        "url": "https://huggingface.co/datasets/wikimedia/wikipedia",
+        "license": "CC BY-SA 3.0 and GFDL",
+        "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+        "use": "Unicode flagged as Zawgyi; round trip; speed"
+      },
+      {
+        "id": "okell",
+        "title": "John Okell, A Corpus of Modern Burmese",
+        "url": "https://zenodo.org/records/1202324",
+        "license": "CC BY 4.0",
+        "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+        "use": "Unicode flagged as Zawgyi"
+      },
+      {
+        "id": "glotcc",
+        "title": "GlotCC-V1 Shan, Mon, S'gaw Karen, Pa'o (all documents)",
+        "url": "https://huggingface.co/datasets/cis-lmu/GlotCC-V1",
+        "license": "CC0 1.0 (text from Common Crawl, whose terms of use apply)",
+        "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+        "use": "Other Myanmar-script languages flagged as Zawgyi"
+      },
+      {
+        "id": "mc4",
+        "title": "mC4 c4-my validation (allenai/c4)",
+        "url": "https://huggingface.co/datasets/allenai/c4",
+        "license": "ODC-BY (text from Common Crawl, whose terms of use apply)",
+        "licenseUrl": "https://opendatacommons.org/licenses/by/1-0/",
+        "use": "Web text without labels"
+      }
+    ],
+    "sections": [
+      {
+        "id": "conversion",
+        "title": "Conversion: Zawgyi → Unicode",
+        "note": "Higher is better. Both reference sets come from Google's i18n work, and CLDR's expected output follows ICU, the converter myanmar-tools ships, so myanmar-tools has a home advantage on them. CLDR pairs that repeat Google's file are counted once, in the Google row. \"NFC\" compares after Unicode NFC normalization, which treats canonically equivalent spellings as equal (ဦ typed as U+1025 U+102E or as U+1026). The round trip turns Wikipedia lines into Zawgyi with Rabbit and converts them back; Rabbit is left out of that row because it made the input.",
+        "columns": [
+          {
+            "engine": "local",
+            "variant": "exact"
+          },
+          {
+            "engine": "local",
+            "variant": "NFC"
+          },
+          {
+            "engine": "baseline",
+            "variant": "exact"
+          },
+          {
+            "engine": "baseline",
+            "variant": "NFC"
+          },
+          {
+            "engine": "tools",
+            "variant": "exact"
+          },
+          {
+            "engine": "tools",
+            "variant": "NFC"
+          },
+          {
+            "engine": "rabbit",
+            "variant": "exact"
+          },
+          {
+            "engine": "rabbit",
+            "variant": "NFC"
+          }
+        ],
+        "rows": [
+          {
+            "label": "google/language-resources reference pairs",
+            "sources": [
+              "google"
+            ],
+            "n": 80,
+            "cells": [
+              {
+                "hits": 65,
+                "n": 80,
+                "pct": 81.25
+              },
+              {
+                "hits": 71,
+                "n": 80,
+                "pct": 88.75
+              },
+              {
+                "hits": 65,
+                "n": 80,
+                "pct": 81.25
+              },
+              {
+                "hits": 71,
+                "n": 80,
+                "pct": 88.75
+              },
+              {
+                "hits": 78,
+                "n": 80,
+                "pct": 97.5
+              },
+              {
+                "hits": 78,
+                "n": 80,
+                "pct": 97.5
+              },
+              {
+                "hits": 78,
+                "n": 80,
+                "pct": 97.5
+              },
+              {
+                "hits": 78,
+                "n": 80,
+                "pct": 97.5
+              }
+            ]
+          },
+          {
+            "label": "CLDR reference pairs not in Google's file (ICU)",
+            "sources": [
+              "cldr"
+            ],
+            "n": 11,
+            "cells": [
+              {
+                "hits": 4,
+                "n": 11,
+                "pct": 36.36363636363637
+              },
+              {
+                "hits": 5,
+                "n": 11,
+                "pct": 45.45454545454545
+              },
+              {
+                "hits": 4,
+                "n": 11,
+                "pct": 36.36363636363637
+              },
+              {
+                "hits": 5,
+                "n": 11,
+                "pct": 45.45454545454545
+              },
+              {
+                "hits": 11,
+                "n": 11,
+                "pct": 100
+              },
+              {
+                "hits": 11,
+                "n": 11,
+                "pct": 100
+              },
+              {
+                "hits": 5,
+                "n": 11,
+                "pct": 45.45454545454545
+              },
+              {
+                "hits": 5,
+                "n": 11,
+                "pct": 45.45454545454545
+              }
+            ]
+          },
+          {
+            "label": "Wikipedia → Rabbit Zawgyi → back",
+            "sources": [
+              "wikipedia"
+            ],
+            "n": 4745,
+            "cells": [
+              {
+                "hits": 4512,
+                "n": 4745,
+                "pct": 95.0895679662803
+              },
+              {
+                "hits": 4512,
+                "n": 4745,
+                "pct": 95.0895679662803
+              },
+              {
+                "hits": 4061,
+                "n": 4745,
+                "pct": 85.58482613277134
+              },
+              {
+                "hits": 4061,
+                "n": 4745,
+                "pct": 85.58482613277134
+              },
+              {
+                "hits": 4600,
+                "n": 4745,
+                "pct": 96.94415173867229
+              },
+              {
+                "hits": 4600,
+                "n": 4745,
+                "pct": 96.94415173867229
+              },
+              null,
+              null
+            ]
+          }
+        ]
+      },
+      {
+        "id": "detection",
+        "title": "Detection: real text recognised",
+        "note": "Higher is better. \"On evidence\" passes fallback `unicode`, so a word counts only when the detector finds Zawgyi evidence (for myanmar-tools, p above 0.95). 308 of 2390 distinct WaitZar words read the same in both encodings (neither Rabbit nor myanmar-tools changes them) and are left out.",
+        "columns": [
+          {
+            "engine": "local"
+          },
+          {
+            "engine": "baseline"
+          },
+          {
+            "engine": "tools"
+          }
+        ],
+        "rows": [
+          {
+            "label": "WaitZar hand-typed Zawgyi words, on evidence",
+            "sources": [
+              "waitzar"
+            ],
+            "n": 2082,
+            "cells": [
+              {
+                "hits": 1657,
+                "n": 2082,
+                "pct": 79.58693563880884
+              },
+              {
+                "hits": 1657,
+                "n": 2082,
+                "pct": 79.58693563880884
+              },
+              {
+                "hits": 2010,
+                "n": 2082,
+                "pct": 96.54178674351586
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "unicode-flagged",
+        "title": "Unicode flagged as Zawgyi",
+        "note": "Lower is better, but nothing is bolded: a detector can flag less Unicode just by calling Zawgyi less often, so read these next to the detection table. \"default\" is a plain `fontDetect(text)`, where a tie falls back to `zawgyi`. \"evidence\" uses fallback `unicode`, so only real Zawgyi evidence counts. For myanmar-tools both use the thresholds of knayi's adapter: Zawgyi above p = 0.95, Unicode below 0.05, and the fallback in between. A few lines in these sets are real Zawgyi, so 0% is not always reachable.",
+        "columns": [
+          {
+            "engine": "local",
+            "variant": "default"
+          },
+          {
+            "engine": "local",
+            "variant": "evidence"
+          },
+          {
+            "engine": "baseline",
+            "variant": "default"
+          },
+          {
+            "engine": "baseline",
+            "variant": "evidence"
+          },
+          {
+            "engine": "tools",
+            "variant": "default"
+          },
+          {
+            "engine": "tools",
+            "variant": "evidence"
+          }
+        ],
+        "rows": [
+          {
+            "label": "FLORES-200 mya_Mymr",
+            "sources": [
+              "flores"
+            ],
+            "n": 2009,
+            "cells": [
+              {
+                "hits": 0,
+                "n": 2009,
+                "pct": 0
+              },
+              {
+                "hits": 0,
+                "n": 2009,
+                "pct": 0
+              },
+              {
+                "hits": 0,
+                "n": 2009,
+                "pct": 0
+              },
+              {
+                "hits": 0,
+                "n": 2009,
+                "pct": 0
+              },
+              {
+                "hits": 0,
+                "n": 2009,
+                "pct": 0
+              },
+              {
+                "hits": 0,
+                "n": 2009,
+                "pct": 0
+              }
+            ]
+          },
+          {
+            "label": "Burmese Wikipedia sample",
+            "sources": [
+              "wikipedia"
+            ],
+            "n": 4812,
+            "cells": [
+              {
+                "hits": 242,
+                "n": 4812,
+                "pct": 5.029093931837074
+              },
+              {
+                "hits": 0,
+                "n": 4812,
+                "pct": 0
+              },
+              {
+                "hits": 283,
+                "n": 4812,
+                "pct": 5.881130507065669
+              },
+              {
+                "hits": 0,
+                "n": 4812,
+                "pct": 0
+              },
+              {
+                "hits": 109,
+                "n": 4812,
+                "pct": 2.2651704073150456
+              },
+              {
+                "hits": 32,
+                "n": 4812,
+                "pct": 0.6650041562759768
+              }
+            ]
+          },
+          {
+            "label": "Okell corpus",
+            "sources": [
+              "okell"
+            ],
+            "n": 16924,
+            "cells": [
+              {
+                "hits": 1095,
+                "n": 16924,
+                "pct": 6.470101630820137
+              },
+              {
+                "hits": 3,
+                "n": 16924,
+                "pct": 0.017726305837863388
+              },
+              {
+                "hits": 1235,
+                "n": 16924,
+                "pct": 7.297329236587095
+              },
+              {
+                "hits": 3,
+                "n": 16924,
+                "pct": 0.017726305837863388
+              },
+              {
+                "hits": 557,
+                "n": 16924,
+                "pct": 3.291184117229969
+              },
+              {
+                "hits": 239,
+                "n": 16924,
+                "pct": 1.41219569841645
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "other-languages",
+        "title": "Other Myanmar-script languages flagged as Zawgyi",
+        "note": "Lower is better, but nothing is bolded: a detector can flag less Unicode just by calling Zawgyi less often, so read these next to the detection table. \"default\" is a plain `fontDetect(text)`, where a tie falls back to `zawgyi`. \"evidence\" uses fallback `unicode`, so only real Zawgyi evidence counts. For myanmar-tools both use the thresholds of knayi's adapter: Zawgyi above p = 0.95, Unicode below 0.05, and the fallback in between.",
+        "columns": [
+          {
+            "engine": "local",
+            "variant": "default"
+          },
+          {
+            "engine": "local",
+            "variant": "evidence"
+          },
+          {
+            "engine": "baseline",
+            "variant": "default"
+          },
+          {
+            "engine": "baseline",
+            "variant": "evidence"
+          },
+          {
+            "engine": "tools",
+            "variant": "default"
+          },
+          {
+            "engine": "tools",
+            "variant": "evidence"
+          }
+        ],
+        "rows": [
+          {
+            "label": "Shan (GlotCC shn-Mymr)",
+            "sources": [
+              "glotcc"
+            ],
+            "n": 9923,
+            "cells": [
+              {
+                "hits": 602,
+                "n": 9923,
+                "pct": 6.066713695455004
+              },
+              {
+                "hits": 9,
+                "n": 9923,
+                "pct": 0.09069837750680237
+              },
+              {
+                "hits": 619,
+                "n": 9923,
+                "pct": 6.238032852967852
+              },
+              {
+                "hits": 9,
+                "n": 9923,
+                "pct": 0.09069837750680237
+              },
+              {
+                "hits": 51,
+                "n": 9923,
+                "pct": 0.5139574725385468
+              },
+              {
+                "hits": 10,
+                "n": 9923,
+                "pct": 0.1007759750075582
+              }
+            ]
+          },
+          {
+            "label": "Mon (GlotCC mnw-Mymr)",
+            "sources": [
+              "glotcc"
+            ],
+            "n": 2270,
+            "cells": [
+              {
+                "hits": 243,
+                "n": 2270,
+                "pct": 10.704845814977974
+              },
+              {
+                "hits": 13,
+                "n": 2270,
+                "pct": 0.5726872246696035
+              },
+              {
+                "hits": 275,
+                "n": 2270,
+                "pct": 12.114537444933921
+              },
+              {
+                "hits": 14,
+                "n": 2270,
+                "pct": 0.6167400881057269
+              },
+              {
+                "hits": 262,
+                "n": 2270,
+                "pct": 11.541850220264317
+              },
+              {
+                "hits": 124,
+                "n": 2270,
+                "pct": 5.462555066079295
+              }
+            ]
+          },
+          {
+            "label": "S'gaw Karen (GlotCC ksw-Mymr)",
+            "sources": [
+              "glotcc"
+            ],
+            "n": 673,
+            "cells": [
+              {
+                "hits": 608,
+                "n": 673,
+                "pct": 90.34175334323923
+              },
+              {
+                "hits": 493,
+                "n": 673,
+                "pct": 73.25408618127786
+              },
+              {
+                "hits": 640,
+                "n": 673,
+                "pct": 95.09658246656761
+              },
+              {
+                "hits": 551,
+                "n": 673,
+                "pct": 81.87221396731054
+              },
+              {
+                "hits": 597,
+                "n": 673,
+                "pct": 88.7072808320951
+              },
+              {
+                "hits": 553,
+                "n": 673,
+                "pct": 82.16939078751858
+              }
+            ]
+          },
+          {
+            "label": "Pa'o (GlotCC blk-Mymr)",
+            "sources": [
+              "glotcc"
+            ],
+            "n": 770,
+            "cells": [
+              {
+                "hits": 96,
+                "n": 770,
+                "pct": 12.467532467532468
+              },
+              {
+                "hits": 0,
+                "n": 770,
+                "pct": 0
+              },
+              {
+                "hits": 107,
+                "n": 770,
+                "pct": 13.896103896103897
+              },
+              {
+                "hits": 0,
+                "n": 770,
+                "pct": 0
+              },
+              {
+                "hits": 76,
+                "n": 770,
+                "pct": 9.87012987012987
+              },
+              {
+                "hits": 29,
+                "n": 770,
+                "pct": 3.7662337662337664
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "web-text",
+        "title": "Web text without labels (mC4 Burmese validation)",
+        "note": "Share of lines called Zawgyi on evidence, and agreement with myanmar-tools on the 14,225 lines where myanmar-tools is confident (p < 0.05 or p > 0.95).",
+        "columns": [
+          {
+            "engine": "local"
+          },
+          {
+            "engine": "baseline"
+          },
+          {
+            "engine": "tools"
+          }
+        ],
+        "rows": [
+          {
+            "label": "Called Zawgyi",
+            "sources": [
+              "mc4"
+            ],
+            "n": 14304,
+            "cells": [
+              {
+                "hits": 9811,
+                "n": 14304,
+                "pct": 68.58920581655481
+              },
+              {
+                "hits": 9811,
+                "n": 14304,
+                "pct": 68.58920581655481
+              },
+              {
+                "hits": 9987,
+                "n": 14304,
+                "pct": 69.81963087248322
+              }
+            ]
+          },
+          {
+            "label": "Agrees with myanmar-tools",
+            "sources": [
+              "mc4"
+            ],
+            "n": 14225,
+            "cells": [
+              {
+                "hits": 14047,
+                "n": 14225,
+                "pct": 98.74868189806678
+              },
+              {
+                "hits": 14047,
+                "n": 14225,
+                "pct": 98.74868189806678
+              },
+              null
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "bench": {
+    "generatedAt": "2026-10-02T19:10:25.367Z",
+    "machine": "Apple M3 Max, Darwin 27.0.0",
+    "node": "v26.5.0",
+    "engines": {
+      "local": "knayi 2.9.1",
+      "baseline": "knayi 2.8.3"
+    },
+    "realText": {
+      "lines": 6821,
+      "rows": [
+        {
+          "task": "fontDetect",
+          "local": 36.2829707,
+          "baseline": 35.4021499
+        },
+        {
+          "task": "fontConvert Zawgyi → Unicode, source detected",
+          "local": 138.85711650000002,
+          "baseline": 137.64115840000002
+        },
+        {
+          "task": "fontConvert Unicode → Zawgyi",
+          "local": 119.05647919999998,
+          "baseline": 115.85270820000001
+        },
+        {
+          "task": "syllBreak",
+          "local": 42.5941793,
+          "baseline": 33.84385819999999
+        },
+        {
+          "task": "normalize",
+          "local": 163.8638666,
+          "baseline": 169.4047
+        }
+      ]
+    },
+    "longInput": [
+      {
+        "input": "fontConvert Zawgyi → Unicode, stacked ka + 20k alternating vowel signs",
+        "local": 0.483,
+        "baseline": 444.666583
+      },
+      {
+        "input": "fontConvert Zawgyi → Unicode, stacked ka + 40k alternating vowel signs",
+        "local": 0.881416,
+        "baseline": 1751.187209
+      },
+      {
+        "input": "fontConvert Zawgyi → Unicode, stacked ka + 80k alternating vowel signs",
+        "local": 1.861,
+        "baseline": 7013.905542
+      },
+      {
+        "input": "fontConvert Zawgyi → Unicode, kinzi + 80k alternating vowel signs",
+        "local": 1.867667,
+        "baseline": 7040.169459
+      },
+      {
+        "input": "normalize, 50k × ဝ",
+        "local": 3.881291,
+        "baseline": 72.032125
+      },
+      {
+        "input": "normalize, 100k × ဝ",
+        "local": 8.456542,
+        "baseline": 715.548875
+      },
+      {
+        "input": "normalize, 200k × ဝ",
+        "local": 17.917667,
+        "baseline": 4034.071291
+      }
+    ],
+    "sweep": {
+      "runs": 8472,
+      "inputs": 1059,
+      "marks": 29,
+      "slowest": 11.364417,
+      "limit": 250,
+      "slow": []
+    }
+  }
+}

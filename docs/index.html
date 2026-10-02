@@ -1,381 +1,1542 @@
-<!DOCTYPE html>
-<html lang="my" dir="ltr">
-  <head>
-    <meta charset="utf-8">
-    <title>Knayi Myanmar Script</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.2/css/bulma.min.css">
-    <link href="https://fonts.googleapis.com/css?family=Unica+One" rel="stylesheet">
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>knayi-myscript playground: Zawgyi and Unicode tools for Burmese text</title>
+<meta name="description" content="Run every knayi-myscript function in your browser: detect and convert Zawgyi and Unicode, normalize, break syllables, fix spelling and truncate Burmese text, and copy the JavaScript call.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar&display=swap">
+<style>
+/*
+  Every feature on this page is supported by at least 98% of the browsers caniuse identifies: grid,
+  flexbox with gap, custom properties, :focus-visible, appearance, font-variant-numeric,
+  prefers-color-scheme and color-scheme. The script sticks to ES2017. Left out because support is
+  lower: :has(), container queries, CSS nesting, text-wrap: balance, dvh units, the resize property
+  and the popover attribute (so the install panel is a plain disclosure button).
+*/
+@font-face {
+  font-family: 'Zawgyi-One';
+  src: local('Zawgyi-One'), url('fonts/zawgyi.woff') format('woff'), url('fonts/zawgyi.ttf') format('truetype');
+  font-display: swap;
+}
 
-    <link href="https://fonts.googleapis.com/css?family=Electrolize|Handlee|Karla|Niconne|Oleo+Script|Orbitron|Sacramento|Unica+One" rel="stylesheet">
+/* The base tokens match benchmark.html, so both pages look like one site. */
+:root {
+  --bg: #fbfaf7; --surface: #ffffff; --text: #1d2420; --muted: #5d6a63; --line: #e3e6e1;
+  --accent: #16452d; --accent-soft: #e6f0ea; --on-accent: #ffffff; --code: #f1f3ef;
+  --field: #ffffff; --output: #f8f8f5; --focus: #2f7a52; --shadow: rgba(20, 30, 25, .14);
+  --warn: #6e4400; --warn-soft: #fcf0d4; --mark: #fbe39a; --mark-text: #1d2420;
+  --danger: #8f1d1d; --danger-soft: #fbe7e7;
+  --tok-str: #8a3a00; --tok-num: #6f2c91; --tok-var: #1d4f8a;
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%235d6a63' stroke-width='1.6'/%3E%3C/svg%3E");
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mm: "Noto Sans Myanmar", "Myanmar Text", "Myanmar MN", "Myanmar Sangam MN", Padauk, sans-serif;
+  --font-zg: "Zawgyi-One", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --font-mono-mm: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", "Noto Sans Myanmar", "Myanmar Text", "Myanmar MN", Padauk, monospace;
+  --font-mono-zg: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", "Zawgyi-One", monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111513; --surface: #181d1a; --text: #e7ece9; --muted: #9aa8a0; --line: #2a322e;
+    --accent: #8fd1ad; --accent-soft: #1d2b24; --on-accent: #0f1a14; --code: #222a26;
+    --field: #141916; --output: #151a17; --focus: #8fd1ad; --shadow: rgba(0, 0, 0, .5);
+    --warn: #f3c770; --warn-soft: #33290f; --mark: #6b5513; --mark-text: #fff6d6;
+    --danger: #f3a5a5; --danger-soft: #3a1b1b;
+    --tok-str: #f0b47a; --tok-num: #d6a8f0; --tok-var: #9cc8f2;
+    --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%239aa8a0' stroke-width='1.6'/%3E%3C/svg%3E");
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111513; --surface: #181d1a; --text: #e7ece9; --muted: #9aa8a0; --line: #2a322e;
+  --accent: #8fd1ad; --accent-soft: #1d2b24; --on-accent: #0f1a14; --code: #222a26;
+  --field: #141916; --output: #151a17; --focus: #8fd1ad; --shadow: rgba(0, 0, 0, .5);
+  --warn: #f3c770; --warn-soft: #33290f; --mark: #6b5513; --mark-text: #fff6d6;
+  --danger: #f3a5a5; --danger-soft: #3a1b1b;
+  --tok-str: #f0b47a; --tok-num: #d6a8f0; --tok-var: #9cc8f2;
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%239aa8a0' stroke-width='1.6'/%3E%3C/svg%3E");
+  color-scheme: dark;
+}
 
-    <style>
-      @font-face {
-        font-family:'Zawgyi-One';
-        src:local('Zawgyi-One'), url('fonts/zawgyi.woff') format('woff'), url('fonts/zawgyi.ttf') format('ttf');
-      }
-    </style>
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 var(--font-ui); }
+a { color: var(--accent); }
+code, pre { font-family: var(--font-mono); }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+:disabled { opacity: .5; cursor: not-allowed; }
+.wrap { width: 100%; max-width: 1240px; margin: 0 auto; padding-left: 16px; padding-right: 16px; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.mm { font-family: var(--font-mm); }
+.zg { font-family: var(--font-zg); }
+.code-mm { font-family: var(--font-mono-mm); }
+.code-zg { font-family: var(--font-mono-zg); }
+.muted { color: var(--muted); }
 
-    <style media="screen">
-    @import url('https://fonts.googleapis.com/earlyaccess/notosansmyanmar.css');
+/* Header */
+.top { background: var(--surface); border-bottom: 1px solid var(--line); }
+.bar { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; min-height: 52px; padding-top: 6px; padding-bottom: 6px; }
+.brand { display: flex; align-items: center; gap: 8px; }
+.logo {
+  display: inline-flex; align-items: center; justify-content: center; flex: none; width: 28px; height: 28px;
+  border-radius: 8px; background: var(--accent); color: var(--on-accent); font: 17px/1 var(--font-mm);
+}
+h1 { margin: 0; font-size: 15px; font-weight: 650; letter-spacing: -.01em; white-space: nowrap; }
+.badge { padding: 4px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font: 600 11px/1 var(--font-mono); }
+.tagline { margin: 0; color: var(--muted); font-size: 13px; }
+.nav { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; margin-left: auto; }
+.nav-link {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 9px; border: 0; border-radius: 7px;
+  background: none; color: var(--muted); font-size: 13px; line-height: 1.2; text-decoration: none; cursor: pointer;
+}
+.nav-link:hover, .nav-link[aria-expanded="true"] { color: var(--text); background: var(--code); }
+.nav-link svg { flex: none; width: 16px; height: 16px; }
+.nav-link .chev { width: 10px; height: 7px; }
 
-    #app .hide {
-      display: none;
-    }
+/* Install popover. It is placed against the header bar, so it never runs off a narrow screen. */
+.popover {
+  position: absolute; z-index: 10; top: 100%; right: 16px; width: 600px; max-width: calc(100% - 32px);
+  padding: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 12px 32px var(--shadow);
+}
+.snip {
+  display: grid; grid-template-columns: 2.6em minmax(0, 1fr) auto; align-items: center; gap: 8px;
+  padding: 5px 5px 5px 10px; border-radius: 8px; background: var(--code);
+}
+.snip + .snip { margin-top: 6px; }
+.snip-k { color: var(--muted); font: 600 11px/1 var(--font-mono); }
+.snip code { font-size: 12px; line-height: 1.5; word-break: break-all; }
+.pop-note { margin: 8px 4px 2px; color: var(--muted); font-size: 12px; }
 
-    .zawgyi { font-family: 'Zawgyi-One'; }
-    .notosansmyanmar { font-family: 'Noto Sans Myanmar', sans-serif; }
+/* Function tabs */
+.app { padding-top: 12px; padding-bottom: 10px; }
+.alert { margin: 0 0 12px; padding: 10px 12px; border-radius: 10px; background: var(--danger-soft); color: var(--danger); font-weight: 500; }
+.fn-tabs {
+  display: inline-flex; flex-wrap: wrap; gap: 2px; max-width: 100%; margin-bottom: 10px; padding: 3px;
+  background: var(--code); border: 1px solid var(--line); border-radius: 10px;
+}
+.fn-tabs [role="tab"] {
+  padding: 6px 12px; border: 0; border-radius: 7px; background: none; color: var(--muted);
+  font: 500 13px/1.3 var(--font-mono); white-space: nowrap; cursor: pointer;
+}
+.fn-tabs [role="tab"]:hover { color: var(--text); }
+.fn-tabs [aria-selected="true"] { background: var(--surface); color: var(--accent); font-weight: 600; box-shadow: 0 1px 2px var(--shadow), 0 0 0 1px var(--line); }
 
-    .logo { color: #16452d; font-family: 'Handlee', cursive; }
-    .logo a { color: #16452d; }
-    .badges img { padding-top: 5px; }
+/* Playground card */
+.card { display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; min-height: 46px; padding: 7px 12px; border-bottom: 1px solid var(--line); }
+.opts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.opt { display: inline-flex; align-items: center; gap: 6px; }
+.opt label { color: var(--muted); font: 12px/1 var(--font-mono); }
+.opt-note { color: var(--muted); font-size: 12.5px; }
+select, .field {
+  height: 30px; padding: 0 8px; border: 1px solid var(--line); border-radius: 7px;
+  background-color: var(--field); color: var(--text); font: 12.5px/1 var(--font-mono);
+}
+select {
+  -webkit-appearance: none; appearance: none; padding-right: 26px; cursor: pointer;
+  background-image: var(--chevron); background-repeat: no-repeat; background-position: right 9px center; background-size: 10px 7px;
+}
+.field[type="number"] { width: 5.5em; }
+.field[type="text"] { width: 6em; }
+.sig { display: inline-flex; align-items: baseline; gap: 8px; margin-left: auto; color: var(--muted); font-size: 12px; text-decoration: none; }
+.sig code { font-size: 12px; }
+.sig:hover { color: var(--accent); }
+.sig-docs { text-decoration: underline; }
 
-    .github {
-      font-size: 0;
-      display: inline-block;
-      width: 20px;
-      height: 38px;
-      background: url("github.png") no-repeat center;
-      background-size: 20px;
-      vertical-align: top;
-    }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--text);
+  font: 500 12.5px/1 var(--font-ui); white-space: nowrap;
+}
+.btn:hover { background: var(--code); }
+.btn-sm { height: 26px; padding: 0 8px; font-size: 12px; }
+.btn-accent { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn-accent:hover { background: var(--accent); opacity: .9; }
+.btn svg { width: 14px; height: 14px; }
 
-    span.highlight { background-color: yellow; display: inline-block; }
+/* Input and output */
+.panes { display: flex; min-height: 0; }
+.pane { display: flex; flex-direction: column; flex: 1 1 0; min-width: 0; }
+.pane + .pane { border-left: 1px solid var(--line); }
+.pane-out { background: var(--output); }
+.pane-head { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 6px 8px 2px 12px; }
+.pane-title { margin-right: auto; color: var(--muted); font-size: 11.5px; font-weight: 650; letter-spacing: .05em; text-transform: uppercase; }
+.select-sm { height: 26px; font: 12px/1 var(--font-ui); }
+textarea, .output {
+  display: block; flex: 1 1 auto; width: 100%; min-width: 100%; max-width: 100%; min-height: 168px; margin: 0;
+  padding: 6px 12px 10px; border: 0; border-radius: 0; background: transparent; color: var(--text);
+  font-size: 17px; line-height: 1.85;
+}
+/* Boxes that reach the card's edge draw their focus ring inside, where the card's rounded clip cannot cut it. */
+textarea:focus-visible, .output:focus-visible, .view:focus-visible, .cp-body:focus-visible { outline-offset: -2px; }
+.output { overflow: auto; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; }
+.pane-foot {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; min-height: 34px; padding: 6px 12px;
+  border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums;
+}
+.chip { display: inline-block; padding: 2px 6px; border-radius: 5px; background: var(--accent-soft); color: var(--accent); font: 600 11px/1.4 var(--font-mono); }
+.chip-muted { background: var(--code); color: var(--muted); }
+.log { flex-basis: 100%; color: var(--warn); font: 11.5px/1.5 var(--font-mono); }
+.log-error { color: var(--danger); }
+.hint {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 8px 8px; padding: 5px 6px 5px 10px;
+  border-radius: 8px; background: var(--warn-soft); color: var(--warn); font-size: 12.5px;
+}
+mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; }
+.sep { color: var(--accent); background: var(--accent-soft); border-radius: 3px; }
+.sep-zw::before { content: ""; display: inline-block; width: 2px; height: 1.1em; margin: 0 1px; background: var(--accent); vertical-align: -.2em; }
+.omit { color: var(--muted); background: var(--code); border-radius: 3px; }
+.out-error { margin: 0; color: var(--danger); font: 13px/1.6 var(--font-mono); white-space: pre-wrap; }
 
-    #debugging { display: none; }
+/* fontDetect result */
+.detect { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; white-space: normal; }
+.detect-result { color: var(--accent); font: 600 26px/1.3 var(--font-mono); }
+.lines-head { margin: 12px 0 2px; color: var(--muted); font: 12px/1.4 var(--font-ui); white-space: normal; }
+.lines { margin: 0; padding: 0; list-style: none; white-space: normal; }
+.line { display: grid; grid-template-columns: 2em 5em minmax(0, 1fr); align-items: baseline; gap: 8px; border-top: 1px solid var(--line); font-size: 15px; }
+.line-n { color: var(--muted); font: 11.5px var(--font-mono); text-align: right; }
+.line-r { color: var(--accent); font: 600 12px var(--font-mono); }
+.line-t { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 
-    .debug_content span.line {
-      display: block;
-      font-size: 13px;
-    }
-    .debug_content code {
-      display: block;
-      font-size: 13px;
-    }
+/* The call */
+.callbar { display: flex; align-items: flex-start; gap: 8px; padding: 7px 8px 7px 12px; background: var(--code); border-top: 1px solid var(--line); }
+.prompt { color: var(--muted); font: 13px/26px var(--font-mono); }
+.call { flex: 1 1 auto; min-width: 0; font-size: 13px; line-height: 26px; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; }
+.tk-fn { color: var(--accent); font-weight: 600; }
+.tk-str { color: var(--tok-str); }
+.tk-num, .tk-kw { color: var(--tok-num); }
+.tk-var { color: var(--tok-var); }
+.tk-key, .tk-obj { color: var(--text); }
 
-    .textarea {
-      height: 250px;
-    }
-    </style>
-  </head>
-  <body>
-    <div id="app">
-      <div class="container">
-        <div class="columns">
-          <div class="column">
-            <h1 class="title logo">
-              knayi
-              <a class="github" href="https://github.com/greenlikeorange/knayi-myscript"></a>
-            </h1>
-            <h2 class="subtitle">Myanmar langauge js library</h2>
-          </div>
-          <div class="column">
-            <p class="badges" style="text-align: right;">
-              <br />
-              <a href="https://npmjs.org/package/knayi-myscript">
-                <img src="https://badge.fury.io/js/knayi-myscript.png" alt=""></a>
-              <a href="#">
-                <img src="https://api.travis-ci.org/greenlikeorange/knayi-myscript.svg?branch=master" alt=""></a>
-              <a href="https://david-dm.org/greenlikeorange/knayi-myscript">
-                <img src="https://david-dm.org/greenlikeorange/knayi-myscript.png" alt=""></a>
-            </p>
-          </div>
+/* Details */
+.inspector { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.insp-tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 8px; border-bottom: 1px solid var(--line); }
+.insp-tabs [role="tab"] {
+  display: inline-flex; align-items: center; gap: 6px; margin-bottom: -1px; padding: 9px 8px 7px; cursor: pointer;
+  border: 0; border-bottom: 2px solid transparent; background: none; color: var(--muted);
+  font: 500 12.5px/1.2 var(--font-ui); white-space: nowrap;
+}
+.insp-tabs [role="tab"]:hover { color: var(--text); }
+.insp-tabs [aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+.count { padding: 1px 6px; border-radius: 999px; background: var(--code); color: var(--muted); font: 600 11px/1.4 var(--font-mono); }
+.count:empty { display: none; }
+.view { height: 200px; overflow: auto; padding: 8px 12px 12px; }
+.view-cp { padding: 0; overflow: hidden; }
+.view-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-bottom: 6px; color: var(--muted); font-size: 12px; }
+.view-head code { color: var(--text); font-size: 12px; }
+.view-head .btn { margin-left: auto; }
+
+.literal { margin: 0; font-size: 13.5px; line-height: 1.9; white-space: pre-wrap; word-break: break-all; }
+
+.cp-cols { display: flex; height: 100%; }
+.cp-col { display: flex; flex-direction: column; flex: 1 1 0; min-width: 0; min-height: 0; }
+.cp-col + .cp-col { border-left: 1px solid var(--line); }
+.cp-head { display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 12px; color: var(--muted); font-size: 12px; }
+.cp-title { color: var(--text); font-weight: 600; }
+.cp-head .btn { margin-left: auto; }
+.cp-body { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 6px; flex: 1 1 auto; min-height: 0; overflow: auto; padding: 2px 12px 12px; }
+.cp-group { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
+.cp-ws { border-style: dashed; background: none; }
+.cp { display: inline-flex; flex-direction: column; align-items: center; min-width: 44px; padding: 0 4px 3px; }
+.cp + .cp { border-left: 1px solid var(--line); }
+.cp-g { min-height: 30px; font-size: 17px; line-height: 30px; white-space: pre; }
+.cp-sym { color: var(--muted); font: 10.5px/30px var(--font-mono); }
+.cp-h { color: var(--muted); font: 10px/1.2 var(--font-mono); }
+.cp-more { align-self: center; color: var(--muted); font-size: 12px; }
+
+.steps, .changes { margin: 0; padding: 0; list-style: none; }
+.step {
+  display: grid; grid-template-columns: 2em minmax(0, 3fr) minmax(0, 2fr); align-items: baseline; gap: 2px 12px;
+  padding: 5px 0; border-top: 1px solid var(--line); font: 11.5px/1.5 var(--font-mono);
+}
+.step-n { color: var(--muted); text-align: right; }
+.step-re { color: var(--tok-str); word-break: break-all; }
+.step-hunks { display: flex; flex-wrap: wrap; gap: 2px 12px; color: var(--muted); }
+.hunk { color: var(--text); white-space: nowrap; }
+.hunk-n { color: var(--muted); }
+.change {
+  display: grid; grid-template-columns: auto auto auto minmax(0, 1fr); align-items: baseline; gap: 2px 10px;
+  padding: 3px 0; border-top: 1px solid var(--line);
+}
+.chg-t { font-size: 17px; line-height: 1.8; }
+.chg-arrow { color: var(--muted); }
+.chg-cp { color: var(--muted); font-size: 11.5px; word-break: break-all; }
+
+.foot { display: flex; flex-wrap: wrap; gap: 4px 16px; padding-bottom: 14px; color: var(--muted); font-size: 12px; }
+.foot a { color: var(--muted); }
+.foot a:hover { color: var(--accent); }
+
+/* On a laptop or larger screen the playground fills the window and the text boxes take the spare height. */
+@media (min-width: 900px) and (min-height: 640px) {
+  body { display: flex; flex-direction: column; min-height: 100vh; }
+  .app { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+  .fn-tabs { align-self: flex-start; }
+  .card { flex: 1 1 auto; min-height: 0; }
+  .panes { flex: 1 1 0; min-height: 200px; }
+  textarea, .output { flex: 1 1 0; min-height: 0; }
+  .view { height: 24vh; min-height: 150px; max-height: 320px; }
+}
+@media (max-width: 1023px) {
+  .tagline { display: none; }
+}
+@media (max-width: 899px) {
+  .panes { flex-direction: column; }
+  .pane + .pane { border-left: 0; border-top: 1px solid var(--line); }
+  .view { height: auto; max-height: 360px; }
+  .view-cp { max-height: none; }
+  .cp-cols { flex-direction: column; height: auto; }
+  .cp-col { flex: none; }
+  .cp-col + .cp-col { border-left: 0; border-top: 1px solid var(--line); }
+  .cp-body { max-height: 220px; }
+}
+@media (max-width: 599px) {
+  .nav { margin-left: -9px; }
+  .fn-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
+  .fn-tabs [role="tab"] { padding: 7px 2px; }
+  .sig { margin-left: 0; }
+  .step { grid-template-columns: 2em minmax(0, 1fr); }
+  .step-hunks { grid-column: 2; }
+  .change { grid-template-columns: auto auto minmax(0, 1fr); }
+  .chg-cp { grid-column: 1 / -1; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .btn, .nav-link, .fn-tabs [role="tab"], .insp-tabs [role="tab"] { transition: background-color .15s, color .15s, border-color .15s; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap bar">
+    <div class="brand">
+      <span class="logo" aria-hidden="true">က</span>
+      <h1>knayi-myscript</h1>
+      <span class="badge" id="version" hidden></span>
+    </div>
+    <p class="tagline">Zawgyi ⇄ Unicode and syllable tools for Burmese text</p>
+    <nav class="nav" aria-label="Project">
+      <button type="button" class="nav-link" id="install-toggle" aria-expanded="false" aria-controls="install-panel">
+        Install
+        <svg class="chev" viewBox="0 0 12 8" aria-hidden="true"><path d="M1 1.5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+      </button>
+      <div class="popover" id="install-panel" role="region" aria-label="Install" hidden>
+        <div class="snip"><span class="snip-k">npm</span><code id="snip-npm">npm install knayi-myscript</code><button type="button" class="btn btn-sm" data-copy="snip-npm" aria-label="Copy the npm command">Copy</button></div>
+        <div class="snip"><span class="snip-k">CDN</span><code id="snip-cdn"></code><button type="button" class="btn btn-sm" data-copy="snip-cdn" aria-label="Copy the script tag">Copy</button></div>
+        <div class="snip"><span class="snip-k">ESM</span><code id="snip-esm">import knayi from 'knayi-myscript';</code><button type="button" class="btn btn-sm" data-copy="snip-esm" aria-label="Copy the import statement">Copy</button></div>
+        <div class="snip"><span class="snip-k">CJS</span><code id="snip-cjs">const knayi = require('knayi-myscript');</code><button type="button" class="btn btn-sm" data-copy="snip-cjs" aria-label="Copy the require statement">Copy</button></div>
+        <p class="pop-note">The script build sets the global <code>knayi</code>.</p>
+      </div>
+      <a class="nav-link" href="https://github.com/greenlikeorange/knayi-myscript#readme">Docs</a>
+      <a class="nav-link" href="benchmark.html">Benchmark</a>
+      <a class="nav-link" href="https://www.npmjs.com/package/knayi-myscript">npm</a>
+      <a class="nav-link" href="https://github.com/greenlikeorange/knayi-myscript">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub
+      </a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap app">
+  <noscript><p class="alert">The playground needs JavaScript.</p></noscript>
+  <p class="alert" id="load-error" role="alert" hidden>The knayi library did not load from jsDelivr, so the playground is off. Check your connection or content blocker, then reload the page.</p>
+
+  <div class="fn-tabs" role="tablist" aria-label="Function">
+    <button type="button" role="tab" id="tab-fontConvert" aria-controls="playground" aria-selected="true">fontConvert</button>
+    <button type="button" role="tab" id="tab-fontDetect" aria-controls="playground" aria-selected="false" tabindex="-1">fontDetect</button>
+    <button type="button" role="tab" id="tab-normalize" aria-controls="playground" aria-selected="false" tabindex="-1">normalize</button>
+    <button type="button" role="tab" id="tab-syllBreak" aria-controls="playground" aria-selected="false" tabindex="-1">syllBreak</button>
+    <button type="button" role="tab" id="tab-spellingFix" aria-controls="playground" aria-selected="false" tabindex="-1">spellingFix</button>
+    <button type="button" role="tab" id="tab-truncate" aria-controls="playground" aria-selected="false" tabindex="-1">truncate</button>
+  </div>
+
+  <section class="card" id="playground" role="tabpanel" aria-labelledby="tab-fontConvert">
+    <div class="toolbar">
+      <div class="opts" data-fn="fontConvert">
+        <span class="opt"><label for="convert-to">to</label><select id="convert-to" autocomplete="off"><option value="zawgyi" selected>zawgyi</option><option value="unicode">unicode</option></select></span>
+        <span class="opt"><label for="convert-from">from</label><select id="convert-from" autocomplete="off"><option value="" selected>detect</option><option value="unicode">unicode</option><option value="zawgyi">zawgyi</option></select></span>
+        <button type="button" class="btn" id="swap">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 5h11M10 2l3 3-3 3M14 11H3M6 8l-3 3 3 3"/></svg>
+          Swap
+        </button>
+      </div>
+      <div class="opts" data-fn="fontDetect" hidden>
+        <span class="opt"><label for="detect-fallback">fallback</label><select id="detect-fallback" autocomplete="off"><option value="" selected>none</option><option value="unicode">unicode</option><option value="zawgyi">zawgyi</option></select></span>
+      </div>
+      <div class="opts" data-fn="normalize" hidden>
+        <span class="opt-note">Unicode text only. No options.</span>
+      </div>
+      <div class="opts" data-fn="syllBreak" hidden>
+        <span class="opt"><label for="sb-font">fontType</label><select id="sb-font" autocomplete="off"><option value="" selected>detect</option><option value="unicode">unicode</option><option value="zawgyi">zawgyi</option></select></span>
+        <span class="opt">
+          <label for="sb-break">breakPoint</label>
+          <select id="sb-break" autocomplete="off"><option value="bar" selected>|</option><option value="space">space</option><option value="newline">newline</option><option value="zwsp">U+200B (default)</option><option value="custom">custom</option></select>
+          <input type="text" class="field" id="sb-custom" value=" / " aria-label="Custom breakPoint" autocomplete="off" spellcheck="false" hidden>
+        </span>
+      </div>
+      <div class="opts" data-fn="spellingFix" hidden>
+        <span class="opt"><label for="sf-font">fontType</label><select id="sf-font" autocomplete="off"><option value="" selected>detect</option><option value="unicode">unicode</option><option value="zawgyi">zawgyi</option></select></span>
+      </div>
+      <div class="opts" data-fn="truncate" hidden>
+        <span class="opt"><label for="tr-length">length</label><input type="number" class="field" id="tr-length" value="30" min="1" max="100000" step="1" autocomplete="off"></span>
+        <span class="opt"><label for="tr-omission">omission</label><input type="text" class="field" id="tr-omission" value="..." autocomplete="off" spellcheck="false"></span>
+        <span class="opt"><label for="tr-font">fontType</label><select id="tr-font" autocomplete="off"><option value="" selected>detect</option><option value="unicode">unicode</option><option value="zawgyi">zawgyi</option></select></span>
+      </div>
+      <a class="sig" id="sig" href="https://github.com/greenlikeorange/knayi-myscript#fontconvertcontent-targetfonttype-originalfonttype"><code id="sig-code">fontConvert(text, to, from?)</code> <span class="sig-docs">docs<span aria-hidden="true"> ↗</span></span></a>
+    </div>
+
+    <div class="panes">
+      <div class="pane">
+        <div class="pane-head">
+          <label class="pane-title" for="input">Input</label>
+          <select id="sample" class="select-sm" aria-label="Sample text" autocomplete="off">
+            <option value="user" disabled>Your text</option>
+            <option value="unicode">Unicode paragraph</option>
+            <option value="zawgyi">Zawgyi paragraph</option>
+            <option value="greeting">Greeting</option>
+            <option value="typos">Unicode with typos</option>
+            <option value="repeated">Repeated marks</option>
+            <option value="mixed">Mixed lines</option>
+          </select>
+          <button type="button" class="btn btn-sm" id="clear" aria-label="Clear the input">Clear</button>
         </div>
-        
-        <div class="tabs">
-          <ul>
-            <li data-view="converting" class="view-tab is-active"><a>Font Converting</a></li>
-            <li data-view="normalization" class="view-tab" ><a>Normalization</a></li>
-            <li data-view="syllable" class="view-tab" ><a>Syllable Break</a></li>
-          </ul>
+        <textarea id="input" class="mm" lang="my" rows="8" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="Type or paste Burmese text"></textarea>
+        <div class="hint" id="hint" hidden><span id="hint-text"></span><button type="button" class="btn btn-sm btn-accent" id="hint-action"></button></div>
+        <div class="pane-foot" id="input-meta"></div>
+      </div>
+      <div class="pane pane-out">
+        <div class="pane-head">
+          <span class="pane-title" id="output-title">Output</span>
+          <button type="button" class="btn btn-sm" id="copy-output" aria-label="Copy the output">Copy</button>
         </div>
-        <div id="converting_view" class="columns view">
-          <div class="column">
-            <div class="field">
-              <label class="label">Unicode</label>
-              <div class="control">
-                <textarea
-                  id="convert_unicode_text"
-                  class="textarea is-hovered notosansmyanmar convert_input"
-                  data-font-type="unicode"
-                  type="text">သီဟိုဠ်မှ ဉာဏ်ကြီးရှင်သည် အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇလွန်ဈေးဘေးဗာဒံပင်ထက် အဓိဋ္ဌာန်လျက် ဂဃနဏဖတ်ခဲ့သည်။ယေဓမ္မာ ဟေတုပ္ပဘဝါ တေသံ ဟေတုံ တထာဂတော အာဟ တေသဉ္စ ယောနိရောဓေါ ဧဝံ ဝါဒီ မဟာသမဏော။(မြန်မာပြန်)မြတ်စွာဘုရားရှင်သည် ရှေးကပြုခဲ့ဖူးသော အကြောင်းတရားကြောင့် ဖြစ်ပေါ်လာကြသော အကျိုးတရားကို ဟောကြားတော်မူသည်။ထိုအကြောင်းတရားတို့၏ ချုပ်ငြိမ်းရာတရားတို့ကိုလည်း ဟောတော်မူ၏။ရဟန်းကြီးဖြစ်သော ဗုဒ္ဓမြတ်စွာဘုရားသည် ဤသို့သောအယူရှိတော်မူ၏။</textarea>
-              </div>
-            </div>
-          </div>
-          <div class="column">
-            <div class="field">
-              <label class="label">Zawgyi</label>
-              <div class="control">
-                <textarea
-                  id="convert_zawgyi_text"
-                  class="textarea is-hovered zawgyi convert_input"
-                  data-font-type="zawgyi"
-                  type="text">သီဟိုဠ္မွ ဉာဏ္ႀကီးရွင္သည္ အာယုဝဍ္ဎနေဆးညႊန္းစာကို ဇလြန္ေဈးေဘးဗာဒံပင္ထက္ အဓိ႒ာန္လ်က္ ဂဃနဏဖတ္ခဲ့သည္။ေယဓမၼာ ေဟတုပၸဘဝါ ေတသံ ေဟတုံ တထာဂေတာ အာဟ ေတသၪၥ ေယာနိေရာေဓါ ဧဝံ ဝါဒီ မဟာသမေဏာ။(ျမန္မာျပန္)ျမတ္စြာဘုရားရွင္သည္ ေရွးကျပဳခဲ့ဖူးေသာ အေၾကာင္းတရားေၾကာင့္ ျဖစ္ေပၚလာၾကေသာ အက်ိဳးတရားကို ေဟာၾကားေတာ္မူသည္။ထိုအေၾကာင္းတရားတို့၏ ခ်ဳပ္ၿငိမ္းရာတရားတို့ကိုလည္း ေဟာေတာ္မူ၏။ရဟန္းႀကီးျဖစ္ေသာ ဗုဒၶျမတ္စြာဘုရားသည္ ဤသို့ေသာအယူရွိေတာ္မူ၏။</textarea>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div id="normalization_view" class="columns hide view">
-          <div class="column">
-            <div class="field">
-              <label class="label">Input</label>
-              <div class="control">
-                <textarea
-                  id="normalization_input"
-                  class="textarea is-hovered notosansmyanmar"
-                  type="text"></textarea>
-              </div>
-            </div>
-          </div>
-          <div class="column">
-            <div class="field">
-              <label class="label">Output</label>
-              <div class="control">
-                <textarea
-                  id="normalization_output"
-                  class="textarea is-hovered notosansmyanmar"
-                  disabled="disabled"
-                  type="text"></textarea>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div id="syllable_view" class="columns hide view">
-          <div class="column">
-            <div class="field">
-              <label class="label">Input</label>
-              <div class="control">
-                <textarea
-                  id="syllable_input"
-                  class="textarea is-hovered notosansmyanmar"
-                  type="text"></textarea>
-              </div>
-            </div>
-          </div>
-          <div class="column">
-            <div class="field">
-              <label class="label">Output</label>
-              <div class="control">
-                <textarea
-                  id="syllable_output"
-                  class="textarea is-hovered notosansmyanmar"
-                  disabled="disabled"
-                  type="text"></textarea>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div id="debugging">
-          <div class="content">
-            <h4>Debuging</h4>
-          </div>
-          <div class="columns">
-            <div class="column">
-              <pre id="debug_content" class="content debug_content"></pre>
-            </div>
-          </div>
-        </div>
+        <div class="output mm" id="output" lang="my" role="region" aria-labelledby="output-title" tabindex="0"></div>
+        <div class="pane-foot" id="output-meta"></div>
       </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.slim.min.js" charset="utf-8"></script>
-    <script src="https://rawgit.com/greenlikeorange/knayi-myscript/master/dist/knayi-myscript.min.js" charset="utf-8"></script>
+    <div class="callbar">
+      <span class="prompt" aria-hidden="true">›</span>
+      <span class="sr-only">Call:</span>
+      <code class="call" id="call"></code>
+      <button type="button" class="btn btn-sm" id="copy-call" aria-label="Copy the call">Copy</button>
+    </div>
 
-    <script src="../dist/knayi-myscript.js"></script>
+    <div class="inspector">
+      <div class="insp-tabs" role="tablist" aria-label="Details">
+        <button type="button" role="tab" id="itab-steps" data-view="steps" aria-controls="debug-mode" aria-selected="false" tabindex="-1">Rule steps <span class="count" id="count-steps"></span></button>
+        <button type="button" role="tab" id="itab-changes" data-view="changes" aria-controls="view-changes" aria-selected="false" tabindex="-1" hidden>Changes <span class="count" id="count-changes"></span></button>
+        <button type="button" role="tab" id="itab-value" data-view="value" aria-controls="view-value" aria-selected="false" tabindex="-1">Return value</button>
+        <button type="button" role="tab" id="itab-codepoints" data-view="codepoints" aria-controls="view-codepoints" aria-selected="true">Code points</button>
+      </div>
+      <div class="view" id="debug-mode" role="tabpanel" aria-labelledby="itab-steps" tabindex="0" hidden></div>
+      <div class="view" id="view-changes" role="tabpanel" aria-labelledby="itab-changes" tabindex="0" hidden></div>
+      <div class="view" id="view-value" role="tabpanel" aria-labelledby="itab-value" tabindex="0" hidden></div>
+      <div class="view view-cp" id="view-codepoints" role="tabpanel" aria-labelledby="itab-codepoints" tabindex="0"></div>
+    </div>
+  </section>
+</main>
 
-    <script type="text/javascript">
-      (function () {
-        console.log('knayi-myscript version: ' + knayi.version);
-        
-        var $view_tabs = $('.view-tab');
-        var $views = $('.view');
+<footer class="wrap foot">
+  <span>MIT license</span>
+  <a href="https://github.com/greenlikeorange/knayi-myscript/issues">Report a problem</a>
+  <a href="#debug-mode">Rule steps (#debug-mode)</a>
+  <span>Runs in your browser. Nothing you type is sent anywhere.</span>
+</footer>
 
-        var $convert_unicode_text = $('#convert_unicode_text');
-        var $convert_zawgyi_text = $('#convert_zawgyi_text');
-        var $convert_inputs = $('.convert_input');
+<p class="sr-only" id="announcer" aria-live="polite"></p>
 
-        var $normalization_input = $('#normalization_input');
-        var $normalization_output =$('#normalization_output');
+<script src="https://cdn.jsdelivr.net/npm/knayi-myscript@2.9.0/dist/knayi-myscript.min.js" integrity="sha384-e5I7kiycpbm2Sp5wq1MbZFPjTmICVw9wlLcJ/+go7MS0AQUbBwlRzg6OZsOcYJR9" crossorigin="anonymous"></script>
+<script>
+(() => {
+  'use strict';
 
-        var $syllable_input = $('#syllable_input');
-        var $syllable_output = $('#syllable_output');
-        var $debug_content = $('#debug_content');
+  const $ = (id) => document.getElementById(id);
 
-        // Change view
-        $view_tabs.click(function (event) {
-          var $target = $(this);
-          var view = $target.attr('data-view');
-          
-          // set active
-          $view_tabs.removeClass('is-active');
-          $target.addClass('is-active');
-          
-          $views.addClass('hide');
-          $('#' + view + '_view').removeClass('hide');
+  // Builds an element. Strings become text nodes, so text from the input never goes through an HTML parser.
+  function h(tag, className, ...children) {
+    const el = document.createElement(tag);
+    if (className) el.className = className;
+    children.forEach((child) => { if (child !== null && child !== undefined && child !== false) el.append(child); });
+    return el;
+  }
+
+  const plural = (n, one, many) => `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
+  const hex = (cp) => cp.toString(16).toUpperCase().padStart(4, '0');
+
+  // Clearing first makes screen readers read a repeated message again.
+  const announcer = $('announcer');
+  function announce(message) {
+    announcer.textContent = '';
+    setTimeout(() => { announcer.textContent = message; }, 50);
+  }
+
+  /* Copy */
+  function legacyCopy(text) {
+    // Selecting the hidden textarea moves focus; give it back afterwards.
+    const previous = document.activeElement;
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.top = '0';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    let copied = false;
+    try { copied = document.execCommand('copy'); } catch (error) { copied = false; }
+    document.body.removeChild(area);
+    if (previous && typeof previous.focus === 'function') previous.focus();
+    return copied;
+  }
+
+  function copyText(text, button) {
+    if (!text) {
+      announce('Nothing to copy.');
+      return;
+    }
+    const done = (copied) => {
+      if (!button.dataset.label) button.dataset.label = button.textContent;
+      button.textContent = copied ? 'Copied' : 'Copy failed';
+      clearTimeout(Number(button.dataset.timer));
+      button.dataset.timer = String(setTimeout(() => { button.textContent = button.dataset.label; }, 1500));
+      announce(copied ? 'Copied to the clipboard.' : 'Could not copy. Select the text and copy it yourself.');
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => done(true), () => done(legacyCopy(text)));
+    } else {
+      done(legacyCopy(text));
+    }
+  }
+
+  /* Install. This part works even when the library does not load. */
+
+  // The script tag snippet comes from the tag this page loads, so the version and hash stay in one place.
+  const libraryTag = document.querySelector('script[src*="knayi-myscript"]');
+  const integrity = libraryTag.getAttribute('integrity');
+  $('snip-cdn').textContent = `<script src="${libraryTag.src}"` +
+    (integrity ? ` integrity="${integrity}" crossorigin="anonymous"` : '') + '><\/script>';
+
+  const installToggle = $('install-toggle');
+  const installPanel = $('install-panel');
+  function setInstall(open, restoreFocus) {
+    installPanel.hidden = !open;
+    installToggle.setAttribute('aria-expanded', String(open));
+    if (!open && restoreFocus) installToggle.focus();
+  }
+  installToggle.addEventListener('click', () => setInstall(installPanel.hidden, false));
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || installPanel.hidden) return;
+    setInstall(false, installPanel.contains(document.activeElement));
+  });
+  document.addEventListener('click', (event) => {
+    if (installPanel.hidden || installPanel.contains(event.target) || installToggle.contains(event.target)) return;
+    setInstall(false, false);
+  });
+  installPanel.addEventListener('focusout', (event) => {
+    // Safari does not focus a clicked button, so only a known new focus target closes the panel.
+    const next = event.relatedTarget;
+    if (next && !installPanel.contains(next) && next !== installToggle) setInstall(false, false);
+  });
+  document.querySelectorAll('[data-copy]').forEach((button) => {
+    button.addEventListener('click', () => copyText($(button.dataset.copy).textContent, button));
+  });
+
+  /* The library */
+  const knayi = window.knayi;
+  if (!knayi || typeof knayi.fontConvert !== 'function') {
+    $('load-error').hidden = false;
+    document.querySelectorAll('.fn-tabs button, #playground button, #playground select, #playground input, #playground textarea')
+      .forEach((el) => { el.disabled = true; });
+    return;
+  }
+  $('version').textContent = 'v' + knayi.version;
+  $('version').hidden = false;
+
+  const MYANMAR = /[\u1000-\u109F]/;
+  // A private-use character marks syllable breaks when the page needs the pieces, not a display string.
+  const BREAK = '\uE000';
+  const NAMES = { unicode: 'Unicode', zawgyi: 'Zawgyi' };
+  const OTHER = { unicode: 'zawgyi', zawgyi: 'unicode' };
+  const DOCS = 'https://github.com/greenlikeorange/knayi-myscript';
+  const SEPARATORS = { bar: '|', space: ' ', newline: '\n', zwsp: undefined };
+  const CODE_POINT_LIMIT = 1500;
+
+  const SAMPLES = {
+    unicode: 'သီဟိုဠ်မှ ဉာဏ်ကြီးရှင်သည် အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇလွန်ဈေးဘေးဗာဒံပင်ထက် အဓိဋ္ဌာန်လျက် ဂဃနဏဖတ်ခဲ့သည်။ယေဓမ္မာ ဟေတုပ္ပဘဝါ တေသံ ဟေတုံ တထာဂတော အာဟ တေသဉ္စ ယောနိရောဓေါ ဧဝံ ဝါဒီ မဟာသမဏော။(မြန်မာပြန်)မြတ်စွာဘုရားရှင်သည် ရှေးကပြုခဲ့ဖူးသော အကြောင်းတရားကြောင့် ဖြစ်ပေါ်လာကြသော အကျိုးတရားကို ဟောကြားတော်မူသည်။ထိုအကြောင်းတရားတို့၏ ချုပ်ငြိမ်းရာတရားတို့ကိုလည်း ဟောတော်မူ၏။ရဟန်းကြီးဖြစ်သော ဗုဒ္ဓမြတ်စွာဘုရားသည် ဤသို့သောအယူရှိတော်မူ၏။',
+    zawgyi: 'သီဟိုဠ္မွ ဉာဏ္ႀကီးရွင္သည္ အာယုဝဍ္ဎနေဆးညႊန္းစာကို ဇလြန္ေဈးေဘးဗာဒံပင္ထက္ အဓိ႒ာန္လ်က္ ဂဃနဏဖတ္ခဲ့သည္။ေယဓမၼာ ေဟတုပၸဘဝါ ေတသံ ေဟတုံ တထာဂေတာ အာဟ ေတသၪၥ ေယာနိေရာေဓါ ဧဝံ ဝါဒီ မဟာသမေဏာ။(ျမန္မာျပန္)ျမတ္စြာဘုရားရွင္သည္ ေရွးကျပဳခဲ့ဖူးေသာ အေၾကာင္းတရားေၾကာင့္ ျဖစ္ေပၚလာၾကေသာ အက်ိဳးတရားကို ေဟာၾကားေတာ္မူသည္။ထိုအေၾကာင္းတရားတို့၏ ခ်ဳပ္ၿငိမ္းရာတရားတို့ကိုလည္း ေဟာေတာ္မူ၏။ရဟန္းႀကီးျဖစ္ေသာ ဗုဒၶျမတ္စြာဘုရားသည္ ဤသို့ေသာအယူရွိေတာ္မူ၏။',
+    greeting: 'မင်္ဂလာပါ။ မြန်မာစာကို လေ့လာကြပါစို့။',
+    typos: 'ကျွန်တော် မြန်မာစာကုိ ၀ါသနာပါတယ်။ ၇ေကူးဖုိ့ ၀င်လာပေ့ါ။ ကျောင်းသား ၁၀ ယောက် ရှိတယ်။',
+    repeated: 'မင်္ဂလာာပါါ။ နေကောင်းလားးး။ ကျေးဇူးတင်ပါတယ််။',
+    mixed: 'မင်္ဂလာပါ။ နေကောင်းလား။\nမဂၤလာပါ။ ေနေကာင္းလား။\nHello, world.'
+  };
+
+  const input = $('input');
+  const output = $('output');
+  const sampleSelect = $('sample');
+  const value = (id) => $(id).value;
+
+  /* Encodings */
+
+  // The encoding the library picks when no font is given: a tie falls back to Zawgyi.
+  const detectFont = (text) => (MYANMAR.test(text) ? knayi.fontDetect(text) : 'unicode');
+  // Like detectFont, but tells a tie apart from a decision.
+  const detectInfo = (text) => (MYANMAR.test(text) ? knayi.fontDetect(text, 'tie') : 'none');
+  const fontOf = (id, text) => value(id) || detectFont(text);
+
+  function setFont(el, font) {
+    const zawgyi = font === 'zawgyi';
+    el.classList.toggle('zg', zawgyi);
+    el.classList.toggle('mm', !zawgyi);
+    el.lang = zawgyi ? 'my-Qaag' : 'my';
+  }
+  function textSpan(text, font, className) {
+    const span = h('span', className, text);
+    setFont(span, font);
+    return span;
+  }
+  function codeBlock(tag, className, text, font) {
+    const el = h(tag, className + (font === 'zawgyi' ? ' code-zg' : ' code-mm'), text);
+    el.lang = font === 'zawgyi' ? 'my-Qaag' : 'my';
+    return el;
+  }
+
+  /* The functions */
+  function breakPoint() {
+    const key = value('sb-break');
+    return key === 'custom' ? value('sb-custom') : SEPARATORS[key];
+  }
+
+  // args() gives the arguments after the text, exactly as the call runs them and as the page prints them.
+  const FUNCS = {
+    fontConvert: {
+      sig: 'fontConvert(text, to, from?)',
+      anchor: 'fontconvertcontent-targetfonttype-originalfonttype',
+      sample: 'unicode',
+      views: ['steps', 'value', 'codepoints'],
+      view: 'codepoints',
+      args: () => (value('convert-from') ? [value('convert-to'), value('convert-from')] : [value('convert-to')]),
+      fonts: (text) => ({ input: fontOf('convert-from', text), output: value('convert-to') })
+    },
+    fontDetect: {
+      sig: 'fontDetect(text, fallback?, options?)',
+      anchor: 'fontdetectcontent-fallbackfonttype-options',
+      sample: 'zawgyi',
+      views: ['codepoints'],
+      view: 'codepoints',
+      args: () => (value('detect-fallback') ? [value('detect-fallback')] : []),
+      // Text the detector cannot decide on is shown in the Unicode font.
+      fonts: (text) => {
+        const font = detectInfo(text) === 'zawgyi' ? 'zawgyi' : 'unicode';
+        return { input: font, output: font };
+      }
+    },
+    normalize: {
+      sig: 'normalize(text)',
+      anchor: 'normalizecontent',
+      sample: 'typos',
+      views: ['changes', 'value', 'codepoints'],
+      view: 'changes',
+      args: () => [],
+      fonts: () => ({ input: 'unicode', output: 'unicode' })
+    },
+    syllBreak: {
+      sig: 'syllBreak(text, fontType?, breakPoint?)',
+      anchor: 'syllbreakcontent-fonttype-breakpoint',
+      sample: 'greeting',
+      views: ['value', 'codepoints'],
+      view: 'codepoints',
+      args: () => {
+        const font = value('sb-font') || null;
+        const brk = breakPoint();
+        if (brk === undefined) return font ? [font] : [];
+        return [font, brk];
+      },
+      fonts: (text) => ({ input: fontOf('sb-font', text), output: fontOf('sb-font', text) })
+    },
+    spellingFix: {
+      sig: 'spellingFix(text, fontType?)',
+      anchor: 'spellingfixcontent-fonttype',
+      sample: 'repeated',
+      views: ['changes', 'value', 'codepoints'],
+      view: 'changes',
+      args: () => (value('sf-font') ? [value('sf-font')] : []),
+      fonts: (text) => ({ input: fontOf('sf-font', text), output: fontOf('sf-font', text) })
+    },
+    truncate: {
+      sig: 'truncate(text, options?)',
+      anchor: 'truncatecontent-options',
+      sample: 'unicode',
+      views: ['value', 'codepoints'],
+      view: 'value',
+      args: () => {
+        const options = {};
+        const length = parseInt(value('tr-length'), 10);
+        if (!isNaN(length)) options.length = length;
+        options.omission = value('tr-omission');
+        if (value('tr-font')) options.fontType = value('tr-font');
+        return [options];
+      },
+      fonts: (text) => ({ input: fontOf('tr-font', text), output: fontOf('tr-font', text) })
+    }
+  };
+
+  /* Running calls */
+
+  // Runs a helper call without letting the library's warnings reach the console.
+  function quiet(call) {
+    const warn = console.warn;
+    const error = console.error;
+    console.warn = () => {};
+    console.error = () => {};
+    try { return call(); } finally { console.warn = warn; console.error = error; }
+  }
+
+  // Runs the call with console.warn and console.error captured, so the page shows what the library would
+  // print. Fast calls run again until about 5 ms pass: browsers round performance.now() to 0.1 ms or more,
+  // so one run of a fast call would read as 0.
+  function measure(call) {
+    const logs = [];
+    const warn = console.warn;
+    const error = console.error;
+    console.warn = (...args) => { logs.push(['warn', args.join(' ')]); };
+    console.error = (...args) => { logs.push(['error', args.join(' ')]); };
+    const run = { value: undefined, error: null, logs, ms: 0, runs: 0 };
+    try {
+      const start = performance.now();
+      run.value = call();
+      run.runs = 1;
+      const firstLogs = logs.length;
+      let elapsed = performance.now() - start;
+      while (elapsed < 5 && run.runs < 200) {
+        call();
+        run.runs += 1;
+        elapsed = performance.now() - start;
+      }
+      logs.length = firstLogs;
+      run.ms = elapsed / run.runs;
+    } catch (thrown) {
+      run.error = thrown;
+    } finally {
+      console.warn = warn;
+      console.error = error;
+    }
+    return run;
+  }
+
+  const errorText = (error) => (error && error.name ? `${error.name}: ${error.message}` : String(error));
+  const lazy = (c, name, make) => (name in c ? c[name] : (c[name] = make()));
+
+  const state = {
+    fn: 'fontConvert',
+    keepText: false, // once the text is the user's choice, switching functions keeps it
+    savedText: '', // the user's own text, which the "Your text" sample brings back
+    view: null, // the details view the user picked last
+    selection: ''
+  };
+
+  let current = { key: null };
+  function compute() {
+    const fn = FUNCS[state.fn];
+    const text = input.value;
+    const args = fn.args();
+    const key = JSON.stringify([state.fn, text, args]);
+    if (current.key === key) return current;
+    const run = measure(() => knayi[state.fn].apply(knayi, [text].concat(args)));
+    current = { key, text, args, run, fonts: fn.fonts(text), info: detectInfo(text) };
+    if (run.error) announce(`${state.fn} threw ${errorText(run.error)}`);
+    return current;
+  }
+
+  /* Syllables and differences */
+  function syllableParts(text, font) {
+    // syllBreak trims the edges and drops zero-width spaces, so the edges are kept here, and null means
+    // the pieces do not rebuild the text.
+    const core = text.trim();
+    const leadLength = text.search(/\S|$/);
+    const lead = text.slice(0, leadLength);
+    const trail = text.slice(leadLength + core.length);
+    const parts = lead ? [lead] : [];
+    if (core) {
+      quiet(() => knayi.syllBreak(core, font, BREAK)).split(BREAK).forEach((piece) => {
+        piece.split(/(\s+)/).forEach((part) => { if (part) parts.push(part); });
+      });
+    }
+    if (trail) parts.push(trail);
+    return parts.join('') === text ? parts : null;
+  }
+
+  function countSyllables(text, font) {
+    if (!MYANMAR.test(text)) return null;
+    return quiet(() => knayi.syllBreak(text, font, BREAK)).split(BREAK)
+      .reduce((total, piece) => total + piece.split(/\s+/).filter(Boolean).length, 0);
+  }
+
+  // Myers' O(ND) diff over two arrays of characters. Returns [aStart, aEnd, bStart, bEnd] for each changed
+  // run, or null past maxD edits. A character that moved a few places reads as one edit, not two.
+  function diffHunks(a, b, maxD) {
+    let start = 0;
+    while (start < a.length && start < b.length && a[start] === b[start]) start += 1;
+    let endA = a.length;
+    let endB = b.length;
+    while (endA > start && endB > start && a[endA - 1] === b[endB - 1]) { endA -= 1; endB -= 1; }
+    const n = endA - start;
+    const m = endB - start;
+    if (!n && !m) return [];
+    if (!n || !m) return [[start, endA, start, endB]];
+    const max = Math.min(n + m, maxD);
+    const off = max + 1;
+    const v = new Array(2 * max + 3).fill(0);
+    const trace = [];
+    for (let d = 0; d <= max; d += 1) {
+      trace.push(v.slice());
+      for (let k = -d; k <= d; k += 2) {
+        let x = k === -d || (k !== d && v[off + k - 1] < v[off + k + 1]) ? v[off + k + 1] : v[off + k - 1] + 1;
+        let y = x - k;
+        while (x < n && y < m && a[start + x] === b[start + y]) { x += 1; y += 1; }
+        v[off + k] = x;
+        if (x >= n && y >= m) return toHunks(editScript(trace, n, m, off), start, a, b);
+      }
+    }
+    return null;
+  }
+
+  function editScript(trace, n, m, off) {
+    const ops = [];
+    let x = n;
+    let y = m;
+    for (let d = trace.length - 1; d >= 0; d -= 1) {
+      const v = trace[d];
+      const k = x - y;
+      const prevK = k === -d || (k !== d && v[off + k - 1] < v[off + k + 1]) ? k + 1 : k - 1;
+      const prevX = v[off + prevK];
+      const prevY = prevX - prevK;
+      while (x > prevX && y > prevY) { ops.push(0); x -= 1; y -= 1; }
+      if (d > 0) ops.push(x === prevX ? 1 : -1);
+      x = prevX;
+      y = prevY;
+    }
+    return ops.reverse();
+  }
+
+  function toHunks(ops, start, a, b) {
+    const hunks = [];
+    const text = (list, from, to) => list.slice(from, to).join('');
+    let x = start;
+    let y = start;
+    let i = 0;
+    while (i < ops.length) {
+      if (ops[i] === 0) { x += 1; y += 1; i += 1; continue; }
+      const x0 = x;
+      const y0 = y;
+      while (i < ops.length && ops[i] !== 0) {
+        if (ops[i] === -1) x += 1; else y += 1;
+        i += 1;
+      }
+      // A deletion and an insertion of the same characters close together are one move, like ေ going
+      // in front of its consonant.
+      const last = hunks[hunks.length - 1];
+      const moved = last && x0 - last[1] <= 4 && (
+        (last[2] === last[3] && x0 === x && text(a, last[0], last[1]) === text(b, y0, y)) ||
+        (last[0] === last[1] && y0 === y && text(b, last[2], last[3]) === text(a, x0, x)));
+      if (moved) {
+        last[1] = x;
+        last[3] = y;
+      } else {
+        hunks.push([x0, x, y0, y]);
+      }
+    }
+    return hunks;
+  }
+
+  // What normalize or spellingFix changed: by syllable when both sides break the same way, else by character.
+  function diffOf(c) {
+    return lazy(c, 'diff', () => {
+      const before = c.text;
+      const after = c.run.value;
+      if (c.run.error || typeof after !== 'string') return { items: [] };
+      if (before === after) return { same: true, items: [] };
+      const a = syllableParts(before, c.fonts.output);
+      const b = syllableParts(after, c.fonts.output);
+      if (a && b && a.length === b.length) {
+        const items = [];
+        b.forEach((part, index) => { if (part !== a[index]) items.push({ before: a[index], after: part, index }); });
+        return { parts: b, items };
+      }
+      const A = Array.from(before);
+      const B = Array.from(after);
+      const hunks = A.length + B.length <= 40000 ? diffHunks(A, B, 400) : null;
+      if (!hunks) return { items: [], unknown: true };
+      return {
+        chars: B,
+        hunks,
+        items: hunks.map(([a0, a1, b0, b1]) => ({ before: A.slice(a0, a1).join(''), after: B.slice(b0, b1).join('') }))
+      };
+    });
+  }
+
+  /* Printing values */
+  const isInvisible = (cp) => cp < 0x20 || (cp >= 0x7f && cp <= 0x9f) || cp === 0xa0 || cp === 0xad ||
+    (cp >= 0x200b && cp <= 0x200f) || (cp >= 0x2028 && cp <= 0x202e) || (cp >= 0x2060 && cp <= 0x2064) ||
+    cp === 0xfeff || (cp >= 0xe000 && cp <= 0xf8ff);
+
+  // A JavaScript string literal. Invisible and control characters are escaped so they can be seen.
+  function quote(text) {
+    let out = "'";
+    for (const ch of text) {
+      const cp = ch.codePointAt(0);
+      if (ch === '\\' || ch === "'") out += '\\' + ch;
+      else if (ch === '\n') out += '\\n';
+      else if (ch === '\r') out += '\\r';
+      else if (ch === '\t') out += '\\t';
+      else if (isInvisible(cp)) out += '\\u' + cp.toString(16).padStart(4, '0');
+      else out += ch;
+    }
+    return out + "'";
+  }
+
+  function literal(arg, tokens) {
+    if (arg === null) tokens.push(['kw', 'null']);
+    else if (typeof arg === 'number') tokens.push(['num', String(arg)]);
+    else if (typeof arg === 'string') tokens.push(['str', quote(arg)]);
+    else {
+      const keys = Object.keys(arg);
+      tokens.push(['p', keys.length ? '{ ' : '{']);
+      keys.forEach((key, i) => {
+        if (i) tokens.push(['p', ', ']);
+        tokens.push(['key', key], ['p', ': ']);
+        literal(arg[key], tokens);
+      });
+      tokens.push(['p', keys.length ? ' }' : '}']);
+    }
+  }
+
+  function callTokens(name, args) {
+    const tokens = [['obj', 'knayi'], ['p', '.'], ['fn', name], ['p', '('], ['var', 'text']];
+    args.forEach((arg) => {
+      tokens.push(['p', ', ']);
+      literal(arg, tokens);
+    });
+    tokens.push(['p', ')']);
+    return tokens;
+  }
+  const tokenText = (tokens) => tokens.map((token) => token[1]).join('');
+  function tokenNodes(el, tokens) {
+    tokens.forEach(([type, text]) => el.append(type === 'p' ? text : h('span', 'tk-' + type, text)));
+    return el;
+  }
+
+  const SYMBOLS = {
+    0x20: '␠', 0xa0: 'nbsp', 0x200b: 'zwsp', 0x200c: 'zwnj', 0x200d: 'zwj', 0x200e: 'lrm', 0x200f: 'rlm',
+    0x2028: 'ls', 0x2029: 'ps', 0x2060: 'wj', 0xfeff: 'bom'
+  };
+  function symbolFor(cp) {
+    if (SYMBOLS[cp]) return SYMBOLS[cp];
+    if (cp < 0x20) return String.fromCharCode(0x2400 + cp);
+    if (isInvisible(cp)) return 'U+' + hex(cp);
+    return null;
+  }
+  const codePoint = (ch) => 'U+' + hex(ch.codePointAt(0));
+  const hexRun = (chars) => (chars.length ? chars.map((ch) => hex(ch.codePointAt(0))).join(' ') : '∅');
+  // Whitespace and invisible characters as symbols, for short pieces shown on their own.
+  const visible = (text) => (text ? Array.from(text, (ch) => symbolFor(ch.codePointAt(0)) || ch).join('') : '∅');
+
+  /* Painting */
+  function paintOutput(c) {
+    output.textContent = '';
+    setFont(output, c.fonts.output);
+    const run = c.run;
+    if (run.error) {
+      output.append(h('p', 'out-error', errorText(run.error)));
+      return;
+    }
+    const result = run.value;
+    if (state.fn === 'fontDetect') {
+      paintDetect(c);
+    } else if (typeof result !== 'string') {
+      output.textContent = String(result);
+    } else if (state.fn === 'syllBreak') {
+      paintBreaks(c);
+    } else if (state.fn === 'truncate') {
+      const options = c.args[0];
+      const omission = options.omission || '...';
+      if (result.length >= omission.length && result.slice(result.length - omission.length) === omission) {
+        output.append(result.slice(0, result.length - omission.length), h('span', 'omit', omission));
+      } else {
+        output.textContent = result;
+      }
+    } else if (state.fn === 'normalize' || state.fn === 'spellingFix') {
+      paintMarked(c);
+    } else {
+      output.textContent = result;
+    }
+  }
+
+  // The syllables of a syllBreak result and the break between them, or null when they do not rebuild it.
+  function breakParts(c) {
+    return lazy(c, 'breaks', () => {
+      const brk = c.args.length > 1 ? c.args[1] : undefined;
+      // The same choice of break character as the library makes.
+      const sep = brk && brk !== '\u200B' ? brk : '\u200B';
+      if (c.run.error || !MYANMAR.test(c.text)) return null;
+      const parts = quiet(() => knayi.syllBreak(c.text, c.args[0] || null, BREAK)).split(BREAK);
+      return parts.join(sep) === c.run.value ? { parts, sep } : null;
+    });
+  }
+
+  function paintBreaks(c) {
+    const breaks = breakParts(c);
+    if (!breaks || breaks.parts.length > 5000) {
+      output.textContent = c.run.value;
+      return;
+    }
+    breaks.parts.forEach((part, i) => {
+      if (i) output.append(h('span', breaks.sep === '\u200B' ? 'sep sep-zw' : 'sep', breaks.sep));
+      output.append(part);
+    });
+  }
+
+  function paintMarked(c) {
+    const d = diffOf(c);
+    if (d.parts && d.parts.length <= 5000) {
+      const changed = new Set(d.items.map((item) => item.index));
+      d.parts.forEach((part, i) => output.append(changed.has(i) ? h('mark', null, part) : part));
+    } else if (d.hunks) {
+      let at = 0;
+      d.hunks.forEach(([, , b0, b1]) => {
+        output.append(d.chars.slice(at, b0).join(''));
+        if (b1 > b0) output.append(h('mark', null, d.chars.slice(b0, b1).join('')));
+        at = b1;
+      });
+      output.append(d.chars.slice(at).join(''));
+    } else {
+      output.textContent = c.run.value;
+    }
+  }
+
+  function paintDetect(c) {
+    const box = h('div', 'detect', h('code', 'detect-result', quote(String(c.run.value))));
+    if (c.info === 'tie') box.append(h('span', 'chip chip-muted', 'tie → fallback'));
+    if (c.info === 'none') box.append(h('span', 'chip chip-muted', c.text ? 'no Myanmar text' : 'no text'));
+    output.append(box);
+    const lines = c.text.split(/\r\n|\r|\n/).map((line, i) => [i + 1, line]).filter((entry) => entry[1].trim());
+    if (lines.length < 2) return;
+    const list = h('ol', 'lines');
+    lines.slice(0, 200).forEach(([number, line]) => {
+      const result = String(quiet(() => knayi.fontDetect.apply(knayi, [line].concat(c.args))));
+      list.append(h('li', 'line', h('span', 'line-n', String(number)), h('code', 'line-r', result),
+        textSpan(line, detectInfo(line) === 'zawgyi' ? 'zawgyi' : 'unicode', 'line-t')));
+    });
+    output.append(h('p', 'lines-head', 'Each line on its own, with the same arguments'), list);
+  }
+
+  function formatMs(ms) {
+    return ms.toFixed(ms < 0.1 ? 3 : ms < 10 ? 2 : 1) + ' ms';
+  }
+
+  function roundTrip(c) {
+    const result = c.run.value;
+    if (c.run.error || typeof result !== 'string' || !MYANMAR.test(c.text)) return null;
+    const to = c.args[0];
+    const from = c.args[1] || detectFont(c.text);
+    if (from === to) return null;
+    const back = lazy(c, 'back', () => quiet(() => knayi.fontConvert(result, from, to)));
+    // fontConvert trims the text and drops zero-width spaces and non-joiners before converting.
+    const exact = back === c.text.trim().replace(/[\u200B\u200C]/g, '');
+    const chip = h('span', exact ? 'chip' : 'chip chip-muted', exact ? 'round trip exact' : 'round trip differs');
+    chip.title = `knayi.fontConvert(output, '${from}', '${to}') ${exact ? 'gives back' : 'does not give back'} the input`;
+    return chip;
+  }
+
+  function paintMeta(c) {
+    const inputMeta = $('input-meta');
+    inputMeta.textContent = '';
+    const detected = c.info === 'unicode' || c.info === 'zawgyi';
+    inputMeta.append(h('span', null, 'detected ', h('span', detected ? 'chip' : 'chip chip-muted', c.info === 'none' ? 'no Myanmar' : c.info)));
+    inputMeta.append(h('span', null, plural(c.text.length, 'char', 'chars')));
+    const syllables = lazy(c, 'inputSyllables', () => countSyllables(c.text, c.fonts.input));
+    if (syllables !== null) inputMeta.append(h('span', null, plural(syllables, 'syllable', 'syllables')));
+    if (state.selection) inputMeta.append(h('span', null, plural(state.selection.length, 'char', 'chars') + ' selected'));
+
+    const outputMeta = $('output-meta');
+    outputMeta.textContent = '';
+    const run = c.run;
+    if (!run.error && typeof run.value === 'string' && state.fn !== 'fontDetect') {
+      outputMeta.append(h('span', null, plural(run.value.length, 'char', 'chars')));
+      // A syllBreak result already holds its breaks, so breaking it again would count them wrong.
+      const outSyllables = state.fn === 'syllBreak' ? null : lazy(c, 'outputSyllables', () => countSyllables(run.value, c.fonts.output));
+      if (outSyllables !== null) outputMeta.append(h('span', null, plural(outSyllables, 'syllable', 'syllables')));
+    }
+    if (!run.error) {
+      const time = h('span', null, formatMs(run.ms));
+      time.title = `Mean of ${plural(run.runs, 'run', 'runs')}`;
+      outputMeta.append(time);
+    }
+    if (state.fn === 'fontConvert') outputMeta.append(roundTrip(c) || '');
+    run.logs.forEach(([level, message]) => {
+      outputMeta.append(h('span', level === 'error' ? 'log log-error' : 'log', `console.${level}: ${message}`));
+    });
+  }
+
+  /* Hints for text in the wrong encoding */
+  let hint = null;
+  function hintFor(c) {
+    const info = c.info;
+    if (info !== 'unicode' && info !== 'zawgyi') return null;
+    if (state.fn === 'fontConvert') {
+      const to = value('convert-to');
+      const from = value('convert-from');
+      if (from && from !== info) {
+        return { text: `This looks like ${NAMES[info]} text.`, label: `Set from to ${info}`, run: () => { $('convert-from').value = info; } };
+      }
+      if (!from && info === to) {
+        return { text: `This is already ${NAMES[to]}.`, label: `Convert to ${OTHER[to]}`, run: () => { $('convert-to').value = OTHER[to]; } };
+      }
+      return null;
+    }
+    if (state.fn === 'normalize') {
+      if (info !== 'zawgyi') return null;
+      return {
+        text: 'normalize works on Unicode, and this looks like Zawgyi.',
+        label: 'Convert it to Unicode',
+        run: () => setText(quiet(() => knayi.fontConvert(c.text, 'unicode', 'zawgyi')))
+      };
+    }
+    const id = { syllBreak: 'sb-font', spellingFix: 'sf-font', truncate: 'tr-font' }[state.fn];
+    if (!id || !value(id) || value(id) === info) return null;
+    return { text: `This looks like ${NAMES[info]} text.`, label: `Set fontType to ${info}`, run: () => { $(id).value = info; } };
+  }
+
+  function paintHint(c) {
+    const next = hintFor(c);
+    const box = $('hint');
+    if (!next) {
+      box.hidden = true;
+      hint = null;
+      return;
+    }
+    const isNew = !hint || hint.text !== next.text;
+    hint = next;
+    $('hint-text').textContent = next.text;
+    $('hint-action').textContent = next.label;
+    box.hidden = false;
+    if (isNew) announce(next.text);
+  }
+
+  /* Details */
+  let debugCache = { key: null };
+  function debugRun(c) {
+    const scope = state.selection || c.text;
+    // A few selected characters can read as either encoding, so a selection is converted from the
+    // encoding of the whole input, as the full conversion does.
+    const args = state.selection ? [c.args[0], c.args[1] || detectFont(c.text)] : c.args;
+    const key = JSON.stringify([c.key, scope, args]);
+    if (debugCache.key !== key) {
+      debugCache = { key, scope, args, logs: null, error: null };
+      try {
+        debugCache.logs = quiet(() => knayi.fontConvert.debugging(...[scope].concat(args)));
+      } catch (error) {
+        debugCache.error = error;
+      }
+    }
+    return debugCache;
+  }
+
+  function stepChanges(before, after) {
+    const box = h('span', 'step-hunks');
+    const A = Array.from(before);
+    const B = Array.from(after);
+    const hunks = A.length + B.length <= 40000 ? diffHunks(A, B, 300) : null;
+    if (!hunks) {
+      box.append('many changes');
+      return box;
+    }
+    if (!hunks.length) {
+      box.append('no change');
+      return box;
+    }
+    // Identical edits are grouped, so a rule that maps one character everywhere reads as one line.
+    const groups = new Map();
+    hunks.forEach(([a0, a1, b0, b1]) => {
+      const edit = `${hexRun(A.slice(a0, a1))} → ${hexRun(B.slice(b0, b1))}`;
+      groups.set(edit, (groups.get(edit) || 0) + 1);
+    });
+    let shown = 0;
+    groups.forEach((count, edit) => {
+      shown += 1;
+      if (shown <= 3) box.append(h('span', 'hunk', edit, count > 1 ? h('span', 'hunk-n', ` ×${count}`) : null));
+    });
+    if (groups.size > 3) box.append(h('span', 'hunk-n', `+${groups.size - 3} more`));
+    return box;
+  }
+
+  function paintSteps(c, panel) {
+    const d = debugRun(c);
+    const head = h('div', 'view-head', tokenNodes(h('code'), callTokens('fontConvert.debugging', d.args)));
+    panel.append(head);
+    if (d.error) {
+      panel.append(h('p', 'out-error', errorText(d.error)));
+      return;
+    }
+    head.append(h('span', null, state.selection
+      ? `Steps for the ${plural(state.selection.length, 'selected character', 'selected characters')}.`
+      : 'Select part of the input to see its steps alone.'));
+    const logs = d.logs;
+    if (!logs || typeof logs !== 'object') {
+      // fontConvert.debugging returns a plain string when no rule runs.
+      let reason = 'Source and target are the same encoding, so no rule runs.';
+      if (!d.scope) reason = 'No text.';
+      else if (!MYANMAR.test(d.scope)) reason = 'No Myanmar text, so no rule runs.';
+      panel.append(h('p', 'muted', reason));
+      return;
+    }
+    head.append(h('span', 'chip', `${logs.from} → ${logs.to}`), h('span', null, `${plural(logs.matched_patterns.length, 'rule', 'rules')} matched; each line shows the code points it changed`));
+    const list = h('ol', 'steps');
+    logs.matched_patterns.forEach((pattern, i) => {
+      list.append(h('li', 'step', h('span', 'step-n', String(i + 1)), h('code', 'step-re', `/${pattern}/`),
+        stepChanges(logs.steps[i], logs.steps[i + 1])));
+    });
+    panel.append(list);
+  }
+
+  function paintChanges(c, panel) {
+    const d = diffOf(c);
+    if (c.run.error) {
+      panel.append(h('p', 'out-error', errorText(c.run.error)));
+      return;
+    }
+    if (d.same) {
+      panel.append(h('p', 'muted', 'No changes. The output is the same as the input.'));
+      return;
+    }
+    if (!d.items.length) {
+      panel.append(h('p', 'muted', 'The text changed in too many places to list.'));
+      return;
+    }
+    panel.append(h('div', 'view-head', h('span', null, d.parts
+      ? plural(d.items.length, 'syllable changed', 'syllables changed')
+      : plural(d.items.length, 'change', 'changes'))));
+    const list = h('ol', 'changes');
+    const font = c.fonts.output;
+    d.items.forEach((item) => {
+      list.append(h('li', 'change',
+        textSpan(visible(item.before), font, 'chg-t'), h('span', 'chg-arrow', '→'), textSpan(visible(item.after), font, 'chg-t'),
+        h('code', 'chg-cp', `${hexRun(Array.from(item.before))} → ${hexRun(Array.from(item.after))}`)));
+    });
+    panel.append(list);
+  }
+
+  function paintValue(c, panel) {
+    if (c.run.error) {
+      panel.append(h('p', 'out-error', errorText(c.run.error)));
+      return;
+    }
+    const result = c.run.value;
+    const text = typeof result === 'string' ? quote(result) : String(result);
+    const copy = h('button', 'btn btn-sm', 'Copy');
+    copy.type = 'button';
+    copy.setAttribute('aria-label', 'Copy the return value as a string literal');
+    copy.addEventListener('click', () => copyText(text, copy));
+    panel.append(h('div', 'view-head', h('span', null, `${typeof result}, ${plural(String(result).length, 'char', 'chars')}`), copy),
+      codeBlock('pre', 'literal', text, c.fonts.output));
+  }
+
+  function codePointCell(ch, font) {
+    const symbol = symbolFor(ch.codePointAt(0));
+    const glyph = symbol ? h('span', 'cp-g cp-sym', symbol) : textSpan(ch, font, 'cp-g');
+    return h('span', 'cp', glyph, h('span', 'cp-h', codePoint(ch)));
+  }
+
+  function codePointColumn(title, text, font, groupsGiven) {
+    const chars = Array.from(text);
+    const copy = h('button', 'btn btn-sm', 'Copy');
+    copy.type = 'button';
+    copy.setAttribute('aria-label', `Copy the ${title.toLowerCase()} code points`);
+    copy.addEventListener('click', () => copyText(chars.map(codePoint).join(' '), copy));
+    const body = h('div', 'cp-body');
+    if (!chars.length) body.append(h('span', 'muted', 'Empty'));
+    // Syllables become groups, so the code points of each one stay together.
+    const groups = groupsGiven || (MYANMAR.test(text) && syllableParts(text, font)) || text.split(/(\s+)/).filter(Boolean);
+    let left = CODE_POINT_LIMIT;
+    for (const group of groups) {
+      if (left <= 0) break;
+      const box = h('span', /^\s+$/.test(group) ? 'cp-group cp-ws' : 'cp-group');
+      for (const ch of Array.from(group)) {
+        if (left <= 0) break;
+        box.append(codePointCell(ch, font));
+        left -= 1;
+      }
+      body.append(box);
+    }
+    if (chars.length > CODE_POINT_LIMIT) body.append(h('span', 'cp-more', `+${(chars.length - CODE_POINT_LIMIT).toLocaleString('en-US')} more (Copy has them all)`));
+    return h('div', 'cp-col', h('div', 'cp-head', h('span', 'cp-title', title), h('span', null, plural(chars.length, 'code point', 'code points')), copy), body);
+  }
+
+  function paintCodepoints(c, panel) {
+    const cols = h('div', 'cp-cols');
+    cols.append(state.selection
+      ? codePointColumn('Selection', state.selection, c.fonts.input)
+      : codePointColumn('Input', c.text, c.fonts.input));
+    if (state.fn !== 'fontDetect' && !c.run.error && typeof c.run.value === 'string') {
+      // A syllBreak result is grouped at its own breaks, with each break character on its own.
+      const breaks = state.fn === 'syllBreak' ? breakParts(c) : null;
+      const groups = breaks ? [] : null;
+      if (breaks) {
+        breaks.parts.forEach((part, i) => {
+          if (i) groups.push(breaks.sep);
+          part.split(/(\s+)/).forEach((piece) => { if (piece) groups.push(piece); });
         });
+      }
+      cols.append(codePointColumn('Output', c.run.value, c.fonts.output, groups));
+    }
+    panel.append(cols);
+  }
 
-        var is_debug_mode = window.location.hash
-          && window.location.hash === '#debug-mode';
+  const VIEWS = {
+    steps: { tab: $('itab-steps'), panel: $('debug-mode'), paint: paintSteps },
+    changes: { tab: $('itab-changes'), panel: $('view-changes'), paint: paintChanges },
+    value: { tab: $('itab-value'), panel: $('view-value'), paint: paintValue },
+    codepoints: { tab: $('itab-codepoints'), panel: $('view-codepoints'), paint: paintCodepoints }
+  };
 
-        /** Font Conveting **/
-        function reverse_font(font_type) {
-          switch (font_type) {
-            case 'unicode':
-              return 'zawgyi';
-            case 'zawgyi':
-              return 'unicode';
-          }
+  function currentView() {
+    const fn = FUNCS[state.fn];
+    return fn.views.indexOf(state.view) !== -1 ? state.view : fn.view;
+  }
+
+  let detailsKey = '';
+  function paintDetails(c) {
+    const fn = FUNCS[state.fn];
+    const active = currentView();
+    Object.keys(VIEWS).forEach((name) => {
+      const view = VIEWS[name];
+      const selected = name === active;
+      view.tab.hidden = fn.views.indexOf(name) === -1;
+      view.tab.setAttribute('aria-selected', String(selected));
+      view.tab.tabIndex = selected ? 0 : -1;
+      view.panel.hidden = !selected;
+    });
+    let steps = '';
+    if (state.fn === 'fontConvert') {
+      const logs = debugRun(c).logs;
+      steps = logs && typeof logs === 'object' ? String(logs.matched_patterns.length) : '0';
+    }
+    $('count-steps').textContent = steps;
+    $('count-changes').textContent = fn.views.indexOf('changes') !== -1 && !c.run.error ? String(diffOf(c).items.length) : '';
+
+    const key = [c.key, active, state.selection].join('\u0000');
+    if (key === detailsKey) return;
+    detailsKey = key;
+    const panel = VIEWS[active].panel;
+    panel.textContent = '';
+    VIEWS[active].paint(c, panel);
+  }
+
+  let paintedKey = '';
+  function render() {
+    const c = compute();
+    if (c.key !== paintedKey) {
+      paintedKey = c.key;
+      setFont(input, c.fonts.input);
+      paintOutput(c);
+      const call = $('call');
+      call.textContent = '';
+      tokenNodes(call, callTokens(state.fn, c.args));
+    }
+    paintMeta(c);
+    paintHint(c);
+    paintDetails(c);
+  }
+
+  // Events that arrive together, such as input and select, render once.
+  let queued = false;
+  function schedule() {
+    if (queued) return;
+    queued = true;
+    Promise.resolve().then(() => {
+      queued = false;
+      render();
+    });
+  }
+
+  /* Text and samples */
+  function keepUserText() {
+    state.keepText = true;
+    state.savedText = input.value;
+    sampleSelect.options[0].disabled = false;
+    sampleSelect.value = 'user';
+  }
+  function setText(text) {
+    input.value = text;
+    state.selection = '';
+    keepUserText();
+  }
+
+  function updateSelection() {
+    const selected = input.selectionStart !== input.selectionEnd ? input.value.slice(input.selectionStart, input.selectionEnd) : '';
+    if (selected === state.selection) return;
+    state.selection = selected;
+    schedule();
+  }
+
+  input.addEventListener('input', () => {
+    keepUserText();
+    updateSelection();
+    schedule();
+  });
+  ['select', 'keyup', 'mouseup', 'focus'].forEach((type) => input.addEventListener(type, updateSelection));
+
+  sampleSelect.addEventListener('change', () => {
+    const key = sampleSelect.value;
+    input.value = key === 'user' ? state.savedText : SAMPLES[key];
+    state.keepText = true;
+    state.selection = '';
+    render();
+  });
+
+  $('clear').addEventListener('click', () => {
+    setText('');
+    render();
+    input.focus();
+  });
+
+  $('swap').addEventListener('click', () => {
+    const c = compute();
+    const to = value('convert-to');
+    const from = value('convert-from');
+    const source = from || detectFont(c.text);
+    const next = source === to ? OTHER[to] : source;
+    $('convert-to').value = next;
+    if (from) $('convert-from').value = to;
+    setText(typeof c.run.value === 'string' ? c.run.value : c.text);
+    render();
+    announce(`The output is now the input, converted to ${NAMES[next]}.`);
+  });
+
+  $('hint-action').addEventListener('click', () => {
+    if (!hint) return;
+    hint.run();
+    render();
+    input.focus();
+  });
+
+  ['convert-to', 'convert-from', 'detect-fallback', 'sb-font', 'sb-break', 'sf-font', 'tr-font'].forEach((id) => {
+    $(id).addEventListener('change', () => {
+      const custom = value('sb-break') === 'custom';
+      const showCustom = custom && $('sb-custom').hidden;
+      $('sb-custom').hidden = !custom;
+      if (showCustom && id === 'sb-break') $('sb-custom').focus();
+      schedule();
+    });
+  });
+  ['sb-custom', 'tr-length', 'tr-omission'].forEach((id) => $(id).addEventListener('input', schedule));
+
+  $('copy-output').addEventListener('click', (event) => {
+    const c = compute();
+    copyText(!c.run.error && c.run.value !== undefined ? String(c.run.value) : '', event.currentTarget);
+  });
+  $('copy-call').addEventListener('click', (event) => {
+    copyText(tokenText(callTokens(state.fn, compute().args)), event.currentTarget);
+  });
+
+  /* Tabs */
+  function tablist(tabs, onSelect) {
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => onSelect(tab, false));
+      tab.addEventListener('keydown', (event) => {
+        const shown = tabs.filter((t) => !t.hidden);
+        const i = shown.indexOf(tab);
+        const last = shown.length - 1;
+        const target = {
+          ArrowRight: shown[i === last ? 0 : i + 1],
+          ArrowLeft: shown[i === 0 ? last : i - 1],
+          Home: shown[0],
+          End: shown[last]
+        }[event.key];
+        if (target) {
+          event.preventDefault();
+          onSelect(target, true);
         }
-        $convert_inputs.on('keyup change paste', function (event) {
-          var $this = $(this);
-          if ($this.is(":focus")) {
-            var input_text = $this.val() || '';
-            var font_type = $this.attr('data-font-type');
+      });
+    });
+  }
 
-            if (font_type === 'unicode') {
-              $convert_zawgyi_text.val(knayi.fontConvert(input_text, 'zawgyi', 'unicode'));
-            } else {
-              $convert_unicode_text.val(knayi.fontConvert(input_text, 'unicode', 'zawgyi'));
-            }
-          }
-        });
-        /** Font Conveting **/
+  function updateHash() {
+    const hash = state.fn === 'fontConvert' && currentView() === 'steps' ? '#debug-mode' : '#' + state.fn;
+    if (window.location.hash === hash) return;
+    try { history.replaceState(null, '', hash); } catch (error) { /* a sandboxed frame can refuse */ }
+  }
 
-        $normalization_input.on('keyup change paste', function (event) {
-          var $this = $(this);
-          var input_text = $this.val() || '';
-          $normalization_output.val(knayi.normalize(input_text));
-        });
+  const fnTabs = Array.from(document.querySelectorAll('.fn-tabs [role="tab"]'));
+  function selectFn(name, options) {
+    state.fn = name;
+    fnTabs.forEach((tab) => {
+      const selected = tab.id === 'tab-' + name;
+      tab.setAttribute('aria-selected', String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+      if (selected && options.focus) tab.focus();
+    });
+    $('playground').setAttribute('aria-labelledby', 'tab-' + name);
+    document.querySelectorAll('.opts').forEach((el) => { el.hidden = el.getAttribute('data-fn') !== name; });
+    const fn = FUNCS[name];
+    $('sig-code').textContent = fn.sig;
+    $('sig').href = `${DOCS}#${fn.anchor}`;
+    if (!state.keepText) {
+      // Until the user picks or types a text, each function shows the sample that suits it.
+      input.value = SAMPLES[fn.sample];
+      sampleSelect.value = fn.sample;
+      state.selection = '';
+    }
+    render();
+    if (options.user) updateHash();
+  }
 
-        $syllable_input.on('keyup change paste', function (event) {
-          var $this = $(this);
-          var input_text = $this.val() || '';
-          $syllable_output.val(knayi.syllBreak(input_text, 'unicode', ' '));
-        });
+  tablist(fnTabs, (tab, focus) => selectFn(tab.id.slice(4), { focus, user: true }));
+  tablist(Object.keys(VIEWS).map((name) => VIEWS[name].tab), (tab, focus) => {
+    state.view = tab.dataset.view;
+    render();
+    if (focus) tab.focus();
+    updateHash();
+  });
 
-        if (is_debug_mode) {
-          $('#debugging').show();
+  /* #debug-mode opens the conversion rule steps, as it always has. A function name opens that function. */
+  function readHash() {
+    const id = window.location.hash.slice(1);
+    if (id === 'debug-mode') return { fn: 'fontConvert', view: 'steps' };
+    return Object.prototype.hasOwnProperty.call(FUNCS, id) ? { fn: id } : null;
+  }
+  function openSteps(focus) {
+    state.view = 'steps';
+    selectFn('fontConvert', { user: true });
+    if (focus) VIEWS.steps.tab.focus();
+  }
+  window.addEventListener('hashchange', () => {
+    const target = readHash();
+    if (!target) return;
+    if (target.view) openSteps(true);
+    else selectFn(target.fn, { user: false });
+  });
+  document.querySelectorAll('a[href="#debug-mode"]').forEach((link) => {
+    link.addEventListener('click', (event) => {
+      event.preventDefault();
+      openSteps(true);
+    });
+  });
 
-          /** Font Convert Debuging **/
-          $convert_inputs.on('select', function (event) {
-            var $convert_input = $(this);
-            var selection_start = event.target.selectionStart;
-            var selection_end = event.target.selectionEnd;
-
-            var origin_font_type = $convert_input.attr('data-font-type');
-            var target_font_type = reverse_font(origin_font_type);
-            var $target_output_input = origin_font_type === 'unicode'
-              ? $convert_zawgyi_text : $convert_unicode_text;
-
-            var origin_value = $convert_input.val() || '';
-            var converted_value = $target_output_input.val();
-
-            var selected_value = origin_value.slice(selection_start, selection_end);
-            var converted_selected_value = knayi.fontConvert(selected_value, target_font_type, origin_font_type);
-
-            var regexp_of_selected_value = new RegExp(selected_value, 'g');
-            var regexp_of_converted_selected_value = new RegExp(converted_selected_value, 'g');
-
-            var match_on_origin = origin_value.slice(0, selection_end)
-              .match(regexp_of_selected_value);
-
-            if (!match_on_origin)
-              return;
-
-            // make matches
-            [].forEach.call(match_on_origin, function () {
-              regexp_of_converted_selected_value.test(converted_value);
-            })
-
-            if (!regexp_of_converted_selected_value.lastIndex)
-              return;
-
-            var highlight_start = regexp_of_converted_selected_value.lastIndex - converted_selected_value.length;
-            var highlight_end = regexp_of_converted_selected_value.lastIndex;
-
-            if (regexp_of_converted_selected_value.lastIndex) {
-              var converting_debug_logs = knayi.fontConvert.debugging(selected_value, target_font_type, origin_font_type, true);
-
-              var unicode_selected_value;
-              var zawgyi_selected_value;
-
-              function html_line (text) {
-                return `<span class="line">${text}</span>`
-              }
-
-              function html_code (text) {
-                return `<code>${text}</code>`
-              }
-
-              var mm_characters = /[\u1000-\u109F]/;
-
-              function string_to_charcodes (text) {
-                var result = '';
-                for (var i = 0; i < text.length; i++) {
-                  if (mm_characters.test(text[i])) {
-                    result += `\\u` + text[i].charCodeAt(0).toString(16);
-                    // result += '+';
-                  } else {
-                    result += text[i];
-                  }
-                }
-
-                return result.replace(/\+$/, '');
-              }
-
-              function debugging_steps (converting_debug_logs) {
-                var matched_patterns = converting_debug_logs.matched_patterns;
-                var steps = converting_debug_logs.steps;
-
-                var result = html_code(`<b>(orign)</b> ` + string_to_charcodes(steps[0]));
-                result += html_code('<br/ >');
-                for (var i = 0; i < matched_patterns.length; i++) {
-                  var pattern = matched_patterns[i];
-                  result += html_code(`<b>(match)</b> ${pattern[0].toString()} <b>-></b> ${string_to_charcodes(pattern[1].toString())}`);
-
-                  result += html_code(`<b>(chars)</b> ` + string_to_charcodes(steps[i+1]));
-                  result += html_code('<br/ >');
-                }
-
-                result += html_code(`<b>(final)</b> ` + string_to_charcodes(steps[i]));
-
-                return result;
-              }
-
-              $debug_content.html(
-                html_line('<b>Selected Words</b>')
-                + html_code(string_to_charcodes(selected_value))
-                + html_line('<br/ >')
-                + html_line(`<b>Converting Step [${origin_font_type} -> ${target_font_type}]</b>`)
-                + html_line('<br/ >')
-                + debugging_steps(converting_debug_logs)
-              );
-            }
-          })
-          /** Font Convert Debuging **/
-
-          $normalization_input.on('select', function (event) {
-            var $convert_input = $(this);
-            var selection_start = event.target.selectionStart;
-            var selection_end = event.target.selectionEnd;
-
-            var selected_value = origin_value.slice(selection_start, selection_end);
-            
-            var normalized_value = knayi.normalize(selected_value);
-            
-            $debug_content.html(
-              html_line('<b>Selected Words</b>')
-              + html_code(selected_value)
-              + html_line('<br/ >')
-              + html_line('<b>Normalized string</b>')
-              + html_line('<br/ >')
-              + [].join.call(normalized_value, ' + ')
-            );
-          });
-        }
-      } ())
-    </script>
-  </body>
+  const start = readHash();
+  if (start && start.view) state.view = start.view;
+  selectFn(start ? start.fn : 'fontConvert', { user: false });
+  if (start && start.view && VIEWS.steps.panel.getBoundingClientRect().top > window.innerHeight) {
+    VIEWS.steps.panel.scrollIntoView(false);
+  }
+})();
+</script>
+</body>
 </html>

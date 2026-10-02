@@ -85,6 +85,21 @@ assert.equal(			debug.steps[debug.steps.length - 1], plain);
 			});
 		})
 	})
+
+	describe('digit zero from Zawgyi', () => {
+		it('keeps zeros inside numbers', () => {
+assert.equal(			knayi.fontConvert('(၂၀၂၄)ခုႏွစ္', 'unicode', 'zawgyi'), '(၂၀၂၄)ခုနှစ်');
+assert.equal(			knayi.fontConvert('၁၀၀ က်ပ္', 'unicode', 'zawgyi'), '၁၀၀ ကျပ်');
+assert.equal(			knayi.fontConvert('၁,၀၀၀', 'unicode', 'zawgyi'), '၁,၀၀၀');
+assert.equal(			knayi.fontConvert('၂၀-၃၀', 'unicode', 'zawgyi'), '၂၀-၃၀');
+		})
+
+		it('still reads a zero typed for wa as wa', () => {
+assert.equal(			knayi.fontConvert('၀မ္းသာ', 'unicode', 'zawgyi'), 'ဝမ်းသာ');
+assert.equal(			knayi.fontConvert('ေ၀', 'unicode', 'zawgyi'), 'ဝေ');
+assert.equal(			knayi.fontConvert('အ၀တ္', 'unicode', 'zawgyi'), 'အဝတ်');
+		})
+	})
 })
 
 after(function () {

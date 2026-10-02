@@ -103,7 +103,8 @@ const convertRules = {
   zawgyi: {
     unicode: {
       oneTime: [
-        [/([^\u1040-\u1049\+\-\*\/])?\u1040([^\u1040-\u1049\+\-\*\/])?/g, '$1\u101d$2'],
+        // A zero not next to a digit or an operator is the letter wa typed as ၀. Inside numbers it stays a digit.
+        [/(^|[^\u1040-\u1049\+\-\*\/])\u1040(?![\u1040-\u1049\+\-\*\/])/g, '$1\u101d'],
         [/\u103d|\u1087/g, '\u103e'],
         [/\u103c/g, '\u103d'],
         [/[\u103b\u107e-\u1084]/g, '\u103c'],
@@ -156,7 +157,9 @@ const convertRules = {
 
 
 
-        [/([\u102b\u102c\u102d\u102e\u102f\u1030\u1031\u1032\u1036\u1037\u1038\u103b\u103c\u103d\u103e]+)(\u1039[\u1000-\u1021])/g, '$2$1'],
+        // The tail is optional so each run of marks is read once (linear time); without a tail, $2 is empty and the run stays.
+        // The third item is the character the rule needs; the rule is skipped when the text has none.
+        [/([\u102b\u102c\u102d\u102e\u102f\u1030\u1031\u1032\u1036\u1037\u1038\u103b\u103c\u103d\u103e]+)(\u1039[\u1000-\u1021])?/g, '$2$1', '\u1039'],
         // eg: က + ျ ြ ွ ှ ံ ့ ိ ီ ု ူ +​ င်္ီ
         [/([\u1000-\u1021])([\u103b\u103c\u103d\u103e\u1037\u102f\u1030\u102d\u102e\u1036]*)\u108b/g, '$1\u1064$2\u102d'],
         [/([\u1000-\u1021])([\u103b\u103c\u103d\u103e\u1037\u102f\u1030\u102d\u102e\u1036]*)\u108c/g, '$1\u1064$2\u102e'],
@@ -164,7 +167,7 @@ const convertRules = {
         [/\u108e/g, '\u102d\u1036'],
         [/\u103c([\u1000-\u1021])/g, '$1\u103c'],
         [/\u1031([\u1000-\u1021])/g, '$1\u1031'],
-        [/([\u102b\u102c\u102d\u102e\u102f\u1030\u1031\u1032\u1036\u1037\u1038\u103b\u103c\u103d\u103e]+)\u1064/g, '\u1064$1'],
+        [/([\u102b\u102c\u102d\u102e\u102f\u1030\u1031\u1032\u1036\u1037\u1038\u103b\u103c\u103d\u103e]+)(\u1064)?/g, '$2$1', '\u1064'],
         // [/([\u103b\u103c\u103d])(\u1064)/g, '$2$1'],
         [/\u1031(\u1064)/g, '$1\u1031'],
         [/([\u1000-\u1021])(\u1064)/g, '$2$1'],
@@ -255,29 +258,36 @@ function applyReplacementRules(rules, content) {
 }
 
 const NON_NUMBER_BEHIND = new RegExp(S + "$");
-const NON_NUMBER_AHEAD_SIGN = new RegExp("^\\s?[" + M + V + S + A + F + "]");
-const NON_NUMBER_AHEAD_C_SIGN = new RegExp("^\\s?[" + C + "][" + S + A + F + "]");
+// No optional space here: a sign after a space belongs to the next word, so "၂၀ ခံ" keeps its zero (as in 2.8.3).
+const NON_NUMBER_AHEAD_SIGN = new RegExp("^[" + M + V + S + A + F + "]");
+const NON_NUMBER_AHEAD_C_SIGN = new RegExp("^[" + C + "][" + S + A + F + "]");
 
 function fixWaAndYa(text) {
-  function ruleFunction(num, char) {
+  // `tail` is the last two characters of the text rebuilt so far; the end-anchored checks never need more.
+  // Keeping pieces in an array avoids re-reading the whole growing string at every split (quadratic time).
+  function rebuild(content, splitter, num, char) {
     var isWa = char === WA_LONE;
-    return function (behind, ahead) {
+    var parts = content.split(splitter);
+    var out = [parts[0]];
+    var tail = parts[0].slice(-2);
+    for (var i = 1; i < parts.length; i++) {
+      var ahead = parts[i];
       var isNumber = isWa;
-      if (NON_NUMBER_BEHIND.test(behind)) isNumber = false;
+      if (NON_NUMBER_BEHIND.test(tail)) isNumber = false;
       if (!isWa) {
-        if (/[၀-၉=+-/]\s?$/.test(behind) && /^\s|\s?[၀-၉=+-/]/.test(ahead)) isNumber = true;
+        if (/[၀-၉=+-/]\s?$/.test(tail) && /^\s|\s?[၀-၉=+-/]/.test(ahead)) isNumber = true;
         if (/[၀-၉]|\s?[=+-/]/.test(ahead)) isNumber = true;
       }
       if (NON_NUMBER_AHEAD_SIGN.test(ahead) || NON_NUMBER_AHEAD_C_SIGN.test(ahead)) isNumber = false;
-      if (isWa && /^\s?လုံး/.test(ahead) && !/[၀-၉]\s?$/.test(behind)) isNumber = false;
-      return behind + (isNumber ? num : char) + ahead;
-    };
+      if (isWa && /^\s?လုံး/.test(ahead) && !/[၀-၉]\s?$/.test(tail)) isNumber = false;
+      var letter = isNumber ? num : char;
+      out.push(letter, ahead);
+      tail = ahead.length >= 2 ? ahead.slice(-2) : (tail + letter + ahead).slice(-2);
+    }
+    return out.join("");
   }
-  return String(text == null ? "" : text)
-    .split(/၀|ဝ/)
-    .reduce(ruleFunction("၀", "ဝ"))
-    .split(/၇|ရ/)
-    .reduce(ruleFunction("၇", "ရ"));
+  var content = String(text == null ? "" : text);
+  return rebuild(rebuild(content, /၀|ဝ/, "၀", "ဝ"), /၇|ရ/, "၇", "ရ");
 }
 
 function parseChunks(content) {
@@ -423,16 +433,30 @@ const BREAK_RULES = {
     [/([\u1031][\u103b\u107e-\u1084]|[\u1031\u103b\u107e-\u1084])/g, "\u200B$1"],
     [/([\u1031\u103b\u107e-\u1084])\u200B([\u1000-\u1021\u1025\u1029\u106A\u106B\u1086\u108F\u1090])/g, "$1$2"],
     [/([\u0009-\u000d\u0020\u00a0\u2000-\u200a\u2028\u2029\u202f]|>|\u201C|\u2018|\-|\(|\[|{|[\u2012-\u2014])\u200B([\u1000-\u1021\u1031\u103b\u1025\u1029\u106A\u106B\u107e-\u1084\u1086\u108F\u1090])/g, "$1$2"],
-    [/\u200B([\u1000-\u1021\u1025\u1029\u106A\u106B\u1086\u108F\u1090]\u1039)/g, "$1"],
+    // A consonant with asat (U+1039 in Zawgyi) closes the syllable before it, also when a dot below or a visarga
+    // was typed before the asat (င့္, ငး္).
+    [/\u200B([\u1000-\u1021\u1025\u1029\u106A\u106B\u1086\u108F\u1090][\u1037\u1038\u1094\u1095]*\u1039)/g, "$1"],
+    // Zawgyi writes kinzi (ၤ, or U+108B-U+108D with a vowel) after the consonant it sits on, but it is the
+    // final nga of the syllable before, so that consonant and any ေ or medial ra typed before it stay there.
+    // S'gaw Karen uses U+1064 as a tone mark, and its text is often detected as Zawgyi, so the rule is off for
+    // text with a Karen vowel plus asat (ၢ် or ၣ်), which Zawgyi text practically never contains.
+    [/\u200B([\u1031\u103b\u107e-\u1084]*[\u1000-\u1021][\u1064\u108b-\u108d])/g, "$1", /[\u1062\u1063]\u103a/],
     [/(\s|\n)\u200B([\u1000-\u1021\u1023-\u1027\u1029\u102a\u104c-\u104f\u1086\u108f-\u1092])/g, "$1$2"],
-    [/([\u1000-\u1021])\u200B([\u1000-\u1021\u1031\u103b\u107e-\u1084])/g, "$1$2"]
+    // A bare consonant joins the next letter, as in Unicode. A consonant typed after ေ or a medial ra
+    // (U+1031, U+103B, U+107E-U+1084) already has its marks, like ကြ in Unicode, so it ends its syllable:
+    // the first branch matches it unchanged, and the second takes it whole after a bare consonant.
+    [/([\u1031\u103b\u107e-\u1084]+[\u1000-\u1021\u1025\u1029\u106A\u106B\u1086\u108F\u1090])|([\u1000-\u1021])\u200B([\u1031\u103b\u107e-\u1084]+[\u1000-\u1021\u1025\u1029\u106A\u106B\u1086\u108F\u1090]|[\u1000-\u1021\u1031\u103b\u107e-\u1084])/g, "$1$2$3"]
   ],
   unicode: [
     [/(\u103A)(\u1037)/g, "$2$1"],
     [/([\u1000-\u1021\u1023-\u1027\u1029\u102a\u103f\u104c-\u104f])/g, "\u200B$1"],
     [/([\u0009-\u000d\u0020\u00a0\u2000-\u200a\u2028\u2029\u202f]|>|\u201C|\u2018|\-|\(|\[|{|[\u2012-\u2014]|\u1039)\u200B([\u1000-\u1021])/g, "$1$2"],
     [/\u200B(\u1004\u103A\u1039\u1037)/g, "$1"],
-    [/\u200B([\u1000-\u1021]\u103A)/g, "$1"],
+    // A consonant with asat closes the syllable before it, also with the dot below that the first rule puts
+    // before the asat (င့်) and with a visarga typed before the asat (ငး်). ဥ takes asat only when typed for ဉ,
+    // as in ညဥ့်, so it counts too, but only right after a consonant or medial: after a vowel sign it starts
+    // a syllable (Pa'o ထွူ|လဲ|ဥ်း).
+    [/\u200B([\u1000-\u1021][\u1037\u1038]*\u103A)|([\u1000-\u1021\u103B-\u103E])\u200B(\u1025[\u1037\u1038]*\u103A)/g, "$1$2$3"],
     [/(\s|\n)\u200B([\u1000-\u1021\u1023-\u1027\u1029\u102a\u103f\u104c-\u104f])/g, "$1$2"],
     [/([\u1000-\u1021])\u200B([\u1000-\u1021])/g, "$1$2"]
   ]
@@ -442,6 +466,8 @@ function breakParts(content, fontType) {
   var rules = BREAK_RULES[fontType];
   var text = content;
   for (var i = 0; i < rules.length; i++) {
+    // A third item is a pattern that turns the rule off for the whole text (see the Zawgyi kinzi rule).
+    if (rules[i][2] && rules[i][2].test(content)) continue;
     rules[i][0].lastIndex = 0;
     text = text.replace(rules[i][0], rules[i][1]);
   }
@@ -461,6 +487,7 @@ function ruleMatches(rule, content) {
 }
 
 function replaceOnce(content, rule) {
+  if (rule[2] && content.indexOf(rule[2]) === -1) return content;
   var re = rule[0];
   re.lastIndex = 0;
   return content.replace(re, rule[1]);
@@ -490,8 +517,10 @@ function convertText(content, from, to, debug) {
   }
 
   for (var i = 0; i < refLib.oneTime.length; i++) {
-    record(refLib.oneTime[i], content);
-    content = replaceOnce(content, refLib.oneTime[i]);
+    var next = replaceOnce(content, refLib.oneTime[i]);
+    // Rules with an optional tail match every run of marks; log only the ones that changed the text.
+    if (next !== content) record(refLib.oneTime[i], content);
+    content = next;
   }
   for (var j = 0; j < refLib.asLongAsMatch.length; j++) {
     record(refLib.asLongAsMatch[j], content);

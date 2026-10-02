@@ -11,10 +11,15 @@ function truncate(content, options) {
   
   var absoulteLength = length - omission.length;
 
-  if (content == null) {
+  content = gate.toText(content);
+  if (content !== '' && gate.isMissing(content)) {
     if (!globalOptions.isSilentMode()) console.warn('Content must be specified on knayi.truncate.');
     return '';
   }
+
+  // Like lodash.truncate, other values are truncated as strings.
+  if (typeof content !== 'string')
+    content = String(content);
 
   if (content === '' || !gate.hasMyanmar(content))
     return content.substr(0, absoulteLength) + omission;

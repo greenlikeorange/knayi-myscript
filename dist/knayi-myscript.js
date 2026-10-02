@@ -56,7 +56,10 @@ var knayi = (() => {
         zaw: "zawgyi"
       };
       function isMissing(content) {
-        return content == null || content === "";
+        return !content;
+      }
+      function toText(content) {
+        return Object.prototype.toString.call(content) === "[object String]" ? String(content) : content;
       }
       function hasMyanmar(content) {
         return typeof content === "string" && MYANMAR.test(content);
@@ -74,6 +77,7 @@ var knayi = (() => {
       }
       module.exports = {
         isMissing,
+        toText,
         hasMyanmar,
         resolveFont,
         cleanText
@@ -90,37 +94,51 @@ var knayi = (() => {
       var gate = require_contentGate();
       var myanmartoolZawgyiDetector = null;
       var myanmarToolsLoadAttempted = false;
+      var myanmarToolsLoadError = null;
       function nodeRequire(id) {
+        var proc = globalThis.process;
+        if (!proc || !proc.versions || typeof proc.versions.node !== "string") return null;
+        var req = null;
         try {
-          var proc = globalThis.process;
-          if (!proc || !proc.versions || typeof proc.versions.node !== "string") return null;
-          var req = null;
-          try {
-            req = module.require;
-          } catch (e) {
-            req = null;
-          }
-          if (typeof req === "function") return req.call(module, id);
-          if (typeof proc.getBuiltinModule === "function") {
-            var nodeModule = proc.getBuiltinModule("module");
-            if (nodeModule && typeof nodeModule.createRequire === "function") {
-              var from = typeof __filename === "string" ? __filename : proc.cwd() + "/package.json";
-              return nodeModule.createRequire(from)(id);
-            }
-          }
+          req = module.require;
         } catch (e) {
-          return null;
+          req = null;
+        }
+        if (typeof req === "function") return req.call(module, id);
+        if (typeof proc.getBuiltinModule === "function") {
+          var nodeModule = proc.getBuiltinModule("module");
+          if (nodeModule && typeof nodeModule.createRequire === "function") {
+            var from = typeof __filename === "string" ? __filename : proc.cwd() + "/package.json";
+            return nodeModule.createRequire(from)(id);
+          }
         }
         return null;
       }
       function loadMyanmarTools() {
         if (myanmarToolsLoadAttempted) return myanmartoolZawgyiDetector;
         myanmarToolsLoadAttempted = true;
-        var loaded = nodeRequire("myanmar-tools");
-        if (loaded && typeof loaded.ZawgyiDetector === "function") {
-          myanmartoolZawgyiDetector = new loaded.ZawgyiDetector();
+        try {
+          var loaded = nodeRequire("myanmar-tools");
+          if (loaded && typeof loaded.ZawgyiDetector === "function") {
+            myanmartoolZawgyiDetector = new loaded.ZawgyiDetector();
+          } else if (loaded) {
+            myanmarToolsLoadError = new Error("the package has no ZawgyiDetector export");
+          }
+        } catch (e) {
+          myanmarToolsLoadError = e;
         }
         return myanmartoolZawgyiDetector;
+      }
+      function missingMyanmarToolsMessage() {
+        var error = myanmarToolsLoadError;
+        if (!error) {
+          return "myanmar-tools is not available in this environment; fontDetect used the rule scorer.";
+        }
+        var firstLine = String(error.message).split("\n")[0];
+        if (/MODULE_NOT_FOUND$/.test(String(error.code)) && firstLine.indexOf("'myanmar-tools'") !== -1) {
+          return "myanmar-tools is not installed; fontDetect used the rule scorer. Install myanmar-tools@1.1.3 to use it.";
+        }
+        return "myanmar-tools could not be loaded (" + firstLine + "); fontDetect used the rule scorer. Install myanmar-tools@1.1.3.";
       }
       library.detect = {
         unicode: [
@@ -135,8 +153,9 @@ var knayi = (() => {
           "\u1035",
           "[\u1050-\u1059]",
           "^([\u1000-\u1021]\u103C|[\u1000-\u1021]\u1031)",
-          "[\u1000-\u1021]\u103B",
-          "[\u1000-\u1021]\u1039[\u1000-\u1021]"
+          // Zawgyi writes medial ra as U+103B before its consonant, so only count ya-pin when no consonant follows.
+          // C + U+1039 + C is left out: it is a Pali stack in Unicode but asat + next syllable in Zawgyi.
+          "[\u1000-\u1021]\u103B(?![\u1000-\u1021])"
         ],
         zawgyi: [
           "\u102C\u1039",
@@ -191,6 +210,7 @@ var knayi = (() => {
         return "rules";
       }
       function fontDetect(content, fallback_font_type, options = {}) {
+        content = gate.toText(content);
         if (gate.isMissing(content)) {
           if (!globalOptions.isSilentMode()) console.warn("Content must be specified on knayi.fontDetect.");
           return fallback_font_type || "en";
@@ -207,7 +227,7 @@ var knayi = (() => {
         }
         if (!loadMyanmarTools()) {
           if (!globalOptions.isSilentMode() && !warnedMissingMyanmarTools) {
-            console.warn("myanmar-tools adapter is missing; fontDetect used the rule scorer.");
+            console.warn(missingMyanmarToolsMessage());
             warnedMissingMyanmarTools = true;
           }
           return scoreWithRules(content, fallback_font_type);
@@ -312,7 +332,8 @@ var knayi = (() => {
         zawgyi: {
           unicode: {
             oneTime: [
-              [/([^\u1040-\u1049\+\-\*\/])?\u1040([^\u1040-\u1049\+\-\*\/])?/g, "$1\u101D$2"],
+              // A zero not next to a digit or an operator is the letter wa typed as ၀. Inside numbers it stays a digit.
+              [/(^|[^\u1040-\u1049\+\-\*\/])\u1040(?![\u1040-\u1049\+\-\*\/])/g, "$1\u101D"],
               [/\u103d|\u1087/g, "\u103E"],
               [/\u103c/g, "\u103D"],
               [/[\u103b\u107e-\u1084]/g, "\u103C"],
@@ -363,7 +384,9 @@ var knayi = (() => {
               [/\u105a/g, "\u102B\u103A"],
               [/\u104e/g, "\u104E\u1004\u103A\u1038"],
               [/\u1025\u103a/g, "\u1009\u103A"],
-              [/([\u102b\u102c\u102d\u102e\u102f\u1030\u1031\u1032\u1036\u1037\u1038\u103b\u103c\u103d\u103e]+)(\u1039[\u1000-\u1021])/g, "$2$1"],
+              // The tail is optional so each run of marks is read once (linear time); without a tail, $2 is empty and the run stays.
+              // The third item is the character the rule needs; the rule is skipped when the text has none.
+              [/([\u102b\u102c\u102d\u102e\u102f\u1030\u1031\u1032\u1036\u1037\u1038\u103b\u103c\u103d\u103e]+)(\u1039[\u1000-\u1021])?/g, "$2$1", "\u1039"],
               // eg: က + ျ ြ ွ ှ ံ ့ ိ ီ ု ူ +​ င်္ီ
               [/([\u1000-\u1021])([\u103b\u103c\u103d\u103e\u1037\u102f\u1030\u102d\u102e\u1036]*)\u108b/g, "$1\u1064$2\u102D"],
               [/([\u1000-\u1021])([\u103b\u103c\u103d\u103e\u1037\u102f\u1030\u102d\u102e\u1036]*)\u108c/g, "$1\u1064$2\u102E"],
@@ -371,7 +394,7 @@ var knayi = (() => {
               [/\u108e/g, "\u102D\u1036"],
               [/\u103c([\u1000-\u1021])/g, "$1\u103C"],
               [/\u1031([\u1000-\u1021])/g, "$1\u1031"],
-              [/([\u102b\u102c\u102d\u102e\u102f\u1030\u1031\u1032\u1036\u1037\u1038\u103b\u103c\u103d\u103e]+)\u1064/g, "\u1064$1"],
+              [/([\u102b\u102c\u102d\u102e\u102f\u1030\u1031\u1032\u1036\u1037\u1038\u103b\u103c\u103d\u103e]+)(\u1064)?/g, "$2$1", "\u1064"],
               // [/([\u103b\u103c\u103d])(\u1064)/g, '$2$1'],
               [/\u1031(\u1064)/g, "$1\u1031"],
               [/([\u1000-\u1021])(\u1064)/g, "$2$1"],
@@ -452,24 +475,32 @@ var knayi = (() => {
         }, content);
       }
       var NON_NUMBER_BEHIND = new RegExp(S + "$");
-      var NON_NUMBER_AHEAD_SIGN = new RegExp("^\\s?[" + M + V + S + A + F + "]");
-      var NON_NUMBER_AHEAD_C_SIGN = new RegExp("^\\s?[" + C + "][" + S + A + F + "]");
+      var NON_NUMBER_AHEAD_SIGN = new RegExp("^[" + M + V + S + A + F + "]");
+      var NON_NUMBER_AHEAD_C_SIGN = new RegExp("^[" + C + "][" + S + A + F + "]");
       function fixWaAndYa(text) {
-        function ruleFunction(num, char) {
+        function rebuild(content2, splitter, num, char) {
           var isWa = char === WA_LONE;
-          return function(behind, ahead) {
+          var parts = content2.split(splitter);
+          var out = [parts[0]];
+          var tail = parts[0].slice(-2);
+          for (var i = 1; i < parts.length; i++) {
+            var ahead = parts[i];
             var isNumber = isWa;
-            if (NON_NUMBER_BEHIND.test(behind)) isNumber = false;
+            if (NON_NUMBER_BEHIND.test(tail)) isNumber = false;
             if (!isWa) {
-              if (/[၀-၉=+-/]\s?$/.test(behind) && /^\s|\s?[၀-၉=+-/]/.test(ahead)) isNumber = true;
+              if (/[၀-၉=+-/]\s?$/.test(tail) && /^\s|\s?[၀-၉=+-/]/.test(ahead)) isNumber = true;
               if (/[၀-၉]|\s?[=+-/]/.test(ahead)) isNumber = true;
             }
             if (NON_NUMBER_AHEAD_SIGN.test(ahead) || NON_NUMBER_AHEAD_C_SIGN.test(ahead)) isNumber = false;
-            if (isWa && /^\s?လုံး/.test(ahead) && !/[၀-၉]\s?$/.test(behind)) isNumber = false;
-            return behind + (isNumber ? num : char) + ahead;
-          };
+            if (isWa && /^\s?လုံး/.test(ahead) && !/[၀-၉]\s?$/.test(tail)) isNumber = false;
+            var letter = isNumber ? num : char;
+            out.push(letter, ahead);
+            tail = ahead.length >= 2 ? ahead.slice(-2) : (tail + letter + ahead).slice(-2);
+          }
+          return out.join("");
         }
-        return String(text == null ? "" : text).split(/၀|ဝ/).reduce(ruleFunction("\u1040", "\u101D")).split(/၇|ရ/).reduce(ruleFunction("\u1047", "\u101B"));
+        var content = String(text == null ? "" : text);
+        return rebuild(rebuild(content, /၀|ဝ/, "\u1040", "\u101D"), /၇|ရ/, "\u1047", "\u101B");
       }
       function parseChunks(content) {
         var chunks = [];
@@ -605,16 +636,30 @@ var knayi = (() => {
           [/([\u1031][\u103b\u107e-\u1084]|[\u1031\u103b\u107e-\u1084])/g, "\u200B$1"],
           [/([\u1031\u103b\u107e-\u1084])\u200B([\u1000-\u1021\u1025\u1029\u106A\u106B\u1086\u108F\u1090])/g, "$1$2"],
           [/([\u0009-\u000d\u0020\u00a0\u2000-\u200a\u2028\u2029\u202f]|>|\u201C|\u2018|\-|\(|\[|{|[\u2012-\u2014])\u200B([\u1000-\u1021\u1031\u103b\u1025\u1029\u106A\u106B\u107e-\u1084\u1086\u108F\u1090])/g, "$1$2"],
-          [/\u200B([\u1000-\u1021\u1025\u1029\u106A\u106B\u1086\u108F\u1090]\u1039)/g, "$1"],
+          // A consonant with asat (U+1039 in Zawgyi) closes the syllable before it, also when a dot below or a visarga
+          // was typed before the asat (င့္, ငး္).
+          [/\u200B([\u1000-\u1021\u1025\u1029\u106A\u106B\u1086\u108F\u1090][\u1037\u1038\u1094\u1095]*\u1039)/g, "$1"],
+          // Zawgyi writes kinzi (ၤ, or U+108B-U+108D with a vowel) after the consonant it sits on, but it is the
+          // final nga of the syllable before, so that consonant and any ေ or medial ra typed before it stay there.
+          // S'gaw Karen uses U+1064 as a tone mark, and its text is often detected as Zawgyi, so the rule is off for
+          // text with a Karen vowel plus asat (ၢ် or ၣ်), which Zawgyi text practically never contains.
+          [/\u200B([\u1031\u103b\u107e-\u1084]*[\u1000-\u1021][\u1064\u108b-\u108d])/g, "$1", /[\u1062\u1063]\u103a/],
           [/(\s|\n)\u200B([\u1000-\u1021\u1023-\u1027\u1029\u102a\u104c-\u104f\u1086\u108f-\u1092])/g, "$1$2"],
-          [/([\u1000-\u1021])\u200B([\u1000-\u1021\u1031\u103b\u107e-\u1084])/g, "$1$2"]
+          // A bare consonant joins the next letter, as in Unicode. A consonant typed after ေ or a medial ra
+          // (U+1031, U+103B, U+107E-U+1084) already has its marks, like ကြ in Unicode, so it ends its syllable:
+          // the first branch matches it unchanged, and the second takes it whole after a bare consonant.
+          [/([\u1031\u103b\u107e-\u1084]+[\u1000-\u1021\u1025\u1029\u106A\u106B\u1086\u108F\u1090])|([\u1000-\u1021])\u200B([\u1031\u103b\u107e-\u1084]+[\u1000-\u1021\u1025\u1029\u106A\u106B\u1086\u108F\u1090]|[\u1000-\u1021\u1031\u103b\u107e-\u1084])/g, "$1$2$3"]
         ],
         unicode: [
           [/(\u103A)(\u1037)/g, "$2$1"],
           [/([\u1000-\u1021\u1023-\u1027\u1029\u102a\u103f\u104c-\u104f])/g, "\u200B$1"],
           [/([\u0009-\u000d\u0020\u00a0\u2000-\u200a\u2028\u2029\u202f]|>|\u201C|\u2018|\-|\(|\[|{|[\u2012-\u2014]|\u1039)\u200B([\u1000-\u1021])/g, "$1$2"],
           [/\u200B(\u1004\u103A\u1039\u1037)/g, "$1"],
-          [/\u200B([\u1000-\u1021]\u103A)/g, "$1"],
+          // A consonant with asat closes the syllable before it, also with the dot below that the first rule puts
+          // before the asat (င့်) and with a visarga typed before the asat (ငး်). ဥ takes asat only when typed for ဉ,
+          // as in ညဥ့်, so it counts too, but only right after a consonant or medial: after a vowel sign it starts
+          // a syllable (Pa'o ထွူ|လဲ|ဥ်း).
+          [/\u200B([\u1000-\u1021][\u1037\u1038]*\u103A)|([\u1000-\u1021\u103B-\u103E])\u200B(\u1025[\u1037\u1038]*\u103A)/g, "$1$2$3"],
           [/(\s|\n)\u200B([\u1000-\u1021\u1023-\u1027\u1029\u102a\u103f\u104c-\u104f])/g, "$1$2"],
           [/([\u1000-\u1021])\u200B([\u1000-\u1021])/g, "$1$2"]
         ]
@@ -623,6 +668,7 @@ var knayi = (() => {
         var rules = BREAK_RULES[fontType];
         var text = content;
         for (var i = 0; i < rules.length; i++) {
+          if (rules[i][2] && rules[i][2].test(content)) continue;
           rules[i][0].lastIndex = 0;
           text = text.replace(rules[i][0], rules[i][1]);
         }
@@ -639,6 +685,7 @@ var knayi = (() => {
         return re.test(content);
       }
       function replaceOnce(content, rule) {
+        if (rule[2] && content.indexOf(rule[2]) === -1) return content;
         var re = rule[0];
         re.lastIndex = 0;
         return content.replace(re, rule[1]);
@@ -664,8 +711,9 @@ var knayi = (() => {
           logs.steps.push(current);
         }
         for (var i = 0; i < refLib.oneTime.length; i++) {
-          record(refLib.oneTime[i], content);
-          content = replaceOnce(content, refLib.oneTime[i]);
+          var next = replaceOnce(content, refLib.oneTime[i]);
+          if (next !== content) record(refLib.oneTime[i], content);
+          content = next;
         }
         for (var j = 0; j < refLib.asLongAsMatch.length; j++) {
           record(refLib.asLongAsMatch[j], content);
@@ -697,6 +745,7 @@ var knayi = (() => {
       var gate = require_contentGate();
       var syllable = require_syllable();
       function spellingFix(content, fontType) {
+        content = gate.toText(content);
         if (gate.isMissing(content)) {
           if (!globalOptions.isSilentMode()) console.warn("Content must be specified on knayi.spellingFix.");
           return "";
@@ -723,6 +772,7 @@ var knayi = (() => {
       var gate = require_contentGate();
       var syllable = require_syllable();
       function fontConvert(content, to, from) {
+        content = gate.toText(content);
         if (gate.isMissing(content)) {
           if (!globalOptions.isSilentMode()) console.warn("Content must be specified on knayi.fontConvert.");
           return "";
@@ -763,6 +813,7 @@ var knayi = (() => {
       var gate = require_contentGate();
       var syllable = require_syllable();
       function syllBreak(content, fontType, breakpoint) {
+        content = gate.toText(content);
         if (gate.isMissing(content)) {
           if (!globalOptions.isSilentMode()) console.warn("Content must be specified on knayi.syllBreak.");
           return "";
@@ -793,10 +844,13 @@ var knayi = (() => {
         var length = options.length || 30;
         var omission = options.omission || "...";
         var absoulteLength = length - omission.length;
-        if (content == null) {
+        content = gate.toText(content);
+        if (content !== "" && gate.isMissing(content)) {
           if (!globalOptions.isSilentMode()) console.warn("Content must be specified on knayi.truncate.");
           return "";
         }
+        if (typeof content !== "string")
+          content = String(content);
         if (content === "" || !gate.hasMyanmar(content))
           return content.substr(0, absoulteLength) + omission;
         if (!fontType)
@@ -833,10 +887,13 @@ var knayi = (() => {
       var gate = require_contentGate();
       var syllable = require_syllable();
       function normalize(content) {
+        content = gate.toText(content);
         if (gate.isMissing(content)) {
           if (!globalOptions.isSilentMode()) console.warn("Content must be specified on knayi.normalize.");
           return "";
         }
+        if (typeof content !== "string")
+          return content;
         return syllable.normalizeText(gate.cleanText(content, false));
       }
       module.exports = normalize;
@@ -853,10 +910,11 @@ var knayi = (() => {
       var spellingFix = require_spellingCheck();
       var truncate = require_truncate();
       var normalize = require_normalization();
-      var version = "2.9.0";
+      var version = "2.9.1";
+      var setGlobalOptions = globalOptions.setOptions;
       module.exports = {
         version,
-        setGlobalOptions: globalOptions.setOptions,
+        setGlobalOptions,
         fontDetect,
         fontConvert,
         syllBreak,
@@ -864,7 +922,9 @@ var knayi = (() => {
         truncate,
         normalize
       };
+      Object.defineProperty(module.exports, "default", { value: module.exports });
     }
   });
   return require_main();
 })();
+(typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : window).knayi = knayi;

@@ -1,11 +1,14 @@
 {
   "name": "knayi-myscript",
-  "version": "2.9.0",
+  "version": "2.9.1",
   "description": "Knayi Myanmar languages JavaScirpt library",
   "main": "./main.js",
   "module": "./dist/knayi-myscript.es.js",
   "types": "./index.d.ts",
-  "sideEffects": false,
+  "sideEffects": [
+    "./dist/knayi-myscript.js",
+    "./dist/knayi-myscript.min.js"
+  ],
   "files": [
     "main.js",
     "index.d.ts",
@@ -15,14 +18,14 @@
     "dist/knayi-myscript.js",
     "dist/knayi-myscript.min.js"
   ],
-  "engines": {
-    "node": ">=22"
-  },
   "scripts": {
     "pretest": "node scripts/build.js",
-    "test": "node --test && tsc -p typecheck/tsconfig.json --noEmit",
+    "test": "node --test && tsc -p typecheck/tsconfig.json --noEmit && tsc -p typecheck/tsconfig.no-interop.json --noEmit",
     "test:bun": "bun scripts/bun-contract.js && bun scripts/bun-esm.mjs",
     "test:pack": "node scripts/check-packed.mjs",
+    "eval": "node scripts/eval/run.mjs",
+    "bench": "node scripts/eval/bench.mjs",
+    "bench:page": "node scripts/eval/page.mjs",
     "build": "node scripts/build.js"
   },
   "repository": {
@@ -55,7 +58,7 @@
     "typescript": "^5.9.3"
   },
   "peerDependencies": {
-    "myanmar-tools": "^1.1.2"
+    "myanmar-tools": ">=1.1.2 <1.2.0"
   },
   "peerDependenciesMeta": {
     "myanmar-tools": {
