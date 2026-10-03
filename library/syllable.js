@@ -1,3 +1,12 @@
+// Unicode to Zawgyi rules are [pattern, replacement] or [pattern, replacement, label]. Debugging output logs a
+// rule that fires by its label, or by its pattern's source when it has none (convertText, record).
+//
+// A pattern that is a plain literal starting in U+1000-U+1010 has its first character in a class of one, as in
+// /[\u1004]\u103a\u1039/. V8 finds the first character of a plain literal, as of an indexOf needle, by the
+// higher of its two bytes. In that range the byte is 0x10, which every Myanmar character has, so the search
+// stops at each one and takes 6 to 50 times as long on Myanmar text. Such a rule keeps the source it had before
+// as its label, so debugging output does not change. Only that range: from U+1011 on, the low byte is the
+// higher one and the search is fast, and a class is slower than the literal (test/unit/literal-search.test.js).
 const convertRules = {
   unicode: {
     zawgyi: {
@@ -10,7 +19,7 @@ const convertRules = {
         [/([\u1033\u1034])[\u1037\u1094]/g, "$1\u1095"],
         // [/\u107e([\u1000-\u1021])/],
 
-        [/\u1004\u103a\u1039/g, "\u1064"],
+        [/[\u1004]\u103a\u1039/g, "\u1064", "\\u1004\\u103a\\u1039"],
         [/\u1064([\u1000-\u1021])/g, "$1\u1064"],
 
         // င်္ + ျ ြ ွ ှ ့ ု ူ + ိ ီ ံ
@@ -50,12 +59,12 @@ const convertRules = {
         [/\u1039\u1011/g, "\u1073"],
         [/\u1039\u1010/g, "\u1071"],
         [/\u1039\u100f/g, "\u1070"],
-        [/\u100d\u1039\u100e/g, "\u106f"],
-        [/\u100f\u1039\u100d/g, "\u1091"],
-        [/\u100d\u1039\u100d/g, "\u106e"],
-        [/\u100b\u1039\u100c/g, "\u1092"],
+        [/[\u100d]\u1039\u100e/g, "\u106f", "\\u100d\\u1039\\u100e"],
+        [/[\u100f]\u1039\u100d/g, "\u1091", "\\u100f\\u1039\\u100d"],
+        [/[\u100d]\u1039\u100d/g, "\u106e", "\\u100d\\u1039\\u100d"],
+        [/[\u100b]\u1039\u100c/g, "\u1092", "\\u100b\\u1039\\u100c"],
         [/\u1039\u100c/g, "\u106d"],
-        [/\u100b\u1039\u100b/g, "\u1097"],
+        [/[\u100b]\u1039\u100b/g, "\u1097", "\\u100b\\u1039\\u100b"],
         [/\u1039\u100b/g, "\u106c"],
         // [/\u1009/g, "\u106a"],
         [/\u1039\u1005\u103b/g, "\u1069"],
@@ -307,7 +316,7 @@ function convertText(content, from, to, debug) {
   function record(rule, current) {
     if (!logs) return;
     if (!ruleMatches(rule, current)) return;
-    logs.matched_patterns.push(rule[0].source);
+    logs.matched_patterns.push(rule[2] || rule[0].source);
     logs.steps.push(current);
   }
 

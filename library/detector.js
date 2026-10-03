@@ -58,9 +58,11 @@ function missingMyanmarToolsMessage() {
 }
 
 /** DETECTION Libarary **/
+// A signature that is a plain literal starting in U+1000-U+1010, such as nya or nga with asat, has its first
+// character in a class of one: V8 searches for such a literal many times more slowly (see library/syllable.js).
 library.detect = {
   unicode: [
-    '\u103e', '\u103f', '\u100a\u103a', '\u1014\u103a', '\u1004\u103a', '\u1031\u1038', '\u1031\u102c',
+    '\u103e', '\u103f', '[\u100a]\u103a', '\u1014\u103a', '[\u1004]\u103a', '\u1031\u1038', '\u1031\u102c',
     '\u103a\u1038', '\u1035', '[\u1050-\u1059]', '^([\u1000-\u1021]\u103c|[\u1000-\u1021]\u1031)',
     // Zawgyi writes medial ra as U+103B before its consonant, so only count ya-pin when no consonant follows.
     // C + U+1039 + C is left out: it is a Pali stack in Unicode but asat + next syllable in Zawgyi.

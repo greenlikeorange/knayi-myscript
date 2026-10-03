@@ -95,6 +95,7 @@ Knayi's output is used as data, so an unannounced change to it is a bug even whe
 - CI blocks a pull request only when an adversarial input's growth exponent goes above 1.3 under Node or Bun, or when a Node row is slower than the base branch by more than the CI threshold. The threshold is 20% for now. The `perf A/A` workflow (`.github/workflows/perf-aa.yml`, run by hand from the Actions tab) times the same copy against itself on GitHub's runners and prints the spread of the ratios and the highest growth exponent; its result will set the threshold, between 15 and 20%, and is recorded here. Smaller differences are noise on shared runners.
 - A pull request that is slower on purpose, such as a correctness fix, gets the `SLOWER` label and says in its description why the cost is worth it. CI then lets a Node row take up to twice the base's time. Growth exponents still block.
 - Every input must run in linear time. Super-linear time on any input is treated as a security bug (see [SECURITY.md](SECURITY.md)).
+- Don't start a regex that is a plain literal, or an `indexOf`, `includes`, `split` or `replace` needle, with a character from U+1000 to U+1010: V8 searches for it many times more slowly on Myanmar text. Put that character in a class of one, and don't do that outside this range, where the class is the slower one ([ARCHITECTURE.md](ARCHITECTURE.md#detection-breaks-and-the-unicode-to-zawgyi-rules)). `test/unit/literal-search.test.js` checks both rules.
 
 ### Browser floor
 
@@ -111,7 +112,7 @@ The exports, `index.d.ts`, the `dist/` file names and the `knayi` global, the op
 
 - New exports and options may come in a minor version, with types, matrix rows and tests.
 - A library file that moves leaves a one-line shim at its old path.
-- Don't rewrite a regex literal in `syllable.js` for style: its `.source` is debugging output.
+- Don't rewrite a regex literal in `syllable.js` for style: its `.source` is debugging output. A Unicode to Zawgyi rule whose pattern changes for speed keeps its old `.source` as a third item, its label, which debugging output logs instead.
 
 ### Bundle size
 
