@@ -13,10 +13,10 @@ function spellingFix(content, fontType){
   if (!gate.hasMyanmar(content))
     return content;
 
-  if (!fontType)
-    fontType = fontDetect(content);
-  else
-    fontType = gate.resolveFont(fontType) || fontType;
+  // A font name that is not a string, or '', detects the font. 'zawgyi' collapses the Zawgyi marks, and any other
+  // name the Unicode marks, 'win' and unknown names included (collapseMarks).
+  var name = gate.fontName(fontType);
+  fontType = name === null ? fontDetect(content) : gate.resolveFont(name) || name;
 
   content = gate.cleanText(content, true);
   return syllable.collapseMarks(content, fontType);

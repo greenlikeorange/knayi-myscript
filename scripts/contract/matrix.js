@@ -4,11 +4,12 @@
 // console. test/contract/api-matrix.test.js (Node) and scripts/bun-matrix.js (Bun) check main.js and the dist
 // builds against test/contract/api-matrix.json, and `npm run matrix:update` rewrites that file from main.js.
 //
-// Errors. The library throws no error of its own today: every throw in the matrix is an accident of the code,
-// such as a TypeError from reading a property of undefined. The wording of those messages belongs to the
-// runtime and to the build (on Bun, main.js says "evaluating 'rules.length'" where min.js says "'r.length'"), so
-// a cell records only their class. An error the library throws on purpose carries a string `code` property;
-// for those a cell also records the code and the full message.
+// Errors. An error the library throws on purpose carries a string `code` property (libraryError in
+// library/contentGate.js), such as the TypeError ERR_KNAYI_INVALID_FONT that syllBreak and truncate throw for a font
+// they do not break; for those a cell records the class, the code and the full message. Any other throw is an
+// accident of the code, such as a TypeError from reading a property of undefined. The wording of those messages
+// belongs to the runtime and to the build (on Bun, main.js says "evaluating 'rules.length'" where min.js says
+// "'r.length'"), so a cell records only their class.
 
 const fs = require('fs');
 const path = require('path');

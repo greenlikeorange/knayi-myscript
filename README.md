@@ -54,7 +54,21 @@ These paths load without an `exports` map:
 
 ## Font names
 
-`unicode`, `uni`, `zawgyi`, `zaw`, and `win`. `uni` is Unicode. `zaw` is Zawgyi. `win` is the Win Innwa family of legacy fonts, which `fontConvert` converts to Unicode. Any other string is an unknown font.
+`unicode`, `uni`, `zawgyi`, `zaw`, and `win`. `uni` is Unicode. `zaw` is Zawgyi. `win` is the Win Innwa family of legacy fonts, which `fontConvert` converts to Unicode. Any other string is an unknown font. In `syllBreak`, `spellingFix` and `truncate`, a font that is not a string, such as `null` or the index `Array#map` passes, and `''` name no font, and `fontDetect` chooses it.
+
+| Function | `win` | An unknown font |
+| --- | --- | --- |
+| `fontConvert`, source font | Converts Win text to Unicode | Detects the font. Warns unless silent. |
+| `fontConvert`, target font | Returns the text. An error unless silent. | Returns the text. An error unless silent. |
+| `syllBreak`, `truncate` | Throws a `TypeError` | Throws a `TypeError` |
+| `spellingFix` | Collapses the Unicode marks | Collapses the Unicode marks |
+
+`syllBreak` and `truncate` break Unicode and Zawgyi text only. The `TypeError` they throw has the code `'ERR_KNAYI_INVALID_FONT'`: test `error.code`, not the message, which may change. They throw only for text they would break: missing content, and text with no Myanmar letters, come back as [Missing content](#missing-content) says. Convert Win text to Unicode first:
+
+```javascript
+knayi.syllBreak(knayi.fontConvert('jrefrm', 'unicode', 'win'), 'unicode', '|') // 'မြန်|မာ'
+knayi.fontConvert('ျမန္မာ', 'unicode', 'zg') // 'မြန်မာ'  (unknown source font, detected; warns)
+```
 
 ## Missing content
 
@@ -109,7 +123,7 @@ The rule scorer does not count a consonant, `U+1039`, consonant sequence such as
 
 ## fontConvert(content, targetFontType, originalFontType?)
 
-Returns a string. `targetFontType` is required. When `originalFontType` is omitted, `fontDetect` chooses it.
+Returns a string. `targetFontType` is required. When `originalFontType` is omitted, `fontDetect` chooses it. An unknown `originalFontType` is detected the same way, with a warning unless silent.
 
 Name the source font for short text. When the detector's scores tie, it reads the text as Zawgyi (see [fontDetect](#fontdetectcontent-fallbackfonttype-options)), and short Unicode text often ties: a single consonant, or a word such as `ဗုဒ္ဓ` whose only telling sign is a stacked consonant, which Zawgyi reads as an asat. Converting such text from Zawgyi changes it.
 
@@ -197,13 +211,13 @@ knayi.syllBreak('ကက', 'unicode', '|') // 'ကက'
 knayi.syllBreak('ၾကပါ', 'zawgyi', '|') // 'ၾက|ပါ'
 ```
 
-When `fontType` is omitted, detection runs first. Unknown font names throw.
+When `fontType` is omitted, detection runs first. `win` and unknown font names throw a `TypeError` with the code `'ERR_KNAYI_INVALID_FONT'` (see [Font names](#font-names)).
 
 Zawgyi types ေ and the medial ra before the consonant. A consonant typed after them ends its syllable, as ကြ does in Unicode.
 
 ## spellingFix(content, fontType?)
 
-Collapses a mark repeated two or more times into one mark. It does not reorder marks.
+Collapses a mark repeated two or more times into one mark. It does not reorder marks. `win` and unknown font names collapse the Unicode marks.
 
 ```javascript
 knayi.spellingFix('မင်္ဂလာာပါါ', 'unicode') // 'မင်္ဂလာပါ'
@@ -247,7 +261,7 @@ knayi.normalize('e\u0301') // '\u00e9'  (no Myanmar letters: NFC only)
 
 ## truncate(content, options?)
 
-Cuts on the current syllable breaks, then on spaces inside a syllable that does not fit. Defaults are `length: 30` and `omission: '...'`. The omission is appended even when the text is shorter than `length`. `options.fontType` accepts the same font names. When omitted, detection runs.
+Cuts on the current syllable breaks, then on spaces inside a syllable that does not fit. Defaults are `length: 30` and `omission: '...'`. The omission is appended even when the text is shorter than `length`. `options.fontType` takes the same font names as `syllBreak`: when omitted, detection runs, and `win` or an unknown name throws a `TypeError` with the code `'ERR_KNAYI_INVALID_FONT'`.
 
 ```javascript
 knayi.truncate('အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇလွန်ဈေးဘေးဗာဒံပင်ထက် အဓိဋ္ဌာန်လျက် ဂဃနဏဖတ်ခဲ့သည်။', { length: 30, omission: '...' })

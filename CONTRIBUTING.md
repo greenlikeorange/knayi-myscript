@@ -80,7 +80,7 @@ Knayi's output is used as data, so an unannounced change to it is a bug even whe
   - `npm run compare -- --base origin/main` reports 0 differences on every call form, including `fontConvert.debugging`;
   - the contract matrix (`test/contract/api-matrix.test.js`, part of `npm test` and `npm run test:bun`) shows 0 changed cells;
   - both hold for `main.js`, the `.mjs` build and `min.js`, under Node and Bun. CI checks all of this.
-- **The matrix records error messages only for errors knayi throws itself.** For a `TypeError` the engine raises by accident, it records only the class, because those messages differ between runtimes and builds. An error knayi throws on purpose carries a string `code` property; that is how the matrix tells the two apart. So throw it as `libraryError(code, message, Ctor)`, a helper in `library/contentGate.js` that the first such pull request adds: `test/unit/errors.test.js` fails on any other `throw` in the library.
+- **The matrix records error messages only for errors knayi throws itself.** For a `TypeError` the engine raises by accident, it records only the class, because those messages differ between runtimes and builds. An error knayi throws on purpose carries a string `code` property; that is how the matrix tells the two apart. So throw it as `libraryError(code, message, Ctor)`, a helper in `library/contentGate.js`, with a code of the form `ERR_KNAYI_…` (today only `ERR_KNAYI_INVALID_FONT`): `test/unit/errors.test.js` fails on any other `throw` in the library. Codes are API; messages may be reworded.
 - **A pull request that changes output on purpose** gets the `DELIBERATE` label and:
   - lists the exact counts it expects in its description, one `--expect form:set=n` per changed cell (a set is a corpus, such as `ksw`, or a generated or fuzz set, such as `generated.rows`), and the matrix cells that change. CI's compare job reads those lines. It skips the counts for sets CI does not read (mC4, the legacy `wikipedia-v1` sample, and every corpus when its cache is cold) and `all` totals; re-run the job after you add the label or change the counts;
   - commits the new matrix written by `npm run matrix:update`;
@@ -107,7 +107,7 @@ The README promises Chrome 49, Edge 14, Firefox 34, Safari 10, Samsung Internet 
 
 ### The 2.x API stays stable
 
-The exports, `index.d.ts`, the `dist/` file names and the `knayi` global, the option keys, the deep path `library/converter`, the shape of `win.tables`, the debug stage names and their order, and the regex-source labels in `matched_patterns` are 2.x API. [ARCHITECTURE.md](ARCHITECTURE.md#stable-surfaces) lists where each is defined.
+The exports, `index.d.ts`, the `dist/` file names and the `knayi` global, the option keys, the deep path `library/converter`, the shape of `win.tables`, the debug stage names and their order, the regex-source labels in `matched_patterns`, and the codes of the errors knayi throws are 2.x API. [ARCHITECTURE.md](ARCHITECTURE.md#stable-surfaces) lists where each is defined.
 
 - New exports and options may come in a minor version, with types, matrix rows and tests.
 - A library file that moves leaves a one-line shim at its old path.

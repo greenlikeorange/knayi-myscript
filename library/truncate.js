@@ -24,12 +24,10 @@ function truncate(content, options) {
   if (content === '' || !gate.hasMyanmar(content))
     return content.substr(0, absoulteLength) + omission;
 
-  if (!fontType)
-    fontType = fontDetect(content);
-  else
-    fontType = gate.resolveFont(fontType) || fontType;
+  // 'unicode' or 'zawgyi'; null detects the font. 'win' and unknown names throw a TypeError.
+  var font = gate.breakFont(fontType, 'truncate') || fontDetect(content);
 
-  var syllables = syllable.breakParts(gate.cleanText(content, true), fontType);
+  var syllables = syllable.breakParts(gate.cleanText(content, true), font);
 
   return syllables.reduce(function (curr, syll) {
     var left = absoulteLength - curr.length;

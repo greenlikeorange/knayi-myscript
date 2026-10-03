@@ -166,7 +166,7 @@ How it was made:
 - **Direction:** Win → Unicode only, the maintainer's decision. A Win target, or Win to Zawgyi, returns the text unchanged with an error, like an unknown font.
 - **Direct rules:** an earlier version named Win glyphs by their Zawgyi code points and reused knayi's Zawgyi rules. At the maintainer's request it was replaced by the direct rules above.
 - **No detection:** the source font must be named. Win text is ASCII, and `fontDetect` returns `'en'` for it.
-- **Other functions:** only `fontConvert` reads Win. `syllBreak`, `truncate` and `spellingFix` return Win text unchanged; convert it first.
+- **Other functions:** only `fontConvert` reads Win. `syllBreak`, `truncate` and `spellingFix` return Win text unchanged, since it has no Myanmar letters; convert it first. Given the font name `win` and text with Myanmar letters, `syllBreak` and `truncate` throw a `TypeError` with the code `ERR_KNAYI_INVALID_FONT`, since their break rules are for Unicode and Zawgyi, and `spellingFix` collapses the Unicode marks.
 - **Dropped:** the vendor logo is dropped.
 - **Kept as typed:** `.` stays a period. Its glyph is a ring at the baseline, which could also be a dot below, but `.` is also the decimal point.
 

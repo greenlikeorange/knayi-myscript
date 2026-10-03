@@ -12,9 +12,8 @@ const root = path.join(__dirname, '..', '..');
 // throws without one would be recorded by its class only, and its message could change unseen.
 //
 // This makes the rule hold by construction: every `throw` in library/ and main.js throws the result of a call to
-// libraryError(code, message, Ctor), a helper in library/contentGate.js that sets `code`. Today the library throws
-// nothing, so the helper does not exist yet; the pull request with the first throw adds it, and this test then
-// checks that it sets the code. A rethrow, or an error built by hand, fails here.
+// libraryError(code, message, Ctor), a helper in library/contentGate.js that sets `code`. A rethrow, or an error
+// built by hand, fails here.
 
 function listFiles(dir) {
   return fs.readdirSync(path.join(root, dir), { withFileTypes: true }).flatMap((entry) => {
@@ -63,15 +62,16 @@ describe('errors the library throws', () => {
       'string code; the contract matrix then records the message (CONTRIBUTING.md)');
   });
 
-  it('libraryError sets a string code, once it exists', (t) => {
+  it('libraryError sets a string code', () => {
     const gate = require('../../library/contentGate');
-    if (typeof gate.libraryError !== 'function') {
-      t.skip('library/contentGate.js has no libraryError yet: the library throws nothing');
-      return;
-    }
     const error = gate.libraryError('KNAYI_PROBE', 'a probe message', TypeError);
     assert.ok(error instanceof TypeError);
     assert.equal(error.code, 'KNAYI_PROBE');
     assert.equal(error.message, 'a probe message');
+    assert.ok(Object.prototype.hasOwnProperty.call(error, 'code'), 'the contract matrix reads an own `code`');
+  });
+
+  it('finds the throws of library/contentGate.js, so the first check is not empty', () => {
+    assert.ok(throwsOf('library/contentGate.js').length > 0, 'no throw found in library/contentGate.js');
   });
 });

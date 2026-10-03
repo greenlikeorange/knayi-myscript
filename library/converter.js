@@ -30,13 +30,18 @@ function fontConvert(content, to, from) {
 
   // Zero-width spaces and non-joiners mark word breaks, so they stay.
   content = content.trim();
+  var source = gate.fontName(from);
   to = gate.resolveFont(to);
   from = gate.resolveFont(from);
 
   if (!to) {
-    if (!globalOptions.isSilentMode()) console.error('Convert library dosen\'t have this fontType.')
+    if (!globalOptions.isSilentMode()) console.error('Convert library doesn\'t have this fontType.')
     return content;
   } else if (!from) {
+    // No source font, or one that is not a string, means "detect". An unknown name is detected too, with a warning.
+    if (source !== null && !globalOptions.isSilentMode()) {
+      console.warn('Unknown source font ' + JSON.stringify(source) + ' on knayi.fontConvert; detecting it.');
+    }
     from = fontDetect(content);
   }
 

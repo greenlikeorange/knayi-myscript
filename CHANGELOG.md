@@ -18,7 +18,11 @@ Counts below are distinct lines of the corpora that `npm run eval` downloads (se
 
 ### Output changes
 
-None.
+- **Font names follow one policy** (README, "Font names"). No corpus line changes: the output comparison finds 0 differences in 2,771,538 comparisons (every call form on every corpus, mC4 included, and on the generated and fuzz sets), since its call forms name `unicode`, `zawgyi` or `win` as they should, or no font. The changes are in what wrong font names do. In the API contract matrix, 267 of 3,523 cells change: 42 throw a `TypeError` with a code instead of an accidental one, 12 start throwing, 19 stop throwing, 120 gain a warning, and 74 print the corrected error message.
+  - **`syllBreak` and `truncate` throw a `TypeError` with the code `ERR_KNAYI_INVALID_FONT`** for `'win'` and for an unknown name, since their break rules are for Unicode and Zawgyi only. The message of `syllBreak('က', 'win')` is `knayi.syllBreak takes the font 'unicode' or 'zawgyi', not "win".` Before, most such names threw an accidental `TypeError` from inside the rules, whose message differed between runtimes and builds, and the names of `Object.prototype` members returned the text with no breaks: `syllBreak('ကကက', 'toString', '|')` returned `'ကကက'` and now throws. As before, they throw only for text with a Myanmar letter. Names are still case-sensitive, so `'Unicode'` is unknown.
+  - **A font that is not a string, or `''`, means "detect the font"** in `syllBreak`, `spellingFix` and `truncate`, as `undefined` and `null` already did. `syllBreak('မြန်မာ', 1, '|')`, with a number such as the index `Array#map` passes, threw a `TypeError` and now returns `'မြန်|မာ'`; `spellingFix('ကဳဳ', 1)` returned `'ကဳဳ'` (the Unicode marks) and now returns `'ကဳ'` (detected as Zawgyi).
+  - **`spellingFix` collapses the Unicode marks for every name but `zawgyi` and `zaw`**, as it already did for `'win'` and most unknown names. Names of `Object.prototype` members broke it: `spellingFix('ကာ', 'constructor')` threw a `TypeError`, and `spellingFix('ကာာ', 'toString')` returned `'ကာာ'`; it now returns `'ကာ'`.
+  - **`fontConvert` warns about an unknown source font,** unless silent, and still detects the source: `fontConvert('ျမန္မာ', 'unicode', 'zg')` returns `'မြန်မာ'` and warns `Unknown source font "zg" on knayi.fontConvert; detecting it.` The error for an unknown target font now reads "Convert library doesn't have this fontType." (it said "dosen't").
 
 ### Security
 

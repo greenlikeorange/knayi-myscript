@@ -30,6 +30,32 @@ function resolveFont(fontType) {
   return null;
 }
 
+// An error knayi throws on purpose. Its string `code`, such as 'ERR_KNAYI_INVALID_FONT', is API: callers test the
+// code, not the message. It also tells the error apart from a TypeError the engine raises by accident, so the
+// contract matrix records its message too (test/unit/errors.test.js checks every throw).
+function libraryError(code, message, Ctor) {
+  var error = new (Ctor || Error)(message);
+  error.code = code;
+  return error;
+}
+
+// The font name a call was given, or null for none. A name is a string other than ''; a String object counts as
+// its string. Anything else (undefined, null, '', or a number such as the index Array#map passes) means "detect".
+function fontName(fontType) {
+  fontType = toText(fontType);
+  return typeof fontType === 'string' && fontType !== '' ? fontType : null;
+}
+
+// The font syllBreak and truncate break text in: 'unicode', 'zawgyi', or null to detect it. The break rules exist
+// for those two fonts only, so 'win' and unknown names throw a TypeError.
+function breakFont(fontType, apiName) {
+  var name = fontName(fontType);
+  var font = resolveFont(name);
+  if (name === null || font === 'unicode' || font === 'zawgyi') return font;
+  throw libraryError('ERR_KNAYI_INVALID_FONT',
+    'knayi.' + apiName + ' takes the font \'unicode\' or \'zawgyi\', not ' + JSON.stringify(name) + '.', TypeError);
+}
+
 function cleanText(content, trim) {
   var text = trim ? content.trim() : content;
   return text.replace(/[\u200B\u200C]/g, '');
@@ -40,5 +66,8 @@ module.exports = {
   toText,
   hasMyanmar,
   resolveFont,
+  fontName,
+  breakFont,
+  libraryError,
   cleanText
 };

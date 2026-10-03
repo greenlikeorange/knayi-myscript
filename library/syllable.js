@@ -213,7 +213,9 @@ const COLLAPSE = {
 };
 
 function collapseMarks(content, fontType) {
-  var rules = COLLAPSE[fontType] || COLLAPSE.unicode;
+  // Zawgyi has marks of its own. Any other name, 'win' and unknown names included, uses the Unicode marks: an own
+  // property, so that a name such as 'constructor' finds no Object.prototype member.
+  var rules = Object.prototype.hasOwnProperty.call(COLLAPSE, fontType) ? COLLAPSE[fontType] : COLLAPSE.unicode;
   for (var i = 0; i < rules.length; i++) {
     rules[i][0].lastIndex = 0;
     content = content.replace(rules[i][0], rules[i][1]);

@@ -15,12 +15,10 @@ function syllBreak(content, fontType, breakpoint){
 
   content = gate.cleanText(content, true);
 
-  if (!fontType)
-    fontType = fontDetect(content);
-  else
-    fontType = gate.resolveFont(fontType) || fontType;
+  // 'unicode' or 'zawgyi'; null detects the font. 'win' and unknown names throw a TypeError.
+  var font = gate.breakFont(fontType, 'syllBreak') || fontDetect(content);
 
-  return syllable.joinParts(syllable.breakParts(content, fontType), breakpoint);
+  return syllable.joinParts(syllable.breakParts(content, font), breakpoint);
 }
 
 module.exports = syllBreak;
