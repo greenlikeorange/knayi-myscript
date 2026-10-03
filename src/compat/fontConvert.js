@@ -3,13 +3,13 @@
 //
 // 2.x converter.js checks its input, trims it, resolves both font names, detects a missing source, and then
 // converts in one of two directions: a font stored in drawing order (Zawgyi, Win) to Unicode through the font
-// reader (engine/fontStages.js), or Unicode to Zawgyi through the rule rows (unicodeToZawgyi.js). Every early exit
+// reader (stages/fonts.js), or Unicode to Zawgyi through the rule rows (rules/unicodeToZawgyi.js). Every early exit
 // returns text, also when debugging (C19).
 
 import { FONTS, hasMyanmarBlockChar } from '../core/input.js';
 import { createTrace } from '../core/rules.js';
-import { fontToUnicode, traceFontToUnicode } from '../engine/fontStages.js';
-import { unicodeToZawgyi, traceUnicodeToZawgyi } from '../unicodeToZawgyi.js';
+import { fontToUnicode, traceFontToUnicode } from '../stages/fonts.js';
+import { unicodeToZawgyi, traceUnicodeToZawgyi } from '../rules/unicodeToZawgyi.js';
 import { detectForRouting } from './fontDetect.js';
 import { enter, resolveFont } from './input.js';
 import { report, MESSAGES } from './globalOptions.js';

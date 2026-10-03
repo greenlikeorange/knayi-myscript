@@ -1,4 +1,4 @@
-// Growth of src/detect.js (docs/next/DESIGN.md §6.2 item 4). Owner: W4 (detect).
+// Growth of src/rules/detect.js (docs/next/DESIGN.md §6.2 item 4). Owner: W4 (detect).
 //
 // Every adversarial shape of SHAPES and every single-character pump of PUMPS (helpers.mjs) runs through
 // countEvidence at n, 2n and 4n units (scripts/eval/lib/timing.mjs growthExponent: n is 8,192 under Node and
@@ -11,7 +11,7 @@
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { countEvidence } from '../../src/detect.js';
+import { countEvidence } from '../../src/rules/detect.js';
 import { SHAPES, PUMPS } from './helpers.mjs';
 import { growthExponent } from '../../scripts/eval/lib/timing.mjs';
 
@@ -36,7 +36,7 @@ function describeGrowth(id, growth) {
     ' µs at n';
 }
 
-describe('growth of src/detect.js (DESIGN.md §6.2)', () => {
+describe('growth of src/rules/detect.js (DESIGN.md §6.2)', () => {
   let sink = 0;
   const call = (text) => {
     const evidence = countEvidence(text);

@@ -519,7 +519,7 @@ describe('core/errors.js', () => {
     assert.equal(error.message, 'knayi.normalize: text must be a string');
     assert.deepEqual(Object.getOwnPropertyDescriptor(error, 'code'),
       { value: 'ERR_KNAYI_INVALID_ARG_TYPE', writable: true, enumerable: true, configurable: true });
-    const plain = libraryError(ERR.NOT_BUILT, 'src/detect.js countEvidence is not built yet');
+    const plain = libraryError(ERR.NOT_BUILT, 'src/rules/detect.js countEvidence is not built yet');
     assert.equal(Object.getPrototypeOf(plain), Error.prototype);
     assert.equal(plain.code, 'ERR_KNAYI_NOT_BUILT');
   });

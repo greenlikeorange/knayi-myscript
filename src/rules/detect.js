@@ -18,9 +18,9 @@
 // every position where they match. Z15, e e, is the exception: three e in a row are one match, so countEvidence
 // counts a match of it only from where its last one ended, as the regex does.
 
-import { isBurmeseConsonant, isZawgyiPrebase, isZawgyiMedialRa } from './script/codes.js';
-import { DEFAULTS, optionsObject } from './core/options.js';
-import { hasMyanmarBlockChar } from './core/input.js';
+import { isBurmeseConsonant, isZawgyiPrebase, isZawgyiMedialRa } from '../script/codes.js';
+import { DEFAULTS, optionsObject } from '../core/options.js';
+import { hasMyanmarBlockChar } from '../core/input.js';
 
 // ---------------------------------------------------------------------------------------------------------------
 // The classes the signatures name, as bits of SIGNATURE_UNIT. Each is a regex class of the rows it serves.

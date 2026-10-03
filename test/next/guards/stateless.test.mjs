@@ -14,8 +14,8 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parsedSources, walk, isReference, codeLoadingSites, where } from './ast.mjs';
 import { SRC } from '../helpers.mjs';
-import { detectFont } from '../../../src/detect.js';
-import { normalizeText } from '../../../src/engine/normalizeStages.js';
+import { detectFont } from '../../../src/rules/detect.js';
+import { normalizeText } from '../../../src/stages/normalize.js';
 import * as nfc from '../../../src/core/nfc.js';
 
 const EXEMPT = { 'core/nfc.js': ['NFC_MEMO'] };

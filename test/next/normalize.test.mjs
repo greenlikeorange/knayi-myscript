@@ -1,4 +1,4 @@
-// src/engine/normalizeStages.js: NORMALIZE_STAGES, normalizeText and traceNormalizeText (docs/next/DESIGN.md §2.3,
+// src/stages/normalize.js: NORMALIZE_STAGES, normalizeText and traceNormalizeText (docs/next/DESIGN.md §2.3,
 // §3.10, §7.7). Owner: W5 (engine-unicode).
 //
 // The stage list, the two gates, the trace, the normalize examples of README.md and ARCHITECTURE.md, and the table
@@ -11,10 +11,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import * as acorn from 'acorn';
-import { NORMALIZE_STAGES, normalizeText, traceNormalizeText } from '../../src/engine/normalizeStages.js';
+import { NORMALIZE_STAGES, normalizeText, traceNormalizeText } from '../../src/stages/normalize.js';
 import { createTrace } from '../../src/core/rules.js';
 import { toNfc } from '../../src/core/nfc.js';
-import { fixTypos, fixLookAlikes } from '../../src/engine/typingFixes.js';
+import { fixTypos, fixLookAlikes } from '../../src/rules/typingFixes.js';
 import { oracle, ROOT, tableProbes } from './helpers.mjs';
 
 const require = createRequire(import.meta.url);

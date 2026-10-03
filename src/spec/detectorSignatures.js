@@ -6,7 +6,7 @@
 //
 // 12 Unicode rows U01-U12, then 17 Zawgyi rows Z01-Z17, in 2.x order (library/detector.js at the reference,
 // e5f6e24; scripts/oracle/signatures.js). Each row is:
-//   id       the id that src/detect.js cites in its comments;
+//   id       the id that src/rules/detect.js cites in its comments;
 //   side     the side its matches count for: 'unicode' or 'zawgyi';
 //   pattern  the 2.x source string, byte for byte, with 2.x's whitespace class '[\\x20\\t\\r\\n\\f]' written out.
 //            2.x compiled it with new RegExp(pattern, 'g') and added the length of String#match to its side, so a

@@ -1,4 +1,4 @@
-// Growth of src/unicodeToZawgyi.js (docs/next/DESIGN.md §6.2 item 4). Owner: W7 (unicode-to-zawgyi).
+// Growth of src/rules/unicodeToZawgyi.js (docs/next/DESIGN.md §6.2 item 4). Owner: W7 (unicode-to-zawgyi).
 //
 // Every adversarial shape of SHAPES and every single-character pump of PUMPS (helpers.mjs) runs through
 // unicodeToZawgyi at n, 2n and 4n units: n is 8,192 under Node and 1,024 under Bun (scripts/eval/lib/timing.mjs).
@@ -9,7 +9,7 @@
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { unicodeToZawgyi } from '../../src/unicodeToZawgyi.js';
+import { unicodeToZawgyi } from '../../src/rules/unicodeToZawgyi.js';
 import { SHAPES, PUMPS } from './helpers.mjs';
 import { growthExponent } from '../../scripts/eval/lib/timing.mjs';
 
@@ -42,7 +42,7 @@ function checkGrowth(inputs, t) {
   assert.deepEqual(over, [], 'growth exponents above ' + LIMIT);
 }
 
-describe('growth of src/unicodeToZawgyi.js (DESIGN.md §6.2)', () => {
+describe('growth of src/rules/unicodeToZawgyi.js (DESIGN.md §6.2)', () => {
   it('is linear on every adversarial shape', (t) => checkGrowth(SHAPES, t));
   it('is linear on every single-character run', (t) => checkGrowth(PUMPS, t));
 });

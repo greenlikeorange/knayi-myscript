@@ -1,4 +1,4 @@
-// Growth of src/engine/normalizeStages.js and src/engine/unicodeReader.js (docs/next/DESIGN.md §6.2 item 4, §6.4,
+// Growth of src/stages/normalize.js and src/engine/unicodeReader.js (docs/next/DESIGN.md §6.2 item 4, §6.4,
 // §7.7). Owner: W5 (engine-unicode).
 //
 // Every adversarial shape of SHAPES, every single-character pump of PUMPS, and every run of NFC_RUNS (helpers.mjs)
@@ -14,7 +14,7 @@
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeText } from '../../src/engine/normalizeStages.js';
+import { normalizeText } from '../../src/stages/normalize.js';
 import { reorderUnicode } from '../../src/engine/unicodeReader.js';
 import { growthExponent, timeOnce } from '../../scripts/eval/lib/timing.mjs';
 import { SHAPES, PUMPS, NFC_RUNS } from './helpers.mjs';

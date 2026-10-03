@@ -1,4 +1,4 @@
-// src/segment.js and src/spec/breakRules.js (docs/next/DESIGN.md §7.5). Owner: W3 (segment).
+// src/rules/segment.js and src/spec/breakRules.js (docs/next/DESIGN.md §7.5). Owner: W3 (segment).
 //
 // The spec rows are checked against 2.x's BREAK_RULES (scripts/oracle/syllable.js), and every row's example
 // against both the rows and the scanners. The scanners' character classes are checked on every UTF-16 unit, in the
@@ -12,7 +12,7 @@ import fc from 'fast-check';
 import {
   BARE_CONSONANTS, prepareBreakText, forEachBreak, breakParts, breakString, segmentSyllables, syllableBoundaries,
   looksLikeSgawKaren, collapseRepeatedMarks
-} from '../../src/segment.js';
+} from '../../src/rules/segment.js';
 import { BREAK_RULES } from '../../src/spec/breakRules.js';
 import { tableProbes, fuzz } from './helpers.mjs';
 import {

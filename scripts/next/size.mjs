@@ -25,15 +25,15 @@ export const TARGETS = { compat: 10854, 'normalize-only': 4850 };
 
 // Modules that must contribute 0 bytes to the normalize-only bundle (§2.4), as paths relative to the root.
 const NOT_IN_NORMALIZE = [
-  /^src\/fonts\//, /^src\/engine\/fontReader\.js$/, /^src\/engine\/fontStages\.js$/, /^src\/detect\.js$/,
-  /^src\/segment\.js$/, /^src\/unicodeToZawgyi\.js$/, /^src\/compat\//, /^src\/spec\//
+  /^src\/fonts\//, /^src\/engine\/fontReader\.js$/, /^src\/stages\/fonts\.js$/, /^src\/rules\/detect\.js$/,
+  /^src\/rules\/segment\.js$/, /^src\/rules\/unicodeToZawgyi\.js$/, /^src\/compat\//, /^src\/spec\//
 ];
 
 const ENTRIES = {
   compat: { entryPoints: [path.join(ROOT, 'src', 'compat', 'index.js')] },
   'normalize-only': {
     stdin: {
-      contents: "export { normalizeText } from './src/engine/normalizeStages.js';\n",
+      contents: "export { normalizeText } from './src/stages/normalize.js';\n",
       resolveDir: ROOT,
       sourcefile: 'normalize-only.js'
     }

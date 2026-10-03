@@ -1,4 +1,4 @@
-// Differential tests of src/unicodeToZawgyi.js against 2.x (docs/next/DESIGN.md §6.1, §6.2 item 2, §7.9). 2.x is
+// Differential tests of src/rules/unicodeToZawgyi.js against 2.x (docs/next/DESIGN.md §6.1, §6.2 item 2, §7.9). 2.x is
 // convertText(collapseMarks(x, 'unicode'), 'unicode', 'zawgyi') in the frozen scripts/oracle/syllable.js (D19).
 //
 // 1. unicodeToZawgyi on fast-check strings, after the regressions: 200,000 on a pull request, 1M nightly (D23).
@@ -13,7 +13,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import fc from 'fast-check';
-import { unicodeToZawgyi } from '../../src/unicodeToZawgyi.js';
+import { unicodeToZawgyi } from '../../src/rules/unicodeToZawgyi.js';
 import { arb, fuzz } from './helpers.mjs';
 import {
   TWO_X_ROWS, twoXUnicodeToZawgyi, twoXDebugLog, traceAsDebugLog, asFontConvert

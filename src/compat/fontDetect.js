@@ -1,12 +1,12 @@
 // compat: 2.x fontDetect on the core (DESIGN.md §5.1, C13, C14). Layer L4. Owner: W8 (compat).
 //
 // 2.x fontDetect (library/detector.js:126-156) counts the matches of 29 signature regexes per side and calls the
-// side with more; the core's countEvidence finds the same counts in one pass (detect.js). With myanmar-tools asked
-// for, the model's Zawgyi probability decides instead, against the thresholds.
+// side with more; the core's countEvidence finds the same counts in one pass (rules/detect.js). With myanmar-tools
+// asked for, the model's Zawgyi probability decides instead, against the thresholds.
 
 import { hasMyanmarBlockChar } from '../core/input.js';
 import { NO_OPTIONS } from '../core/options.js';
-import { countEvidence, decide, scoreByZawgyiModel } from '../detect.js';
+import { countEvidence, decide, scoreByZawgyiModel } from '../rules/detect.js';
 import { enter, cleanText, ON_TIE_ASSUME_ZAWGYI } from './input.js';
 import { report, mergeDetectorOptions } from './globalOptions.js';
 import { zawgyiModelLoader } from './zawgyiModel.js';

@@ -10,7 +10,7 @@
 // stores text in the order the glyphs are drawn: e and medial ra before the consonant, kinzi and stacked
 // consonants after it, and the marks in any order (research/zawgyi-to-unicode.md §2).
 //
-// Conversion to Unicode runs the stages of engine/fontStages.js FONT_STAGES:
+// Conversion to Unicode runs the stages of stages/fonts.js FONT_STAGES:
 // 1. sequences: lagaung typed with the digit four, or with the nga, asat and visarga its glyph already draws,
 //    becomes the lagaung glyph (LAGAUNG_SEQUENCES).
 // 2. syllables: each glyph becomes Unicode characters with its role in the syllable (ZAWGYI_GLYPHS), and each

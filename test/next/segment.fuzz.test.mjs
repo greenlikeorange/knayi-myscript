@@ -1,4 +1,4 @@
-// Differential fuzz of src/segment.js against 2.x (docs/next/DESIGN.md §6.1, §7.5). Owner: W3 (segment).
+// Differential fuzz of src/rules/segment.js against 2.x (docs/next/DESIGN.md §6.1, §7.5). Owner: W3 (segment).
 //
 // Every string is checked under both fonts, against the frozen 2.x code of scripts/oracle/syllable.js (D19):
 //   - breakParts and breakString against 2.x breakParts and joinParts on the cleaned string, and against the rows of
@@ -16,7 +16,7 @@ import fc from 'fast-check';
 import {
   BARE_CONSONANTS, prepareBreakText, breakParts, breakString, segmentSyllables, syllableBoundaries,
   collapseRepeatedMarks
-} from '../../src/segment.js';
+} from '../../src/rules/segment.js';
 import { BREAK_RULES } from '../../src/spec/breakRules.js';
 import { arb, fuzz } from './helpers.mjs';
 import {
@@ -98,7 +98,7 @@ function boundaries2x(text, font) {
   return syllable2x.breakParts(text, font).slice(0, -1).map((part) => (at += part.length));
 }
 
-describe('src/segment.js against 2.x, both fonts', () => {
+describe('src/rules/segment.js against 2.x, both fonts', () => {
   it('breakParts, breakString, the spec rows, syllBreak and spellingFix', () => {
     fuzz.check(fc.property(text, separator, (raw, sep) => checkBreaks(raw, sep)),
       200000, REGRESSIONS.map(([x]) => [x, '|']), 1000000);
@@ -142,7 +142,7 @@ async function cachedCorpora() {
   return { sets: (await corpusSets()).sets };
 }
 
-describe('src/segment.js against 2.x on the corpora', async () => {
+describe('src/rules/segment.js against 2.x on the corpora', async () => {
   const corpora = await cachedCorpora();
   it('every distinct line, both fonts', { skip: corpora.skip || false }, (t) => {
     let lines = 0;

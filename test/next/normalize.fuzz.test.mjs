@@ -14,7 +14,7 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import fc from 'fast-check';
-import { NORMALIZE_STAGES, normalizeText, traceNormalizeText } from '../../src/engine/normalizeStages.js';
+import { NORMALIZE_STAGES, normalizeText, traceNormalizeText } from '../../src/stages/normalize.js';
 import { reorderUnicode, SEEN } from '../../src/engine/unicodeReader.js';
 import { runStages, createTrace } from '../../src/core/rules.js';
 import { oracle, arb, fuzz, ROOT } from './helpers.mjs';

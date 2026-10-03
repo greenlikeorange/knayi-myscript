@@ -12,8 +12,8 @@ import { applyRuleRows, runStages, startTrace } from '../core/rules.js';
 import { toNfc } from '../core/nfc.js';
 import { ZAWGYI_FONT } from '../fonts/zawgyi.js';
 import { WIN_FONT } from '../fonts/win.js';
-import { compileFont, readFont, glyphsInTypedOrder } from './fontReader.js';
-import { zeroAsWa, fixLookAlikes, fixTypos } from './typingFixes.js';
+import { compileFont, readFont, glyphsInTypedOrder } from '../engine/fontReader.js';
+import { zeroAsWa, fixLookAlikes, fixTypos } from '../rules/typingFixes.js';
 
 // The compiled fonts (§3.8), checked and built once, at load. A bundle that never converts drops both the calls and
 // the tables (§2.4).

@@ -1,4 +1,4 @@
-// src/detect.js and its readable oracle, src/spec/detectorSignatures.js (docs/next/DESIGN.md §7.6).
+// src/rules/detect.js and its readable oracle, src/spec/detectorSignatures.js (docs/next/DESIGN.md §7.6).
 //
 // The spec rows against the 2.x signatures they document (scripts/oracle/signatures.js), each row's example, the
 // String#match semantics the scanner restates (anchors, matches that do not overlap, the end of the text, the
@@ -9,7 +9,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
-import { countEvidence, decide, scoreByZawgyiModel, detectFont, detectEncoding } from '../../src/detect.js';
+import { countEvidence, decide, scoreByZawgyiModel, detectFont, detectEncoding } from '../../src/rules/detect.js';
 import { DETECTOR_SIGNATURES } from '../../src/spec/detectorSignatures.js';
 import { oracle, tableProbes } from './helpers.mjs';
 

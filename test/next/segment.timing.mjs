@@ -1,4 +1,4 @@
-// Growth of src/segment.js (docs/next/DESIGN.md §6.2 item 4). Owner: W3 (segment).
+// Growth of src/rules/segment.js (docs/next/DESIGN.md §6.2 item 4). Owner: W3 (segment).
 //
 // Every adversarial shape of SHAPES and every single-character pump of PUMPS (helpers.mjs) runs at n and 4n units
 // through breakParts, breakString and collapseRepeatedMarks, both fonts, and segmentSyllables. The growth exponent,
@@ -12,7 +12,7 @@
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { breakParts, breakString, segmentSyllables, collapseRepeatedMarks } from '../../src/segment.js';
+import { breakParts, breakString, segmentSyllables, collapseRepeatedMarks } from '../../src/rules/segment.js';
 import { SHAPES, PUMPS } from './helpers.mjs';
 import { GROWTH_N, growthExponent, perCall } from '../../scripts/eval/lib/timing.mjs';
 
@@ -49,7 +49,7 @@ function highFullReading(call, make) {
   return full;
 }
 
-describe('growth of src/segment.js (DESIGN.md §6.2)', () => {
+describe('growth of src/rules/segment.js (DESIGN.md §6.2)', () => {
   for (const [name, call] of FORMS) {
     it(name + ' is linear on every shape and pump', (t) => {
       let measured = 0;

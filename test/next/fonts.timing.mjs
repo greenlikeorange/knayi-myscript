@@ -1,4 +1,4 @@
-// Growth of src/engine/fontStages.js (docs/next/DESIGN.md §6.2 item 4, §6.4). Owner: W6 (engine-fonts).
+// Growth of src/stages/fonts.js (docs/next/DESIGN.md §6.2 item 4, §6.4). Owner: W6 (engine-fonts).
 //
 // The check runs, at n, 2n and 4n units (growthExponent of scripts/eval/lib/timing.mjs: n = 8,192 under Node,
 // 1,024 under Bun), through fontToUnicode, Zawgyi and Win:
@@ -12,7 +12,7 @@
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { fontToUnicode } from '../../src/engine/fontStages.js';
+import { fontToUnicode } from '../../src/stages/fonts.js';
 import { growthExponent } from '../../scripts/eval/lib/timing.mjs';
 import { SHAPES, PUMPS, NFC_RUNS } from './helpers.mjs';
 
@@ -30,7 +30,7 @@ function screenedGrowth(call, make) {
 const describeGrowth = (g) => (g.exponent === null ? 'over ' + g.ms.toFixed(0) + ' ms at ' + g.units + ' units'
   : 'exponent ' + g.exponent.toFixed(2) + ' (' + [g.ms, g.ms2, g.ms4].map((ms) => ms.toFixed(2)).join(', ') + ' ms)');
 
-describe('growth of src/engine/fontStages.js (DESIGN.md §6.2)', () => {
+describe('growth of src/stages/fonts.js (DESIGN.md §6.2)', () => {
   for (const font of ['zawgyi', 'win']) {
     it(font + ': linear on every shape, pump and NFC run', (t) => {
       const call = (text) => fontToUnicode(text, font);

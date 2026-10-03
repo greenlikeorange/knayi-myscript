@@ -1,4 +1,4 @@
-// The font pipeline: FONT_STAGES, fontToUnicode and traceFontToUnicode of src/engine/fontStages.js
+// The font pipeline: FONT_STAGES, fontToUnicode and traceFontToUnicode of src/stages/fonts.js
 // (docs/next/DESIGN.md §2.3, §3.9, §3.10, §7.8). Owner: W6 (engine-fonts).
 //
 // Both functions are compared with 2.x zawgyi.toUnicode and win.toUnicode, with and without debug, in the frozen
@@ -11,7 +11,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
-import { FONT_STAGES, fontToUnicode, traceFontToUnicode } from '../../src/engine/fontStages.js';
+import { FONT_STAGES, fontToUnicode, traceFontToUnicode } from '../../src/stages/fonts.js';
 import { createTrace } from '../../src/core/rules.js';
 import { generatedSets } from '../../scripts/eval/lib/inputs.mjs';
 import { tableProbes } from './helpers.mjs';

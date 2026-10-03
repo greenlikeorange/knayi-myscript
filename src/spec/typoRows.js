@@ -5,7 +5,7 @@
 // So their data is a plain literal, not frozen, and each string is one literal (DESIGN.md §2.4 rule 2).
 //
 // The rules of typingFixes.js:12-17 at the reference, in 2.x order. Each row is:
-//   id           stable and unique in this table; engine/typingFixes.js cites it in its comments
+//   id           stable and unique in this table; rules/typingFixes.js cites it in its comments
 //   pattern      the 2.x literal, flags included
 //   replacement  the 2.x replacement string
 //   why          what the row fixes, and why

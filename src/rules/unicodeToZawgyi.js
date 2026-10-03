@@ -26,8 +26,8 @@
 // that is a pure literal starting at U+1000-U+1010 takes a slow search path, 10-50 times slower (decision 29), so
 // the six such rows wrap their first unit in a one-character class and keep the 2.x source as their label.
 
-import { deepFreeze } from './freeze.js';
-import { applyRuleRows, traceRuleRows, startTrace } from './core/rules.js';
+import { deepFreeze } from '../freeze.js';
+import { applyRuleRows, traceRuleRows, startTrace } from '../core/rules.js';
 import { collapseRepeatedMarks } from './segment.js';
 
 // ---------------------------------------------------------------------------------------------------------------

@@ -16,9 +16,9 @@
 // consonant (rows U5 and Z5) or at four e and medial ra glyphs (row Z8). A run of tone marks follows one
 // consonant only, so no unit is read more than a few times.
 
-import { CP, isBurmeseConsonant, isZawgyiPrebase, isZawgyiMedialRa, isZawgyiKinzi } from './script/codes.js';
-import { deepFreeze } from './freeze.js';
-import { ERR, libraryError } from './core/errors.js';
+import { CP, isBurmeseConsonant, isZawgyiPrebase, isZawgyiMedialRa, isZawgyiKinzi } from '../script/codes.js';
+import { deepFreeze } from '../freeze.js';
+import { ERR, libraryError } from '../core/errors.js';
 
 // How a bare consonant (one with no mark after it) joins the syllable after it: rows U7 and Z8, decision 34.
 //   PAIRS     2.x. It joins, but a consonant that has just been joined to the one before it is not bare any more,

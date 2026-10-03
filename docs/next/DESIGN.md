@@ -52,7 +52,7 @@ Where this spec departs from the plan, §1.4 says so and gives the reason.
   - a detached `fontConvert` call never reads a global `debug`;
   - myanmar-tools is looked up from the working directory, not from `library/`.
 - **Not here:**
-  - the 3.0 public API: `toUnicode`, `toZawgyi`, `detectEncoding`, streaming, lossless segmentation, change reports and the CLI. Two cores of it are built here: lossless segmentation in `segment.js` (§7.5), and the core's `detectEncoding` in `detect.js`, which computes that function's result (§7.6, as built). The public functions, which check and clean their text and take their options, are 3.0's;
+  - the 3.0 public API: `toUnicode`, `toZawgyi`, `detectEncoding`, streaming, lossless segmentation, change reports and the CLI. Two cores of it are built here: lossless segmentation in `rules/segment.js` (§7.5), and the core's `detectEncoding` in `rules/detect.js`, which computes that function's result (§7.6, as built). The public functions, which check and clean their text and take their options, are 3.0's;
   - the package `exports` map and the 3.0 builds;
   - any output change.
 
@@ -113,7 +113,7 @@ The recommended option of each decision below is adopted.
 | 31 | ESM-only sources; minimum Node 22.12 for `require(esm)` | `src/package.json` has `"type": "module"`, and `library/` stays CommonJS for the transition. The `engines` field and the exports map come in Phase 6 packaging. |
 | 32 | (b) A CLI | Later. The core never reads the working directory or loads code (§4), so a CLI on it is safe (§10.2 of the plan). |
 | 33 | (b) `OUTPUT_VERSION` | `src/version.js`. It is 1 for the output of 2.10.0 at the reference. |
-| 34 | Lossless segmentation tokens | `forEachBreak` reports positions. The 2.x pairwise rule is one named predicate (`legacyBareConsonantPair`), and `BARE_CONSONANTS` names the policies: `PAIRS` (2.x), `CHAINS` and `SEPARATE`. `segment.js` builds the lossless core, `segmentSyllables` and `syllableBoundaries`: the pieces join to the text, ZWNJ is kept and nothing is reordered. The 3.0 API and its default policy come later; §7.5 gives the corpus counts the default is to be chosen from. |
+| 34 | Lossless segmentation tokens | `forEachBreak` reports positions. The 2.x pairwise rule is one named predicate (`legacyBareConsonantPair`), and `BARE_CONSONANTS` names the policies: `PAIRS` (2.x), `CHAINS` and `SEPARATE`. `rules/segment.js` builds the lossless core, `segmentSyllables` and `syllableBoundaries`: the pieces join to the text, ZWNJ is kept and nothing is reordered. The 3.0 API and its default policy come later; §7.5 gives the corpus counts the default is to be chosen from. |
 | 35 | Delete parseUnicode and serializeUnicode | Not ported. |
 | 36 | normalize idempotent by construction in 3.0 | Later, as a 3.0 option and invariant. compat stays non-idempotent, exactly like 2.x. |
 
@@ -127,7 +127,7 @@ Decisions 5 and 17 are not adopted. §1.4 says what this spec does instead (D6 a
 | D2 | **compat is a strict ES module.** A detached `fontConvert` call never reads `debug` from the global object. In those 10 matrix cells compat matches the 2.x ES module build, and the matrix records them as a known build difference, as it already does for `knayi-myscript.mjs` (§5.4). | Reproducing the sloppy-mode read would mean reading `globalThis.debug` on purpose. That brings back global state and §7 bug #2, which PR 4.1 removes from 2.x. The 2.x ES module build already behaves like this. |
 | D3 | **compat loads myanmar-tools the way the 2.x ES module build does:** by name, from the working directory, in Node and Bun only. This happens in one file, `compat/zawgyiModel.js`. The core takes the detector as an injected object. `main.js` looks the package up from `library/` instead, so this is the second known build difference (§5.4). | Decision 17 is not adopted, so compat keeps the 2.x behaviour (§7 #15). The core never loads code (§4). Injection for compat (Phase 5 #2) arrives with the 2.x port. |
 | D4 | **One trace shape for both kinds of 2.x debug log.** A trace is `{start, records}`. compat builds `steps` as `[start, ...records.map(r => r.text)]`. | 2.x logs font stages as "input, then the text after each stage that changed it", and Unicode to Zawgyi rules as "the text before each logged rule, then the result". The second is the same list as the first, with the collapsed text as `start` (§3.9). One recorder serves both. |
-| D5 | **`fontToUnicode(text, fontName)` takes the font's name.** The compiled fonts stay private to `engine/fontStages.js`. | Callers (compat now, the 3.0 API later) name a font. Only the stages need the compiled form. |
+| D5 | **`fontToUnicode(text, fontName)` takes the font's name.** The compiled fonts stay private to `stages/fonts.js`. | Callers (compat now, the 3.0 API later) name a font. Only the stages need the compiled form. |
 | D6 | **No internal switch back to the 2.10 engine** (decision 5's rollback switch). | Under decision 6(b) the new engine ships with 3.0. A user who needs the old engine stays on the 2.x line, and a 2.x branch is cut when 3.0 reaches main (decision 7). `scripts/oracle/` stays as the test oracle. |
 | D7 | **Glyph roles (`ROLE`) live in `script/codes.js`.** | The fonts (L2) need them, and L2 may not import the engine (L3). |
 | D8 | **`src/version.js` (L0)** holds `PACKAGE_VERSION` and `OUTPUT_VERSION`. | They are constants that both compat and the 3.0 API export. They are not options. |
@@ -137,7 +137,7 @@ Decisions 5 and 17 are not adopted. §1.4 says what this spec does instead (D6 a
 | D12 | **Skeleton first.** The first PR (W0) lands every `src/` file as a stub with its final exports and its complete import list, and every timing file of §6.1 as a skipped stub. Builders then work in parallel against stable imports. Merges follow a fixed order (§7.1). | ESM imports fail at link time when an export is missing. With stubs, each module's own tests run before its dependencies are finished. |
 | D13 | **compat throws the 2.x accidental TypeErrors through one helper, `legacyTypeError()`, which sets no `code`.** `test/next/guards/errors.test.mjs` allows it in `compat/legacy.js` only. | The matrix records a thrown error with a `code` by code and message, and one without a `code` by class only. 2.x's cells are class-only. |
 | D14 | **The ES2015 floor for `src/`.** Syntax is checked by acorn with `ecmaVersion: 2015, sourceType: 'module'`. Built-ins are checked against the denylist of ES2016+ names listed in §6.2, which accepts some false positives. Classes declare no fields: their state is assigned in the constructor. `import.meta` and `globalThis` are not used anywhere in `src/`. | Decision 18(b). Class fields are ES2022, and acorn at ES2015 rejects them. A name cannot tell `Array#includes` (ES2016) from `String#includes` (ES2015), so the list bans both, and `src/` uses `indexOf`. compat's loader detects Node with `typeof process`, which every engine accepts. |
-| D15 | **`engine/` has six files, one per owner:** `syllable.js`, `unicodeReader.js` and `normalizeStages.js` (W5); `fontReader.js` and `fontStages.js` (W6); `typingFixes.js` (W2). The plan's `readers.js` and `stages.js` are each split in two, and its cap of 2-3 files for `engine/` does not apply to `src/`. | No file has two owners, so no builder edits another's import block or helpers. The cap protected bundle bytes from CommonJS module wrappers: the clarity split cost +16%. esbuild bundles ES modules into one scope without wrappers, so a split costs nothing by itself. What costs bytes is top-level code that esbuild cannot drop (D16). `scripts/next/size.mjs` checks both, in every PR from W0 on. |
+| D15 | **One file per owner, and one directory per L3 part:** `engine/` holds the engine (`syllable.js` and `unicodeReader.js`, W5; `fontReader.js`, W6), `rules/` the rules (`typingFixes.js`, W2; `segment.js`, W3; `detect.js`, W4; `unicodeToZawgyi.js`, W7), and `stages/` the stage lists (`normalize.js`, W5; `fonts.js`, W6). The plan's `readers.js` and `stages.js` are each split in two, and its cap of 2-3 files for `engine/` does not apply to `src/`. As built, `engine/` held all six engine-side files and three rules sat at the root of `src/`; the review moved them (§7.11), so a path names its layer and the imports it may make (§2.2). | No file has two owners, so no builder edits another's import block or helpers. The cap protected bundle bytes from CommonJS module wrappers: the clarity split cost +16%. esbuild bundles ES modules into one scope without wrappers, so a split costs nothing by itself. What costs bytes is top-level code that esbuild cannot drop (D16). `scripts/next/size.mjs` checks both, in every PR from W0 on. |
 | D16 | **Top-level code is free of side effects** (§2.4). Data is frozen through one helper, `deepFreeze` (`src/freeze.js`), called with a `/* @__PURE__ */` annotation. So are the compiled fonts, the built tables and the scratch objects. `deepFreeze` freezes plain objects and arrays, and leaves RegExps and typed arrays as they are. | With esbuild 0.25.12 and `"sideEffects": false`, an unused `Object.freeze({...})`, an unannotated call or `new`, and a literal that reads a property (`{a: CP.KA}`) all stay in the bundle, with and without minify. An unannotated top-level `compileFont(TABLE)` keeps the table and `compileFont` in a normalize-only bundle, and a `FONT_STAGES` frozen with a bare `Object.freeze` keeps `readFont` and every stage function with it. Annotated calls whose arguments are identifiers or literals, and plain literals, are dropped. A frozen RegExp has a read-only `lastIndex`, so `replace`, `search`, `match` and `test` throw a TypeError on it (Node 26 and Bun 1.4.2). |
 | D17 | **Rule rows carry no prose at run time.** A row has `id`, `re`, `to`, `repeat`, and `label` only where the 2.x source differs from `re.source`. A row's `why` is a comment above it, its section is the named array it sits in, and its `example` is in the module's test table. The typo rules are documented in `spec/typoRows.js`. | About 75 rows would otherwise ship a sentence and an example each, in compat and in every 3.0 entry, and nobody had measured them against the size targets. The 3.0 trace needs only the `id`. |
 | D18 | **The 2.x reference is the commit `e5f6e24`**, not the branch `safety-net` (§1.1). | A branch can move, and byte identity needs a fixed reference. A bare branch name does not resolve in CI. |
@@ -169,12 +169,12 @@ src/
   engine/syllable.js         L3 engine   SyllableBuffer, orderSyllable and its steps, CodeBuffer, CopyThroughWriter
   engine/unicodeReader.js    L3 engine   UNICODE_READING, SEEN, reorderUnicode
   engine/fontReader.js       L3 engine   FONT_READING, compileFont, readFont, glyphsInTypedOrder
-  engine/typingFixes.js      L3 rules    typos, look-alikes, zero as wa, isInNumber
-  detect.js                  L3 rules    countEvidence, decide, scoreByZawgyiModel, detectFont, detectEncoding
-  segment.js                 L3 rules    break scanners, forEachBreak, breakParts, breakString, segmentSyllables, collapseRepeatedMarks
-  unicodeToZawgyi.js         L3 rules    Unicode to Zawgyi rule rows, unicodeToZawgyi, traceUnicodeToZawgyi
-  engine/normalizeStages.js  L3 stages   NORMALIZE_STAGES, normalizeText, traceNormalizeText
-  engine/fontStages.js       L3 stages   the compiled fonts, FONT_STAGES, fontToUnicode, traceFontToUnicode
+  rules/typingFixes.js       L3 rules    typos, look-alikes, zero as wa, isInNumber
+  rules/detect.js            L3 rules    countEvidence, decide, scoreByZawgyiModel, detectFont, detectEncoding
+  rules/segment.js           L3 rules    break scanners, forEachBreak, breakParts, breakString, segmentSyllables, collapseRepeatedMarks
+  rules/unicodeToZawgyi.js   L3 rules    Unicode to Zawgyi rule rows, unicodeToZawgyi, traceUnicodeToZawgyi
+  stages/normalize.js        L3 stages   NORMALIZE_STAGES, normalizeText, traceNormalizeText
+  stages/fonts.js            L3 stages   the compiled fonts, FONT_STAGES, fontToUnicode, traceFontToUnicode
   compat/index.js            L4          the 2.x export object (named and default exports)
   compat/globalOptions.js    L4          the option store, setGlobalOptions, the silent-aware console writer
   compat/input.js            L4          INPUT_POLICY, enter(), cleanText(), 2.x font-name resolution
@@ -199,8 +199,8 @@ scripts/oracle/              gains syllable.js and contentGate.js, copies of lib
 | L1 core | `core/*.js` | L0, L1 |
 | L2 fonts | `fonts/*.js` | L0, L1 |
 | L3 engine | `engine/syllable.js`, `engine/unicodeReader.js`, `engine/fontReader.js` | L0-L2, L3 engine |
-| L3 rules | `engine/typingFixes.js`, `detect.js`, `segment.js`, `unicodeToZawgyi.js` | L0-L2, L3 rules |
-| L3 stages | `engine/normalizeStages.js`, `engine/fontStages.js` | L0-L3, but not each other |
+| L3 rules | `rules/typingFixes.js`, `rules/detect.js`, `rules/segment.js`, `rules/unicodeToZawgyi.js` | L0-L2, L3 rules |
+| L3 stages | `stages/normalize.js`, `stages/fonts.js` | L0-L3, but not each other |
 | L4 public | `compat/*.js` (and, later, the 3.0 API) | L0-L4 |
 | spec | `spec/*.js` | nothing; nothing in `src/` imports `spec/` (tests do) |
 
@@ -297,7 +297,7 @@ export function isScriptConsonant(code: number): boolean
 export function isScriptWordChar(code: number): boolean
 export function isScriptDigit(code: number): boolean       // Burmese, Shan (U+1090-U+1099), Tai Laing (U+A9F0-U+A9F9)
 
-// Zawgyi classes, shared by detect.js and segment.js.
+// Zawgyi classes, shared by rules/detect.js and rules/segment.js.
 export function isZawgyiPrebase(code: number): boolean     // U+1031, U+103B, U+107E-U+1084
 export function isZawgyiMedialRa(code: number): boolean    // U+103B, U+107E-U+1084
 export function isZawgyiKinzi(code: number): boolean       // U+1064, U+108B-U+108D
@@ -515,7 +515,7 @@ export function fontReaderScratchUnits(): number      // capacity of this module
 
 The memory tests add the two scratch counts; no module sums them.
 
-#### `src/engine/typingFixes.js` (L3 rules)
+#### `src/rules/typingFixes.js` (L3 rules)
 
 ```ts
 type NumberContext = Readonly<{ isDigit(code: number): boolean, isSign(code: number): boolean }>
@@ -538,7 +538,7 @@ The two contexts restate a 2.x difference on purpose (§7 #20), and each is kept
 
 Every function returns its input string when nothing changes (copy-through).
 
-#### `src/detect.js` (L3 rules)
+#### `src/rules/detect.js` (L3 rules)
 
 ```ts
 type Evidence = { unicode: number, zawgyi: number }
@@ -560,7 +560,7 @@ The precondition is that `text` has been cleaned: trimmed, with no U+200B or U+2
 
 2.x `fontDetect` with the rule scorer is `detectEncoding(cleaned).encoding`, with the fallback in place of `'none'` (`fallback || 'en'`) and of `'unknown'` (`fallback || 'zawgyi'`). 3.0's public `detectEncoding` is the core one after `requireText` and cleaning, with a model when one is injected.
 
-#### `src/segment.js` (L3 rules)
+#### `src/rules/segment.js` (L3 rules)
 
 ```ts
 type BreakFont = 'unicode' | 'zawgyi'
@@ -581,11 +581,11 @@ export function looksLikeSgawKaren(text: string): boolean   // row Z6's switch: 
 export function collapseRepeatedMarks(text: string, font: BreakFont): string   // 2.x collapseMarks for a known font
 ```
 
-The precondition for the break functions (`forEachBreak`, `breakParts`, `breakString`) is that `text` has no U+200B or U+200C. 2.x always cleans the text first. `font` is one of the two names. compat resolves every other value (§5.2, C12), and every function of `segment.js` throws `libraryError(ERR.INVALID_ARG_VALUE, …, RangeError)` for any other font, and for a policy outside `BARE_CONSONANTS` (`null` and `'Separate'` included), so that the two fonts never read an unknown value two different ways (as reviewed, §7.11).
+The precondition for the break functions (`forEachBreak`, `breakParts`, `breakString`) is that `text` has no U+200B or U+200C. 2.x always cleans the text first. `font` is one of the two names. compat resolves every other value (§5.2, C12), and every function of `rules/segment.js` throws `libraryError(ERR.INVALID_ARG_VALUE, …, RangeError)` for any other font, and for a policy outside `BARE_CONSONANTS` (`null` and `'Separate'` included), so that the two fonts never read an unknown value two different ways (as reviewed, §7.11).
 
 The policies of `BARE_CONSONANTS`: `PAIRS` is 2.x (`legacyBareConsonantPair`: a consonant that has just been joined to the one before it joins nothing, so ကကက breaks as ကက|က); `CHAINS` joins every bare consonant, as the comment of 2.x syllable.js:239 says; `SEPARATE` joins none, so each bare consonant is a syllable of its own (UTN #11). In Zawgyi text an e or medial ra with no base after it joins the consonant before it under every policy. `segmentSyllables` and `syllableBoundaries` default to `PAIRS` until decision 34 picks the 3.0 default.
 
-#### `src/unicodeToZawgyi.js` (L3 rules)
+#### `src/rules/unicodeToZawgyi.js` (L3 rules)
 
 ```ts
 export const UNICODE_TO_ZAWGYI_RULES: readonly RuleRow[]   // 57 once rows, then 8 repeat rows, in 2.x order
@@ -593,7 +593,7 @@ export function unicodeToZawgyi(text: string): string     // collapseRepeatedMar
 export function traceUnicodeToZawgyi(text: string, trace: Trace): string   // trace.start = the collapsed text
 ```
 
-#### `src/engine/normalizeStages.js` (L3 stages, W5)
+#### `src/stages/normalize.js` (L3 stages, W5)
 
 ```ts
 type NormalizeContext = StageContext & { seen: number }
@@ -607,7 +607,7 @@ export function traceNormalizeText(text: string, trace: Trace): string
 
 2.x `normalize` has no debug output, so these ids are new. The two NFC stages share the label `'NFC'` but not the id, because the 3.0 trace reads records by id (decision 8).
 
-#### `src/engine/fontStages.js` (L3 stages, W6)
+#### `src/stages/fonts.js` (L3 stages, W6)
 
 ```ts
 type FontContext = StageContext & { font: CompiledFont }   // openAllGates is always false: no font stage has a gate
@@ -619,7 +619,7 @@ export function traceFontToUnicode(text: string, fontName: 'zawgyi' | 'win', tra
 
 The font stage `id`s and `label`s are exactly the 2.x names, in this order (README.md, `fontConvert.debugging`; test/zawgyi.test.js). The compiled Zawgyi and Win fonts are private module constants here, each built once at load from `fonts/*.js` by a `/* @__PURE__ */ compileFont(...)` call (§2.4, §3.8).
 
-**Stage ids are unique within a pipeline.** `test/next/guards/pipelines.test.mjs` (W0) imports every exported `*_STAGES` list from `src/engine/` and checks it. The check passes on the skeleton's empty lists, and binds as soon as a list is filled.
+**Stage ids are unique within a pipeline.** `test/next/guards/pipelines.test.mjs` (W0) imports every exported `*_STAGES` list from `src/stages/` and checks it. The check passes on the skeleton's empty lists, and binds as soon as a list is filled.
 
 #### `src/spec/` (readable oracle, not imported by `src/`)
 
@@ -673,9 +673,9 @@ These are dropped:
 
 **Checks.**
 - `test/next/guards/treeShaking.test.mjs` checks rules 1-5 with acorn. It reads the comments through `onComment`, to see each annotation.
-- `scripts/next/size.mjs` bundles a normalize-only entry (`import { normalizeText } from 'src/engine/normalizeStages.js'`) and reads esbuild's metafile. These must contribute 0 bytes to it:
-  - `fonts/*.js`, `engine/fontReader.js` and `engine/fontStages.js`;
-  - `detect.js`, `segment.js` and `unicodeToZawgyi.js`;
+- `scripts/next/size.mjs` bundles a normalize-only entry (`import { normalizeText } from 'src/stages/normalize.js'`) and reads esbuild's metafile. These must contribute 0 bytes to it:
+  - `fonts/*.js`, `engine/fontReader.js` and `stages/fonts.js`;
+  - `rules/detect.js`, `rules/segment.js` and `rules/unicodeToZawgyi.js`;
   - `compat/` and `spec/`.
 - Both run in every PR from W0 on (§7.2).
 
@@ -713,11 +713,11 @@ The cost is small. A table built by a function is still built once, at load, whe
 | BURMESE_DIGIT | U+1040-U+1049 |
 
 **Classes that disagree stay separate**, with a comment, until someone unifies them on purpose (§3.4 of the plan):
-- U+1022 and U+1028 are syllable bases for the readers, but not in the Unicode break letters (`segment.js`, row U2).
+- U+1022 and U+1028 are syllable bases for the readers, but not in the Unicode break letters (`rules/segment.js`, row U2).
 - The Zawgyi break bases do not match the glyph table (syllable.js:226 against zawgyi.js:29-30).
 - The script-wide CONSONANT set is not `isBurmeseConsonant`.
 
-`segment.js` keeps its break-letter and opener sets locally, named after the rows they serve (U2/U6, Z1/Z7, U3/Z4), because no other module uses them.
+`rules/segment.js` keeps its break-letter and opener sets locally, named after the rows they serve (U2/U6, Z1/Z7, U3/Z4), because no other module uses them.
 
 ### 3.2 Mark order: MARK_GROUPS, MARK_RANK and the mark bits
 
@@ -960,7 +960,7 @@ Every change the Unicode reader makes passes through `endSyllable`. Phase 6's ch
 
 ### 3.8 Compiled fonts
 
-`compileFont(definition)` checks the table and builds a `CompiledFont` once, at module load, in `engine/fontStages.js`. Each call is `/* @__PURE__ */` (§2.4), so a bundle that never converts drops both the call and the tables. **The checks run at load and throw `libraryError(ERR.INVALID_FONT_TABLE, …)`** (PR 2.4 of the plan). `test/next/fonts.test.mjs` runs each one on a deliberately broken row, so a bundle that drops them loses no coverage. The checks:
+`compileFont(definition)` checks the table and builds a `CompiledFont` once, at module load, in `stages/fonts.js`. Each call is `/* @__PURE__ */` (§2.4), so a bundle that never converts drops both the call and the tables. **The checks run at load and throw `libraryError(ERR.INVALID_FONT_TABLE, …)`** (PR 2.4 of the plan). `test/next/fonts.test.mjs` runs each one on a deliberately broken row, so a bundle that drops them loses no coverage. The checks:
 
 1. Every key is one UTF-16 unit, and no key or alias is a space (U+0020, U+00A0) or a zero-width character: `readFont` holds or writes those before a glyph could be read (§3.6), so a row for one would be dead.
 2. Every role is a known `ROLE`.
@@ -1011,14 +1011,14 @@ They are the same list, `[start, ...records.map(r => r.text)]`, for a reason. Be
 
 ### 3.10 Stages and the gating policy
 
-A pipeline is a frozen list of stages, run by `core/rules.js` `runStages` (D10). The functions of `engine/normalizeStages.js` and `engine/fontStages.js` are three lines each:
+A pipeline is a frozen list of stages, run by `core/rules.js` `runStages` (D10). The functions of `stages/normalize.js` and `stages/fonts.js` are three lines each:
 - make the pipeline's context;
 - for traces, call `startTrace`;
 - call `runStages`.
 
 If W5's measurement (§7.7) shows that the runner costs more than 2% on the per-word row, `normalizeText` calls its stage functions directly, in list order, and the trace keeps `runStages`. A test then checks on the fuzz that `normalizeText` equals `runStages` over `NORMALIZE_STAGES`, both gate settings included, so the two paths still cannot drift.
 
-The syllables stage of `NORMALIZE_STAGES` stores the reader's `seen` in `ctx.seen`. So `engine/normalizeStages.js` owns both the reader call and the gate check, and the contract sits in one place (§3.4 of the plan).
+The syllables stage of `NORMALIZE_STAGES` stores the reader's `seen` in `ctx.seen`. So `stages/normalize.js` owns both the reader call and the gate check, and the contract sits in one place (§3.4 of the plan).
 
 **A gate skips a stage only when the stage provably cannot change the text.** Only two gates ship (decision 28):
 
@@ -1076,7 +1076,7 @@ Slices that copy-through returns keep the input string alive. ARCHITECTURE.md do
    - Everything the core throws on purpose is `libraryError(code, message, Ctor)` with a code from `ERR`.
    - Core functions document their preconditions (a string, a known font name, cleaned text) and trust their callers: compat now, and the 3.0 API later, which validates with `requireText` and friends.
    - On any string input, no core function throws by accident. A property test calls every core entry point on fuzzed strings.
-5. **The myanmar-tools detector is injected.** `detect.js` takes a `zawgyiModel` object with `getZawgyiProbability(text)`. The core never loads it. compat loads it, for the 2.x API, in `compat/zawgyiModel.js` (D3).
+5. **The myanmar-tools detector is injected.** `rules/detect.js` takes a `zawgyiModel` object with `getZawgyiProbability(text)`. The core never loads it. compat loads it, for the 2.x API, in `compat/zawgyiModel.js` (D3).
 6. **Determinism.** Outputs depend only on the arguments and on the runtime's NFC data.
 
 `test/next/guards/stateless.test.mjs` checks this. It parses every core file with acorn and checks rules 1 and 2. Its one exemption is listed by name: the constant `NFC_MEMO` in `core/nfc.js`. No other may be added. It runs these configurations interleaved in one process:
@@ -1573,7 +1573,7 @@ W8 compat              after all of them; its option, input and legacy files nee
 
 ### 7.4 W2: typing-fixes
 
-- **Owns:** `src/engine/typingFixes.js`, `src/spec/typoRows.js`, `test/next/typingFixes.test.mjs`.
+- **Owns:** `src/rules/typingFixes.js`, `src/spec/typoRows.js`, `test/next/typingFixes.test.mjs`.
 - **May assume:** W0.
 - **Done:**
   - The spec rows equal the 2.x `TYPOS` table (typingFixes.js:12-17): sources, flags and replacements. Each row has its `why`, `source` and `example`, and `fixTypos` cites the row ids in its comments.
@@ -1595,7 +1595,7 @@ W8 compat              after all of them; its option, input and legacy files nee
 
 ### 7.5 W3: segment
 
-- **Owns:** `src/segment.js`, `src/spec/breakRules.js`, `test/next/segment.test.mjs`.
+- **Owns:** `src/rules/segment.js`, `src/spec/breakRules.js`, `test/next/segment.test.mjs`.
 - **May assume:** W0.
 - **Done:**
   - The spec rows equal `BREAK_RULES` of `scripts/oracle/syllable.js` (the reference's `library/syllable.js`): sources, flags, replacements and the switch. Each row has its `why`, `source` and `example`.
@@ -1644,7 +1644,7 @@ W8 compat              after all of them; its option, input and legacy files nee
 
 ### 7.6 W4: detect
 
-- **Owns:** `src/detect.js`, `src/spec/detectorSignatures.js`, `test/next/detect.test.mjs`.
+- **Owns:** `src/rules/detect.js`, `src/spec/detectorSignatures.js`, `test/next/detect.test.mjs`.
 - **May assume:** W0, W1 (`DEFAULTS`, `NO_OPTIONS`, `optionsObject`, `hasMyanmarBlockChar`).
 - **Done:**
   - The spec rows equal `scripts/oracle/signatures.js`, in source and side. Each row has its `why`, `source` and `example`.
@@ -1676,7 +1676,7 @@ W8 compat              after all of them; its option, input and legacy files nee
 - **Owns:**
   - `src/engine/syllable.js`, all of it: `SyllableBuffer`, `orderSyllable` and its steps, `CodeBuffer`, `CopyThroughWriter`, `isHeld`, `marksGoOn` (D9);
   - `src/engine/unicodeReader.js` (`UNICODE_READING`, `SEEN`, `reorderUnicode`, its helpers and scratch, `unicodeReaderScratchUnits`);
-  - `src/engine/normalizeStages.js` (`NORMALIZE_STAGES`, `normalizeText`, `traceNormalizeText`);
+  - `src/stages/normalize.js` (`NORMALIZE_STAGES`, `normalizeText`, `traceNormalizeText`);
   - `test/next/syllable.test.mjs`, `readers-unicode.test.mjs`, `normalize.test.mjs`, `normalize.timing.mjs`.
 - **May assume:** W0, W1 (`runStages`, traces, `toNfc`, `NO_OPTIONS`, `hasMyanmarScriptChar`), W2 (`fixTypos`, `fixLookAlikes`).
 - **First, measure the structure (D10, D22).** Before building on `SyllableBuffer`, the module helpers and `runStages`, time a thin end-to-end slice against `oracle.normalize` on perf's word and line workloads, interleaved, on a quiet machine. The slice is `normalizeText` through `runStages`, with the reader written in this spec's structure. Time the same slice with the stages called directly. Post both ratios in the PR.
@@ -1705,11 +1705,11 @@ W8 compat              after all of them; its option, input and legacy files nee
     | `normalizeText` / `oracle.normalize`, with W1 and W2 merged locally | 0.33 | 0.30 | 0.29 | 0.30 |
 
     The reader prototype (`SCR/performance/fused-arrange.js`) read 0.24-0.28 in the same runs; the buffer objects of §3.3 cost the difference. With W1 and W2, the goals of §6.4 hold for word and string, and line and document sit 0-3% above theirs (0.33 and 0.29), inside perf's noise, so the goals stand until the gate's perf run. Bun 1.4.2, same runs: the reader 0.23-0.33, `normalizeText` 0.28-0.35 with the 2.x typing fixes.
-  - **Size.** The normalize-only bundle is 4,640 B gzip with W1 and W2 still stubs, 340 B over the 4,300 B target. With W1 (and its NFC port) and W2 merged locally it is 6,367 B, 1,517 B over the 4,850 B that §6.4 sets after the port. Of its 17,783 minified bytes, `engine/syllable.js` has 6,465 B, `engine/unicodeReader.js` 2,626 B and `engine/normalizeStages.js` 298 B, mostly the field and method names of §3.3 and §3.7, which minifying keeps. The 4,268 B behind the target was the 2.x `library/normalization.js` deep import (infra-8), not a build of this engine. The target needs the maintainer's decision before the gate.
+  - **Size.** The normalize-only bundle is 4,640 B gzip with W1 and W2 still stubs, 340 B over the 4,300 B target. With W1 (and its NFC port) and W2 merged locally it is 6,367 B, 1,517 B over the 4,850 B that §6.4 sets after the port. Of its 17,783 minified bytes, `engine/syllable.js` has 6,465 B, `engine/unicodeReader.js` 2,626 B and `stages/normalize.js` 298 B, mostly the field and method names of §3.3 and §3.7, which minifying keeps. The 4,268 B behind the target was the 2.x `library/normalization.js` deep import (infra-8), not a build of this engine. The target needs the maintainer's decision before the gate.
   - **The reader's dispatch.** `reorderUnicode` switches on `classOf` first. The classes are disjoint, so the step order of §3.6 holds: only a unit outside the Burmese classes can be held, and only a consonant can start a kinzi. `seen` is noted where those units are read: U+1025 in the base step, and units outside the block in the step for held and other units.
   - **One shortcut.** A bare base, or a kinzi and its base, with nothing held after it skips `orderSyllable` and the comparison, because its source is exactly what would be written.
   - **More members, for W6.** `SyllableBuffer` also has `emptySyllable()`, `replaceBase(code)`, `indexOfMark(code)`, `removeMark(code)` (of a mark it holds) and `capacity()`, the units of all its arrays. `CodeBuffer` also has `makeRoom(units)` and `capacity()`, and keeps its first capacity in `firstCapacity`. `closeSyllable` does nothing when no syllable is open, as 2.x `close()` does. `orderSyllable` skips `rankMarks` and `sortByRank` for fewer than two marks.
-  - **Imports.** `engine/normalizeStages.js` also imports `optionsObject` from `core/options.js`, so `engineOptions` is map-safe (§4 rule 3).
+  - **Imports.** `stages/normalize.js` also imports `optionsObject` from `core/options.js`, so `engineOptions` is map-safe (§4 rule 3).
   - **Tests.** `readers-unicode.fuzz.test.mjs` and `normalize.fuzz.test.mjs` also check every line of the cached corpora (64,989 lines; the reader also on their NFC) when the corpus cache is complete. They never download it, so in CI they skip. The nightly counts took 11.4 s (`syllable.fuzz`, 2M records), 4.4 s (`readers-unicode.fuzz`, 1M strings and 400k random strings) and 11 s (`normalize.fuzz`, 1M strings) on the build machine. The normalize tests skipped while W1 and W2 were stubs; on `next` they bind (§7.1, as integrated).
   - **Growth.** `normalize.timing.mjs` checks `reorderUnicode` and `normalizeText` on every shape and pump, and ka followed by a million pairs of zero-width space and aa (28 ms; the limit is 100 ms). Ka followed by pairs of dot below and virama is a TODO probe, as in test/growth.timing.js, because NFC itself is quadratic there until the port (§8). `reorderUnicode` alone must be linear on it. With W1's port merged locally the probe reads linear, so the integration dropped it (§7.1, as integrated): `normalize.timing.mjs` runs `NFC_RUNS` through `reorderUnicode` and `normalizeText`, with no exemption.
 
@@ -1718,7 +1718,7 @@ W8 compat              after all of them; its option, input and legacy files nee
 - **Owns:**
   - `src/fonts/zawgyi.js`, `src/fonts/win.js`;
   - `src/engine/fontReader.js` (`FONT_READING`, `compileFont`, `readFont`, `glyphsInTypedOrder`, its scratch, `fontReaderScratchUnits`);
-  - `src/engine/fontStages.js` (`FONT_STAGES`, `fontToUnicode`, `traceFontToUnicode`, the compiled fonts);
+  - `src/stages/fonts.js` (`FONT_STAGES`, `fontToUnicode`, `traceFontToUnicode`, the compiled fonts);
   - `test/next/fonts.test.mjs`, `readers-font.test.mjs`, `fontToUnicode.test.mjs`, `fonts.timing.mjs`.
 - **May assume:** W0, W1, W2 (`zeroAsWa`, `fixLookAlikes`, `fixTypos`), W5 (`SyllableBuffer`, `closeSyllable`, `CodeBuffer`, `isHeld`, `marksGoOn`). The font data and `compileFont` can be built before W5 lands.
 - **Measure early**, as W5 does: once `readFont` runs, post an interleaved ratio of `fontToUnicode` against `oracle.zawgyi.toUnicode` on perf's line and word workloads.
@@ -1754,7 +1754,7 @@ W8 compat              after all of them; its option, input and legacy files nee
 
 ### 7.9 W7: unicode-to-zawgyi
 
-- **Owns:** `src/unicodeToZawgyi.js`, `test/next/unicodeToZawgyi.test.mjs`.
+- **Owns:** `src/rules/unicodeToZawgyi.js`, `test/next/unicodeToZawgyi.test.mjs`.
 - **May assume:** W0, W1 (rows, traces), W3 (`collapseRepeatedMarks`).
 - **Done:**
   - There are 57 once rows and 8 repeat rows, in 2.x order. For each row: `ruleLabel(row)` equals the 2.x `RegExp#source`; `to` equals the 2.x replacement; the flag is `g`; `repeat` is right; and `re` is the 2.x literal, or for the six rows of §3.9 its wrapped-first-unit form. Only those six rows have a `label`.
@@ -1803,9 +1803,17 @@ W8 compat              after all of them; its option, input and legacy files nee
   - **Tests**, all against the live `main.js` and `library/` (D19), shared helpers in `test/next/compat-helpers.mjs`: `compat-index` (C1, C27, and every README and ARCHITECTURE example run against compat), `compat-globalOptions` (C2-C4, C25), `compat-input` (C5-C11), `compat-legacy` (C12, C20, every `Object.prototype` name, and, since the review, `legacyWinTables` against the live library/win.js), `compat-fontDetect` (C13, C14, C26, the adapter cases with their own loaders, and the working-directory test of §5.4 in child processes), `compat-fontConvert` (C15-C19, and the detached call of §5.4) and `compat-text` (C21-C24, and the two inputs of §5.1).
   - **Bun installs what it cannot resolve.** Run outside a directory with `node_modules`, Bun auto-installs a package that `require` cannot find; for myanmar-tools that is 1.2.0, which fails to load (detector.js:56), so the 2.x ES module build and compat print "could not be loaded" there instead of "not installed". The working-directory test runs Bun with `--no-install`. Users are not affected where myanmar-tools is installed.
   - **CI.** `next` is in the push branches of `test.yml`, and the `Compat` job of §6.3 runs compare under Node and Bun against the full sha (corpus flags as the `Compare` job), the matrix under both, and the growth check of compat.
-  - **Sizes**, which bind at the gate (`node scripts/next/size.mjs`): compat is 15,926 B gzip, 5,072 B over the 10,854 B target; its own eight files are 6,471 B of its 50,043 minified bytes, and the rest is the core, led by `engine/syllable.js` (6,477 B), `unicodeToZawgyi.js` (5,561 B) and `fonts/win.js` (4,866 B). The normalize-only bundle is unchanged at 6,357 B. Both targets need the maintainer's decision before the gate.
+  - **Sizes**, which bind at the gate (`node scripts/next/size.mjs`): compat is 15,926 B gzip, 5,072 B over the 10,854 B target; its own eight files are 6,471 B of its 50,043 minified bytes, and the rest is the core, led by `engine/syllable.js` (6,477 B), `rules/unicodeToZawgyi.js` (5,561 B) and `fonts/win.js` (4,866 B). The normalize-only bundle is unchanged at 6,357 B. Both targets need the maintainer's decision before the gate.
   - **Speed**, `npm run perf -- --base e5f6e24fa756f8f9c8d790f9a15ede85b135e8ae --head mjs:src/compat/index.js --rounds 5 --max-slowdown 0`, on a machine shared with other builds (load average 5-7), so this is not the gate's quiet run. It passes the binding checks of D22: no Node row above 1.00 (the highest is `fontConvert.unicode-zawgyi` per word, 0.79), and no growth exponent above 1.3 of the 2,264 cells under Node (highest 1.23) or Bun (highest 1.26). Node ratios (line / word / string / document): `normalize` 0.31 / 0.29 / 0.31 / 0.30; `fontConvert.zawgyi-unicode` 0.40 / 0.48 / 0.35 / 0.34; `fontConvert.win-unicode` 0.40 / 0.49 / 0.35 / 0.35; `fontConvert.detected-unicode` 0.33 / 0.30 / 0.32 / 0.32; `fontConvert.unicode-zawgyi` 0.59 / 0.79 / 0.50 / 0.51; `fontDetect` 0.18 / 0.11 / 0.24 / 0.24; `syllBreak.unicode` 0.30 / 0.23 / 0.40 / 0.40; `syllBreak.zawgyi` 0.34 / 0.24 / 0.46 / 0.45; `syllBreak.detected` 0.25 / 0.16 / 0.33 / 0.33; `spellingFix.unicode` 0.28 / 0.18 / 0.50 / 0.50; `spellingFix.zawgyi` 0.08 / 0.05 / 0.16 / 0.16; `truncate.30` 0.29 / 0.18 / 0.34 / 0.34; the `debugging.*` rows within 0.04 of their conversions. Against §6.4, these goals are missed: `normalize` per string and document (0.31 and 0.30 against 0.29), `fontConvert.zawgyi-unicode` per string and document (0.35 and 0.34 against 0.29, as W6 found), and `fontConvert.unicode-zawgyi` per word (0.79 against 0.63). The estimates held: `fontConvert.detected-unicode` per line 0.33 (≤ 0.40), `syllBreak.detected` 0.25 (≤ 0.33) and `truncate.30` 0.29 (≤ 0.50). Under Bun, `fontConvert.unicode-zawgyi` and its debugging row read 0.92-1.03, and three `fontDetect` rows on one string or document read 1.12-1.18 with round ranges of 0.56-1.28, which W4's runs on a quiet machine did not show (1.35-2.3x faster on one long string); they need the gate's quiet run before a reason is given.
   - **The gate is not run yet.** `AT_ACCEPTANCE_GATE` stays false, though no stub is left (`guards/notBuilt.test.mjs` finds 0): the gate also needs the nightly fuzz counts once by hand, a perf run on a quiet machine, and the size decisions above.
+
+### 7.11 Review fixes
+
+A review of W0-W8 on `next-compat` (3af8172) found the problems below. Each fix is its own commit, on a branch from `next-compat`, and none changes compat's output: compare and the contract matrix still show 0 differences against the reference.
+
+- **`segment.js` checks its font and its policy.** An unknown bare-consonant policy acted as `SEPARATE` in Unicode and as `CHAINS` in Zawgyi, and an unknown font as Unicode. Every function now throws a coded `RangeError` for them (§2.3, "`src/rules/segment.js`"), and Zawgyi reads the policy through `bareConsonantJoins`, as Unicode does.
+- **`legacyWinTables` lives in compat.** It moved from `fonts/win.js` to `compat/legacy.js` (§5.1), so the font module holds data only.
+- **One directory per L3 part** (D15). `engine/` holds the engine, `rules/` the rules (`typingFixes.js`, `detect.js`, `segment.js`, `unicodeToZawgyi.js`) and `stages/` the stage lists (`normalize.js`, `fonts.js`, formerly `engine/normalizeStages.js` and `engine/fontStages.js`). A path now names its layer, and so the imports it may make (§2.2). As ES modules the move costs no bytes: compat 16,009 B and normalize-only 6,357 B gzip, before and after.
 
 ---
 
@@ -1870,7 +1878,7 @@ These are the rest of Phase 6. The core is shaped so that they need no core chan
 | `ZAWGYI`, `WIN`, `SEQUENCES`, `CP1252` | `ZAWGYI_GLYPHS`, `WIN_GLYPHS`, `LAGAUNG_SEQUENCES` / `LOOK_ALIKE_SEQUENCES`, `C1_ALIASES` |
 | `lookAlikes`, `typos`, `fixTypos`, `TYPOS` | `fixLookAlikes` (= `readDigitsAsLetters` + `readLettersAsDigits`), `fixTypos`, `TYPO_ROWS` (spec) |
 | `BARE`, `PART`, `RUN`, `nextToDigit`, `isSeparator`, `MARKS`/`MARK`/`isMark` | `isBareWaOrRa`, `isNumberPart`, `isInNumber`, `isNumberSeparator`, `isScriptMark` |
-| `zeroAsWa` (storageOrder.js) | `zeroAsWa` (engine/typingFixes.js). The stage label `'zero as wa'` is unchanged. |
+| `zeroAsWa` (storageOrder.js) | `zeroAsWa` (rules/typingFixes.js). The stage label `'zero as wa'` is unchanged. |
 | `library.detect`, `scoreWithRules`, `scoreWithMyanmarTools`, `chooseAdapter`, `myanmartoolZawgyiDetector`, `fallback_font_type` | `DETECTOR_SIGNATURES` (spec), `countEvidence` + `decide`, `scoreByZawgyiModel`, `pickAdapter` (compat), `zawgyiModel`, `fallback` |
 | `loadMyanmarTools`, `missingMyanmarToolsMessage`, `warnedMissingMyanmarTools`, `myanmarToolsLoadError` | `createZawgyiModelLoader`, and the shared `zawgyiModelLoader`'s `load`, `missingMessage` and `warnOnce` (compat) |
 | `fontDetect(content)` called by the other functions | `detectForRouting(text)` (compat), passed to `chooseFontLegacy` |
@@ -1880,7 +1888,7 @@ These are the rest of Phase 6. The core is shaped so that they need no core chan
 | `toText`, `isMissing`, `resolveFont`, `cleanText(x, true)` | `unboxString`, `enter`, `resolveFont`, `cleanText` = `stripZeroWidthBreaks(x.trim())` (compat) |
 | `DRAWING_ORDER_FONTS`, `drawingOrderToUnicode` | `FONTS[from].visualOrder`, `fontToUnicode` |
 | `convertRules`, `convertText`, `replaceOnce`, `replaceRepeated`, `ruleMatches` | `UNICODE_TO_ZAWGYI_RULES`, `unicodeToZawgyi` / `traceUnicodeToZawgyi`, `applyRuleRows` / `traceRuleRows`, `ruleMatches`, `ruleLabel` |
-| `storageOrder.js` (one file: order, both readers, the font pipeline) | `engine/syllable.js`, `engine/unicodeReader.js`, `engine/fontReader.js`, `engine/normalizeStages.js`, `engine/fontStages.js` (D15) |
+| `storageOrder.js` (one file: order, both readers, the font pipeline) | `engine/syllable.js`, `engine/unicodeReader.js`, `engine/fontReader.js`, `stages/normalize.js`, `stages/fonts.js` (D15) |
 | `COLLAPSE`, `compileCollapse`, `collapseMarks` | per-font repeated-mark sets, `collapseRepeatedMarks` |
 | `BREAK_RULES`, `breakParts`, `joinParts` | `BREAK_RULES` (spec, the oracle); `forEachBreak`, `breakParts`, `breakString`, `legacyBareConsonantPair`, `looksLikeSgawKaren` |
 | `absoulteLength`, `curr`, `syll`, `_curr` (truncate.js) | `budget`, `kept`, `part`, `words` in `fitParts` |

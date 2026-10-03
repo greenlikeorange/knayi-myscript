@@ -1,4 +1,4 @@
-// Unit tests of src/unicodeToZawgyi.js (docs/next/DESIGN.md §7.9): the rule rows against 2.x's
+// Unit tests of src/rules/unicodeToZawgyi.js (docs/next/DESIGN.md §7.9): the rule rows against 2.x's
 // convertRules.unicode.zawgyi (the frozen scripts/oracle/syllable.js), the sections and the why comment of each
 // row, the six wrapped rows (decision 29), an example for each row id (D17), the table probes, and the trace
 // (§3.9, D4). The differential fuzz is in unicodeToZawgyi.fuzz.test.mjs.
@@ -6,7 +6,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import * as acorn from 'acorn';
-import { UNICODE_TO_ZAWGYI_RULES, unicodeToZawgyi, traceUnicodeToZawgyi } from '../../src/unicodeToZawgyi.js';
+import { UNICODE_TO_ZAWGYI_RULES, unicodeToZawgyi, traceUnicodeToZawgyi } from '../../src/rules/unicodeToZawgyi.js';
 import { createTrace, ruleLabel } from '../../src/core/rules.js';
 import { srcText, tableProbes } from './helpers.mjs';
 import {
@@ -199,8 +199,8 @@ describe('the Unicode to Zawgyi rows (DESIGN.md §7.9)', () => {
   });
 });
 
-describe('the sections of src/unicodeToZawgyi.js (DESIGN.md §3.9)', () => {
-  const text = srcText('unicodeToZawgyi.js');
+describe('the sections of src/rules/unicodeToZawgyi.js (DESIGN.md §3.9)', () => {
+  const text = srcText('rules/unicodeToZawgyi.js');
   const comments = [];
   const ast = acorn.parse(text, { ecmaVersion: 'latest', sourceType: 'module', locations: true, onComment: comments });
   const sections = new Map();

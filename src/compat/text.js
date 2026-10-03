@@ -7,8 +7,8 @@
 
 import { hasMyanmarBlockChar } from '../core/input.js';
 import { DEFAULTS } from '../core/options.js';
-import { normalizeText } from '../engine/normalizeStages.js';
-import { prepareBreakText, breakParts, breakString, collapseRepeatedMarks } from '../segment.js';
+import { normalizeText } from '../stages/normalize.js';
+import { prepareBreakText, breakParts, breakString, collapseRepeatedMarks } from '../rules/segment.js';
 import { detectForRouting } from './fontDetect.js';
 import { enter, cleanText, chooseFontLegacy } from './input.js';
 import { legacyBreakFont, legacyCollapseFont, NO_RULES, toJoinSeparator } from './legacy.js';

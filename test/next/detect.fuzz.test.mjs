@@ -1,4 +1,4 @@
-// Differential tests of src/detect.js against the 2.x signatures, the 29 regexes of scripts/oracle/signatures.js
+// Differential tests of src/rules/detect.js against the 2.x signatures, the 29 regexes of scripts/oracle/signatures.js
 // (docs/next/DESIGN.md §6.1, §7.6). countEvidence must give their String#match counts, per side:
 //   - on every string of up to 3 units over the boundary alphabet below: 120,100 strings. A long run
 //     (KNAYI_FUZZ_SCALE above 1, the nightly job) goes to 4 units: 5,884,901 strings, the set of the plan's P1;
@@ -11,7 +11,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import fc from 'fast-check';
-import { countEvidence, decide } from '../../src/detect.js';
+import { countEvidence, decide } from '../../src/rules/detect.js';
 import { oracle, arb, fuzz, internals } from './helpers.mjs';
 import { checkCache, CORPORA } from '../../scripts/eval/datasets.mjs';
 import { corpusSets } from '../../scripts/eval/lib/inputs.mjs';

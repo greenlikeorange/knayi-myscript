@@ -1,4 +1,4 @@
-// The 15 break rules of 2.x, documented: the readable oracle of the break scanners in src/segment.js (DESIGN.md
+// The 15 break rules of 2.x, documented: the readable oracle of the break scanners in src/rules/segment.js (DESIGN.md
 // §2.3). Owner: W3 (segment).
 //
 // spec/ files import nothing, and nothing in src/ imports them; the tests read them, and they are never bundled.

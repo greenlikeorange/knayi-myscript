@@ -15,7 +15,7 @@
 // and the other Win fonts share this encoding. Wwin_Burmese and other ASCII fonts use different mappings and are
 // not covered.
 //
-// Conversion to Unicode runs the stages of engine/fontStages.js FONT_STAGES:
+// Conversion to Unicode runs the stages of stages/fonts.js FONT_STAGES:
 // 1. sequences: letters Win has no glyph for are typed as look-alike sequences (aMomf, Mo, ps, OD;
 //    LOOK_ALIKE_SEQUENCES).
 // 2. syllables: each Win glyph becomes Unicode characters with its role in the syllable (WIN_GLYPHS), and each

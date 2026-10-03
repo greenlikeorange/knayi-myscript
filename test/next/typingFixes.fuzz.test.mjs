@@ -1,4 +1,4 @@
-// Differential fuzz of src/engine/typingFixes.js against the 2.x functions it replaces, in the frozen copies of
+// Differential fuzz of src/rules/typingFixes.js against the 2.x functions it replaces, in the frozen copies of
 // scripts/oracle/ (docs/next/DESIGN.md §6.1, §6.2 item 2, §7.4): fixTypos against typos, fixLookAlikes against
 // lookAlikes (typingFixes.js), and zeroAsWa against zeroAsWa (storageOrder.js). Every output must be identical.
 //
@@ -15,7 +15,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import {
   fixTypos, readDigitsAsLetters, readLettersAsDigits, fixLookAlikes, zeroAsWa
-} from '../../src/engine/typingFixes.js';
+} from '../../src/rules/typingFixes.js';
 import { arb, fuzz, internals, oracle } from './helpers.mjs';
 
 const require = createRequire(import.meta.url);
@@ -95,7 +95,7 @@ function same(name, actual, expected, input) {
   }
 }
 
-describe('src/engine/typingFixes.js against 2.x (targeted fuzz)', () => {
+describe('src/rules/typingFixes.js against 2.x (targeted fuzz)', () => {
   it('fixTypos, fixLookAlikes and zeroAsWa give the 2.x output', () => {
     fuzz.check(fc.property(strings, (text) => {
       same('fixTypos', fixTypos(text), oracle.typingFixes.typos(text), text);

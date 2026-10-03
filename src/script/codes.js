@@ -254,8 +254,8 @@ export function isScriptDigit(code) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// Zawgyi classes, shared by detect.js and segment.js. Zawgyi stores text in drawing order, so e and the medial
-// ra glyphs come before the consonant, and kinzi after it (research/zawgyi-to-unicode.md §2).
+// Zawgyi classes, shared by rules/detect.js and rules/segment.js. Zawgyi stores text in drawing order, so e and the
+// medial ra glyphs come before the consonant, and kinzi after it (research/zawgyi-to-unicode.md §2).
 
 // e (U+1031), and the medial ra glyphs: U+103B and its variants U+107E-U+1084 (the class
 // [\u1031\u103b\u107e-\u1084] of syllable.js:228-242 and of the detector's Zawgyi signatures).

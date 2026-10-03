@@ -1,4 +1,4 @@
-// Growth of src/engine/typingFixes.js (docs/next/DESIGN.md §6.2 item 4). Owner: W2 (typing-fixes).
+// Growth of src/rules/typingFixes.js (docs/next/DESIGN.md §6.2 item 4). Owner: W2 (typing-fixes).
 //
 // Every adversarial shape of SHAPES, the typing-fix shapes below, and every single-character pump of PUMPS
 // (helpers.mjs), at n, 2n and 4n units, through fixTypos, fixLookAlikes and zeroAsWa. fixLookAlikes runs both of
@@ -12,7 +12,7 @@
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { fixTypos, fixLookAlikes, zeroAsWa } from '../../src/engine/typingFixes.js';
+import { fixTypos, fixLookAlikes, zeroAsWa } from '../../src/rules/typingFixes.js';
 import { growthExponent } from '../../scripts/eval/lib/timing.mjs';
 import { SHAPES, PUMPS } from './helpers.mjs';
 
@@ -68,7 +68,7 @@ function screenedExponent(call, make) {
   return lowest;
 }
 
-describe('growth of src/engine/typingFixes.js (DESIGN.md §6.2)', () => {
+describe('growth of src/rules/typingFixes.js (DESIGN.md §6.2)', () => {
   for (const [name, fn] of Object.entries(FUNCTIONS)) {
     it(name + ' is linear on every shape and pump', (t) => {
       let last = '';

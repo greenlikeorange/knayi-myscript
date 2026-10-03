@@ -52,7 +52,7 @@ const MAX_BASE_UNITS = 8;
 //                                        BEFORE_BASE, the attached marks alone for STACK and KINZI
 //   units[textStart[g], end[g])          what it writes when it cannot join a syllable
 
-// Checks the definition and builds its CompiledFont, once, at load (engine/fontStages.js). Throws
+// Checks the definition and builds its CompiledFont, once, at load (stages/fonts.js). Throws
 // libraryError(ERR.INVALID_FONT_TABLE, 'knayi fonts/<name>.js: glyph U+XXXX: <what is wrong>') on the first row
 // that breaks a check of §3.8, so a broken table fails at load, not on some later input.
 export function compileFont(definition) {

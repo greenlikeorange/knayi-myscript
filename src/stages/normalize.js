@@ -15,8 +15,8 @@ import { runStages, startTrace } from '../core/rules.js';
 import { toNfc } from '../core/nfc.js';
 import { hasMyanmarScriptChar } from '../core/input.js';
 import { optionsObject } from '../core/options.js';
-import { reorderUnicode, SEEN } from './unicodeReader.js';
-import { fixTypos, fixLookAlikes } from './typingFixes.js';
+import { reorderUnicode, SEEN } from '../engine/unicodeReader.js';
+import { fixTypos, fixLookAlikes } from '../rules/typingFixes.js';
 
 // Stage ids are new: 2.x normalize has no debug output. The two NFC stages share the label 'NFC' but not the id,
 // because the 3.0 trace reads records by id (decision 8).

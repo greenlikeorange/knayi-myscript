@@ -1,4 +1,4 @@
-// Stage lists (docs/next/DESIGN.md §2.3, D10): every exported *_STAGES list of src/engine/ has well-formed stages
+// Stage lists (docs/next/DESIGN.md §2.3, D10): every exported *_STAGES list of src/stages/ has well-formed stages
 // whose ids are unique within the list, since the 3.0 trace reads records by id (decision 8). The check passes on
 // the skeleton's empty lists, and binds as soon as a list is filled.
 
@@ -8,11 +8,11 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { SRC, srcFiles } from '../helpers.mjs';
 
-const ENGINE_FILES = srcFiles().filter((file) => file.startsWith('engine/'));
+const STAGE_FILES = srcFiles().filter((file) => file.startsWith('stages/'));
 
 async function stageLists() {
   const lists = [];
-  for (const file of ENGINE_FILES) {
+  for (const file of STAGE_FILES) {
     const module = await import(pathToFileURL(path.join(SRC, file)).href);
     for (const [name, value] of Object.entries(module)) {
       if (name.endsWith('_STAGES')) lists.push({ name: file + ' ' + name, stages: value });
@@ -21,7 +21,7 @@ async function stageLists() {
   return lists;
 }
 
-describe('stage lists of src/engine/ (DESIGN.md §2.3)', () => {
+describe('stage lists of src/stages/ (DESIGN.md §2.3)', () => {
   it('finds NORMALIZE_STAGES and FONT_STAGES', async () => {
     const names = (await stageLists()).map((list) => list.name.split(' ')[1]).sort();
     assert.deepEqual(names, ['FONT_STAGES', 'NORMALIZE_STAGES']);

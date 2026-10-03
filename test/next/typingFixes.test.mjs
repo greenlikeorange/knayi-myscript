@@ -1,4 +1,4 @@
-// src/engine/typingFixes.js and src/spec/typoRows.js (docs/next/DESIGN.md §2.3, §3.9, §7.4).
+// src/rules/typingFixes.js and src/spec/typoRows.js (docs/next/DESIGN.md §2.3, §3.9, §7.4).
 //
 // The unit tests: the spec rows against the 2.x TYPOS table, each row's example, the table probes of
 // test/fixtures/tables.json, hand-written cases for each rule of the look-alikes and zero as wa (issue #43's Shan
@@ -12,7 +12,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   fixTypos, readDigitsAsLetters, readLettersAsDigits, fixLookAlikes, zeroAsWa, NUMBER_CONTEXT, isInNumber
-} from '../../src/engine/typingFixes.js';
+} from '../../src/rules/typingFixes.js';
 import { TYPO_ROWS } from '../../src/spec/typoRows.js';
 import { internals, oracle, srcText, tableProbes } from './helpers.mjs';
 
@@ -65,7 +65,7 @@ describe('spec/typoRows.js', () => {
   });
 
   it('fixTypos cites every row id in its comments', () => {
-    const source = srcText('engine/typingFixes.js');
+    const source = srcText('rules/typingFixes.js');
     for (const row of TYPO_ROWS) assert.ok(source.includes(row.id + ':'), row.id + ' is not cited');
   });
 });

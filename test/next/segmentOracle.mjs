@@ -8,7 +8,7 @@
 
 import assert from 'node:assert/strict';
 import { internals } from './helpers.mjs';
-import { breakString, collapseRepeatedMarks } from '../../src/segment.js';
+import { breakString, collapseRepeatedMarks } from '../../src/rules/segment.js';
 
 export const syllable2x = internals('syllable.js', ['BREAK_RULES', 'COLLAPSE', 'breakParts', 'joinParts', 'collapseMarks']);
 const gate2x = internals('contentGate.js', ['cleanText', 'hasMyanmar']);
@@ -47,7 +47,7 @@ export function cleanText(text) {
 
 const MYANMAR_BLOCK = /[\u1000-\u109F]/;
 
-// The same calls on src/segment.js, with the same preamble.
+// The same calls on src/rules/segment.js, with the same preamble.
 export function syllBreakOnCore(content, font, separator) {
   if (!content) return '';
   if (!MYANMAR_BLOCK.test(content)) return content;

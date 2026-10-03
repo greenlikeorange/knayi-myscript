@@ -13,7 +13,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import fc from 'fast-check';
-import { fontToUnicode, traceFontToUnicode } from '../../src/engine/fontStages.js';
+import { fontToUnicode, traceFontToUnicode } from '../../src/stages/fonts.js';
 import { createTrace } from '../../src/core/rules.js';
 import { fuzzSets } from '../../scripts/eval/lib/inputs.mjs';
 import { arb, fuzz } from './helpers.mjs';

@@ -5,7 +5,7 @@
 // convertRules, collapseMarks and convertText. Not a test file: the test globs do not match it.
 
 import { internals } from './helpers.mjs';
-import { traceUnicodeToZawgyi } from '../../src/unicodeToZawgyi.js';
+import { traceUnicodeToZawgyi } from '../../src/rules/unicodeToZawgyi.js';
 import { createTrace } from '../../src/core/rules.js';
 
 const syllable = internals('syllable.js', ['convertRules', 'collapseMarks', 'convertText']);

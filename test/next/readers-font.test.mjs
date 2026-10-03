@@ -15,7 +15,7 @@ import { WIN_FONT } from '../../src/fonts/win.js';
 import {
   FONT_READING, compileFont, readFont, glyphsInTypedOrder, fontReaderScratchUnits
 } from '../../src/engine/fontReader.js';
-import { fontToUnicode } from '../../src/engine/fontStages.js';
+import { fontToUnicode } from '../../src/stages/fonts.js';
 import { internals } from './helpers.mjs';
 
 const storageOrder = internals('storageOrder.js', ['arrange', 'glyphsInTypedOrder']);
