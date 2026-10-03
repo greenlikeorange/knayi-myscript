@@ -33,6 +33,7 @@ git clone https://github.com/greenlikeorange/knayi-myscript.git
 cd knayi-myscript
 npm ci
 npx playwright install chromium firefox webkit
+git config blame.ignoreRevsFile .git-blame-ignore-revs
 npm test
 ```
 
@@ -40,7 +41,7 @@ npm test
 
 - **Run `npm ci` in every clone and every git worktree.** Don't share or symlink `node_modules` between them: a shared one can miss dev dependencies, and then a test such as `test/syntax.test.js`, which needs `acorn`, cannot load.
 - **The tests never write `dist/`.** They build the browser and ESM files into a temporary directory and test that build; `KNAYI_DIST=dist` points them at the committed files instead. `dist/` changes only in release commits, because jsDelivr serves `main`'s `dist/` to sites that load `@master`, and CI fails a pull request that changes it without a new version.
-- **Indentation is two spaces.** `.editorconfig` still says tabs and some older files use them; that is being fixed in one whitespace-only change. Don't reformat lines you don't otherwise change.
+- **Indentation is two spaces**, as `.editorconfig` says. Older files used tabs until one whitespace-only commit replaced them. `.git-blame-ignore-revs` lists that commit, so `git blame` skips it once you run `git config blame.ignoreRevsFile .git-blame-ignore-revs` (in the setup above); GitHub's blame view skips it already. Don't reformat lines you don't otherwise change.
 - **Never push a branch named `master`.** The default branch is `main`. GitHub redirects `master` to `main` only while no `master` branch exists, and jsDelivr links to `@master` depend on that redirect.
 
 The corpora for compare, perf, eval and bench are downloaded into `.eval-cache/` on first use; see [scripts/eval/README.md](scripts/eval/README.md).

@@ -1,0 +1,7 @@
+# Commits that `git blame` skips: whitespace and formatting only, no change in what the code does.
+# GitHub's blame view reads this file by itself. For the command line, run once in each clone:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# A hash here must be the commit as it lands on main. If the commit is rebased or squashed, update it.
+
+# style: indent with spaces (tabs to two spaces, whitespace only)
+f3e38fbc3942533648d7c83513fdc01ebdb988f9
