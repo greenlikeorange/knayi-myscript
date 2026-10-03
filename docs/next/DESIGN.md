@@ -1536,6 +1536,13 @@ W8 compat              after all of them; its option, input and legacy files nee
 - Two orders are kept on purpose:
   - **the two typing-fix orders.** `NORMALIZE_STAGES` runs typos then look-alikes, and `FONT_STAGES` runs look-alikes then typos. The stage lists own this order; the module only provides the functions.
   - **the two zero-in-a-number rules** (§2.3).
+- **As built**, where the build settles what this section leaves open:
+  - The typo row ids are `typo.ii`, `typo.uu`, `typo.au` and `typo.lagaung`. Each string of a spec row is one literal, because the tree-shaking guard reads `spec/` too (§2.4 rule 2).
+  - `fixTypos` runs the one alternation in an exec loop with copy-through, not `String#replace` with a function. The scan is the same; replace's cost per call was most of the time on short text (on FLORES words, the exec loop took 0.51 of replace's time).
+  - `fixLookAlikes` returns its input after one scan when the text has no Burmese digit: the first pass reads only zero and seven, and the second only numbers, which hold a digit. It reads nothing from the reader, so it is not one of the gates that §3.10 and decision 28 leave out. The fuzz checks it against the two passes. On FLORES words it took 0.60 of the two passes' time.
+  - Each exec loop sets its regex's `lastIndex` to 0 first and runs until `exec` returns null, which leaves `lastIndex` at 0 (§4 rule 1). The regexes are private to the module.
+  - `NUMBER_CONTEXT` holds the codes.js predicates `isBurmeseDigit` and `isScriptDigit`, and two local ones, `isArithmeticSign` and `isNoSign`.
+  - The nightly count of `typingFixes.fuzz.test.mjs` is reached at `KNAYI_FUZZ_SCALE=20`. `typingFixes.timing.mjs` runs `SHAPES`, `PUMPS` and 23 shapes of its own through `fixTypos`, `fixLookAlikes` and `zeroAsWa`.
 
 ### 7.5 W3: segment
 
