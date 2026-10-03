@@ -33,9 +33,9 @@ describe('truncate', () => {
     assert.equal(knayi.truncate('ကကကကကကကကကက ခ', { length: 8 }), 'ကကကက...');
   })
 
-  // truncate breaks only the start of the text (syllable.breakStart), up to the first whitespace after the length,
-  // but the switch of the Zawgyi kinzi rule reads the whole text: S'gaw Karen ၢ် (U+1062 U+103A) at the end turns
-  // the rule off, so ပိ and ဂၤ are two syllables, as syllBreak breaks them.
+  // truncate breaks only the start of the text (syllable.breakStart), up to the first whitespace at an index above
+  // length minus the omission's length, but the switch of the Zawgyi kinzi rule reads the whole text: S'gaw Karen ၢ်
+  // (U+1062 U+103A) at the end turns the rule off, so ပိ and ဂၤ are two syllables, as syllBreak breaks them.
   it('breaks the start of the text as the whole text breaks', () => {
     const word = '\u1015\u102d\u1002\u1064\u101c\u102c';
     const text = word + ' ' + '\u1000\u1000 '.repeat(20);
