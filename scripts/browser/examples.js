@@ -4,35 +4,12 @@
 // (test/regex-floor.test.js). It holds the README examples, a few more call forms, and generated inputs over
 // the Myanmar block and Latin-1 (synthetic only, decision 22).
 
-const fs = require('fs');
-const path = require('path');
-const acorn = require('acorn');
+const { readExamples } = require('../testing/readme-examples');
 
-const ROOT = path.join(__dirname, '..', '..');
-
-function isKnayiCall(node) {
-  if (!node || node.type !== 'CallExpression') return false;
-  let callee = node.callee;
-  while (callee.type === 'MemberExpression') callee = callee.object;
-  return callee.type === 'Identifier' && callee.name === 'knayi';
-}
-
-// Every `knayi.…(…)` statement in the javascript blocks of README.md, as source text.
+// Every `knayi.…` call in the code blocks of README.md, as source text: the examples test/readme.test.js runs, read
+// by the same reader (scripts/testing/readme-examples.js).
 function readmeExamples(text) {
-  const readme = text === undefined ? fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8') : text;
-  const examples = [];
-  const fence = /^```javascript\n([\s\S]*?)^```/gm;
-  let match;
-  while ((match = fence.exec(readme))) {
-    const block = match[1];
-    const ast = acorn.parse(block, { ecmaVersion: 'latest', sourceType: 'module' });
-    for (const statement of ast.body) {
-      if (statement.type === 'ExpressionStatement' && isKnayiCall(statement.expression)) {
-        examples.push(block.slice(statement.expression.start, statement.expression.end));
-      }
-    }
-  }
-  return examples;
+  return readExamples(text).map((example) => example.code);
 }
 
 // Call forms the README shows only in prose: the three debugging sources, the rule adapter, options objects,

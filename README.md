@@ -94,11 +94,11 @@ npm install myanmar-tools@1.1.3
 ```
 
 ```javascript
-knayi.fontDetect('မဂၤလာပါ', null, { adapter: 'myanmartools' })
+knayi.fontDetect('မဂၤလာပါ', null, { adapter: 'myanmartools' }) // 'zawgyi'
 knayi.fontDetect('မင်္ဂလာပါ', null, {
   use_myanmartools: true,
   myanmartools_zg_threshold: [0.05, 0.95]
-})
+}) // 'unicode'
 ```
 
 `use_myanmartools: true` selects the same adapter. A probability below the first threshold returns `'unicode'`. A probability above the second returns `'zawgyi'`. A probability between them returns the fallback. The default pair is `[0.05, 0.95]`. If the package is not installed or cannot be loaded, the call uses the rule scorer and warns once. The warning says which of the two happened.
