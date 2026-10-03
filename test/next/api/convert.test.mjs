@@ -55,12 +55,17 @@ describe('toUnicode (DESIGN.md §11.5)', () => {
   });
 
   it('converts each line as it would alone, so a text converts as its lines do', () => {
-    fuzz.check(fc.property(arb.zawgyiText(12), arb.zawgyiText(12), (a, b) => {
-      for (const options of [{ from: 'zawgyi' }, {}]) {
-        assert.equal(toUnicode(a + '\n' + b, options), toUnicode(a, options) + '\n' + toUnicode(b, options),
-          units(a) + ' | ' + units(b));
-      }
-    }), 30000, [], 600000);
+    // Lines with no Myanmar that NFC changes, next to Zawgyi lines: 2.x, and toUnicode before it went line by line,
+    // put e U+0301 through the final NFC when another line had a Myanmar-block character.
+    const notNfc = fc.constantFrom('e\u0301', 'a\u0323\u0302', '\u212B', ' \u0301', 'x');
+    const line = fc.oneof({ weight: 4, arbitrary: arb.zawgyiText(12) }, { weight: 1, arbitrary: notNfc });
+    const sameByLines = (a, b, options) => assert.equal(toUnicode(a + '\n' + b, options),
+      toUnicode(a, options) + '\n' + toUnicode(b, options), units(a) + ' | ' + units(b));
+    fuzz.check(fc.property(line, line, arb.winText(12), arb.winText(12), (a, b, winA, winB) => {
+      for (const options of [{ from: 'zawgyi' }, {}]) sameByLines(a, b, options);
+      sameByLines(winA, winB, { from: 'win' });
+    }), 30000, [['e\u0301', ZAWGYI, 'k', 'aMomf'], [ZAWGYI, '\u212B', 'aMomf', 'k']], 600000);
+    assert.equal(toUnicode('e\u0301\n' + ZAWGYI, { from: 'zawgyi' }), 'e\u0301\n' + ZAWGYI_IN_UNICODE);
   });
 });
 

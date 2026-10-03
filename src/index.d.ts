@@ -16,10 +16,17 @@ export declare const VERSION: string;
  */
 export declare const OUTPUT_VERSION: number;
 
-/** The `code` of every error knayi throws on purpose. */
-export type KnayiErrorCode = 'ERR_KNAYI_INVALID_ARG_TYPE' | 'ERR_KNAYI_INVALID_ARG_VALUE';
+/**
+ * The `code` of every error knayi throws on purpose. The streams of 'knayi-myscript/stream' (src/stream.d.ts) add
+ * two: a line longer than their maxLineLength, and a runtime with no TransformStream, or no TextDecoder for bytes.
+ */
+export type KnayiErrorCode =
+  | 'ERR_KNAYI_INVALID_ARG_TYPE'
+  | 'ERR_KNAYI_INVALID_ARG_VALUE'
+  | 'ERR_KNAYI_LINE_TOO_LONG'
+  | 'ERR_KNAYI_UNSUPPORTED_RUNTIME';
 
-/** An error knayi throws on purpose: a TypeError or RangeError with a code. */
+/** An error knayi throws on purpose: a TypeError, RangeError or Error with a code. */
 export interface KnayiError extends Error {
   code: KnayiErrorCode;
 }

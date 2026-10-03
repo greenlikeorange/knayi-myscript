@@ -103,6 +103,41 @@ export function readCount(api, options, name, fallback) {
   return value;
 }
 
+// options[name] as a limit: a whole number of 1 or more, or Infinity for none; `fallback` when it is undefined or
+// null.
+/**
+ * @param {string} api
+ * @param {Options} options
+ * @param {string} name
+ * @param {number} fallback
+ * @returns {number}
+ */
+export function readLimit(api, options, name, fallback) {
+  const value = options[name];
+  if (value === undefined || value === null) return fallback;
+  if (typeof value !== 'number') {
+    throw libraryError(ERR.INVALID_ARG_TYPE, wrongType(api, 'options.' + name, 'a number', value), TypeError);
+  }
+  if (value !== Infinity && !(value >= 1 && isWholeNumber(value))) {
+    throw libraryError(ERR.INVALID_ARG_VALUE,
+      where(api, 'options.' + name + ' must be a whole number of 1 or more, or Infinity'), RangeError);
+  }
+  return value;
+}
+
+// value when it is a function; else a TypeError.
+/**
+ * @template {Function} F
+ * @param {string} api
+ * @param {string} name
+ * @param {F | unknown} value
+ * @returns {F}
+ */
+export function requireFunction(api, name, value) {
+  if (typeof value === 'function') return /** @type {F} */ (value);
+  throw libraryError(ERR.INVALID_ARG_TYPE, wrongType(api, name, 'a function', value), TypeError);
+}
+
 // options[name] as a string, or `fallback` when it is undefined or null.
 /**
  * @param {string} api
@@ -186,7 +221,7 @@ export function where(api, what) {
  * @param {unknown} value
  * @returns {string}
  */
-function wrongType(api, name, wanted, value) {
+export function wrongType(api, name, wanted, value) {
   return where(api, name + ' must be ' + wanted + ', not ' + describe(value));
 }
 
