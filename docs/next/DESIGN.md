@@ -1454,6 +1454,8 @@ Each numbered step must show:
    - no Node row above 1.00, over 5 rounds;
    - every growth exponent ≤ 1.3 under Node and Bun.
 
+   A second run reads the one-string goals at the size of their evidence (§6.4): `npm run perf -- --base $REF --head mjs:src/compat/index.js --forms normalize,fontConvert.zawgyi-unicode --workloads string,document --long-units 2000000 --min-ms 50 --rounds 5 --growth none`.
+
    It also reports, without blocking:
    - each row against its goal in §6.4. The gate PR lists every goal missed, with its ratio;
    - any Node row above 0.95, explained;
@@ -1473,6 +1475,8 @@ Phase 6 later points the `Compat` job at the last 2.x release instead of the ref
 
 Ratios are head/base time from `npm run perf` (`--base $REF --head mjs:src/compat/index.js`), in Node, on a quiet machine. Below 1 is faster, so ≤ 0.33 means "3x or faster".
 
+**The one-string goals are read at the size of their evidence** (as reviewed, §7.11). The evidence for 0.29 on one string was timed on 2M-4.6M characters, while perf's string and document are 61,425 units, and a call costs relatively more on short text: through the same code, Zawgyi to Unicode read 0.39 of 2.x at 61,425 units, 0.33 at 250,000, 0.29 at 1,000,000 and 0.28 at 2,000,000, and normalize 0.23, 0.23, 0.21 and 0.20. So those two goals are read with `--long-units 2000000`, which repeats the lines up to that size (§6.3, step 5); the default run still reports the 61,425-unit rows.
+
 **What binds and what does not (D22).**
 - **Binding:** no Node row above 1.00, at the gate; every growth exponent ≤ 1.3 under Node and Bun, in every PR (the module timing files and CI's `Compat` job) and at the gate.
 - **Goals**, reported: the ratios below, from §6 of the plan. A goal missed is listed in the PR with its ratio. It does not fail the gate.
@@ -1484,10 +1488,10 @@ The margin column is goal ÷ evidence − 1, the room the goal leaves over the p
 |---|---|---|---|---|
 | `normalize` | line | ≤ 0.33 | measured 3.06x with the simple gates (`SCR/planner/restraint.js`) | 1% |
 | | word | ≤ 0.42 | measured 2.42x with the simple gates | 2% |
-| | string, document | ≤ 0.29 | measured 3.99x | 16% |
+| | string, document | ≤ 0.29 at 2,000,000 units (`--long-units 2000000`; as reviewed) | measured 3.99x on 2M-4.6M characters | 16% |
 | `fontConvert.zawgyi-unicode` | line | ≤ 0.40 | measured 2.57x, reader only (`SCR/judge-perfarch/zg-endstate.out`) | 3% |
 | | word | ≤ 0.60 | measured 1.77x | 6% |
-| | string, document | ≤ 0.29 | measured 3.72x | 8% |
+| | string, document | ≤ 0.29 at 2,000,000 units (`--long-units 2000000`; as reviewed) | measured 3.72x on 2M-4.6M characters | 8% |
 | `fontConvert.detected-unicode` | line | ≤ 0.40 | estimate: detection was 33.8% of the call and gets 4x or more, conversion 2.5x | none (estimate) |
 | `fontConvert.unicode-zawgyi` | line, word | ≤ 0.63 | Phase 1 target, composed from two measurements: atom wrap −36..−39%, collapse −4.6% | 3-8% |
 | `fontConvert.win-unicode` | all | ≤ 1.00, reported | same engine as Zawgyi. The text is synthetic, so the goal is set after PR 0.9's Win set; claims are "Win identity only" (decision 26). | |
@@ -1868,6 +1872,7 @@ A review of W0-W8 on `next-compat` (3af8172) found the problems below. Each fix 
 - **The font pipeline gates its final NFC** (§3.10, gate 4). The final NFC never skipped: in the per-line profile it held 9.7% of the samples, and Zawgyi to Unicode read 0.40, 0.48, 0.34 and 0.34 of 2.x, per line at the edge of its goal of 0.40. The compiled fonts carry an NFC risk per glyph, the reader ORs it for every glyph written whole and notes every unit with no glyph, and the 'NFC' stage runs only when that flag is set. Against the previous commit (5 rounds): Zawgyi 0.89, 0.87, 0.97 and 0.97 under Node.
 - **The lagaung sequence is skipped on text with no four** (§3.10, gate 3). `zg.lagaung.1`, `(^|[^\u1040-\u1049])\u1044…`, starts with an alternation, so it was tried at every position of every text: 1.0-1.8% of the per-line profile. A regex that starts at the four cannot keep 2.x's rule that the unit before the four counts only when no earlier match took it (ES2015 has no lookbehind), so the row keeps its regex and names `needs: '\u1044'`, and `applyRuleRows` skips a row whose `needs` the text lacks. Against the previous commit (5 rounds): Zawgyi 0.98, 0.90, 1.01 and 1.01 under Node, 0.94, 0.99, 0.95 and 0.97 under Bun.
 - **The Bun `fontDetect` rows over 1.10 were a timing effect, and perf reads them better.** In full Bun runs `fontDetect` and `fontDetect.unicode` per string and document read 1.09-1.25, with round ranges of 0.60-1.27, which W4's quiet-machine runs never showed. In isolation, the same timing as perf's (16 calls per run, `Bun.gc` before each run, alternating copies) read 0.40-0.46 in every round: the 2.x base took 632-715 µs per call on the 61,425-character string and next 279-306 µs, so next is about 2.3x faster than 2.x on one string under Bun (the review measured 665 and 290 µs, of which `countEvidence` 258 µs and `cleanText` 28 µs). A replay of perf's rows found the cause: after the line and word rows, JavaScriptCore runs next's `countEvidence` on the long string at about 290 or about 590 µs per call, round to round, and the mode lasts the whole round, so a median of three rounds could land on the slow one. perf now reads a Bun row of one call as each copy's fastest round (`scripts/eval/perf.mjs`, `rowRatio`); in the next full run `fontDetect` per string read 0.61 instead of 1.09, while `fontDetect.unicode` read 1.12 and 1.18 because all three of its rounds ran slow. More rounds (`--rounds 5` at the gate) make an all-slow row less likely; a row still listed reads its round range and these numbers as its reason. The perf change is a tool change, to be made on `main` too.
+- **The one-string goals are read at 2,000,000 units.** perf's string is 61,425 units, but the goal of 0.29 for normalize and Zawgyi to Unicode on one string came from prototypes run on 2M-4.6M characters, and a call costs relatively more on short text. perf gains `--long-units <n>` (`scripts/eval/lib/inputs.mjs` `workloads`), and §6.4 reads those two goals with it. At 2,000,000 units against 2.x (5 rounds): normalize 0.18 per string and document under Node, 0.13 under Bun; Zawgyi to Unicode 0.27 under Node, 0.20 under Bun; Win 0.28 and 0.19-0.20; Unicode to Zawgyi 0.47 and 0.92. The optional steps (c) of the review, checking capacity once per syllable and decoding in chunks of 32,768 units, are not taken: they reach into `CodeBuffer`'s array from outside for 2-3%, and Zawgyi meets its goal at that size without them.
 
 ---
 

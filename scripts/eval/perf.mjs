@@ -11,6 +11,9 @@
 //   --min-ms <n>           a timed run repeats the workload until it takes at least this long (default 10)
 //   --forms a,b            only these call forms (a trailing * matches a prefix)
 //   --workloads a,b        line, word, string, document (default all four)
+//   --long-units <n>       the string and the document repeat the lines until they are n UTF-16 units long (default:
+//                          the lines once, 61,425 units); goals set on long text are read at its size, such as
+//                          2000000
 //   --growth <which>       growth exponents for the head copy (head, the default), both copies, or none
 //   --offline              growth exponents only; they need no corpus cache (the timed rows read only FLORES)
 //   --max-exponent <x>     fail when a head growth exponent is above x (default 1.3)
@@ -50,7 +53,8 @@ const HERE = fileURLToPath(import.meta.url);
 
 function parseArgs(argv) {
   const opts = { base: 'origin/main', head: '.', runtimes: ['node', 'bun'], rounds: 3, runs: 7, lines: 400, minMs: 10, forms: [],
-    workloads: WORKLOADS.slice(), growth: 'head', offline: false, maxExponent: 1.3, maxSlowdown: 0.2, json: null };
+    workloads: WORKLOADS.slice(), longUnits: 0, growth: 'head', offline: false, maxExponent: 1.3, maxSlowdown: 0.2,
+    json: null };
   const value = (i) => {
     if (i + 1 >= argv.length || argv[i + 1].startsWith('--')) throw new Error(argv[i] + ' needs a value');
     return argv[i + 1];
@@ -76,6 +80,7 @@ function parseArgs(argv) {
       case '--min-ms': opts.minMs = decimal(arg, value(i++)); break;
       case '--forms': opts.forms.push(...list(value(i++))); break;
       case '--workloads': opts.workloads = list(value(i++)); break;
+      case '--long-units': opts.longUnits = whole(arg, value(i++)); break;
       case '--growth': opts.growth = value(i++); break;
       case '--offline': opts.offline = true; break;
       case '--max-exponent': opts.maxExponent = decimal(arg, value(i++)); break;
@@ -114,7 +119,8 @@ async function measure({ base, head, opts }) {
     // The same calls on the head copy, whose results are not used: both copies then start the timing with the
     // same history of calls, which the engine's optimisations depend on.
     perfTexts(flores, B, opts.lines);
-    const loads = { unicode: workloads(texts.unicode), zawgyi: workloads(texts.zawgyi), win: workloads(texts.win) };
+    const long = opts.longUnits;
+    const loads = { unicode: workloads(texts.unicode, long), zawgyi: workloads(texts.zawgyi, long), win: workloads(texts.win, long) };
     for (const text of Object.keys(loads)) {
       result.workloads[text] = Object.fromEntries(opts.workloads.map((w) => [w, { calls: loads[text][w].length, chars: chars(loads[text][w]) }]));
     }

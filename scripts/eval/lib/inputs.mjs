@@ -201,15 +201,23 @@ export function perfTexts(flores, base, count) {
 }
 
 // The same text in four shapes: a call per line, a call per word, one call on the lines joined by spaces into one
-// long line, and one call on the lines joined by line breaks (a document).
+// long line, and one call on the lines joined by line breaks (a document). With `longUnits`, the string and the
+// document repeat the lines until they are that many UTF-16 units long, and are cut there.
 export const WORKLOADS = ['line', 'word', 'string', 'document'];
-export function workloads(lines) {
+export function workloads(lines, longUnits) {
   return {
     line: lines,
     word: distinct(lines.flatMap((l) => l.split(/\s+/)).filter(Boolean)),
-    string: [lines.join(' ')],
-    document: [lines.join('\n')]
+    string: [repeatedTo(lines.join(' '), ' ', longUnits)],
+    document: [repeatedTo(lines.join('\n'), '\n', longUnits)]
   };
+}
+
+function repeatedTo(text, joiner, units) {
+  if (!units) return text;
+  let out = text;
+  while (out.length < units) out += joiner + text;
+  return out.slice(0, units);
 }
 
 // Inputs that once took, or could take, super-linear time. make(n) returns about n UTF-16 units.
