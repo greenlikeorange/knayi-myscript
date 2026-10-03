@@ -142,7 +142,7 @@ Keep functions short (about 40 lines in the engine), and name helpers for what t
 
 A rule is anything that decides output: a glyph table entry, an ordering rule, a typing fix, a detector signature, a break rule or a Unicode to Zawgyi rule. Rules change only with evidence.
 
-1. **Write down the evidence** in the research note for that area (`research/zawgyi-to-unicode.md`, `research/normalize.md`, `research/win-fonts.md`), or in a new note:
+1. **Write down the evidence** in the research note for that area (`research/zawgyi-to-unicode.md`, `research/normalize.md`, `research/normalize-idempotence.md`, `research/tie-policy.md`, `research/segmentation.md`, `research/win-fonts.md`), or in a new note:
    - the rule, with examples;
    - counts on the eval corpora: how many lines change per corpus, whether the counts are distinct lines or all lines, and which version of each corpus;
    - how many of the changed lines were checked by hand, and how many of those are right;
