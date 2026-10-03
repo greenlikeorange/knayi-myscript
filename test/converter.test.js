@@ -102,6 +102,21 @@ describe('Converter',()=>{
         assert.equal(typeof pattern, 'string');
       });
     })
+
+    it('returns text from fontConvert whatever `this` is', () => {
+      var convert = knayi.fontConvert;
+      globalThis.debug = true;
+      try {
+        assert.equal(convert('ျမန္မာ', 'unicode', 'zawgyi'), 'မြန်မာ');
+        assert.equal(convert('မြန်မာ', 'zawgyi', 'unicode'), 'ျမန္မာ');
+      } finally {
+        delete globalThis.debug;
+      }
+      assert.equal(knayi.fontConvert.call({ debug: true }, 'ျမန္မာ', 'unicode', 'zawgyi'), 'မြန်မာ');
+      var debugging = knayi.fontConvert.debugging;
+      var log = debugging('ျမန္မာ', 'unicode', 'zawgyi');
+      assert.equal(log.steps[log.steps.length - 1], 'မြန်မာ');
+    })
   })
 
   describe('digit zero from Zawgyi', () => {

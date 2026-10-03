@@ -9,6 +9,12 @@ const zawgyi = require('./zawgyi');
 const DRAWING_ORDER_FONTS = { win: win, zawgyi: zawgyi };
 
 function fontConvert(content, to, from) {
+  return convert(content, to, from, false);
+}
+
+// fontConvert and fontConvert.debugging. The debug flag is an argument, so a call that is not a method call, such
+// as `const f = knayi.fontConvert; f(text, 'unicode')`, returns text whatever the global object holds.
+function convert(content, to, from, debug) {
   content = gate.toText(content);
   if (gate.isMissing(content)) {
     if (!globalOptions.isSilentMode()) console.warn('Content must be specified on knayi.fontConvert.');
@@ -55,7 +61,6 @@ function fontConvert(content, to, from) {
     return content;
   }
 
-  var debug = this && this.debug;
   // Here a Win or Zawgyi source always has a Unicode target.
   if (DRAWING_ORDER_FONTS[from]) return drawingOrderToUnicode(content, from, debug);
 
@@ -71,8 +76,8 @@ function drawingOrderToUnicode(content, from, debug) {
   return { to: 'unicode', from: from, matched_patterns: result.matched_patterns, steps: result.steps };
 }
 
-fontConvert.debugging = function (param1, param2, param3) {
-  return fontConvert.apply({debug: true}, [param1, param2, param3])
-}
+fontConvert.debugging = function (content, to, from) {
+  return convert(content, to, from, true);
+};
 
 module.exports = fontConvert;

@@ -24,18 +24,11 @@ const SNAPSHOT = path.join(ROOT, 'test', 'contract', 'api-matrix.json');
 // release build); see builtDist() in scripts/build.js.
 const BUILDS = ['main.js', 'knayi-myscript.mjs', 'knayi-myscript.min.js'];
 
-// Cells in which a build is expected to differ from main.js, with the reason. `npm run matrix:update` refuses to
-// record a build difference that no entry here explains.
-const KNOWN_BUILD_DIFFERENCES = [
-  {
-    name: 'debug flag read from this',
-    builds: ['knayi-myscript.mjs'],
-    matches: (id) => id.indexOf('detached fontConvert(') === 0,
-    reason: 'fontConvert reads its debug flag from `this` (library/converter.js). A detached call in sloppy code ' +
-      '(CommonJS main.js and the script builds) reads the global object, so a global `debug` variable turns on ' +
-      'the debugging output. The ES module build is strict: `this` is undefined there, and the call returns text.'
-  }
-];
+// Cells in which a build is expected to differ from main.js, with the reason: entries of the form
+// { name, builds: ['knayi-myscript.mjs'], matches: (id) => boolean, reason }. `npm run matrix:update` refuses to
+// record a build difference that no entry here explains. There is none today; the last one went when fontConvert
+// stopped reading its debug flag from `this`, which the strict ES module build read differently.
+const KNOWN_BUILD_DIFFERENCES = [];
 
 // Probes. Synthetic values only: no corpus text goes into the repository.
 const ZAWGYI = '\u103B\u1019\u1014\u1039\u1019\u102C'; // "Myanmar" in Zawgyi
