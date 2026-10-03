@@ -1682,6 +1682,25 @@ W8 compat              after all of them; its option, input and legacy files nee
   - Growth ≤ 1.3 on every shape and pump.
   - Function sizes are within the limits.
   - The PR quotes an interleaved ratio against `oracle.normalize` from a run on a quiet machine. The binding speed check is the gate's perf run.
+- **As built**, where the build settles what this section leaves open:
+  - **The structure, measured first (D10).** The workloads were perf's word and line sets (the first 400 FLORES lines), timed interleaved in one process on Node 26.5, 9 rounds of 7 runs, with local stand-ins for W1's `runStages` and W2's typing fixes. `runStages` cost 4.6% per word and 1.8% per line against the same stage functions called in list order. With W1 and W2 merged locally (`next-core` 481916f, `next-typing-fixes` 96f13f0; the merge is not committed), W1's `runStages` cost 6.0% per word and 1.7% per line. So `normalizeText` calls the stages directly (§3.10), and `traceNormalizeText` keeps `runStages`. `normalize.fuzz.test.mjs` checks on every fuzz string that `normalizeText` equals `runStages` over `NORMALIZE_STAGES`, with both gate settings.
+  - **Speed**, head/base against the frozen 2.x functions, interleaved in one process, Node 26.5, 7 rounds of 7 runs:
+
+    | | line | word | string | document |
+    |---|---|---|---|---|
+    | `reorderUnicode` / `arrangeUnicode` | 0.28-0.31 | 0.30 | 0.28-0.31 | 0.31 |
+    | `normalizeText` / `oracle.normalize`, with the 2.x typing fixes standing in for W2 | 0.35 | 0.43 | 0.31 | 0.31 |
+    | the same, with the plan's typing-fix prototype (`SCR/cleanup/lib/typingFixes-fast.js`) as an estimate of W2 | 0.31 | 0.31 | 0.30 | 0.30 |
+    | `normalizeText` / `oracle.normalize`, with W1 and W2 merged locally | 0.33 | 0.30 | 0.29 | 0.30 |
+
+    The reader prototype (`SCR/performance/fused-arrange.js`) read 0.24-0.28 in the same runs; the buffer objects of §3.3 cost the difference. With W1 and W2, the goals of §6.4 hold for word and string, and line and document sit 0-3% above theirs (0.33 and 0.29), inside perf's noise, so the goals stand until the gate's perf run. Bun 1.4.2, same runs: the reader 0.23-0.33, `normalizeText` 0.28-0.35 with the 2.x typing fixes.
+  - **Size.** The normalize-only bundle is 4,640 B gzip with W1 and W2 still stubs, 340 B over the 4,300 B target. With W1 (and its NFC port) and W2 merged locally it is 6,367 B, 1,517 B over the 4,850 B that §6.4 sets after the port. Of its 17,783 minified bytes, `engine/syllable.js` has 6,465 B, `engine/unicodeReader.js` 2,626 B and `engine/normalizeStages.js` 298 B, mostly the field and method names of §3.3 and §3.7, which minifying keeps. The 4,268 B behind the target was the 2.x `library/normalization.js` deep import (infra-8), not a build of this engine. The target needs the maintainer's decision before the gate.
+  - **The reader's dispatch.** `reorderUnicode` switches on `classOf` first. The classes are disjoint, so the step order of §3.6 holds: only a unit outside the Burmese classes can be held, and only a consonant can start a kinzi. `seen` is noted where those units are read: U+1025 in the base step, and units outside the block in the step for held and other units.
+  - **One shortcut.** A bare base, or a kinzi and its base, with nothing held after it skips `orderSyllable` and the comparison, because its source is exactly what would be written.
+  - **More members, for W6.** `SyllableBuffer` also has `emptySyllable()`, `replaceBase(code)`, `indexOfMark(code)`, `removeMark(code)` (of a mark it holds) and `capacity()`, the units of all its arrays. `CodeBuffer` also has `makeRoom(units)` and `capacity()`, and keeps its first capacity in `firstCapacity`. `closeSyllable` does nothing when no syllable is open, as 2.x `close()` does. `orderSyllable` skips `rankMarks` and `sortByRank` for fewer than two marks.
+  - **Imports.** `engine/normalizeStages.js` also imports `optionsObject` from `core/options.js`, so `engineOptions` is map-safe (§4 rule 3).
+  - **Tests.** `readers-unicode.fuzz.test.mjs` and `normalize.fuzz.test.mjs` also check every line of the cached corpora (64,989 lines; the reader also on their NFC) when the corpus cache is complete. They never download it, so in CI they skip. The nightly counts took 11.4 s (`syllable.fuzz`, 2M records), 4.4 s (`readers-unicode.fuzz`, 1M strings and 400k random strings) and 11 s (`normalize.fuzz`, 1M strings) on the build machine. The normalize tests skip until W1 and W2 are built.
+  - **Growth.** `normalize.timing.mjs` checks `reorderUnicode` and `normalizeText` on every shape and pump, and ka followed by a million pairs of zero-width space and aa (28 ms; the limit is 100 ms). Ka followed by pairs of dot below and virama is a TODO probe, as in test/growth.timing.js, because NFC itself is quadratic there until the port (§8). `reorderUnicode` alone must be linear on it. With W1's port merged locally the probe reads linear, so the rebase onto `next` after W1 drops it.
 
 ### 7.8 W6: engine-fonts
 
