@@ -1,5 +1,5 @@
-// Syllable breaks: the break scanners of both fonts, and the repeated-mark collapse (DESIGN.md §2.3). Layer L3
-// rules. Owner: W3 (segment).
+// Syllable breaks: the break scanners of both fonts, the lossless segmentation of 3.0, and the repeated-mark
+// collapse (DESIGN.md §2.3). Layer L3 rules. Owner: W3 (segment).
 //
 // 2.x broke text with regex rows, kept in src/spec/breakRules.js as the readable oracle: it put U+200B before
 // every letter that may start a syllable (rows U2, Z1 and Z2), deleted each U+200B that a join reason matched,
@@ -8,7 +8,7 @@
 // Nothing is inserted, split or joined to find the breaks.
 //
 // forEachBreak, breakParts and breakString keep the precondition of 2.x: the text has no U+200B or U+200C (2.x
-// always cleans it first, DESIGN.md C9).
+// always cleans it first, DESIGN.md C9). segmentSyllables and syllableBoundaries take any text.
 //
 // Linear time: the loop reads each unit once, and a decision looks at most at a run of tone marks after one
 // consonant (rows U5 and Z5) or at four e and medial ra glyphs (row Z8). A run of tone marks follows one
@@ -23,7 +23,7 @@ import { deepFreeze } from './freeze.js';
 //   CHAINS    every bare consonant joins the syllable after it, as the comment of 2.x syllable.js:239 says: ကကက.
 //   SEPARATE  none joins: a bare consonant is a syllable of its own, with its inherent vowel (UTN #11): က|က|က.
 // forEachBreak, breakParts and breakString default to PAIRS, as 2.x does. Decision 34 picks the default of the
-// 3.0 API from corpus counts (DESIGN.md §7.5).
+// 3.0 API from corpus counts (DESIGN.md §7.5); until then segmentSyllables and syllableBoundaries default to PAIRS.
 export const BARE_CONSONANTS = /* @__PURE__ */ deepFreeze({ PAIRS: 'pairs', CHAINS: 'chains', SEPARATE: 'separate' });
 
 // 2.x joinParts puts U+200B between the parts when no separator is given (syllable.js:272-275).
@@ -77,6 +77,35 @@ export function breakString(text, font, separator) {
     start = index;
   });
   return start === 0 ? prepared : out + prepared.slice(start);
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Lossless segmentation (3.0, decision 34): the breaks of forEachBreak on the text as given. Nothing is cleaned,
+// trimmed or reordered, so segmentSyllables(text, font).join('') === text. Row U1's swap is read only to decide
+// the breaks. U+200B and U+200C are ordinary units here. They never start a syllable, so each one stays at the end
+// of the syllable before it; and they are not spaces, so a letter after one keeps the break that rows U3, U6, Z4
+// and Z7 delete after a space.
+
+// The indexes where a syllable starts, 0 left out: syllable k is text.slice(boundaries[k - 1], boundaries[k]).
+export function syllableBoundaries(text, font, bareConsonants = BARE_CONSONANTS.PAIRS) {
+  const boundaries = [];
+  forEachBreak(prepareBreakText(text, font), font, (index) => {
+    boundaries.push(index);
+  }, bareConsonants);
+  return boundaries;
+}
+
+// The syllables of the text, in order; [] for ''. Every piece is non-empty, and they join to the text.
+export function segmentSyllables(text, font, bareConsonants = BARE_CONSONANTS.PAIRS) {
+  if (text.length === 0) return [];
+  const syllables = [];
+  let start = 0;
+  forEachBreak(prepareBreakText(text, font), font, (index) => {
+    syllables.push(text.slice(start, index));
+    start = index;
+  }, bareConsonants);
+  syllables.push(text.slice(start));
+  return syllables;
 }
 
 // ---------------------------------------------------------------------------------------------------------------

@@ -1,18 +1,18 @@
 // Growth of src/segment.js (docs/next/DESIGN.md §6.2 item 4). Owner: W3 (segment).
 //
 // Every adversarial shape of SHAPES and every single-character pump of PUMPS (helpers.mjs) runs at n and 4n units
-// through breakParts, breakString and collapseRepeatedMarks, both fonts. The growth exponent,
+// through breakParts, breakString and collapseRepeatedMarks, both fonts, and segmentSyllables. The growth exponent,
 // log2(t(4n) / t(n)) / 2 (1 is linear, 2 quadratic), must be at most 1.3 under Node and Bun. As in
 // test/growth.timing.js, a quick reading screens every case, and a case that reads high is measured again in full,
 // at n, 2n and 4n (growthExponent, scripts/eval/lib/timing.mjs), up to twice: a burst of load spoils one reading,
 // seldom three, while a super-linear path reads high every time. A case fails only when every reading is high.
 //
 // The break functions' precondition (no U+200B or U+200C) does not hold for every shape and pump; they still run in
-// linear time on such text.
+// linear time on such text, and segmentSyllables takes it by design.
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { breakParts, breakString, collapseRepeatedMarks } from '../../src/segment.js';
+import { breakParts, breakString, segmentSyllables, collapseRepeatedMarks } from '../../src/segment.js';
 import { SHAPES, PUMPS } from './helpers.mjs';
 import { GROWTH_N, growthExponent, perCall } from '../../scripts/eval/lib/timing.mjs';
 
@@ -25,6 +25,7 @@ const FORMS = [
   ['breakParts zawgyi', (x) => breakParts(x, 'zawgyi')],
   ['breakString unicode', (x) => breakString(x, 'unicode', '|')],
   ['breakString zawgyi', (x) => breakString(x, 'zawgyi', '|')],
+  ['segmentSyllables unicode', (x) => segmentSyllables(x, 'unicode')],
   ['collapseRepeatedMarks unicode', (x) => collapseRepeatedMarks(x, 'unicode')],
   ['collapseRepeatedMarks zawgyi', (x) => collapseRepeatedMarks(x, 'zawgyi')]
 ];

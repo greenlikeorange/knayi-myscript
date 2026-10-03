@@ -3,14 +3,15 @@
 // The spec rows are checked against 2.x's BREAK_RULES (scripts/oracle/syllable.js), and every row's example
 // against both the rows and the scanners. The scanners' character classes are checked on every UTF-16 unit, in the
 // positions each class is read at. Then the 2.x quirks the scanners keep (pairs of bare consonants, the S'gaw
-// Karen switch, row U1's swap), the bare-consonant policies of decision 34, the repeated-mark
+// Karen switch, row U1's swap), the 3.0 lossless segmentation and its bare-consonant policies, the repeated-mark
 // collapse, and the table probes of test/fixtures/tables.json. segment.fuzz.test.mjs holds the differential fuzz.
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import fc from 'fast-check';
 import {
-  BARE_CONSONANTS, prepareBreakText, forEachBreak, breakParts, breakString, looksLikeSgawKaren, collapseRepeatedMarks
+  BARE_CONSONANTS, prepareBreakText, forEachBreak, breakParts, breakString, segmentSyllables, syllableBoundaries,
+  looksLikeSgawKaren, collapseRepeatedMarks
 } from '../../src/segment.js';
 import { BREAK_RULES } from '../../src/spec/breakRules.js';
 import { tableProbes, fuzz } from './helpers.mjs';
@@ -209,6 +210,54 @@ describe('the 2.x quirks the scanners keep', () => {
     assert.equal(breakString(KA + AA, 'unicode', '|'), KA + AA);
     assert.deepEqual(breakParts('', 'unicode'), ['']);
     assert.equal(breakString('', 'zawgyi', '|'), '');
+  });
+});
+
+describe('lossless segmentation (3.0, decision 34)', () => {
+  const words = [
+    '\u1019\u103C\u1014\u103A\u1019\u102C', // မြန်မာ
+    '\u101E\u1004\u103A\u1037 \u1000\u102D\u102F', // သင့်် ကို, asat typed before the dot below
+    '\u1000\u102C\u200B\u1001\u102B\u200C\u1002', // with a zero-width space and non-joiner
+    '  \u1000\u1000\u1000  '
+  ];
+
+  it('joins back to the text, with nothing cleaned, trimmed or reordered', () => {
+    for (const font of FONTS) {
+      for (const text of words) assert.equal(segmentSyllables(text, font).join(''), text, units(text));
+    }
+    assert.deepEqual(segmentSyllables('', 'unicode'), []);
+    assert.deepEqual(syllableBoundaries('', 'unicode'), []);
+  });
+
+  it('decides the breaks on row U1\'s order, but keeps the typed order', () => {
+    const text = words[1];
+    assert.deepEqual(segmentSyllables(text, 'unicode'), [text]);
+    assert.deepEqual(breakParts(text, 'unicode'), [prepareBreakText(text, 'unicode')]);
+  });
+
+  it('keeps U+200B and U+200C at the end of the syllable before them', () => {
+    assert.deepEqual(segmentSyllables(words[2], 'unicode'),
+      [KA + AA + '\u200B', KHA + '\u102B\u200C', '\u1002']);
+    assert.deepEqual(syllableBoundaries(words[2], 'unicode'), [3, 6]);
+  });
+
+  it('takes the bare-consonant policy of forEachBreak, PAIRS by default', () => {
+    const three = KA + KA + KA;
+    for (const font of FONTS) {
+      assert.deepEqual(segmentSyllables(three, font), [KA + KA, KA], font);
+      assert.deepEqual(segmentSyllables(three, font, BARE_CONSONANTS.CHAINS), [three], font);
+      assert.deepEqual(segmentSyllables(three, font, BARE_CONSONANTS.SEPARATE), [KA, KA, KA], font);
+      assert.deepEqual(syllableBoundaries(three, font, BARE_CONSONANTS.SEPARATE), [1, 2], font);
+    }
+  });
+
+  it('on text with no U+200B or U+200C, PAIRS gives the breaks of 2.x breakParts', () => {
+    fc.assert(fc.property(fc.constantFrom(...FONTS), fc.string({ unit: fc.constantFrom(...'\u1000\u1001\u1004\u1025\u1031\u103B\u107E\u1039\u103A\u1037\u1038\u102C\u1064 ('.split('')), maxLength: 12 }),
+      (font, text) => {
+        let at = 0;
+        const expected = syllable2x.breakParts(text, font).slice(0, -1).map((part) => (at += part.length));
+        assert.deepEqual(syllableBoundaries(text, font), expected);
+      }), { seed: fuzz.SEED, numRuns: fuzz.runs(5000, 50000) });
   });
 });
 
