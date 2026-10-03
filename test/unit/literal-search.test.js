@@ -15,8 +15,11 @@ const { loadWithInternals } = require('../../scripts/testing/internals');
 //
 // The range is exactly U+1000-U+1010, and must not widen: from U+1011 the low byte is the higher one, V8 finds the
 // literal quickly, and a class of one is slower (about 5 times as long at U+1011, 1.6 times at U+1014).
-// JavaScriptCore (Bun) runs every class of one slower than the literal, 1.25 to 10 times as long on the same text;
-// the refactor plan accepts that cost on Bun (decision 29).
+// JavaScriptCore (Bun) runs every class of one slower than the literal, 1.25 to 10 times as long on the same text,
+// so fontDetect takes about 10% longer per line under Bun, and up to about 25% longer on one long string or document
+// (npm run perf against the commit before the change). The refactor plan accepts a cost on Bun (decision 29), with
+// an allowance of 15% for fontDetect, which one long string or document goes past; the cost lasts until a scanner
+// replaces the detector regexes.
 //
 // This checks both directions: no regex the library holds or builds, and no needle it searches for, starts with a
 // character from U+1000 to U+1010 as a plain literal; and no otherwise plain literal starts with a class of one
