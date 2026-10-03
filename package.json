@@ -1,6 +1,6 @@
 {
   "name": "knayi-myscript",
-  "version": "2.10.0",
+  "version": "3.0.0-next.0",
   "description": "Knayi Myanmar languages JavaScript library",
   "type": "module",
   "exports": {

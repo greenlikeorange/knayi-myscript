@@ -1,6 +1,6 @@
 # knayi-myscript
 
-JavaScript library for Myanmar (Burmese) text stored as Unicode or Zawgyi. Version 2.10.0. MIT license.
+JavaScript library for Myanmar (Burmese) text stored as Unicode or Zawgyi. Version 3.0.0-next.0, a prerelease of 3.0. MIT license.
 
 It detects the encoding, converts between them, splits syllables, collapses repeated spelling marks, normalizes some Unicode typing errors, and truncates on syllable breaks. It does not segment dictionary words, translate, or tokenize for a language model.
 
@@ -8,13 +8,13 @@ Try every function in the browser at <https://greenlikeorange.github.io/knayi-my
 
 This is knayi 3.0, built on the `next` branch: one API whose functions keep nothing between calls, take their options per call and throw errors with codes, with the 2.x API kept as `knayi-myscript/compat`. A 2.x user can [upgrade](#upgrading-from-2x) by changing one import.
 
-Install it from npm. npm, Yarn, pnpm, and Bun all read that registry.
+Install it from npm. npm, Yarn, pnpm, and Bun all read that registry. The prereleases of 3.0 are on its `next` tag; without a tag you get 2.x.
 
 ```bash
-npm install knayi-myscript
-yarn add knayi-myscript
-pnpm add knayi-myscript
-bun add knayi-myscript
+npm install knayi-myscript@next
+yarn add knayi-myscript@next
+pnpm add knayi-myscript@next
+bun add knayi-myscript@next
 ```
 
 ## Runtime
@@ -45,7 +45,7 @@ No other path loads: 2.x's `knayi-myscript/library/converter` and its `dist/` im
 Browsers load one of three files in `dist/`, from a CDN such as unpkg or jsDelivr:
 
 ```html
-<script src="https://unpkg.com/knayi-myscript@3/dist/knayi-myscript.min.js"></script>
+<script src="https://unpkg.com/knayi-myscript@3.0.0-next.0/dist/knayi-myscript.min.js"></script>
 ```
 
 - `knayi-myscript.min.js` sets the global `knayi`: the 3.0 API, with the 2.x API as `knayi.compat`. A page written for 2.x's global keeps working with `knayi = knayi.compat` after the tag.

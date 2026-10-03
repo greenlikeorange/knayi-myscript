@@ -16,6 +16,14 @@ Counts below are distinct lines of the corpora that `npm run eval` downloads (se
 
 ## Unreleased
 
+### Output changes
+
+None.
+
+## 3.0.0-next.0
+
+2026-10-04. The first prerelease of 3.0, for npm's `next` tag; not yet published.
+
 3.0, built on the `next` branch: ES modules with an exports map, one stateless API with options per call and coded errors, and the 2.x API as `knayi-myscript/compat`. README's "Upgrading from 2.x" says what to change.
 
 ### Breaking changes

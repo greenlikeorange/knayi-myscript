@@ -33,9 +33,10 @@ describe('compat: the export object (C1)', () => {
       { value: compat }));
   });
 
+  // The package's version, as 2.x's main.js gave its own: 3.0's, where the frozen main.js says 2.10.0.
   it('has the version of package.json, as main.js has', () => {
     assert.equal(compat.version, require('../../package.json').version);
-    assert.equal(compat.version, reference.version);
+    assert.equal(typeof reference.version, 'string');
   });
 
   it('gives each function the length of its 2.x function, debugging included', () => {
