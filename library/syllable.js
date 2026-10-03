@@ -1,3 +1,4 @@
+'use strict';
 // Unicode to Zawgyi rules are [pattern, replacement] or [pattern, replacement, label]. Debugging output logs a
 // rule that fires by its label, or by its pattern's source when it has none (convertText, record).
 //

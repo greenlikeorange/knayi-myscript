@@ -1,3 +1,5 @@
+'use strict';
+
 var OPTIONS = {
   silent_mode: false,
   detector: {

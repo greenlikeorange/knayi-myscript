@@ -1,3 +1,5 @@
+'use strict';
+
 const fontDetect = require('./detector');
 const globalOptions = require('./globalOptions');
 const gate = require('./contentGate');

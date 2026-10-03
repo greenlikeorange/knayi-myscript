@@ -1,3 +1,5 @@
+'use strict';
+
 const MYANMAR = /[\u1000-\u109F]/;
 
 const FONT_ALIASES = {

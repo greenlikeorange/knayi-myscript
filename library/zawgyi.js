@@ -1,3 +1,4 @@
+'use strict';
 // Zawgyi -> Unicode.
 //
 // Zawgyi puts Burmese glyphs on the Unicode 5.0 Myanmar code points, and on U+1060-U+1097 for the shapes

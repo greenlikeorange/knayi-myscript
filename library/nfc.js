@@ -1,3 +1,4 @@
+'use strict';
 // NFC in linear time. nfc(text) returns exactly what text.normalize('NFC') returns.
 //
 // NFC puts each run of non-starters (characters of a canonical combining class above 0, such as dot below,

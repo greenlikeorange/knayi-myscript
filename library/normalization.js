@@ -1,3 +1,5 @@
+'use strict';
+
 const globalOptions = require('./globalOptions');
 const gate = require('./contentGate');
 const storageOrder = require('./storageOrder');

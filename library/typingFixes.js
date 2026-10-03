@@ -1,3 +1,4 @@
+'use strict';
 // Typing fixes for Unicode text whose syllables are already in storage order (storageOrder.js): letters and
 // digits that look alike and are typed for each other, and a few misspellings. normalize applies them, and so
 // does Zawgyi and Win conversion, so the two agree.

@@ -1,3 +1,4 @@
+'use strict';
 // Puts text from a visual-order font (Zawgyi, Win) into Unicode storage order.
 //
 // These fonts store text in the order the glyphs are drawn: e and medial ra before the consonant, kinzi and
