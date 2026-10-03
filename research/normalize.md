@@ -97,7 +97,7 @@ Letters and marks the Burmese rules do not know end a syllable and stay where th
 ## 6. Speed
 
 - **Real text:** 4.6 million characters of Wikipedia and Okell text take about 550 ms (2.9: about 830 ms). Zawgyi conversion with the shared typing fixes is as fast as before them.
-- **Worst cases stay linear:** a million marks on one consonant, a million ေ with or without consonants, and a million wa, digits, stacked consonants or kinzi each take about 200 ms or less.
+- **Worst cases stay linear:** a million marks on one consonant, a million ေ with or without consonants, and a million wa, digits, stacked consonants or kinzi each take about 200 ms or less. So does a run of marks of two classes, such as dot below and virama repeated, which NFC has to put in order: the runtime's `String.prototype.normalize` does that in quadratic time (32,000 pairs took about 1 s, 64,000 about 4 s), so `library/nfc.js` puts a long run in order first, and a million characters of it take about 70 ms.
 
 ## 7. Open questions
 

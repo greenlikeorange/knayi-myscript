@@ -20,6 +20,10 @@ Counts below are distinct lines of the corpora that `npm run eval` downloads (se
 
 None.
 
+### Security
+
+- **NFC takes linear time on long runs of combining marks.** `normalize` starts and ends with NFC, and conversion to Unicode from Zawgyi and Win ends with it. `String.prototype.normalize('NFC')` puts each run of combining marks in canonical order with an insertion sort, in quadratic time in Node and in Bun: `'က'` followed by 32,000 pairs of dot below and virama (U+1037 U+1039) took about 1 s in `normalize`, and 64,000 pairs about 4 s, and so did the same shape in Zawgyi and Win conversion and the marks of any other script. knayi now puts every run of more than 30 marks in canonical order itself, in linear time, before it calls `String.prototype.normalize` (`library/nfc.js`): those inputs take 5 and 8 ms, and a million characters about 70 ms. This fixes the case the 2.10.0 notes below list as known. Output is unchanged: the result is exactly what `String.prototype.normalize('NFC')` returns, and the output comparison found 0 differences in 2,771,318 comparisons (every call form on every corpus, mC4 included, and on the generated and fuzz sets), with no change in the API contract matrix.
+
 ### Changed
 
 - Contributor documentation: `ARCHITECTURE.md`, a rewritten `CONTRIBUTING.md`, `SECURITY.md`, this changelog and a pull request template.

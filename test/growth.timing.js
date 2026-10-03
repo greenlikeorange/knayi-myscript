@@ -20,15 +20,12 @@ const knayi = require('../main');
 // fast-check shrinks a failing case and prints its seed; KNAYI_GROWTH_SEED replays it and KNAYI_GROWTH_RUNS
 // sets the number of random cases per call form (a nightly job can run many more).
 //
-// Known: String.prototype.normalize itself takes quadratic time on a long run of combining marks that NFC has
-// to reorder (measured in Node and in Bun), and normalize and conversion to Unicode end with NFC. ka followed
-// by 16,000 pairs of dot below and virama takes about 250 ms in Node 26 and 700 ms in Bun 1.4. Where a call
-// form that runs NFC grows too fast, the case runs again with NFC's own time taken off each call: NFC still runs,
-// so the library takes its usual path. The case is listed as a diagnostic instead of failing only when the rest
-// of the call is linear and NFC was given a long run of non-starters (marks of a combining class above 0), which
-// is what it reorders slowly; any other super-linear time is the library's. The probes under 'known super-linear
-// time' show the problem as TODO tests until the library limits what it passes to NFC, and say when one of them
-// has become linear.
+// NFC: normalize and conversion to Unicode end with NFC, and String.prototype.normalize puts a run of
+// non-starters (marks of a combining class above 0) in order with an insertion sort, in quadratic time, in Node and
+// in Bun: ka followed by 16,000 pairs of dot below and virama took about 250 ms in Node 26 and 700 ms in Bun 1.4.
+// The library runs NFC through library/nfc.js, which puts a long run in order first, in linear time. The tests
+// under 'runs of marks that NFC reorders' check that on such runs in Myanmar and in other scripts, through every
+// call form that runs NFC.
 
 const LIMIT = 2.6; // t(2n) / t(n): about 2 in linear time, 4 in quadratic time (growth exponent 1.38)
 const ATTEMPTS = 3;
@@ -91,17 +88,20 @@ function shape(prefix, pump) {
   return { prefix: String.fromCharCode.apply(null, prefix), pump: String.fromCharCode.apply(null, pump), suffix: '' };
 }
 
-// Inputs that took super-linear time in a release run before the random cases: 2.10.0's normalize, and
-// 2.9.0's Unicode to Zawgyi conversion.
+// Inputs that took super-linear time in a release run before the random cases: 2.10.0's normalize and its NFC
+// (in every conversion to Unicode too), and 2.9.0's Unicode to Zawgyi conversion.
 const EXAMPLES = [
   shape([0x1000], [0x1031]), // ka, then e
   shape([0x1000], [0x103C]), // ka, then medial ra
   shape([0x1000], [0x200B, 0x102C]), // ka, then zero-width space and aa
+  shape([0x1000], [0x1037, 0x1039]), // ka, then dot below and virama (NFC)
+  shape([], [0x1037, 0x1039]), // Zawgyi dot below and virama (NFC)
+  shape([], [0x1039, 0x68]), // Win virama and h (NFC)
   shape([0x1000, 0x1060], [0x102C, 0x102D]), // ka with a stacked ka, then aa and i
   shape([0x1064], [0x102C, 0x102D]) // kinzi, then aa and i
 ].map((example) => [example]);
 
-// Every public call form. `nfc` marks the ones whose output goes through String.prototype.normalize.
+// Every public call form. `nfc` marks the ones whose output goes through NFC (library/nfc.js).
 const FORMS = [
   { name: 'normalize', nfc: true, pumps: true, run: (s) => knayi.normalize(s) },
   { name: 'fontConvert zawgyi to unicode', nfc: true, pumps: true, run: (s) => knayi.fontConvert(s, 'unicode', 'zawgyi') },
@@ -145,9 +145,8 @@ function median(values) {
 }
 
 // How the call's time grows from k to 2k units: { ok, chars, ratios, ms }. After a ratio above LIMIT the next
-// measurement is at twice the size, until 4k units would pass MAX_CHARS. `timer` times one call.
-function growth(fn, shape, timer) {
-  timer = timer || time;
+// measurement is at twice the size, until 4k units would pass MAX_CHARS.
+function growth(fn, shape) {
   const make = (k) => shape.prefix + shape.pump.repeat(k) + shape.suffix;
   let k = Math.ceil(START_CHARS / shape.pump.length);
   const ratios = [];
@@ -160,8 +159,8 @@ function growth(fn, shape, timer) {
     const a = [];
     const b = [];
     for (let r = 0; r < REPS; r++) {
-      a.push(timer(fn, small));
-      b.push(timer(fn, big));
+      a.push(time(fn, small));
+      b.push(time(fn, big));
     }
     const ms = [median(a), median(b)];
     if (ms[1] > SLOW_MS) return { ok: false, chars: big.length, ratios, ms };
@@ -178,52 +177,6 @@ function growth(fn, shape, timer) {
   }
 }
 
-// Whether a character is a non-starter (canonical combining class above 0), read from NFD: canonical ordering moves
-// U+0334 (class 1) in front of a mark of a higher class. A mark of class 1 itself reads as a starter here.
-const OVERLAY = String.fromCharCode(0x334);
-const nonStarters = new Map();
-function isNonStarter(ch) {
-  if (!nonStarters.has(ch)) nonStarters.set(ch, ('a' + ch + OVERLAY).normalize('NFD') === 'a' + OVERLAY + ch.normalize('NFD'));
-  return nonStarters.get(ch);
-}
-
-function longestNonStarterRun(text) {
-  let longest = 0;
-  let run = 0;
-  for (const ch of text) {
-    run = isNonStarter(ch) ? run + 1 : 0;
-    if (run > longest) longest = run;
-  }
-  return longest;
-}
-
-// Whether NFC alone explains the growth: the call grows linearly once String.prototype.normalize's own time is taken
-// off each call, and the text NFC was last given holds a run of at least 256 non-starters.
-function nfcExplains(fn, shape) {
-  const nfc = String.prototype.normalize;
-  let spent = 0;
-  let last = '';
-  String.prototype.normalize = function () {
-    last = String(this);
-    const start = process.hrtime.bigint();
-    try {
-      return nfc.apply(this, arguments);
-    } finally {
-      spent += Number(process.hrtime.bigint() - start) / 1e6;
-    }
-  };
-  let result;
-  try {
-    result = growth(fn, shape, (f, input) => {
-      spent = 0;
-      return time(f, input) - spent;
-    });
-  } finally {
-    String.prototype.normalize = nfc;
-  }
-  return result.ok && longestNonStarterRun(last) >= 256;
-}
-
 function codePoints(input) {
   return Array.from(input, (ch) => 'U+' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')).join(' ');
 }
@@ -237,15 +190,10 @@ function describeCase(shape, result) {
 
 describe('time grows linearly on structured random input', () => {
   FORMS.forEach((form, index) => {
-    it(form.name, (t) => {
+    it(form.name, () => {
       fc.assert(fc.property(shapes, (shape) => {
         const result = growth(form.run, shape);
-        if (result.ok) return;
-        if (form.nfc && nfcExplains(form.run, shape)) {
-          t.diagnostic('NFC, not the library, grows too fast (known): ' + describeCase(shape, result));
-          return;
-        }
-        assert.fail(form.name + ' grows faster than linear: ' + describeCase(shape, result));
+        assert.ok(result.ok, form.name + ' grows faster than linear: ' + describeCase(shape, result));
       }), { seed: SEED + index, numRuns: RUNS, examples: EXAMPLES });
     });
   });
@@ -278,39 +226,36 @@ describe('time grows linearly on a run of one character', () => {
         if (quickRatio(form.run, pump) <= LIMIT) continue;
         measured++;
         const result = growth(form.run, pump);
-        if (result.ok) continue;
-        if (form.nfc && nfcExplains(form.run, pump)) {
-          t.diagnostic('NFC, not the library, grows too fast (known): ' + describeCase(pump, result));
-          continue;
-        }
-        assert.fail(form.name + ' grows faster than linear: ' + describeCase(pump, result));
+        assert.ok(result.ok, form.name + ' grows faster than linear: ' + describeCase(pump, result));
       }
       t.diagnostic(PUMPS.length + ' pumps, ' + measured + ' measured in full after a high first reading');
     });
   }
 });
 
-const NFC_TODO = 'String.prototype.normalize reorders a long run of combining marks in quadratic time, and the ' +
-  'library passes such runs to NFC; it needs to limit them first (UAX #15 stream-safe text)';
+// Runs of marks of two combining classes, which NFC has to put in order, in Myanmar and in other scripts (the
+// unit is UTF-16 code units, so an astral mark is a surrogate pair). library/nfc.js puts them in order before
+// String.prototype.normalize sees them; before it did, the first three (in EXAMPLES too) took quadratic time.
+const NFC_RUNS = [
+  ['ka, then dot below and virama', shape([0x1000], [0x1037, 0x1039])],
+  ['Zawgyi dot below and virama', shape([], [0x1037, 0x1039])],
+  ['Win virama and h', shape([], [0x1039, 0x68])],
+  ['ka, then asat and dot below', shape([0x1000], [0x103A, 0x1037])],
+  ['Latin a, then acute and dot below', shape([0x61], [0x301, 0x323])],
+  ['Greek alpha, then ypogegrammeni and dialytika tonos', shape([0x3B1], [0x345, 0x344])],
+  ['Hebrew bet, then dagesh and qamats', shape([0x5D1], [0x5BC, 0x5B8])],
+  ['Arabic beh, then shadda and fatha', shape([0x628], [0x651, 0x64E])],
+  ['Tibetan ka, then U+0F73 and U+0F39', shape([0xF40], [0xF73, 0xF39])],
+  ['x, then the musical augmentation dot and stem (U+1D16D, U+1D165)', shape([0x78], [0xD834, 0xDD6D, 0xD834, 0xDD65])]
+];
 
-describe('known super-linear time', () => {
-  const dotBelowVirama = shape([0x1000], [0x1037, 0x1039]); // ka, then dot below and virama
-  // The runtime's own NFC, for reference: no change to knayi can make this linear, so it only reports.
-  it('String.prototype.normalize itself on ' + codePoints(dotBelowVirama.prefix + dotBelowVirama.pump) + ' repeated', (t) => {
-    const result = growth((s) => s.normalize('NFC'), dotBelowVirama);
-    t.diagnostic((result.ok ? 'linear in this runtime: ' : 'super-linear in this runtime: ') + describeCase(dotBelowVirama, result));
-  });
-  const probes = [
-    ['normalize', (s) => knayi.normalize(s), dotBelowVirama],
-    ['fontConvert win to unicode', (s) => knayi.fontConvert(s, 'unicode', 'win'), shape([], [0x1039, 0x68])],
-    ['fontConvert zawgyi to unicode', (s) => knayi.fontConvert(s, 'unicode', 'zawgyi'), shape([], [0x1037, 0x1039])]
-  ];
-  // A TODO test that passes is reported quietly, so a probe that has become linear says so.
-  for (const [name, fn, probe] of probes) {
-    it(name + ' on ' + codePoints(probe.prefix + probe.pump) + ' repeated', { todo: NFC_TODO }, (t) => {
-      const result = growth(fn, probe);
-      if (result.ok) t.diagnostic('now linear: move this probe to EXAMPLES and drop it from this list');
-      assert.ok(result.ok, describeCase(probe, result));
+describe('time grows linearly on runs of marks that NFC reorders', () => {
+  for (const form of FORMS.filter((f) => f.nfc)) {
+    it(form.name, () => {
+      for (const [name, run] of NFC_RUNS) {
+        const result = growth(form.run, run);
+        assert.ok(result.ok, form.name + ' on ' + name + ' grows faster than linear: ' + describeCase(run, result));
+      }
     });
   }
 });

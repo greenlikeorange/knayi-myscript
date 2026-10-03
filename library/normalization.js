@@ -2,6 +2,7 @@ const globalOptions = require('./globalOptions');
 const gate = require('./contentGate');
 const storageOrder = require('./storageOrder');
 const typingFixes = require('./typingFixes');
+const nfc = require('./nfc');
 
 // Unicode text -> the same text in Unicode storage order (Unicode Technical Note #11), with a few typing fixes,
 // as NFC. The syllables are put in order, and the typing fixes made, by the same rules as Zawgyi and Win
@@ -18,9 +19,10 @@ function normalize(content) {
     return content;
 
   // NFC first as well as last: it can move a dot below in front of an asat or virama, which changes what
-  // they attach to, so the syllables are read from NFC text.
-  var text = storageOrder.arrangeUnicode(content.normalize('NFC'));
-  return typingFixes.lookAlikes(typingFixes.typos(text)).normalize('NFC');
+  // they attach to, so the syllables are read from NFC text. nfc is String.prototype.normalize('NFC') in linear
+  // time (nfc.js).
+  var text = storageOrder.arrangeUnicode(nfc(content));
+  return nfc(typingFixes.lookAlikes(typingFixes.typos(text)));
 }
 
 module.exports = normalize;

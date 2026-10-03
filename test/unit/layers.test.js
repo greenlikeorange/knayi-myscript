@@ -9,7 +9,7 @@ const root = path.join(__dirname, '..', '..');
 // Every file in library/ and main.js sits in a layer, and a file may require only files in its own layer or a
 // lower one. The layers follow the planned layout (low to high):
 //
-//   L0 script    code points and character classes (planned: library/script/codes.js)
+//   L0 script    code points, character classes and NFC (library/nfc.js; planned: library/script/codes.js)
 //   L1 core      options, input checks and the rule runner (planned: library/core/)
 //   L2 fonts     font data: glyph tables and sequences (planned: library/fonts/)
 //   L3 engine    syllable order and the readers (planned: library/engine/syllable.js and readers.js)
@@ -21,7 +21,7 @@ const root = path.join(__dirname, '..', '..');
 // The three L3 parts are ordered as the data flows: the readers know nothing of the rules run after them.
 // A file added to library/ fails this test until it is given a layer here.
 const LAYERS = [
-  ['L0 script', []],
+  ['L0 script', ['library/nfc.js']],
   ['L1 core', ['library/globalOptions.js', 'library/contentGate.js']],
   ['L2 fonts', ['library/zawgyi.js', 'library/win.js']],
   ['L3 engine', ['library/storageOrder.js']],

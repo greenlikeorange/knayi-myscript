@@ -213,8 +213,10 @@ export function workloads(lines) {
 }
 
 // Inputs that once took, or could take, super-linear time. make(n) returns about n UTF-16 units.
-// The first 26 are the adversarial sweep of the refactor plan; the rest come from test/performance.test.js and the
-// 2.10 quadratic normalize (a consonant followed by a long run of e or medial ra).
+// The first 26 are the adversarial sweep of the refactor plan; the next ten come from test/performance.test.js and the
+// 2.10 quadratic normalize (a consonant followed by a long run of e or medial ra); the last ten are runs of marks of
+// two combining classes, which NFC puts in order (String.prototype.normalize does it in quadratic time, so
+// library/nfc.js puts long runs in order first), in Myanmar and in other scripts.
 const rep = (unit, n) => unit.repeat(Math.max(1, Math.round(n / unit.length)));
 const s = (...codes) => cp(...codes);
 export const SHAPES = [
@@ -253,7 +255,17 @@ export const SHAPES = [
   ['ka + i + e run', (n) => s(KA, 0x102d) + rep(s(0x1031), n)],
   ['ka + medial ya run, then e', (n) => s(KA) + rep(s(0x103b), n) + s(0x1031)],
   ['ka + (medial ya + e) run', (n) => s(KA) + rep(s(0x103b, 0x1031), n)],
-  ['(ka + 50 e) repeated', (n) => rep(s(KA) + s(0x1031).repeat(50), n)]
+  ['(ka + 50 e) repeated', (n) => rep(s(KA) + s(0x1031).repeat(50), n)],
+  ['ka + (dot below + virama) run', (n) => s(KA) + rep(s(0x1037, 0x1039), n)],
+  ['(dot below + virama) run', (n) => rep(s(0x1037, 0x1039), n)],
+  ['Win (virama + h) run', (n) => rep(s(0x1039) + 'h', n)],
+  ['ka + (asat + dot below) run', (n) => s(KA) + rep(s(0x103a, 0x1037), n)],
+  ['Latin a + (acute + dot below) run', (n) => 'a' + rep(s(0x301, 0x323), n)],
+  ['Greek alpha + (ypogegrammeni + U+0344) run', (n) => s(0x3b1) + rep(s(0x345, 0x344), n)],
+  ['Hebrew bet + (dagesh + qamats) run', (n) => s(0x5d1) + rep(s(0x5bc, 0x5b8), n)],
+  ['Arabic beh + (shadda + fatha) run', (n) => s(0x628) + rep(s(0x651, 0x64e), n)],
+  ['Tibetan ka + (U+0F73 + U+0F39) run', (n) => s(0xf40) + rep(s(0xf73, 0xf39), n)],
+  ['x + (U+1D16D + U+1D165) run', (n) => 'x' + rep(s(0x1d16d, 0x1d165), n)]
 ].map(([id, make]) => ({ id, make }));
 
 // The call forms each shape runs through (the operations of the plan's sweep).

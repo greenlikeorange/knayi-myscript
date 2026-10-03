@@ -1,11 +1,12 @@
 # Architecture
 
-How knayi-myscript is built today: version 2.10.0, including the Shan look-alike fix (#73) and the fix for `normalize`'s quadratic time on runs of e and medial ra (#74). This is a map of the current code, not a target design. A pull request that changes something described here updates this file in the same PR.
+How knayi-myscript is built today: version 2.10.0, including the Shan look-alike fix (#73), the fix for `normalize`'s quadratic time on runs of e and medial ra (#74), and NFC in linear time (`library/nfc.js`). This is a map of the current code, not a target design. A pull request that changes something described here updates this file in the same PR.
 
 - [Entry points and builds](#entry-points-and-builds)
 - [Module map](#module-map)
 - [What each call does](#what-each-call-does)
 - [The syllable engine](#the-syllable-engine-librarystorageorderjs)
+- [NFC in linear time](#nfc-in-linear-time-librarynfcjs)
 - [Typing fixes and their two orders](#typing-fixes-and-their-two-orders)
 - [Detection, breaks and the Unicode to Zawgyi rules](#detection-breaks-and-the-unicode-to-zawgyi-rules)
 - [Glossary](#glossary)
@@ -51,6 +52,7 @@ All library code is CommonJS in `library/`.
 | `globalOptions.js` | `isSilentMode`, `setOptions`, `detector` | The module-level option store and the detector-option merge. |
 | `storageOrder.js` | `ROLES`, `font`, `toUnicode`, `arrangeUnicode` | The syllable engine: the shared syllable sort `order`, the font reader `arrange`, the Unicode reader `arrangeUnicode`, the font compiler `font` and the font pipeline `toUnicode`. |
 | `typingFixes.js` | `lookAlikes`, `typos` | Zero and seven read as wa and ra (and back), and four typo rules. |
+| `nfc.js` | `nfc`, and `nfc.reorder` for the tests | `String.prototype.normalize('NFC')` in linear time: long runs of combining marks are put in order first ([below](#nfc-in-linear-time-librarynfcjs)). |
 | `zawgyi.js` | `toUnicode` | The Zawgyi glyph table and its two lagaung sequences. |
 | `win.js` | `toUnicode`, `tables` | The Win Innwa glyph table, its look-alike sequences and the Windows-1252 to C1 aliases. `tables` is `{ WIN, SEQUENCES, ROLES }`, read by `scripts/eval/win-glyphs.mjs`. |
 | `syllable.js` | `parseUnicode`, `serializeUnicode`, `collapseMarks`, `breakParts`, `joinParts`, `convertText` | Four jobs in one file: the Unicode to Zawgyi rules, the mark-collapse rules, the syllable-break rules, and a Unicode syllable parser that only the tests use (`parseUnicode`, `serializeUnicode`). |
@@ -65,21 +67,22 @@ main.js
 ├── syllBreak.js ────────── detector.js, globalOptions.js, contentGate.js, syllable.js
 ├── spellingCheck.js ────── detector.js, globalOptions.js, contentGate.js, syllable.js
 ├── truncate.js ─────────── detector.js, globalOptions.js, contentGate.js, syllable.js
-└── normalization.js ────── globalOptions.js, contentGate.js, storageOrder.js, typingFixes.js
+└── normalization.js ────── globalOptions.js, contentGate.js, storageOrder.js, typingFixes.js, nfc.js
 
-zawgyi.js, win.js ───────── storageOrder.js ───── typingFixes.js
-leaves: globalOptions.js, contentGate.js, syllable.js, typingFixes.js
+zawgyi.js, win.js ───────── storageOrder.js ───── typingFixes.js, nfc.js
+leaves: globalOptions.js, contentGate.js, syllable.js, typingFixes.js, nfc.js
 ```
 
 Two edges point the unexpected way. The font data modules (`zawgyi.js`, `win.js`) require the engine and call its pipeline, instead of the engine reading the tables. And the engine (`storageOrder.js`) requires `typingFixes.js`, because `toUnicode` runs the whole font pipeline, typing fixes included.
 
-`test/unit/layers.test.js` puts every file in a layer (core, fonts, engine, rules, public, entry) and fails on a new `require` that points up a layer. These edges are its only known exceptions, and the list may only shrink.
+`test/unit/layers.test.js` puts every file in a layer (script, core, fonts, engine, rules, public, entry; `nfc.js` is the one script file) and fails on a new `require` that points up a layer. These edges are its only known exceptions, and the list may only shrink.
 
 ### Module state
 
 - `globalOptions.js`: the option store (`silent_mode`, `detector`).
 - `detector.js`: the loaded myanmar-tools detector, the load error, and a flag so the "not installed" warning is printed once.
 - `storageOrder.js`: a scratch array for the rank sort in `order`, which never runs inside itself.
+- `nfc.js`: what it has read from `String.prototype.normalize`: whether each code point below U+20000 it has looked at is a run character, in a 128 KB `Uint8Array` made when it first looks at one at or above U+0300, and the decomposition and combining classes of each run character (about a thousand exist). The memory stays bounded whatever the text; a character above U+1FFFF that is not a run character is probed again each time.
 - The rule regexes in `syllable.js` have the `g` flag and are shared between calls, so the code resets `lastIndex` before each use.
 
 Console output: missing content warns (`console.warn`), conversion errors use `console.error`, and both are silenced by `silent_mode`. One message ignores silent mode: the threshold error in `globalOptions.detector`.
@@ -107,7 +110,7 @@ Every public function starts the same way, with small differences. `toText` unwr
 | `zero as wa` | `zeroAsWa`: a zero that is not part of a number becomes wa. |
 | `look-alikes` | `typingFixes.lookAlikes`. |
 | `typos` | `typingFixes.typos`. |
-| `NFC` | `String.prototype.normalize('NFC')`. |
+| `NFC` | `nfc.js`: `String.prototype.normalize('NFC')`, with long runs of marks put in order first. |
 
 With `debug`, `toUnicode` returns `{ matched_patterns, steps }`: `matched_patterns` names each stage that changed the text, in order, and `steps` holds the input followed by the text after each of those stages. `converter.js` adds `to` and `from`. The README documents these stage names.
 
@@ -119,7 +122,7 @@ After the input checks there is no Myanmar test. Every string goes through:
 NFC → arrangeUnicode → typos → lookAlikes → NFC
 ```
 
-So text with no Myanmar characters still comes back in NFC. The first NFC is there because it can move a dot below in front of an asat or virama, which changes what they attach to.
+So text with no Myanmar characters still comes back in NFC. The first NFC is there because it can move a dot below in front of an asat or virama, which changes what they attach to. Both NFC passes go through `nfc.js`.
 
 ### fontDetect(content, fallback, options)
 
@@ -214,6 +217,17 @@ knayi.normalize('လဲဥ်း') // 'လဲဥ်း'
 
 One more difference follows from the encodings, not from a choice: in the fonts, e and medial ra always belong to the next base, while in Unicode they may also belong to the syllable before (`HERE`). That is why the converters write an e or medial ra with no base after it where it was typed, and `normalize` can move it into the syllable before. On the 10,166 distinct mC4 lines that `fontDetect` calls Zawgyi, `normalize` changes the converted output of 31, each with an e or medial ra where the two first differ.
 
+## NFC in linear time: library/nfc.js
+
+`normalize` starts and ends with NFC, and the font pipeline ends with it. NFC puts each run of non-starters (characters of a canonical combining class above 0; in the Myanmar block the dot below, virama, asat and U+108D) in canonical order, and `String.prototype.normalize` does that with an insertion sort in Node and in Bun: a long run out of order takes quadratic time. `'က'` followed by 32,000 pairs of dot below and virama took about a second. `nfc(text)` returns exactly what `text.normalize('NFC')` returns, in linear time:
+
+- **Run characters.** A run character is one whose canonical decomposition is all non-starters: the combining marks, and seven characters such as U+0344 and U+0F73 that decompose into them. Anything else ends a run. A letter with marks, such as U+1E09, ends the run before it; `normalize` adds its marks to the run after it, at a cost of a step for each of them per character of the run.
+- **Finding long runs.** A run longer than 30 code units covers one code unit in every 31, so `nfc` looks only at those, and measures the run around each one that is a run character. Ordinary text has few run characters and short runs, so most of it is never read. 30 is the limit of UAX #15's stream-safe text format.
+- **Putting a run in order.** Each run longer than 30 code units is replaced by the code points of its characters' decompositions, stably sorted by combining class (a bucket sort). That is what NFC does to the run, so the text stays canonically equivalent and keeps its NFC, and `normalize` then finds the run in order, which it handles in linear time. Shorter runs go to `normalize` as they are, at a cost of at most 30 steps per mark.
+- **Combining classes.** JavaScript has no table of combining classes, so `nfc.js` reads them from `String.prototype.normalize`: a code point is a non-starter when NFD moves dot below in front of asat across it, and two non-starters are of the same class when NFD keeps both of their orders, or else the one NFD puts first has the lower class. It keeps what it learns per character. Its classes are the runtime's own, whatever Unicode version the runtime has, which is what makes the result exactly the runtime's NFC.
+
+`test/nfc.test.js` checks the helper against a probe, with other marks, of every code point the runtime knows, and every ordered pair of its run characters (971 on Node 26, Unicode 17); `test/growth.timing.js` and `test/performance.test.js` time long runs of Myanmar, Latin, Greek, Hebrew, Arabic, Tibetan and astral marks.
+
 ## Typing fixes and their two orders
 
 `typingFixes.js` has two functions, used by both pipelines:
@@ -291,7 +305,6 @@ The 2.x code keeps these so that refactors stay byte-identical. Each one changes
 - **The debug flag is read from `this`.** A detached call such as `const f = knayi.fontConvert; f(...)` reads `debug` from the global object in `main.js` and the script builds, which are sloppy-mode code, so a global `debug` variable makes it return the debug object. The ESM builds are strict and do not.
 - **Font names in `syllBreak`, `truncate` and `spellingFix`:** an unknown name, or `'win'`, reaches the rule tables as it is. `syllBreak` and `truncate` throw a `TypeError` from inside `breakParts` for most of them; a few names of `Object.prototype` properties, such as `'toString'`, return the text with no breaks instead. `spellingFix` uses the Unicode marks for an unknown name, but throws on some `Object.prototype` names such as `'constructor'`. `fontConvert` detects the source instead of an unknown source name.
 - **`truncate` throws on an object that `String()` cannot convert,** such as `Object.create(null)` or `{ toString: undefined }`: it turns non-strings into strings with `String(content)` (`truncate.js`), where the other functions return them unchanged. `test/properties.test.js` pins the `TypeError`.
-- **NFC can take quadratic time (known, not kept on purpose).** `normalize` and the conversions to Unicode end with `String.prototype.normalize('NFC')`, which reorders a long run of combining marks of different classes, such as dot below with virama or asat (U+1037 with U+1039 or U+103A), in quadratic time: `'က'` followed by 32,000 such pairs takes about 1 s on Node 26. Putting each run of marks in canonical order before NFC would keep the output and make it linear; until that lands, `test/growth.timing.js` lists the case as known (CHANGELOG.md, 2.10.0, Security).
 - **Only U+1000–U+109F counts as Myanmar** for the input checks (`contentGate.js`). The extended blocks (U+A9E0–U+A9FF, U+AA60–U+AA7F) are read by the typing fixes and by `arrangeUnicode`, but `fontDetect`, `fontConvert`, `syllBreak`, `spellingFix` and `truncate` treat text made only of them as having no Myanmar character. Myanmar Extended-C (U+116D0–U+116E3) is not read anywhere. The ranges are written by hand, not generated from Unicode data. They match Unicode 15.1, apart from the classes `test/unicode.test.js` lists, and that test fails when the runtime knows Myanmar code points they miss.
 
 ## Where the rules are justified
@@ -314,7 +327,7 @@ Setup is `npm ci` in each clone or worktree; see [CONTRIBUTING.md](CONTRIBUTING.
 | Command | What it runs | CI check |
 | --- | --- | --- |
 | `npm run build` | Writes the four `dist/` files. Only a release commit runs it. | — |
-| `npm test` | `node --test "test/**/*.test.js"`, then the timing test alone (`node --test "test/**/*.timing.js"`), then `tsc` on `typecheck/` with and without `esModuleInterop`, then the size check (`posttest`). The tests read the dist files from a temporary build. Among them: the tests per module; the contract matrix (`test/contract/`); a probe for every table row and one for each branch of a row's pattern (`test/tables.test.js`, probes in `test/fixtures/tables.json`, rewritten by `node scripts/testing/table-cases.js --write`); every example in README.md and this file, with their number pinned, and README's prose examples (`test/readme.test.js`); differential fuzz against the frozen 2.10 engine in `scripts/oracle/`; property tests; the myanmar-tools adapter; the layering test; the browser floor checks (`test/syntax.test.js`, `test/dist-floor.test.js`, `test/regex-floor.test.js`); and the Unicode version check. The timing test, `test/growth.timing.js`, checks that time grows linearly on random structured input and on a run of every single character; it runs after the others so that they do not compete with it for the CPU. | Node 22, Node 24, Node 26 |
+| `npm test` | `node --test "test/**/*.test.js"`, then the timing test alone (`node --test "test/**/*.timing.js"`), then `tsc` on `typecheck/` with and without `esModuleInterop`, then the size check (`posttest`). The tests read the dist files from a temporary build. Among them: the tests per module; the contract matrix (`test/contract/`); a probe for every table row and one for each branch of a row's pattern (`test/tables.test.js`, probes in `test/fixtures/tables.json`, rewritten by `node scripts/testing/table-cases.js --write`); every example in README.md and this file, with their number pinned, and README's prose examples (`test/readme.test.js`); differential fuzz against the frozen 2.10 engine in `scripts/oracle/`; property tests; the myanmar-tools adapter; the layering test; the browser floor checks (`test/syntax.test.js`, `test/dist-floor.test.js`, `test/regex-floor.test.js`); the Unicode version check; and the NFC helper against every code point and every pair of combining marks (`test/nfc.test.js`). The timing test, `test/growth.timing.js`, checks that time grows linearly on random structured input, on a run of every single character and on runs of marks that NFC reorders; it runs after the others so that they do not compete with it for the CPU. | Node 22, Node 24, Node 26 |
 | `npm run test:bun` | `scripts/bun-contract.js`, `scripts/bun-esm.mjs` and `scripts/bun-matrix.js` (the contract matrix in a process of its own), then `bun test ./test` and the timing test. | Bun |
 | `npm run test:pack` | Packs the package with a fresh build (`scripts/pack-fresh.mjs`), installs it with Bun in a temporary app, and converts the Zawgyi greeting through `require` and `import`. | Bun |
 | `npm run test:smoke -- [dir]` | README examples on plain Node through `main.js`, `library/converter` and, given a build directory, the script and module builds. It runs on Node 16 and later. | Smoke on Node 16, 18 and 20 |

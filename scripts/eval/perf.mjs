@@ -181,7 +181,7 @@ function confirmedGrowth(call, make, limit) {
 
 // Every cell gets a quick first reading (two samples of 1 ms at each size, after 1 ms of calls), and the full
 // measurement of confirmedGrowth only when that reading is above the limit. Linear code reads low on the quick reading
-// too, and super-linear code high on both, so the 2,264 cells take about 25 s per runtime instead of minutes.
+// too, and super-linear code high on both, so the 2,364 cells take about 25 s per runtime instead of minutes.
 function screenedGrowth(call, make, limit) {
   const quick = growthExponent(call, make, { samples: 2, sampleMs: 1, warmMs: 1 });
   if (quick.exponent != null && quick.exponent <= limit) return quick;

@@ -7,6 +7,7 @@
 // sits on the consonant, medials, e, vowels, anusvara, dot below, asat, visarga.
 
 const typingFixes = require('./typingFixes');
+const nfc = require('./nfc');
 // Roles of a glyph in a syllable.
 const BASE = 'base'; // consonant, independent vowel, digit or symbol: starts a syllable
 const PRE = 'pre'; // drawn before the consonant (e, medial ra): belongs to the next base
@@ -480,7 +481,7 @@ function toUnicode(content, font, debug) {
   result = step('zero as wa', zeroAsWa(result));
   result = step('look-alikes', typingFixes.lookAlikes(result));
   result = step('typos', typingFixes.typos(result));
-  result = step('NFC', result.normalize('NFC'));
+  result = step('NFC', nfc(result));
   return debug ? { matched_patterns: patterns, steps: steps } : result;
 }
 
