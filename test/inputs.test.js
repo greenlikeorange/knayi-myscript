@@ -6,6 +6,7 @@ const missing = [0, false, NaN];
 const others = [123, true, {}, []];
 const transforms = {
   fontConvert: (x) => knayi.fontConvert(x, 'unicode'),
+  fontConvertFromWin: (x) => knayi.fontConvert(x, 'unicode', 'win'),
   syllBreak: (x) => knayi.syllBreak(x),
   spellingFix: (x) => knayi.spellingFix(x),
   normalize: (x) => knayi.normalize(x),
@@ -59,6 +60,7 @@ describe('non-string input', () => {
     const text = new String('ျမန္မာ');
     assert.equal(knayi.fontDetect(text), 'zawgyi');
     assert.equal(knayi.fontConvert(text, 'unicode'), 'မြန်မာ');
+    assert.equal(knayi.fontConvert(new String('jrefrm'), 'unicode', 'win'), 'မြန်မာ');
     assert.equal(knayi.syllBreak(new String('မြန်မာ'), 'unicode', '|'), 'မြန်|မာ');
     assert.equal(knayi.spellingFix(new String('ကာာ'), 'unicode'), 'ကာ');
     assert.equal(knayi.normalize(new String('မိြုင်')), 'မြိုင်');
