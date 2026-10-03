@@ -247,7 +247,7 @@ The tables classify only UTF-16 units, so nothing above U+FFFF is ever classifie
 | Runtime set | Classified when | KNOWN today |
 |---|---|---|
 | Script=Myanmar | `classOf(cp) !== CLS.OTHER` | Extended-C |
-| Script=Myanmar | `isMyanmarBlock(cp)` (the 2.x text gate) | Extended-A U+A9E0-U+A9FE, Extended-B U+AA60-U+AA7F, Extended-C |
+| Script=Myanmar | `isMyanmarBlock(cp)` (the 2.x text gate) | Extended-B U+A9E0-U+A9FE, Extended-A U+AA60-U+AA7F, Extended-C |
 | Script=Myanmar | `isMyanmarScript(cp)` (the no-Myanmar fast path) | Extended-C |
 | `\p{L}` | `isSyllableBase(cp) \|\| isScriptConsonant(cp)` | U+1052-U+1055 (Pali vocalic r, rr, l, ll), U+A9E6 (Shan reduplication sign) |
 | `\p{M}` | `isBurmeseMark(cp) \|\| cp === CP.VIRAMA \|\| isScriptMark(cp) \|\| isScriptTone(cp)` | none |
@@ -1497,6 +1497,15 @@ W8 compat              after all of them; its option, input and legacy files nee
   - `scripts/next/size.mjs` reports compat and the normalize-only bundle, and its tree-shaking check passes on the skeleton.
   - The oracle copies are byte-identical to `library/` at the reference. A test hashes each copy as git hashes a blob and compares it with the blob id recorded from `git rev-parse e5f6e24:library/<file>`, so it needs no git history in CI.
   - `npm test` and `npm run test:bun` are green.
+- **As built**, where the build settles what this section leaves open:
+  - `AT_ACCEPTANCE_GATE` in `test/next/helpers.mjs` is false, and the gate PR sets it to true. Until then the stub guard (`guards/notBuilt.test.mjs`) and the planned-files check of `guards/layers.test.mjs` skip, and the stub guard says how many stubs are left.
+  - A stub's import list is what its builder is expected to need, plus `ERR` and `libraryError` for the stubs. The builder drops what the module does not use.
+  - `REPEAT_LIMIT` (40) and `ON_TIE_ASSUME_ZAWGYI` (`'zawgyi'`) are complete in the skeleton too, since this spec gives their values.
+  - `spec/` files import nothing (§2.2), so their rows are plain literals, not frozen. Nothing ships them.
+  - Each stub timing file skips while its module throws `NOT_BUILT`, and fails once the module is built, until its owner writes the growth check.
+  - The atom lint reads every regex of the shipped code (`src/` outside `spec/`), not only rule rows, and every `indexOf` needle.
+  - `guards/treeShaking.test.mjs` also runs the normalize-only metafile check of `scripts/next/size.mjs`, so `npm test` covers it. `node scripts/next/size.mjs --gate` makes the byte targets binding.
+  - The KNOWN table of §2.3 had Extended-A and -B the wrong way round. Extended-A is U+AA60-U+AA7F and Extended-B U+A9E0-U+A9FF; the table is corrected.
 
 ### 7.3 W1: core (options, input, rules, nfc, traces)
 
