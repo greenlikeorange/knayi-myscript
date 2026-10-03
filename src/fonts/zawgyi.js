@@ -145,6 +145,6 @@ export const ZAWGYI_FONT = /* @__PURE__ */ deepFreeze({
   selfBases: [[0x1040, 0x1049]],
   aliases: {},
   // Lagaung, drawn with its nga, asat and visarga: a base whose inner marks are written as they are, not sorted
-  // (DESIGN.md §3.8; §7 #19 of the plan, kept on purpose).
+  // (DESIGN.md §3.8; §10 Q19, kept on purpose).
   wholeBases: ['\u104E\u1004\u103A\u1038']
 });

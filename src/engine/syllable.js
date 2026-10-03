@@ -87,7 +87,7 @@ export class CodeBuffer {
   }
 
   // The units as a string, in chunks for String.fromCharCode.apply. Never TextDecoder, which would replace a lone
-  // surrogate (refactor plan §3.4).
+  // surrogate (DESIGN.md §3.7).
   decode() {
     if (this.length <= DECODE_CHUNK_UNITS) return String.fromCharCode.apply(null, this.codes.subarray(0, this.length));
     let text = '';

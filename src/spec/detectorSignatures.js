@@ -13,7 +13,8 @@
 //            row counts the matches that do not overlap, and ^ and $ anchor it to the start and end of the text;
 //   why      what the row detects, and why it is evidence of its side;
 //   source   the evidence for the row, and where the readings it relies on come from;
-//   example  a hand-written string the pattern matches (decision 22), with what it is in the why.
+//   example  a hand-written string the pattern matches (CONTRIBUTING.md, "Licences, fonts and test data"), with
+//            what it is in the why.
 //
 // The readings. Both encodings put Burmese on the Unicode code points U+1000-U+109F, with different meanings and
 // in a different order:

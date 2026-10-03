@@ -54,7 +54,7 @@ export function spellingFix(content, fontType) {
 // truncate(content, options) (truncate.js:6-52, C23): at most `length` units, the omission included, cut at a
 // syllable break. It reads every option before it looks at the content, and detects a missing font on the content
 // as given (before trim and zero-width removal), then breaks the cleaned text (§5.1). Not always a prefix: a part
-// that does not fit adds the words of it that do (§7 #5 of the plan).
+// that does not fit adds the words of it that do (DESIGN.md §10 Q5).
 export function truncate(content, options) {
   const settings = options || {};
   const fontType = settings.fontType;

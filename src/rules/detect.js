@@ -219,7 +219,7 @@ export function detectFont(text, options) {
 // { encoding, unicode, zawgyi }: the rule evidence and what it says. encoding is 'none' when the text has no
 // unit of U+1000-U+109F, where 2.x fontDetect returns its fallback or 'en' before it counts anything (and every
 // row needs such a unit, so both counts are 0); 'unknown' when the evidence ties; else the side with more. 3.0's
-// public detectEncoding (plan Phase 5 #1) is this, after its text check and cleaning; 2.x fontDetect is its
+// public detectEncoding (DESIGN.md §9) is this, after its text check and cleaning; 2.x fontDetect is its
 // encoding, with the fallback in place of 'none' and 'unknown'.
 export function detectEncoding(text) {
   if (!hasMyanmarBlockChar(text)) return { encoding: 'none', unicode: 0, zawgyi: 0 };

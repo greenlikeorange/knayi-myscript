@@ -317,8 +317,9 @@ function writeGlyph(buf, sink, font, glyph) {
   sink.pushCodes(font.units, font.textStart[glyph], font.end[glyph]);
 }
 
-// The output as a string. Buffers that grew past 65,536 units go back to their first size (§3.11): 33.4 MB stayed
-// allocated after an 8.9M-character conversion without this (SCR/verify-engine, engine-P4).
+// The output as a string. Buffers that grew past 65,536 units go back to their first size (DESIGN.md §3.11): 33.4 MB
+// stayed allocated after an 8.9M-character conversion without this, and test/next/readers-font.test.mjs converts
+// 8.9M characters and requires every buffer back at its size.
 function finishOutput(sink) {
   const out = sink.decode();
   sink.releaseIfLarge();

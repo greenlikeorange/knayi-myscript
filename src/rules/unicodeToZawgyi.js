@@ -1,5 +1,5 @@
 // Unicode to Zawgyi: the 2.x pattern rules as one flat list of rule rows in named sections, and their runner with
-// and without a trace (DESIGN.md §2.3, §3.9; PR 3.5 of the refactor plan). Layer L3 rules. Owner: W7.
+// and without a trace (DESIGN.md §2.3, §3.9). Layer L3 rules. Owner: W7.
 //
 // Unicode stores a syllable in its logical order (UTN #11): kinzi, the consonant, a stacked consonant, the
 // medials ya, ra, wa and ha, then e, the vowel signs, anusvara, asat, dot below and visarga. Zawgyi stores glyphs

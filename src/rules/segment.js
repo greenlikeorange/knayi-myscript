@@ -22,7 +22,7 @@ import { ERR, libraryError } from '../core/errors.js';
 
 // How a bare consonant (one with no mark after it) joins the syllable after it: rows U7 and Z8, decision 34.
 //   PAIRS     2.x. It joins, but a consonant that has just been joined to the one before it is not bare any more,
-//             so ကကက breaks as ကက|က (legacyBareConsonantPair; refactor plan §7 #11).
+//             so ကကက breaks as ကက|က (legacyBareConsonantPair; DESIGN.md §10 Q11).
 //   CHAINS    every bare consonant joins the syllable after it, as the comment of 2.x syllable.js:239 says: ကကက.
 //   SEPARATE  none joins: a bare consonant is a syllable of its own, with its inherent vowel (UTN #11): က|က|က.
 // forEachBreak, breakParts and breakString default to PAIRS, as 2.x does. Decision 34 picks the default of the
@@ -156,7 +156,7 @@ function isWhiteSpace(code) {
 
 // Row U7, and row Z8: 2.x joins a bare consonant to the consonant after it with one global replace, which does not
 // look again at the consonant it has just taken. So that consonant takes nothing after it, and ကကက breaks as
-// ကက|က, which the comment of 2.x syllable.js:239 does not intend (refactor plan §7 #11). The consonant before i may
+// ကက|က, which the comment of 2.x syllable.js:239 does not intend (DESIGN.md §10 Q11). The consonant before i may
 // join the one at i unless the last join took it; `pairedAt` is the consonant the last join took.
 function legacyBareConsonantPair(i, pairedAt) {
   return pairedAt !== i - 1;
@@ -282,7 +282,7 @@ function startsZawgyiSyllable(code) {
 
 // The bases of rows Z3, Z4, Z5 and Z8: the consonants, U+1025, U+1029, U+106A, U+106B, U+1086, U+108F and U+1090.
 // They match neither the letters of row Z1 nor the bases of the Zawgyi glyph table (syllable.js:226 against
-// zawgyi.js:29-30); the sets stay apart until someone unifies them on purpose (refactor plan §7 #17).
+// zawgyi.js:29-30); the sets stay apart until someone unifies them on purpose (DESIGN.md §10 Q17).
 function isZawgyiBreakBase(code) {
   if (code <= 0x1021) return code >= 0x1000;
   return code === 0x1025 || code === 0x1029 || code === 0x106A || code === 0x106B || code === 0x1086 ||

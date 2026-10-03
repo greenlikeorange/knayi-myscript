@@ -86,7 +86,7 @@ export const BREAK_RULES = {
       replacement: '$1$2',
       offWhen: null,
       why: 'A bare consonant joins the consonant after it, as in the word U+1000 U+1000. A global replace does not look again at the consonant it just joined, so 2.x joins pairs only: three bare consonants break as two and one, which the comment of 2.x syllable.js:239 does not intend. The scanner reproduces the pairs in legacyBareConsonantPair; the 3.0 policy is decision 34\'s to make.',
-      source: 'kept from 2.x; refactor plan §7 #11 and decision 34',
+      source: 'kept from 2.x; DESIGN.md §10 Q11 and decision 34',
       example: '\u1000\u1000\u1000'
     }
   ],
@@ -97,7 +97,7 @@ export const BREAK_RULES = {
       pattern: /([\u1000-\u1021\u1023-\u1027\u1029\u102a\u104c-\u104f\u1086\u108f-\u1092])/g,
       replacement: '\u200B$1',
       offWhen: null,
-      why: 'Puts a break before every letter that may start a syllable: the consonants, the independent vowels but U+1022 and U+1028, the symbols U+104C-U+104F and the Zawgyi letters U+1086 and U+108F-U+1092. These do not match the bases of the Zawgyi glyph table (rows Z3, Z5 and Z8 use another class): the two stay separate until someone unifies them on purpose (refactor plan §7 #17).',
+      why: 'Puts a break before every letter that may start a syllable: the consonants, the independent vowels but U+1022 and U+1028, the symbols U+104C-U+104F and the Zawgyi letters U+1086 and U+108F-U+1092. These do not match the bases of the Zawgyi glyph table (rows Z3, Z5 and Z8 use another class): the two stay separate until someone unifies them on purpose (DESIGN.md §10 Q17).',
       source: 'kept from 2.x; evidence not recorded',
       example: '\u1019\u102C\u1019\u102C'
     },
@@ -168,7 +168,7 @@ export const BREAK_RULES = {
       replacement: '$1$2$3',
       offWhen: null,
       why: 'A bare consonant joins what follows it: a consonant, a base with e or medial ra typed before it, or an e or medial ra with no base after it. A consonant typed after e or a medial ra already has its marks, like the consonant with medial ra in Unicode, so the first branch takes it whole and it joins nothing. As in row U7, a global replace joins pairs only.',
-      source: 'b982c98 (200,214 of 206,642 Wikipedia and Okell words break as in Unicode, up from 162,225); refactor plan §7 #11 and decision 34',
+      source: 'b982c98 (200,214 of 206,642 Wikipedia and Okell words break as in Unicode, up from 162,225); DESIGN.md §10 Q11 and decision 34',
       example: '\u1000\u107E\u1000\u1015\u102B'
     }
   ]

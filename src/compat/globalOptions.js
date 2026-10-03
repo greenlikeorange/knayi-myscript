@@ -13,7 +13,7 @@ import { deepFreeze } from '../freeze.js';
 import { DEFAULTS } from '../core/options.js';
 
 // The console texts of §5.3, word for word as 2.x prints them (library/*.js). unknownTarget keeps 2.x's spelling:
-// fixing it is a 2.x change (PR 4.3 of the plan), ported later (DESIGN.md §8).
+// fixing it is a 2.x change, ported later (DESIGN.md §5.3, §8).
 export const MESSAGES = /* @__PURE__ */ deepFreeze({
   missingContent: (apiName) => 'Content must be specified on knayi.' + apiName + '.',
   noTarget: 'Convert target font must be specified on knayi.fontConvert.',

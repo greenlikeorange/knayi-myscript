@@ -9,7 +9,7 @@ This is the spec that the module builders on the `next` branch follow. It turns 
 compat is checked against the 2.x reference, commit `e5f6e24` (§1.1), with the Phase 0 tools: `npm run compare`, the contract matrix and `npm run perf`. The spec is meant to be precise enough that several people can build modules at the same time and have them fit together. Section 7 says who builds what, and in which order.
 
 **Sources.**
-- The refactor plan, `knayi-refactor-plan.md` of 2026-10-03, which is kept outside the repository. "§3.4 of the plan" and "§7 #15" (its list of 2.x bugs) refer to the plan; a bare "§3.4" is a section of this spec.
+- The refactor plan, `knayi-refactor-plan.md` of 2026-10-03, which is kept outside the repository. "§3.4 of the plan" and "§7 #15" (its list of 2.x bugs) refer to the plan; a bare "§3.4" is a section of this spec. §10 restates, with their numbers, the bugs of that list that compat keeps, and the code cites them there. The code cites only this spec, UTN #11 and the research notes, never the plan (§1.2 rule 3).
 - ARCHITECTURE.md and CONTRIBUTING.md at the reference, `e5f6e24` (§1.1).
 - The prototypes the plan cites as `SCR/...`. SCR is the plan's evidence folder, also outside the repository. On the maintainer's machine it is `scratchpad/refactor/` next to the plan.
 
@@ -35,6 +35,7 @@ Where this spec departs from the plan, §1.4 says so and gives the reason.
 7. [Work split](#7-work-split)
 8. [Porting the 2.x line into next](#8-porting-the-2x-line-into-next)
 9. [Not in this build](#9-not-in-this-build)
+10. [Known 2.x quirks kept on purpose](#10-known-2x-quirks-kept-on-purpose)
 - [Appendix A: names, 2.x to next](#appendix-a-names-2x-to-next)
 
 ---
@@ -125,7 +126,7 @@ Decisions 5 and 17 are not adopted. §1.4 says what this spec does instead (D6 a
 |---|---|---|
 | D1 | **The 2.x public-layer pieces live in compat, not in the core.** These are: the input policy rows and `enter()` with its warnings; the global option store and `setGlobalOptions`; the 2.x merge of detector options; the 2.x font-name and rule-table lookups. `core/options.js` and `core/input.js` keep only what 3.0 shares: defaults, the font registry, text predicates and `requireText`. | The core is stateless and silent (Phase 6 #1, §4). The plan designed these pieces for the 2.x layout, where the public layer and the engine sat in one package. The 3.0 API validates strictly and throws, which 2.x never does. |
 | D2 | **compat is a strict ES module.** A detached `fontConvert` call never reads `debug` from the global object. In those 10 matrix cells compat matches the 2.x ES module build, and the matrix records them as a known build difference, as it already does for `knayi-myscript.mjs` (§5.4). | Reproducing the sloppy-mode read would mean reading `globalThis.debug` on purpose. That brings back global state and §7 bug #2, which PR 4.1 removes from 2.x. The 2.x ES module build already behaves like this. |
-| D3 | **compat loads myanmar-tools the way the 2.x ES module build does:** by name, from the working directory, in Node and Bun only. This happens in one file, `compat/zawgyiModel.js`. The core takes the detector as an injected object. `main.js` looks the package up from `library/` instead, so this is the second known build difference (§5.4). | Decision 17 is not adopted, so compat keeps the 2.x behaviour (§7 #15). The core never loads code (§4). Injection for compat (Phase 5 #2) arrives with the 2.x port. |
+| D3 | **compat loads myanmar-tools the way the 2.x ES module build does:** by name, from the working directory, in Node and Bun only. This happens in one file, `compat/zawgyiModel.js`. The core takes the detector as an injected object. `main.js` looks the package up from `library/` instead, so this is the second known build difference (§5.4). | Decision 17 is not adopted, so compat keeps the 2.x behaviour (§10 Q15). The core never loads code (§4). Injection for compat (Phase 5 #2) arrives with the 2.x port. |
 | D4 | **One trace shape for both kinds of 2.x debug log.** A trace is `{start, records}`. compat builds `steps` as `[start, ...records.map(r => r.text)]`. | 2.x logs font stages as "input, then the text after each stage that changed it", and Unicode to Zawgyi rules as "the text before each logged rule, then the result". The second is the same list as the first, with the collapsed text as `start` (§3.9). One recorder serves both. |
 | D5 | **`fontToUnicode(text, fontName)` takes the font's name.** The compiled fonts stay private to `stages/fonts.js`. | Callers (compat now, the 3.0 API later) name a font. Only the stages need the compiled form. |
 | D6 | **No internal switch back to the 2.10 engine** (decision 5's rollback switch). | Under decision 6(b) the new engine ships with 3.0. A user who needs the old engine stays on the 2.x line, and a 2.x branch is cut when 3.0 reaches main (decision 7). `scripts/oracle/` stays as the test oracle. |
@@ -532,7 +533,7 @@ export function isInNumber(text: string, i: number, context: NumberContext): boo
 - the unit before or after `i` is a digit or sign of `c`;
 - a `.` or `,` sits next to `i` with a digit of `c` beyond it.
 
-The two contexts restate a 2.x difference on purpose (§7 #20), and each is kept as it is:
+The two contexts restate a 2.x difference on purpose (§10 Q20), and each is kept as it is:
 - `ZERO_AS_WA` counts Burmese digits, and `+ - * /` as signs (storageOrder.js:59-61).
 - `LOOK_ALIKES` counts Burmese, Shan and Tai Laing digits, and has no signs (typingFixes.js:37, :70-74).
 
@@ -966,7 +967,7 @@ Every change the Unicode reader makes passes through `endSyllable`. Phase 6's ch
 2. Every role is a known `ROLE`.
 3. For MARK and BEFORE_BASE rows, every unit of the text and of the attached marks has a rank (`markRank < RANK_UNRANKED`). For STACK and KINZI rows, every attached mark does.
 4. The shapes of the texts:
-   - BASE text is one unit (a syllable base or a Burmese digit), or a ligature (consonant, U+1039, consonant), or one of the font's declared `wholeBases`. Those are Zawgyi lagaung (U+104E U+1004 U+103A U+1038), and Win kyat and nnya-with-aa. Their inner marks are written as they are, not sorted, which is §7 #19 of the plan, kept on purpose.
+   - BASE text is one unit (a syllable base or a Burmese digit), or a ligature (consonant, U+1039, consonant), or one of the font's declared `wholeBases`. Those are Zawgyi lagaung (U+104E U+1004 U+103A U+1038), and Win kyat and nnya-with-aa. Their inner marks are written as they are, not sorted, which is §10 Q19, kept on purpose.
    - STACK text is U+1039 plus a Burmese consonant.
    - KINZI text is `KINZI_TEXT`.
    - BASE texts are at most 8 units, and a BASE row has no attached marks (2.x never wrote them for a base).
@@ -1207,12 +1208,12 @@ Each row is a behaviour of the reference library that the contract matrix or com
 | C16 | The debug flag is `this && this.debug`, read after the early exits. `debugging` is `fontConvert.apply({debug: true}, [a, b, c])`. A detached call: §5.4. | `fontConvert` |
 | C17 | Zawgyi and Win to Unicode (storageOrder.js:462-485). Debug object `{to: 'unicode', from, matched_patterns, steps}` with the stage names of §2.3. `'glyphs'` appears only when debugging. | core `fontToUnicode`, `traceFontToUnicode` |
 | C18 | Unicode to Zawgyi (converter.js:57-58; syllable.js:301-327): the Unicode mark collapse, then 57 once rows and 8 repeat rows of at most 40 passes. Debug object `{to: 'zawgyi', from: 'unicode', matched_patterns: labels, steps: [collapsed text, …]}` (§3.9). | core `unicodeToZawgyi`, `traceUnicodeToZawgyi` |
-| C19 | `debugging` returns what `fontConvert` returns on every early exit: strings, `''`, non-strings (§7 #3 of the plan) | the same flow |
+| C19 | `debugging` returns what `fontConvert` returns on every early exit: strings, `''`, non-strings (§10 Q3) | the same flow |
 | C20 | `syllBreak`'s separator (syllable.js:272-275): a falsy separator, or U+200B, means U+200B. Anything else is converted as `Array#join` converts it: `toString` before `valueOf`, and a Symbol throws a TypeError. | `toJoinSeparator(value)` = `['', ''].join(value)`, called after the rule-table lookup, as in 2.x |
-| C21 | The break output: Unicode rows U1-U7; Zawgyi rows Z1-Z8, with row Z6 off for text that `looksLikeSgawKaren`; bare consonants joined only in pairs (§7 #11); no break at the start | core `breakString`, `breakParts` |
+| C21 | The break output: Unicode rows U1-U7; Zawgyi rows Z1-Z8, with row Z6 off for text that `looksLikeSgawKaren`; bare consonants joined only in pairs (§10 Q11); no break at the start | core `breakString`, `breakParts` |
 | C22 | `spellingFix` detects on the raw text, then cleans, then collapses each run of one repeated mark (per font set, syllable.js:210-213) | core `collapseRepeatedMarks` |
-| C23 | `truncate` (truncate.js):<ul><li>`options \|\| {}`; `length \|\| 30`; `omission \|\| '...'`; budget = `length - omission.length`, NaN allowed;</li><li>text with no Myanmar block character: `text.substr(0, budget) + omission`;</li><li>otherwise it detects on `String(content)`, before trim and zero-width removal, and breaks the cleaned text (§5.1);</li><li>whole parts while they fit; a part that does not fit is split on `\s` and adds the words that fit, each followed by a space; then trim, plus the omission;</li><li>not always a prefix (§7 #5).</li></ul> | `truncate` with `fitParts`; `chooseFontLegacy`; core `breakParts` |
-| C24 | `normalize`: NFC, the reader, typos, look-alikes, NFC (normalization.js:22-23). Text with no Myanmar still gets NFC. Typos run before look-alikes, while the fonts run zero as wa, then look-alikes, then typos (§7 #8). Not idempotent on garbled input (§7 #12). | core `normalizeText` |
+| C23 | `truncate` (truncate.js):<ul><li>`options \|\| {}`; `length \|\| 30`; `omission \|\| '...'`; budget = `length - omission.length`, NaN allowed;</li><li>text with no Myanmar block character: `text.substr(0, budget) + omission`;</li><li>otherwise it detects on `String(content)`, before trim and zero-width removal, and breaks the cleaned text (§5.1);</li><li>whole parts while they fit; a part that does not fit is split on `\s` and adds the words that fit, each followed by a space; then trim, plus the omission;</li><li>not always a prefix (§10 Q5).</li></ul> | `truncate` with `fitParts`; `chooseFontLegacy`; core `breakParts` |
+| C24 | `normalize`: NFC, the reader, typos, look-alikes, NFC (normalization.js:22-23). Text with no Myanmar still gets NFC. Typos run before look-alikes, while the fonts run zero as wa, then look-alikes, then typos (§10 Q8). Not idempotent on garbled input (§10 Q12). | core `normalizeText` |
 | C25 | The console messages and when they print (§5.3) | `MESSAGES`, `report`, `reportAlways` |
 | C26 | myanmar-tools is loaded at most once per process, by the first call that needs it, as the 2.x ES module build does: Node and Bun only, through `process.getBuiltinModule('module').createRequire(process.cwd() + '/package.json')`. It is not loaded in other runtimes. A package without `ZawgyiDetector` counts as a load error. One of three messages is printed once. The warned flag is set only when a message is printed. `main.js` resolves the package from `library/` instead (§5.4). | the shared `zawgyiModelLoader` (D3, D21): it holds the model, the error and the warned flag |
 | C27 | `Array#map` use: every function receives `(value, index, array)`, and the index and array land in the fallback, `to`/`from`, font, separator and options positions with exactly the semantics above | the same parameter lists |
@@ -1255,7 +1256,7 @@ That records nothing new about `main.js`, and no other cell may differ (D2).
 | `main.js` | `library/detector.js`, through `module.require` |
 | the 2.x ES module build and compat | the working directory, through `createRequire(process.cwd() + '/package.json')` |
 
-So in a working directory that cannot resolve the package, `main.js` scores with the model while compat warns and uses the rules (§7 #15 of the plan). That happens in a monorepo whose package sits elsewhere, or in a worker started from another directory. Neither compare nor the matrix runs the adapter, so neither can see this. W8 pins it with an adapter test. It runs compat and `main.js` in a child process whose working directory is an empty temporary directory, on plain Unicode text, with the threshold `[-1, -1]`, under which every model score means `'zawgyi'`. `main.js` must answer `'zawgyi'` (the model). compat must print the "not installed" message and answer `'unicode'` (the rule scorer).
+So in a working directory that cannot resolve the package, `main.js` scores with the model while compat warns and uses the rules (§10 Q15). That happens in a monorepo whose package sits elsewhere, or in a worker started from another directory. Neither compare nor the matrix runs the adapter, so neither can see this. W8 pins it with an adapter test. It runs compat and `main.js` in a child process whose working directory is an empty temporary directory, on plain Unicode text, with the threshold `[-1, -1]`, under which every model score means `'zawgyi'`. `main.js` must answer `'zawgyi'` (the model). compat must print the "not installed" message and answer `'unicode'` (the rule scorer).
 
 ### 5.5 What compat does not do
 
@@ -1339,6 +1340,7 @@ The 2.x line brings each of these, and they reach compat through §8.
    - floor (D14): acorn at ES2015, the regex floor (no lookbehind, named groups, `\p{}` or `s` flag in any regex, literal or built), and the ES2016+ built-in denylist below;
    - function size: every function in `src/` is at most 40 lines, except `reorderUnicode` and `readFont`, which may reach 70, and the table builders of §2.4, whose body is a single `return` of a literal or of `deepFreeze` of a literal;
    - atom lint: no `re` in a rule row and no `indexOf` needle is a pure literal starting at exactly U+1000-U+1010 (decision 29);
+   - citations (as reviewed, §7.11): no comment in `src/` cites the refactor plan or its evidence folder, which are outside the repository, and every plan decision and every kept 2.x quirk it names is a row of §1.3 or §10;
    - no `NOT_BUILT` stub left, from the acceptance gate on.
 
 **The ES2016+ denylist** (D14). The floor guard fails on any of these names in `src/`, as a global identifier or as a property name (`x.name` or `x['name']`). It does not know the receiver's type, so it also bans some ES2015 methods of the same name, such as `String#includes` and `Array#values`; use `indexOf` and a loop instead.
@@ -1815,6 +1817,7 @@ A review of W0-W8 on `next-compat` (3af8172) found the problems below. Each fix 
 - **`legacyWinTables` lives in compat.** It moved from `fonts/win.js` to `compat/legacy.js` (§5.1), so the font module holds data only.
 - **One directory per L3 part** (D15). `engine/` holds the engine, `rules/` the rules (`typingFixes.js`, `detect.js`, `segment.js`, `unicodeToZawgyi.js`) and `stages/` the stage lists (`normalize.js`, `fonts.js`, formerly `engine/normalizeStages.js` and `engine/fontStages.js`). A path now names its layer, and so the imports it may make (§2.2). As ES modules the move costs no bytes: compat 16,009 B and normalize-only 6,357 B gzip, before and after.
 - **The stateless guard reads every top-level value** (§4). Its rule 1 flagged only object and array literals, so the module state the core really holds, all made by calls (`NFC_MEMO`, `SCRATCH`, `FONT_SYLLABLE`, `FONT_OUTPUT`) or regex literals (the exec-loop regexes), went unchecked, and its `NFC_MEMO` exemption was never used. It now classifies each initialiser and requires module state to be listed by name; six mutants (a `new Map()` cache, an unfrozen builder result, an `exec`-driven literal, an unlisted typed array, and two exec loops that leave early without their reset) each fail it.
+- **The code cites only what is in the repository.** About 17 comments of `src/` cited the refactor plan's list of 2.x bugs ("refactor plan §7 #11") or its evidence folder (`SCR/verify-engine`), which a contributor cannot open. §10 now restates the kept 2.x bugs, with their counts, and the comments cite `DESIGN.md §10 Q11`; a measurement is cited by its number and the test that pins it. `guards/citations.test.mjs` fails on a citation of the plan or of `SCR/`, and on a decision or quirk that §1.3 or §10 does not list.
 
 ---
 
@@ -1854,6 +1857,24 @@ These are the rest of Phase 6. The core is shaped so that they need no core chan
 - **Extended-C and code-point iteration** (decision 20b).
 - **The CLI** (decision 32).
 - **Packaging:** the exports map (`'.'`, `'./compat'`, `'./stream'`, `'./package.json'`), the `engines` field (Node 22.12 or later), the 3.0 builds with the dist floor checks and the Playwright smoke run, deleting `library/` and its shims, and per-entry import sizes.
+
+---
+
+## 10. Known 2.x quirks kept on purpose
+
+compat must give the reference's output on every input (§1.2 rule 1), so the core keeps these 2.x behaviours, and each is pinned by a test. Each changes only in a deliberate pull request of the 2.x line, which reaches `next` through §8. They are numbered as in the refactor plan's list of 2.x bugs (§7 of the plan, outside the repository), so Q11 here is the plan's #11. Code cites them as `DESIGN.md §10 Q11`.
+
+| # | Quirk | Example | Size | Kept in | Planned fix |
+|---|---|---|---|---|---|
+| Q3 | `fontConvert.debugging` returns what `fontConvert` returns on every early exit: strings, `''` and non-strings, not a debug object (C19). index.d.ts promises an object. | `debugging('abc', 'unicode')` is `'abc'`; `debugging('က', 'unicode', 'unicode')` is `'က'` | 190 matrix cells; the demo's string check depends on it | `compat/fontConvert.js` | 2.11, decision 12 (§8: "always-an-object `debugging`") |
+| Q5 | `truncate` is not always a prefix of its input: a part that does not fit adds those of its words that do, so a later word can follow a skipped one (truncate.js `reduce`, C23). | The README pangram cut at 30 drops ဇလွန် and keeps the later ဈေး | 29% of Myanmar lines at length 30 | `compat/text.js` `fitParts` | 2.11, its own pull request; a prefix truncate that stops early is 3.0's (§9) |
+| Q8 | The two pipelines run the typing fixes in different orders: normalize runs typos then look-alikes, and the font pipeline look-alikes then typos (C24; ARCHITECTURE.md, "Typing fixes and their two orders"). | `normalize('ဝ၄င်း')` gives U+101D U+104E (lagaung); the Win text `&4if;` gives U+1047 U+1044 (digits) | 0 corpus lines; synthetic input only | `stages/normalize.js`, `stages/fonts.js` | decision 15: typos first in both |
+| Q11 | Bare consonants join only in pairs: one global replace never looks again at the consonant it has just taken, though the comment of syllable.js says every bare consonant joins (rows U7 and Z8, C21). | `syllBreak('ကကက', 'unicode', '\|')` is `ကက\|က`; ပထမဆုံး breaks as ပထ\|မဆုံး | 6,032 of 34,285 lines would change | `rules/segment.js` `legacyBareConsonantPair`; `spec/breakRules.js` U7, Z8 | decision 34 picks the 3.0 policy from the counts of §7.5 |
+| Q12 | normalize is not idempotent on garbled input: a second call can change the text again (C24). | `၀ွ ှ` gives `ဝွ ှ`, then `ဝွှ`; `ိီိ` gives `ီိ`, then `ီ` | 0 Unicode corpus lines; 104 of 15,405 raw mC4 lines | `engine/unicodeReader.js`, `rules/typingFixes.js` | decision 36: idempotent by construction in 3.0 |
+| Q15 | The 2.x ES module build, and compat with it, look myanmar-tools up from the working directory, where `main.js` looks from `library/` (known build difference 2, §5.4; C26). | A worker started from another directory finds the package "not installed" | monorepos and workers | `compat/zawgyiModel.js` | decision 17: an injected detector (Phase 5) |
+| Q17 | The Zawgyi break classes disagree: row Z1 puts no break before the base glyphs U+106A (small nya) and U+106B, which the bases of rows Z3-Z5 and Z8 include, and neither class is the set of bases of the glyph table (syllable.js `BREAK_RULES` against zawgyi.js). | ငန္းၫွိ gets no break before U+106B | both class edits together fix 16 lines; one alone fixes 16 and breaks 4 | `rules/segment.js` `startsZawgyiSyllable`, `isZawgyiBreakBase`; `spec/breakRules.js` Z1 | a deliberate 2.x pull request (Phase 4) |
+| Q19 | A base glyph's own marks are written as they are, not sorted with the syllable's: a whole base (Zawgyi lagaung, Win kyat and nnya with aa) keeps its inner marks first, and 2.x drops the attached marks of a BASE row, so compileFont refuses them (§3.8, check 4). | Win `aÓ` gives U+1009 U+102C U+1031 (ဉာေ), not ဉော | a latent table trap; a fix changes 16 mC4 and 107 Unicode lines | `fonts/zawgyi.js`, `fonts/win.js` `wholeBases`; `engine/fontReader.js` | a deliberate 2.x pull request, after a decision |
+| Q20 | zero as wa and the look-alikes judge "a zero in a number" by two different rules (`NUMBER_CONTEXT.ZERO_AS_WA` and `.LOOK_ALIKES`, §2.3). | `(၇ ဒသမ ၀)` gives `(၇ ဒသမ ဝ)` | 45 mC4 lines with a lone zero | `rules/typingFixes.js` `isInNumber` | a deliberate 2.x pull request, after a decision |
 
 ---
 

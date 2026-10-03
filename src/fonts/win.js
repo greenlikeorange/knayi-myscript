@@ -252,7 +252,7 @@ export const WIN_FONT = /* @__PURE__ */ deepFreeze({
   sequences: LOOK_ALIKE_SEQUENCES,
   selfBases: [],
   aliases: C1_ALIASES,
-  // Kyat, and nnya with aa: bases whose inner marks are written as they are, not sorted (DESIGN.md §3.8; §7 #19
-  // of the plan, kept on purpose).
+  // Kyat, and nnya with aa: bases whose inner marks are written as they are, not sorted (DESIGN.md §3.8; §10 Q19,
+  // kept on purpose).
   wholeBases: ['\u1000\u103B\u1015\u103A', '\u1009\u102C']
 });

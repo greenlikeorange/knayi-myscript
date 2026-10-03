@@ -2,7 +2,7 @@
 // look alike, and zero typed as wa (DESIGN.md §2.3, §3.9; research/normalize.md §2-3). Layer L3 rules: imports
 // only L0. Owner: W2 (typing-fixes).
 //
-// The two pipelines run the fixes in different orders, on purpose until 3.0 decides (refactor plan §7 #8):
+// The two pipelines run the fixes in different orders, on purpose until 3.0 decides (DESIGN.md §10 Q8):
 // normalize runs typos, then look-alikes; Zawgyi and Win conversion run zero as wa, then look-alikes, then typos.
 // The stage lists own that order (DESIGN.md §7.4). This module only provides the functions.
 //
@@ -81,8 +81,8 @@ function typoFix(text, at) {
 // ---------------------------------------------------------------------------------------------------------------
 // Numbers
 
-// Two 2.x rules decide whether a unit sits in a number. They differ, and each is kept as it is (refactor plan
-// §7 #20, DESIGN.md §2.3): each caller passes its own context to isInNumber.
+// Two 2.x rules decide whether a unit sits in a number. They differ, and each is kept as it is (DESIGN.md
+// §10 Q20, §2.3): each caller passes its own context to isInNumber.
 export const NUMBER_CONTEXT = /* @__PURE__ */ deepFreeze({
   // zeroAsWa (storageOrder.js:59-61, :448-457): Burmese digits, and + - * / as signs.
   ZERO_AS_WA: { isDigit: isBurmeseDigit, isSign: isArithmeticSign },
