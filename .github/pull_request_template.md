@@ -23,7 +23,7 @@ Fixes #
 
 ## Output changes
 
-<!-- "None", or each change: the call form, the exact counts (one `--expect form:corpus=n` per changed cell; CI reads these lines), the matrix cells, and an example. -->
+<!-- "None", or each change: the call form, the exact counts (one `--expect form:set=n` per changed cell; CI reads these lines), the matrix cells, and an example. -->
 
 ## Compare and matrix
 

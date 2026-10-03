@@ -136,7 +136,7 @@ So text with no Myanmar characters still comes back in NFC. The first NFC is the
 
 All three resolve the font the same way: no font name means `fontDetect(content)`; otherwise `resolveFont(name) || name`, so an unknown name is passed on as it is.
 
-- **syllBreak:** no Myanmar character returns the text unchanged. Otherwise `cleanText(content, true)`, then `breakParts(content, font)` and `joinParts(parts, breakpoint)`. `breakParts` applies `BREAK_RULES[font]` (7 rules for Unicode, 8 for Zawgyi), which insert and remove U+200B, drops a leading U+200B, and splits on U+200B and U+200C. `joinParts` joins with the breakpoint, U+200B by default.
+- **syllBreak:** no Myanmar character returns the text unchanged. Otherwise `cleanText(content, true)`, then `breakParts(content, font)` and `joinParts(parts, breakpoint)`. `breakParts` applies `BREAK_RULES[font]` (7 rules for Unicode, 8 for Zawgyi), which insert and remove U+200B (the first Unicode rule instead puts a dot below in front of an asat typed before it), drops a leading U+200B, and splits on U+200B and U+200C. `joinParts` joins with the breakpoint, U+200B by default.
 - **spellingFix:** detects the font on the raw text, then cleans it and runs `collapseMarks(content, font)`: one `[mark]{2,}` regex per mark of `COLLAPSE[font]`, or of `COLLAPSE.unicode` when the font has no entry.
 - **truncate:** `length` defaults to 30 and `omission` to `'...'`, and the budget is `length - omission.length`. Text with no Myanmar character is cut with `substr`. Otherwise the text is broken with `breakParts` and parts are added while they fit; a part that does not fit is split on whitespace and the words that fit are added. The result is trimmed and the omission appended.
 
@@ -244,7 +244,7 @@ The fonts also have a stage `normalize` does not: `zeroAsWa` (in `storageOrder.j
 These live in regex tables, applied one pass per pattern:
 
 - **Detection** (`detector.js`): 29 signature patterns. Only one has a comment saying why it is there.
-- **Breaks** (`syllable.js`, `BREAK_RULES`): each rule inserts or removes U+200B. A rule may have a third item, a pattern that turns it off for the whole text; the Zawgyi kinzi rule uses it to skip text with S'gaw Karen vowels.
+- **Breaks** (`syllable.js`, `BREAK_RULES`): each rule inserts or removes U+200B, except the first Unicode rule, which puts a dot below typed after asat in front of it. A rule may have a third item, a pattern that turns it off for the whole text; the Zawgyi kinzi rule uses it to skip text with S'gaw Karen vowels.
 - **Mark collapse** (`syllable.js`, `COLLAPSE`): one regex per mark, per font.
 - **Unicode to Zawgyi** (`syllable.js`, `convertRules`): 57 `oneTime` rules, each applied once in order, then 8 `asLongAsMatch` rules, each repeated while it matches (at most 40 times). With `debug`, `matched_patterns` holds the regex `.source` of each `oneTime` rule that changed the text and each `asLongAsMatch` rule that matched, and `steps` holds the text before each of those rules followed by the result.
 
@@ -275,7 +275,7 @@ These are the 2.x API. Changing them needs a major version.
 | The option keys | `silent_mode`, `detector.use_myanmartools`, `detector.myanmartools_zg_threshold`, the per-call `adapter`, and `truncate`'s `length`, `omission` and `fontType`. |
 | The deep path `knayi-myscript/library/converter` | README ("These paths load"); `test/compat.test.js`. |
 | The shape of `win.tables` | `{ WIN, SEQUENCES, ROLES }`, with the role strings; read by `scripts/eval/win-glyphs.mjs`. |
-| The debug stage names and their order | `sequences`, `glyphs`, `syllables`, `zero as wa`, `look-alikes`, `typos`, `NFC`: README (`fontConvert.debugging`); `test/zawgyi.test.js`. |
+| The debug stage names and their order | `sequences`, `glyphs`, `syllables`, `zero as wa`, `look-alikes`, `typos`, `NFC`: README (`fontConvert.debugging`); `test/zawgyi.test.js`, with one input that passes all seven; the stage lists of `test/fixtures/tables.json`; and the comparison with the frozen 2.10 engine in `test/fuzz.test.js`. |
 | The regex-source labels in `matched_patterns` | Unicode to Zawgyi debugging logs each rule's `.source` (`syllable.js`, `record`). Rewriting a regex literal, even to an equal pattern, changes this output. |
 
 Any library file that moves keeps a one-line shim at its old path through 2.x.
@@ -292,7 +292,7 @@ The 2.x code keeps these so that refactors stay byte-identical. Each one changes
 - **Font names in `syllBreak`, `truncate` and `spellingFix`:** an unknown name, or `'win'`, reaches the rule tables as it is. `syllBreak` and `truncate` throw a `TypeError` from inside `breakParts` for most of them; a few names of `Object.prototype` properties, such as `'toString'`, return the text with no breaks instead. `spellingFix` uses the Unicode marks for an unknown name, but throws on some `Object.prototype` names such as `'constructor'`. `fontConvert` detects the source instead of an unknown source name.
 - **`truncate` throws on an object that `String()` cannot convert,** such as `Object.create(null)` or `{ toString: undefined }`: it turns non-strings into strings with `String(content)` (`truncate.js`), where the other functions return them unchanged. `test/properties.test.js` pins the `TypeError`.
 - **NFC can take quadratic time (known, not kept on purpose).** `normalize` and the conversions to Unicode end with `String.prototype.normalize('NFC')`, which reorders a long run of combining marks of different classes, such as dot below with virama or asat (U+1037 with U+1039 or U+103A), in quadratic time: `'က'` followed by 32,000 such pairs takes about 1 s on Node 26. Putting each run of marks in canonical order before NFC would keep the output and make it linear; until that lands, `test/growth.timing.js` lists the case as known (CHANGELOG.md, 2.10.0, Security).
-- **Only U+1000–U+109F counts as Myanmar** for the input checks (`contentGate.js`). The extended blocks (U+A9E0–U+A9FF, U+AA60–U+AA7F) are read by the typing fixes and by `arrangeUnicode`, but `fontDetect`, `fontConvert`, `syllBreak`, `spellingFix` and `truncate` treat text made only of them as having no Myanmar character. Myanmar Extended-C (U+116D0–U+116E3) is not read anywhere. The ranges are written by hand, not generated from Unicode data.
+- **Only U+1000–U+109F counts as Myanmar** for the input checks (`contentGate.js`). The extended blocks (U+A9E0–U+A9FF, U+AA60–U+AA7F) are read by the typing fixes and by `arrangeUnicode`, but `fontDetect`, `fontConvert`, `syllBreak`, `spellingFix` and `truncate` treat text made only of them as having no Myanmar character. Myanmar Extended-C (U+116D0–U+116E3) is not read anywhere. The ranges are written by hand, not generated from Unicode data. They match Unicode 15.1, apart from the classes `test/unicode.test.js` lists, and that test fails when the runtime knows Myanmar code points they miss.
 
 ## Where the rules are justified
 

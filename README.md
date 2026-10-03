@@ -23,7 +23,7 @@ Browser script, global name `knayi`:
 
 ## Runtime
 
-Node.js 16 or newer, checked on Node 16, 18, 20, and 26. Building and testing the package needs Node 22 or newer. Node 24 is the version in `.nvmrc`.
+Node.js 16 or newer. CI runs the tests on Node 22, 24, and 26, and a smoke test of the README examples and the builds on Node 16, 18, and 20. Building and testing the package needs Node 22 or newer. Node 24 is the version in `.nvmrc`.
 
 ```javascript
 const knayi = require('knayi-myscript')

@@ -80,7 +80,7 @@ Knayi's output is used as data, so an unannounced change to it is a bug even whe
   - both hold for `main.js`, the `.mjs` build and `min.js`, under Node and Bun. CI checks all of this.
 - **The matrix records error messages only for errors knayi throws itself.** For a `TypeError` the engine raises by accident, it records only the class, because those messages differ between runtimes and builds. An error knayi throws on purpose carries a string `code` property; that is how the matrix tells the two apart. So throw it as `libraryError(code, message, Ctor)`, a helper in `library/contentGate.js` that the first such pull request adds: `test/unit/errors.test.js` fails on any other `throw` in the library.
 - **A pull request that changes output on purpose** gets the `DELIBERATE` label and:
-  - lists the exact counts it expects in its description, one `--expect form:corpus=n` per changed cell, and the matrix cells that change. CI's compare job reads those lines. It skips the counts for sets CI does not read (mC4, the legacy `wikipedia-v1` sample, and every corpus when its cache is cold) and `all` totals; re-run the job after you add the label or change the counts;
+  - lists the exact counts it expects in its description, one `--expect form:set=n` per changed cell (a set is a corpus, such as `ksw`, or a generated or fuzz set, such as `generated.rows`), and the matrix cells that change. CI's compare job reads those lines. It skips the counts for sets CI does not read (mC4, the legacy `wikipedia-v1` sample, and every corpus when its cache is cold) and `all` totals; re-run the job after you add the label or change the counts;
   - commits the new matrix written by `npm run matrix:update`;
   - changes nothing else;
   - adds a line under "Output changes" in [CHANGELOG.md](CHANGELOG.md);
@@ -99,7 +99,7 @@ Knayi's output is used as data, so an unannounced change to it is a bug even whe
 The README promises Chrome 49, Edge 14, Firefox 34, Safari 10, Samsung Internet 5 and Opera 36. So the `dist/` builds must:
 
 - parse as ES2015 (`test/syntax.test.js`);
-- avoid syntax and built-ins those browsers lack: no `let`, `const`, `for…of` or `class`, and no newer built-in, such as `TypedArray.prototype.fill`, on a path they run (`test/dist-floor.test.js`, whose rules are in `scripts/browser/floor.js`);
+- avoid syntax and built-ins those browsers lack: no `let`, `const`, `for…of` or `class`, and no newer built-in, such as `TypedArray.prototype.fill`, on a path they run (`test/dist-floor.test.js`, whose rules and allowlists are in `scripts/browser/floor.js`). The known exceptions, to be fixed in Phase 1 of the refactor, are listed in `test/dist-floor.test.js`: `globalThis` in all four builds, and `let`, `for…of` and destructuring in the module builds;
 - build no regex from a string that uses lookbehind, named groups, `\p{…}` or the `s` flag, since the syntax test cannot see inside strings (`test/regex-floor.test.js`);
 - give `main.js`'s results in Chromium, Firefox and WebKit (`npm run test:browser`).
 
