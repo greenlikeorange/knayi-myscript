@@ -147,6 +147,10 @@ describe('normalization', () => {
       assert.equal(knayi.normalize('ဥာဏ်'), 'ဉာဏ်');
       assert.equal(knayi.normalize('စျေး'), 'ဈေး');
       assert.equal(knayi.normalize('၄င်း'), '၎င်း');
+      // A four after any digit, zero to nine, stays a digit; after any other character it is lagaung.
+      assert.equal(knayi.normalize('၀၄င်း'), '၀၄င်း');
+      assert.equal(knayi.normalize('၉၄င်း'), '၉၄င်း');
+      assert.equal(knayi.normalize('ဿ၄င်း'), 'ဿ၎င်း');
     });
   });
   describe('other languages in the script', () => {

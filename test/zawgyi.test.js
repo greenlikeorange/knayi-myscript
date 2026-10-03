@@ -82,6 +82,10 @@ describe('Zawgyi', () => {
       assert.equal(toUnicode('၎င္းတို႔'), '၎င်းတို့');
       assert.equal(toUnicode('၎တို႔'), '၎င်းတို့');
       assert.equal(toUnicode('၁၄ ရက္'), '၁၄ ရက်');
+      // A four after any digit, zero to nine, stays a digit; after any other character it is lagaung.
+      assert.equal(toUnicode('၀၄င္း'), '၀၄င်း');
+      assert.equal(toUnicode('၉၄င္း'), '၉၄င်း');
+      assert.equal(toUnicode('၊၄င္း'), '၊၎င်း');
     });
 
     it('reads u with a stacked consonant, asat or aa as nya', () => {
