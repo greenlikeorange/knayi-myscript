@@ -2,17 +2,19 @@
 //
 //   node scripts/next/size.mjs [--gate]
 //
-// Four bundles, measured as scripts/check-size.js measures the 2.x build: esbuild IIFE at ES2015, minified, and
+// Six bundles, measured as scripts/check-size.js measures the 2.x build: esbuild IIFE at ES2015, minified, and
 // gzip by Node's zlib at level 9.
 // - compat: src/compat/index.js, the 2.x API on the core.
 // - normalize-only: an entry that imports only the core's normalizeText.
 // - api: src/index.js, the whole 3.0 API (DESIGN.md §11).
 // - api normalize-only: an entry that imports only normalize from src/index.js, as a 3.0 user who needs only
 //   normalize does.
+// - stream: src/stream.js, every stream of 3.0 (DESIGN.md §12).
+// - stream normalizer-only: an entry that imports only createNormalizer from src/stream.js.
 //
 // Prints each bundle's size against its target and each module's share, from esbuild's metafile. Fails when a
 // module that normalize never needs (the fonts, the font reader and stages, detection, segmentation, Unicode to
-// Zawgyi, compat and spec, and the other functions of the 3.0 API) puts a byte into either normalize-only bundle.
+// Zawgyi, compat and spec, and the other functions of the 3.0 API) puts a byte into a normalize-only bundle.
 // The byte targets bind with --gate, at the acceptance gate (§6.3); before that they are reported, and the 3.0
 // bundles have none yet. CI's `checks` job runs this on every pull request.
 
@@ -25,7 +27,10 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 
 // The targets after the port of the 2.x linear NFC helper (§6.4, "After it"): W1 ported the helper into core/nfc.js
 // (§7.3, as built), so both bundles carry it. Before the port they were 10,854 B and 4,300 B.
-export const TARGETS = { compat: 10854, 'normalize-only': 4850, api: null, 'api normalize-only': null };
+export const TARGETS = {
+  compat: 10854, 'normalize-only': 4850, api: null, 'api normalize-only': null, stream: null,
+  'stream normalizer-only': null
+};
 
 // Modules that must contribute 0 bytes to the normalize-only bundle (§2.4), as paths relative to the root.
 const NOT_IN_NORMALIZE = [
@@ -35,7 +40,7 @@ const NOT_IN_NORMALIZE = [
 ];
 
 // The bundles that import only normalize.
-const NORMALIZE_ONLY = ['normalize-only', 'api normalize-only'];
+const NORMALIZE_ONLY = ['normalize-only', 'api normalize-only', 'stream normalizer-only'];
 
 const ENTRIES = {
   compat: { entryPoints: [path.join(ROOT, 'src', 'compat', 'index.js')] },
@@ -52,6 +57,14 @@ const ENTRIES = {
       contents: "export { normalize } from './src/index.js';\n",
       resolveDir: ROOT,
       sourcefile: 'api-normalize-only.js'
+    }
+  },
+  stream: { entryPoints: [path.join(ROOT, 'src', 'stream.js')] },
+  'stream normalizer-only': {
+    stdin: {
+      contents: "export { createNormalizer } from './src/stream.js';\n",
+      resolveDir: ROOT,
+      sourcefile: 'stream-normalizer-only.js'
     }
   }
 };

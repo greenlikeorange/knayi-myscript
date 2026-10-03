@@ -1,8 +1,9 @@
 // Top-level code free of side effects, so an import pulls in only what it uses (docs/next/DESIGN.md §2.4, D16).
 //
 // esbuild drops an unused top-level binding only when it can see that its initialiser has no side effects. This
-// checks rules 1-6 of §2.4 on every file of src/ with acorn, then bundles a normalize-only import with
-// scripts/next/size.mjs and requires 0 bytes from the modules normalize never needs.
+// checks rules 1-6 of §2.4 on every file of src/ with acorn, then bundles the normalize-only imports with
+// scripts/next/size.mjs (of the core, of the 3.0 API and of its streams) and requires 0 bytes from the modules
+// normalize never needs.
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -152,5 +153,9 @@ describe('top-level code of src/ (DESIGN.md §2.4)', () => {
 
   it('nor has an import of normalize alone from the 3.0 API (DESIGN.md §11.1)', () => {
     assert.deepEqual(normalizeOnlyLeaks(measure('api normalize-only')), []);
+  });
+
+  it('nor has an import of createNormalizer alone from the streams (DESIGN.md §12.5)', () => {
+    assert.deepEqual(normalizeOnlyLeaks(measure('stream normalizer-only')), []);
   });
 });

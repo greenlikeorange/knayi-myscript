@@ -15,6 +15,11 @@ export const ERR = /* @__PURE__ */ deepFreeze({
   INVALID_ARG_TYPE: 'ERR_KNAYI_INVALID_ARG_TYPE',
   // RangeError: a value knayi does not accept.
   INVALID_ARG_VALUE: 'ERR_KNAYI_INVALID_ARG_VALUE',
+  // RangeError: a line of a stream passes its maxLineLength before it ends (§12.4).
+  LINE_TOO_LONG: 'ERR_KNAYI_LINE_TOO_LONG',
+  // Error: the runtime lacks what the call needs, such as TransformStream for a stream, or TextDecoder for bytes
+  // (§12.1, §12.3).
+  UNSUPPORTED_RUNTIME: 'ERR_KNAYI_UNSUPPORTED_RUNTIME',
   // Error: a font table fails compileFont's checks, at module load (§3.8).
   INVALID_FONT_TABLE: 'ERR_KNAYI_INVALID_FONT_TABLE',
   // Error: a function of the skeleton that its module's builder has not written yet (§7.2). None may remain at

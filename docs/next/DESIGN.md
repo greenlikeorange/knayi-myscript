@@ -54,7 +54,7 @@ Where this spec departs from the plan, §1.4 says so and gives the reason.
   - a detached `fontConvert` call never reads a global `debug`;
   - myanmar-tools is looked up from the working directory, not from `library/`.
 - **Not here, at first:**
-  - the 3.0 public API: `toUnicode`, `toZawgyi`, `detectEncoding`, streaming, lossless segmentation, change reports and the CLI. Two cores of it are built here: lossless segmentation in `rules/segment.js` (§7.5), and the core's `detectEncoding` in `rules/detect.js`, which computes that function's result (§7.6, as built). The public functions, which check and clean their text and take their options, are 3.0's, and are built now, all but streaming and the CLI (§11);
+  - the 3.0 public API: `toUnicode`, `toZawgyi`, `detectEncoding`, streaming, lossless segmentation, change reports and the CLI. Two cores of it are built here: lossless segmentation in `rules/segment.js` (§7.5), and the core's `detectEncoding` in `rules/detect.js`, which computes that function's result (§7.6, as built). The public functions, which check and clean their text and take their options, are 3.0's, and are built now, all but the CLI (§11), streaming included (§12);
   - the package `exports` map and the 3.0 builds;
   - any output change.
 
@@ -196,6 +196,9 @@ src/
   api/encoding.js            L4          detectEncoding (§11.5)
   api/convert.js             L4          toUnicode, toZawgyi (§11.5)
   api/segment.js             L4          segmentSyllables, syllableBoundaries, truncate, collapseRepeatedMarks (§11.6, §11.7)
+  stream.js                  L4          the 3.0 streams, the entry knayi-myscript/stream (§12)
+  api/lines.js               L4          mapLines, and the LineMapper every stream runs on (§12)
+  api/stream.js              L4          lineTransform, createNormalizer, createConverter: TransformStreams (§12)
   spec/detectorSignatures.js  (spec)     the 29 detector signature rows: the scanner's readable oracle
   spec/breakRules.js          (spec)     the 15 break rule rows: the scanners' readable oracle
   spec/typoRows.js            (spec)     the 4 typo rules, documented: fixTypos's readable oracle
@@ -354,6 +357,8 @@ export const MYANMAR_SCRIPT_PATTERN: RegExp   // one code unit in the three bloc
 export const ERR: Readonly<{
   INVALID_ARG_TYPE: 'ERR_KNAYI_INVALID_ARG_TYPE',      // TypeError: an argument has the wrong type
   INVALID_ARG_VALUE: 'ERR_KNAYI_INVALID_ARG_VALUE',    // RangeError: a value knayi does not accept
+  LINE_TOO_LONG: 'ERR_KNAYI_LINE_TOO_LONG',            // RangeError: a line of a stream passes its maxLineLength (§12.4)
+  UNSUPPORTED_RUNTIME: 'ERR_KNAYI_UNSUPPORTED_RUNTIME', // Error: no TransformStream for a stream, no TextDecoder for bytes
   INVALID_FONT_TABLE: 'ERR_KNAYI_INVALID_FONT_TABLE',  // Error: a font table fails compileFont's checks, at module load
   NOT_BUILT: 'ERR_KNAYI_NOT_BUILT'                     // Error: a skeleton stub; none may remain at the gate
 }>
@@ -1412,6 +1417,7 @@ The 2.x line brings each of these, and they reach compat through §8.
 | | the pass repeated over the whole text, at most 3 passes; regions apart; the report rebuilds the output | 30k each | 600k each |
 | | the text 2.x settles on, where no look-alike is stacked | 50k | 1M |
 | `api/*.test.mjs` (§11) | `explain`'s fixes give `normalize`'s result; `detectEncoding` and the conversions against 2.x; offsets; traces; lossless syllables; `truncate` a prefix; `collapseRepeatedMarks` against 2.x | 10k-30k each | 200k-600k each |
+| `api/lines.test.mjs` (§12) | `mapLines` on any cut of a fuzzed text, strings or UTF-8 bytes, gives what the whole text gives | 20k | 400k |
 
 - **The nightly leg (W0, D23).** A scheduled workflow runs the default branch's file on the default branch, so `next`'s own `fuzz.yml` never runs at night. W0 opens one CI-only PR to `main`, after W0 lands on `next`. It adds a `fuzz-next` job to `main`'s `.github/workflows/fuzz.yml`, with its own `timeout-minutes: 60`:
   - `actions/checkout` with `ref: next`;
@@ -1662,7 +1668,7 @@ W8 compat              after all of them; its option, input and legacy files nee
 - **As built**, where the build settles what this section leaves open:
   - **The NFC helper is ported here**, not in a §8 port PR: the core work item asked for `toNfc` in linear time. `core/nfc.js` is the 2.x helper (d170cd8) with the memo of D20, in named steps (`orderLongRuns`, `isRunCharacterAt`, `decomposeRunCharacter`, `findOrInsertClass`, `canonicalOrder`). It also exports `orderLongRuns`, the 2.x `nfc.reorder`, for the exhaustive tests. `toNfcWith` sends a text of 30 units or fewer to `String#normalize` at once, which saves a call per word.
   - **The NFC tests** follow the 2.x helper's test, with a cold memo per test (`core-nfc.test.mjs`): every code point the runtime knows, classified with the test's own probe marks (U+0334 and U+0345; 971 run characters and 989 letters with marks on Node 26.5); every ordered pair of run characters (942,841); every letter with marks next to a long run; long runs in seven scripts; the 30-unit boundary; lone surrogates; the bounded memo; and no call of `normalize` in `src/` outside `core/nfc.js`. `core-nfc.fuzz.test.mjs` adds random text and text with long runs, and `core-nfc.timing.mjs` the growth check. 11 of 13 mutants of the helper fail the unit tests; the other two cannot change an output on this runtime (a guard that the run start never passes `done`, and the branch for run characters above U+1FFFF, of which Unicode 17 has none).
-  - **`core/errors.js` stays W0's.** Its four codes are pinned by `codes.test.mjs`. `ERR_KNAYI_INVALID_FONT`, the code of decision 11's font-name policy (PR 4.3 on the 2.x line), arrives with that port (§8), with the compat change that throws it.
+  - **`core/errors.js` stays W0's.** Its four codes (six since the streams of §12) are pinned by `codes.test.mjs`. `ERR_KNAYI_INVALID_FONT`, the code of decision 11's font-name policy (PR 4.3 on the 2.x line), arrives with that port (§8), with the compat change that throws it.
   - **The 2.x preamble stays in compat** (D1): `INPUT_POLICY`, `enter` and `chooseFontLegacy(name, text, detect)`, which takes the detector as an argument, are W8's (`compat/input.js`). `core/input.js` holds `FONTS` and builds `FONT_ALIASES` from the fonts' `aliases`, so each alias is written once.
   - **The 2.x tables as rows** for the tests are built in `test/next/core-rules.tables.mjs` from `scripts/oracle/`, each row with a copy of its regex: 2.x's `ruleMatches` leaves a matched regex's `lastIndex` past the match. The Zawgyi and Win sequences are checked against the `'sequences'` step of 2.x's own debug log.
   - **Speed**, interleaved in one process against the 2.x code each function replaces, on perf's 400 FLORES lines (ratio = core / 2.x, median of 5 rounds; Node 26.5, then Bun 1.4.2 over 3 rounds):
@@ -1977,12 +1983,12 @@ A 2.x speed win that the core already has, such as the atom wrap or the one-rege
 
 ## 9. Not in this build
 
-These are the rest of Phase 6. The core is shaped so that they need no core change. The 3.0 API itself, with lossless segmentation, a prefix truncate, the change report, `isNormalized`, `explain` and an idempotent normalize, is built: §11.
+These are the rest of Phase 6. The core is shaped so that they need no core change. The 3.0 API itself, with lossless segmentation, a prefix truncate, the change report, `isNormalized`, `explain` and an idempotent normalize, is built: §11. So are its streams, `createNormalizer`, `createConverter`, `lineTransform` and `mapLines`: §12.
 
-- **Streaming:** `createNormalizer`, `createConverter`, `mapLines`, `lineTransform`. The core functions are stateless and line-local on the proven boundary (Phase 6 #2 of the plan); `toUnicode` already converts each line as it would alone (§11.5).
+- **Streaming to Zawgyi,** which waits for the fix of §10 Q10 (§12.2).
 - **Extended-C and code-point iteration** (decision 20b).
 - **The CLI** (decision 32).
-- **Packaging:** the exports map (`'.'` for `src/index.js`, `'./compat'`, `'./stream'`, `'./package.json'`), the `engines` field (Node 22.12 or later), `src/index.d.ts` as the types of `'.'`, the 3.0 builds with the dist floor checks and the Playwright smoke run, deleting `library/` and its shims, and the import sizes per entry, which `scripts/next/size.mjs` reports for `src/index.js` already (§11.1).
+- **Packaging:** the exports map (`'.'` for `src/index.js`, `'./compat'`, `'./stream'` for `src/stream.js`, `'./package.json'`), the `engines` field (Node 22.12 or later), `src/index.d.ts` and `src/stream.d.ts` as the types of `'.'` and `'./stream'`, the 3.0 builds with the dist floor checks and the Playwright smoke run, deleting `library/` and its shims, and the import sizes per entry, which `scripts/next/size.mjs` reports for `src/index.js` already (§11.1).
 
 ---
 
@@ -1995,6 +2001,7 @@ compat must give the reference's output on every input (§1.2 rule 1), so the co
 | Q3 | `fontConvert.debugging` returns what `fontConvert` returns on every early exit: strings, `''` and non-strings, not a debug object (C19). index.d.ts promises an object. | `debugging('abc', 'unicode')` is `'abc'`; `debugging('က', 'unicode', 'unicode')` is `'က'` | 190 matrix cells; the demo's string check depends on it | `compat/fontConvert.js` | 2.11, decision 12 (§8: "always-an-object `debugging`") |
 | Q5 | `truncate` is not always a prefix of its input: a part that does not fit adds those of its words that do, so a later word can follow a skipped one (truncate.js `reduce`, C23). | The README pangram cut at 30 drops ဇလွန် and keeps the later ဈေး | 29% of Myanmar lines at length 30 | `compat/text.js` `fitParts` | 2.11, its own pull request; 3.0's truncate is a prefix that stops early (§11.7) |
 | Q8 | The two pipelines run the typing fixes in different orders: normalize runs typos then look-alikes, and the font pipeline look-alikes then typos (C24; ARCHITECTURE.md, "Typing fixes and their two orders"). | `normalize('ဝ၄င်း')` gives U+101D U+104E (lagaung); the Win text `&4if;` gives U+1047 U+1044 (digits) | 0 corpus lines; synthetic input only | `stages/normalize.js`, `stages/fonts.js` | decision 15: typos first in both |
+| Q10 | Unicode to Zawgyi moves an e or a medial ra before the nearest consonant before it, past anything that is not a consonant, a space or a line break included (syllable.js:22, :26; rows `uz.order.1` and `uz.order.3`). So a line does not convert to Zawgyi as it would alone, and streaming to Zawgyi is refused (§12.2). | `toZawgyi('က\nေ')` gives U+1031 U+1000 U+000A, where its lines alone give U+1000 U+000A U+1031 | 839 of the 48,105 pairs of neighbouring lines of the Unicode corpora convert otherwise as one text (2,622 of 64,797 with mC4 and WaitZar) | `rules/unicodeToZawgyi.js` `VISUAL_ORDER` | a deliberate 2.x pull request (Phase 4), then streaming to Zawgyi, with a boundary test |
 | Q11 | Bare consonants join only in pairs: one global replace never looks again at the consonant it has just taken, though the comment of syllable.js says every bare consonant joins (rows U7 and Z8, C21). | `syllBreak('ကကက', 'unicode', '\|')` is `ကက\|က`; ပထမဆုံး breaks as ပထ\|မဆုံး | 6,032 of 34,285 lines would change | `rules/segment.js` `legacyBareConsonantPair`; `spec/breakRules.js` U7, Z8 | decision 34: 3.0 reads a bare consonant as a syllable of its own by default (§11.6) |
 | Q12 | normalize is not idempotent on garbled input: a second call can change the text again (C24). | `၀ွ ှ` gives `ဝွ ှ`, then `ဝွှ`; `ိီိ` gives `ီိ`, then `ီ` | 0 Unicode corpus lines; 104 of 15,405 raw mC4 lines | `engine/unicodeReader.js`, `rules/typingFixes.js` | decision 36: 3.0's normalize is idempotent (§11.2) |
 | Q15 | The 2.x ES module build, and compat with it, look myanmar-tools up from the working directory, where `main.js` looks from `library/` (known build difference 2, §5.4; C26). | A worker started from another directory finds the package "not installed" | monorepos and workers | `compat/zawgyiModel.js` | decision 17: an injected detector (Phase 5) |
@@ -2087,7 +2094,9 @@ A trace from `createTrace()` is `{start, records}` (D4); a call sets `start` to 
 
 `detectEncoding` is the core's (`rules/detect.js`) on the text trimmed and without U+200B and U+200C, as 2.x cleaned it: `none` with no unit of U+1000-U+109F, `unknown` on a tie, else the side with more evidence. With a `zawgyiDetector` (myanmar-tools' `ZawgyiDetector`, or anything with `getZawgyiProbability`), its probability decides by the thresholds, and the result also holds it; the detector is never asked about text with no Myanmar. On fuzz and on every cached line, 2.x `fontDetect` with a fallback gives the same encoding, with the fallback for `none` and `unknown`.
 
-`toUnicode` converts with the core's font pipeline, and never trims. With `from`, the whole text converts; Zawgyi text with no Myanmar-block unit stays as it is, as in 2.x, and Win text, which is ASCII, always converts. With no `from`, each line (split at `\n`) is detected on its own, and converts when it reads as Zawgyi; a line whose evidence ties stays as it is, unless `tie: 'zawgyi'` reads it as 2.x did. Win text cannot be detected and needs `from: 'win'`. Neighbouring Zawgyi lines convert as one piece: the font pipeline converts a line as it would alone (the plan's 949,997 pairs; `convert.test.mjs` checks it on fuzz).
+`toUnicode` converts with the core's font pipeline, and never trims. With `from: 'win'`, the whole text converts: Win text is ASCII. With `from: 'zawgyi'`, each line (split at `\n`) with a Myanmar-block unit converts, and a line with none stays as it is, as 2.x left such a text. With no `from`, each line is detected on its own, and converts when it reads as Zawgyi; a line whose evidence ties stays as it is, unless `tie: 'zawgyi'` reads it as 2.x did. Win text cannot be detected and needs `from: 'win'`. Neighbouring Zawgyi lines convert as one piece: the font pipeline converts a line as it would alone (the plan's 949,997 pairs).
+
+So a text converts as its lines do, each alone, with or without `from`. `convert.test.mjs` checks it on fuzz, with lines of no Myanmar that NFC changes among them, and it holds on the cached corpora: each corpus as one text converts as its lines do, and so does each of the 64,797 pairs of neighbouring lines. As first built, `from: 'zawgyi'` asked whether the whole text had a Myanmar-block unit, as 2.x's `fontConvert` does, so a line with none went through the final NFC when another line had one: `toUnicode('e\u0301\nက', {from: 'zawgyi'})` gave `'\u00E9\nက'`, though its first line alone stays `'e\u0301'`. Deciding line by line changes only text with such a line, a line of no Myanmar-block unit that NFC changes, of which the corpora have none. It costs about 30 ns a call, 13% of the time of a five-unit word: the line break must be looked for. On lines and documents of FLORES, Okell and mC4, `from: 'zawgyi'` reads 0.95-1.05 of the time before, which is within the noise, and on WaitZar's 2,390 words as one text, one per line, 1.06-1.16.
 
 **The damage of reading a tie as Zawgyi,** recounted on the cached corpora (plan §7 item 7), as distinct lines of each corpus that converting to Unicode with no source named changes. Every line of these corpora is Unicode, so every change is damage. `convert.test.mjs` records the counts.
 
@@ -2153,6 +2162,72 @@ On fuzz and on every line of FLORES, Wikipedia v2 and Okell that does not read a
 ### 11.9 Verification
 
 `test/next/api/` holds the tests of the API: `normalize.test.mjs` and `normalize.fuzz.test.mjs` (§11.2, §11.3), `explain.test.mjs`, `encoding.test.mjs`, `convert.test.mjs` (with the tie counts of §11.5), `segment.test.mjs` (with the counts of §11.6), `types.test.mjs` and `api.timing.mjs`, the growth of every function on `SHAPES`, `NFC_RUNS`, the settling chains and, for `normalize` and `toUnicode`, `PUMPS`. `test/next/core-edits.test.mjs` checks `composeEdits` on random passes and each writer's edits against its own output. The corpus tests read only a complete, pinned cache, and skip without one. Under Bun 1.4.2 the files pass too (`bun test ./test/next/api`). compat is unchanged: `npm run compare -- --base e5f6e24fa756f8f9c8d790f9a15ede85b135e8ae --head mjs:src/compat/index.js` reports 0 differences on 2,771,318 comparisons, and the contract matrix all 3,523 cells.
+
+---
+
+## 12. Streaming
+
+`src/stream.js` is the 3.0 streams, Phase 6 #2 of the plan: the entry the exports map will name `'./stream'` (§9). Text arrives in chunks, strings or UTF-8 bytes, and is cut into lines at `\n`; each line goes through a function, and the result goes out with the line's ending. It stands apart from `src/index.js`, so an import of `normalize` alone carries no stream code.
+
+### 12.1 The functions
+
+| Export | Returns |
+|---|---|
+| `mapLines(fn, {maxLineLength})` | a `LineMapper`: `transform(chunk)` gives the text of the lines the chunk completes, each through `fn`; `flush()` gives the last line and starts the mapper again |
+| `lineTransform(fn, {maxLineLength})` | a `TransformStream` of chunks to strings, each line through `fn` |
+| `createNormalizer({maxLineLength})` | a `TransformStream`, each line through `normalize` (§11.2) |
+| `createConverter({from, to, tie, zawgyiDetector, thresholds, maxLineLength})` | a `TransformStream`, each line through `toUnicode` with these options (§11.5); `to` is `'unicode'` |
+
+The files are `stream.js`, which re-exports, `api/lines.js` (`mapLines` and the `LineMapper`) and `api/stream.js` (the TransformStreams), all L4 (§2.1). The options are read as §11.1 reads them, once, when the stream is made, and their errors name the function that took them: `knayi.createConverter: options.from must be ...`. `src/stream.d.ts` holds the types, and `typecheck/next/stream.ts` compiles code against them.
+
+**Lines.** A line ends at `\n`. A `\r` right before it belongs to the ending: the function sees a `\r\n` line without its `\r`, and the ending goes out after the result as it came, `\r\n` or `\n`. A `\r` anywhere else is part of its line. The text after the last `\n` is the last line, which `flush()` gives; a text that ends with `\n` has no empty line after it. The function is called once per line, in order, with the line alone and no `this`, as `Array#map` would call it with one argument, and must return a string: anything else is a TypeError that names the line. So for a whole text, a stream gives `mapWholeText(text, fn)` of `test/next/api/helpers.mjs`, whatever the chunks, and `lines.test.mjs` checks it on every cut of a text into two and three chunks, strings and bytes, and on 20,000 fuzzed texts and cuts (400,000 nightly).
+
+**One implementation for WHATWG and Node.** The streams are WHATWG `TransformStream`s, which browsers, Deno, Bun and Node all have: `response.body.pipeThrough(createNormalizer())`. Node's `stream.pipeline(source, createNormalizer(), destination)` takes one between Node streams, and `Duplex.fromWeb` makes a Node `Duplex` of one, so the same object serves Node; Node hands it a Buffer chunk as a Uint8Array. `src/` loads no module (§2.2), so it cannot build a Node `Transform` itself. Under each stream is a `LineMapper`, which `mapLines` gives directly, with no stream class: for a loop, for a Node `Transform` of the caller's (`transform(chunk, encoding, done) { done(null, lines.transform(chunk)); }` and `flush(done) { done(null, lines.flush()); }`), and for a runtime of the ES2015 floor (decision 18) with no `TransformStream`, such as Safari before 14.1 or Firefox before 102. There the stream functions throw `ERR_KNAYI_UNSUPPORTED_RUNTIME`; the module itself loads, since nothing at its top level touches either global, and `mapLines(normalize)` and `mapLines((line) => toUnicode(line, options))` do what `createNormalizer()` and `createConverter(options)` do.
+
+### 12.2 The line boundary: which functions stream
+
+A stream gives what its function gives for the whole text only when the function keeps to the line boundary: `f(a + '\n' + b) === f(a) + '\n' + f(b)`, and the same with `'\r\n'`, since a stream cuts the `\r` off before `f` and writes it back after. The plan found the boundary for 2.x `normalize` and the 2.x font engines on 949,997 pairs of lines, and not for `fontConvert`, which trims and decides the font of the whole input once, nor for Unicode to Zawgyi. For the 3.0 functions:
+
+| Function | Keeps the boundary | Evidence |
+|---|---|---|
+| `normalize` | yes | 0 of the 64,797 pairs of neighbouring lines of the cached corpora; 0 of 200,000 fuzzed pairs, with `\n` and with `\r\n` |
+| `toUnicode` with `from: 'zawgyi'` or `'win'` | yes | it converts line by line by construction (§11.5); 0 of 64,797 corpus pairs and of 200,000 fuzzed pairs, each encoding; `convert.test.mjs` |
+| `toUnicode` with no `from` | yes | it detects each line alone (§11.5); the same counts |
+| `toZawgyi` | no | §10 Q10: 2,622 of the 64,797 corpus pairs |
+
+So `createNormalizer` streams `normalize`, and `createConverter` streams `toUnicode`, with `from` or detecting each line, as `toUnicode` does. `createConverter({to: 'zawgyi'})` throws a RangeError with `ERR_KNAYI_INVALID_ARG_VALUE` whose message says why (the Unicode to Zawgyi rules move e and medial ra across line breaks) and points to `toZawgyi` on the whole text. Streaming to Zawgyi waits for Q10's fix, with a boundary test; `stream.test.mjs` pins the example of Q10, so that test fails when the fix lands. `mapLines` and `lineTransform` take any function, whose boundary is the caller's to know. compat has no stream.
+
+### 12.3 Chunks and bytes
+
+- **A chunk is a string or bytes:** an `ArrayBuffer` or a view of one (a `Uint8Array`, Node's `Buffer`, a `DataView`). The first chunk sets which a stream takes; a chunk of the other kind, or of any other type, is a TypeError with `ERR_KNAYI_INVALID_ARG_TYPE`. A string between byte chunks could not go where a character the bytes cut short is waiting.
+- **Bytes are UTF-8,** decoded by one `new TextDecoder('utf-8', {ignoreBOM: true})` per stream, with `decode(chunk, {stream: true})`: a character whose bytes are split between chunks waits in the decoder for the rest. At the end, a character the input cut short becomes U+FFFD, as do bytes that are not UTF-8, so the text is what `TextDecoder` and Node's `Buffer#toString` give for the whole input. A byte-order mark is kept as U+FEFF: a stream drops no character, as `normalize` keeps U+FEFF. §6.4's "never `TextDecoder`" is about the readers' UTF-16 buffers, where it would replace a lone surrogate; this input is UTF-8 bytes, which it is for. A runtime with no `TextDecoder` (Safari 10.0, Edge before 79) takes strings, and bytes there throw `ERR_KNAYI_UNSUPPORTED_RUNTIME`.
+- **A surrogate pair split between string chunks** reaches the function whole: nothing of a line goes out before the line ends, so the high surrogate waits with the rest of its line. `lines.test.mjs` passes every cut of a text with pairs to `encodeURIComponent`, which throws on half a pair.
+- **What goes out:** for each chunk that completes a line, one string holding every line it completes; nothing for a chunk that completes none.
+- **Time:** each unit is read once, by `indexOf`, and a line that arrives in many chunks waits as pieces, joined once at its end. `lines.timing.mjs` checks the growth of one long line in one-unit chunks, lines of `\r` and `\r\n`, four-byte characters in one-byte chunks, and `normalize` line by line on every shape of `SHAPES`, all ≤ 1.3; a version that went over the waiting pieces at each chunk read 1.73-1.99.
+
+### 12.4 Long lines: an error, not a cut
+
+A line with no `\n` would otherwise wait without limit, so `maxLineLength` bounds it: the most UTF-16 units a line may hold, its ending not counted, a whole number of 1 or more, or `Infinity` for no limit. The default is 1,048,576 (2^20), 2 MB of memory and 19 times the longest line of the cached corpora (54,804 units, in mC4). As soon as the line that waits passes it, the stream throws a RangeError with `ERR_KNAYI_LINE_TOO_LONG` that names the line, so no more than `maxLineLength` + 1 units of a line wait from one chunk to the next (a `\r` at the end may yet start a `\r\n`), and a line that passes it never reaches the function. The last line has no ending, so a `\r` at its end counts.
+
+The plan left open whether to cut such a line at a syllable boundary or to raise an error. It is an error:
+- **A cut changes the output.** A stream's one promise is the output of the whole text (§12.2), and a cut makes it depend on where the input was cut. Cut at its middle syllable break, each line of the cached corpora that has one (62,626 lines) gives another `normalize` result on 1,416 lines (the look-alikes read across a syllable break: a wa after a digit is a zero) and another detected `toUnicode` on 3,687 (each piece is detected alone).
+- **No cut is safe for every function.** A cut at a region start of §11.2 would keep `normalize`'s output, but none keeps a detected line's, and a run of marks has no region start, so the error would still be needed.
+- **The limit is for memory,** against untrusted input (SECURITY.md); it is not a way to split text. A caller whose lines are longer passes a larger limit, or `Infinity`.
+
+### 12.5 Verification
+
+- `test/next/api/lines.test.mjs`: the lines, chunks, bytes and limits of `mapLines` (§12.1, §12.3, §12.4).
+- `test/next/api/stream.test.mjs`:
+  - every cached corpus, all ten sets with mC4, through `createNormalizer`, `createConverter({from: 'zawgyi'})` and `createConverter()`, as strings joined by `\n` with no final line break and as UTF-8 bytes joined by `\r\n` with one, cut into seeded chunks of 1 to 16,384 units or bytes, so that most byte cuts fall inside a character: each gives exactly what `normalize` or `toUnicode` gives for the whole text;
+  - `pipeThrough`, Node's `stream.pipeline` and `Duplex.fromWeb`; `tie` and an injected `zawgyiDetector`; the errors of a long line, a bad chunk and a function that throws, which reject the stream; the options' errors, which name the function; a runtime with no `TransformStream` or no `TextDecoder`, made by removing the global for the test;
+  - §10 Q10: its example, which fails once Q10 is fixed, and its corpus counts, recorded.
+- `test/next/api/lines.timing.mjs`, `types.test.mjs` and `typecheck/next/stream.ts` (§12.1, §12.3).
+- The files pass under Node 24 and 26 and Bun 1.4.2. At the nightly counts (`KNAYI_FUZZ_SCALE=100`, seed 4417), the fuzz of `lines.test.mjs` (400,000 texts) took 3.0 s, and the line-by-line property of `convert.test.mjs` (600,000) 9.6 s.
+- compat is unchanged; of what the streams touched, it shares only `ERR`: `npm run compare -- --base e5f6e24fa756f8f9c8d790f9a15ede85b135e8ae --head mjs:src/compat/index.js` reports 0 differences on 2,771,318 comparisons (20 call forms, every corpus with mC4), and the contract matrix all 3,523 cells, under Node 26.5 and Bun 1.4.2.
+
+**Speed.** On FLORES, Okell and mC4, each as one document in 64 KB chunks, a stream takes about the time of its function on the whole text: 0.74-1.02 of `normalize`'s, 1.01-1.12 of `toUnicode`'s from Zawgyi and 1.03-1.26 of its detecting each line (median of 5 interleaved rounds, Node 26.5). UTF-8 bytes cost 0.02-0.18 more than strings, the share of decoding; `mapLines` alone reads 0.75-1.10.
+
+**Sizes** (`scripts/next/size.mjs`, as §6.4 measures, gzip level 9): all the streams are 16,082 B, and an import of `createNormalizer` alone 10,315 B: the 9,200 B of `normalize` alone from `src/index.js`, and 1,115 B of the line cutter and the stream. The tree-shaking check of §2.4 runs on that import too: no byte of the fonts, detection, conversion or segmentation. The two error codes of §12.3 and §12.4 add 43 B to compat and to the 3.0 API, which share `ERR`.
 
 ---
 
