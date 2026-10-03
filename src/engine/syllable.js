@@ -12,7 +12,7 @@ import { deepFreeze } from '../freeze.js';
 import {
   CP, isBurmeseDigit, isSpaceBeforeMark, zeroWidthBit, markRank, markBit, RANK_LAST_MEDIAL, RANK_LOWER_VOWEL,
   RANK_AI_ANUSVARA, MASK_ANY_AA, MASK_UPPER_VOWELS, MASK_LOWER_VOWELS, MASK_E_OR_AA, MASK_MEDIALS, MASK_ASAT,
-  MASK_DOT_BELOW, MASK_VISARGA, MASK_MEDIAL_YA, MASK_MEDIAL_HA
+  MASK_DOT_BELOW, MASK_VISARGA, MASK_MEDIAL_YA, MASK_MEDIAL_HA, MASK_E_TO_DOT_BELOW
 } from '../script/codes.js';
 
 // Where orderSyllable puts the asat (§3.4; UTN #11, research/zawgyi-to-unicode.md §3). 2.x had the flags early,
@@ -151,6 +151,7 @@ export class SyllableBuffer {
     this.spaceHeld = false; // a space was held since the syllable last went on
     this.pending = new Uint16Array(PENDING_UNITS);
     this.pendingLength = 0;
+    this.typedInOrder = true; // no part came out of its place (writesAsTyped); see the methods that clear it
   }
 
   // Empties everything: a reader calls this at the start of each call.
@@ -172,14 +173,17 @@ export class SyllableBuffer {
     this.heldLength = 0;
     this.keptUpTo = 0;
     this.spaceHeld = false;
+    this.typedInOrder = true;
   }
 
-  // Opens a syllable. The pending e and medial ra were typed for this base, so they become its first marks.
+  // Opens a syllable. The pending e and medial ra were typed for this base, so they become its first marks, and
+  // the syllable is no longer in its typed order: they were typed before the base.
   open(kinziLead, keepU) {
     this.emptySyllable();
     this.isOpen = true;
     this.kinziLead = kinziLead;
     this.keepU = keepU;
+    if (this.pendingLength > 0) this.typedInOrder = false;
     for (let p = 0; p < this.pendingLength; p++) this.pushMark(this.pending[p]);
     this.pendingLength = 0;
   }
@@ -208,10 +212,14 @@ export class SyllableBuffer {
     this.baseCodes[0] = code;
   }
 
-  // A mark typed twice counts once (2.x order(), storageOrder.js:106-109). Every mark lies in U+102B-U+103E.
+  // A mark typed twice counts once (2.x order(), storageOrder.js:106-109). Every mark lies in U+102B-U+103E. The
+  // dropped copy leaves the syllable out of its typed order.
   pushMark(code) {
     const bit = markBit(code);
-    if ((this.markMask & bit) !== 0) return;
+    if ((this.markMask & bit) !== 0) {
+      this.typedInOrder = false;
+      return;
+    }
     this.markMask |= bit;
     this.marks[this.markCount++] = code;
   }
@@ -230,7 +238,9 @@ export class SyllableBuffer {
     this.markMask &= ~markBit(code);
   }
 
+  // A stacked consonant is written before the marks, so one typed after a mark leaves the typed order.
   pushStack(code) {
+    if (this.markCount > 0) this.typedInOrder = false;
     if (this.stackLength === this.stack.length) this.stack = grownCopy(this.stack, this.stackLength + 1);
     this.stack[this.stackLength++] = code;
   }
@@ -243,8 +253,10 @@ export class SyllableBuffer {
   }
 
   // The syllable goes on: the spaces held so far are dropped, and the zero-width characters stay (2.x
-  // `after = kept`). A space typed before a mark only moved the mark (research/zawgyi-to-unicode.md §3).
+  // `after = kept`). A space typed before a mark only moved the mark (research/zawgyi-to-unicode.md §3). Held
+  // units are written after the syllable, so going on past one leaves the typed order.
   goOn() {
+    if (this.heldLength > 0) this.typedInOrder = false;
     this.keptUpTo = this.heldLength;
     this.spaceHeld = false;
   }
@@ -333,6 +345,53 @@ export function closeSyllable(buf, sink) {
   buf.isOpen = false;
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// Syllables typed in storage order (DESIGN.md §3.4, "as typed"). 99.92% of the syllables normalize reads come out
+// unchanged, so the readers ask first whether orderSyllable would write the parts exactly as they came.
+
+// Whether orderSyllable would write the syllable as it was typed: kinzi, base, stack, then the marks in the order
+// they came. That holds when no part came out of its place (typedInOrder: no pending e or medial ra, no mark typed
+// twice, no stack after a mark, no going on past a held unit), the marks came in rank order, the asat stays where
+// it was typed (asatStaysAsTyped), and no look-alike letter is read as another (§3.4, fixLookAlikeLetters). With
+// the marks in rank order already, rankMarks changes no rank: ai or anusvara ranks lower only when typed before
+// aa, which ranks below them.
+export function writesAsTyped(buf) {
+  if (!buf.typedInOrder || !marksInRankOrder(buf)) return false;
+  const stacked = buf.stackLength > 0 || buf.baseHasVirama;
+  const hasAsat = (buf.markMask & MASK_ASAT) !== 0;
+  if (hasAsat && !asatStaysAsTyped(buf, stacked)) return false;
+  if ((buf.markMask & MASK_MEDIAL_YA) !== 0 && readsCaWithMedialYaAsJha(buf)) return false;
+  if (buf.baseLength !== 1) return true;
+  if (buf.base === CP.LETTER_U) return buf.keepU || !(stacked || hasAsat || (buf.markMask & MASK_ANY_AA) !== 0);
+  if (buf.base === CP.DIGIT_SEVEN) return (buf.markMask & ~MASK_VISARGA) === 0;
+  return true;
+}
+
+// Whether no mark ranks below the mark before it, so that sortByRank keeps the typed order.
+function marksInRankOrder(buf) {
+  let previous = -1;
+  for (let k = 0; k < buf.markCount; k++) {
+    const rank = markRank(buf.marks[k]);
+    if (rank < previous) return false;
+    previous = rank;
+  }
+  return true;
+}
+
+// Whether placeAsat leaves the asat where it was typed. DROPPED removes it. IN_ORDER sorts it with the marks, which
+// are in order. ON_CONSONANT writes it right after the base and stack, which is where it was typed only as the
+// first mark. AFTER_MEDIALS writes it after the medials, where it was typed only when no mark ranked between them
+// (e to dot below) is present. The tests are placeAsat's, in its order.
+function asatStaysAsTyped(buf, stacked) {
+  const mask = buf.markMask;
+  const hasAa = (mask & MASK_ANY_AA) !== 0;
+  const hasDotBelow = (mask & MASK_DOT_BELOW) !== 0;
+  if (!hasAa && ((mask & MASK_UPPER_VOWELS) !== 0 || (stacked && !hasDotBelow))) return false; // DROPPED
+  if (hasDotBelow || isEOrAaTypedBeforeAsat(buf) || (hasAa && (mask & MASK_MEDIALS) === 0)) return true; // IN_ORDER
+  if ((mask & MASK_MEDIAL_HA) !== 0) return (mask & MASK_E_TO_DOT_BELOW) === 0; // AFTER_MEDIALS
+  return buf.marks[0] === CP.ASAT; // ON_CONSONANT
+}
+
 // Writes the syllable in UTN #11 storage order (2.x order(), storageOrder.js:101-185).
 export function orderSyllable(buf, sink) {
   if (buf.markCount === 0 && buf.stackLength === 0) {
@@ -397,14 +456,17 @@ export function fixLookAlikeLetters(buf, place, stacked, hadAa) {
 
 // Ca with medial ya is jha, stacked too (မဇ္ဈိမ): the stack's last consonant first, else a lone ca base.
 function readCaWithMedialYaAsJha(buf) {
-  if (buf.stackLength > 0 && buf.stack[buf.stackLength - 1] === CP.CA) {
-    buf.stack[buf.stackLength - 1] = CP.JHA;
-  } else if (buf.stackLength === 0 && buf.baseLength === 1 && buf.base === CP.CA) {
-    buf.replaceBase(CP.JHA);
-  } else {
-    return;
-  }
+  if (!readsCaWithMedialYaAsJha(buf)) return;
+  if (buf.stackLength > 0) buf.stack[buf.stackLength - 1] = CP.JHA;
+  else buf.replaceBase(CP.JHA);
   buf.removeMark(CP.MEDIAL_YA);
+}
+
+// Whether the syllable has ca where readCaWithMedialYaAsJha reads it: as the last stacked consonant, else as a
+// lone base.
+function readsCaWithMedialYaAsJha(buf) {
+  if (buf.stackLength > 0) return buf.stack[buf.stackLength - 1] === CP.CA;
+  return buf.baseLength === 1 && buf.base === CP.CA;
 }
 
 // The vowel u never takes a stacked consonant, an asat or aa (UTN #11): u with one is nya, as in ညဉ့် and ဉာဏ်.

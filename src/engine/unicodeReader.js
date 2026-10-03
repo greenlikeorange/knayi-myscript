@@ -20,7 +20,7 @@ import {
   isOtherScriptLetter, isVowelSign, isNfcSafe, isMyanmarBlock, zeroWidthBit, MASK_VOWEL_OR_FINAL, MASK_ASAT,
   MASK_MEDIAL_HA
 } from '../script/codes.js';
-import { SyllableBuffer, CopyThroughWriter, closeSyllable, isHeld, marksGoOn } from './syllable.js';
+import { SyllableBuffer, CopyThroughWriter, closeSyllable, writesAsTyped, isHeld, marksGoOn } from './syllable.js';
 
 // The Unicode reader's side of the four deliberate differences between the readers (§3.5).
 export const UNICODE_READING = /* @__PURE__ */ deepFreeze({
@@ -134,9 +134,11 @@ function finishReading(scratch, end) {
 function closeOpenSyllable(scratch, end) {
   const buf = scratch.syllable;
   if (!buf.isOpen) return;
-  if (buf.markCount === 0 && buf.stackLength === 0 && buf.heldLength === 0) {
-    // A bare base, or a kinzi and its base, with nothing held after it: no pending mark joined it (it would be a
-    // mark), so its source is exactly what orderSyllable would write, and there is nothing to compare.
+  if (writesAsTyped(buf)) {
+    // The syllable would be written as it was typed, and here that is its source: a kinzi is read as its four
+    // units, a stack as its virama and consonant, every mark where it was typed, and the held units after the
+    // last mark (typedInOrder rules out a pending e or medial ra, a dropped mark, a stack after a mark and a mark
+    // after a held unit). So there is nothing to write or compare: 99.92% of syllables end here.
     buf.isOpen = false;
     return;
   }

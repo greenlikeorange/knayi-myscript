@@ -344,6 +344,9 @@ export const MASK_DOT_BELOW = 0x1000; // U+1037
 export const MASK_VISARGA = 0x2000; // U+1038
 export const MASK_MEDIAL_YA = 0x10000; // U+103B
 export const MASK_MEDIAL_HA = 0x80000; // U+103E
+// The marks ranked from RANK_E to dot below: e, i, ii, u, uu, tall aa, aa, ai, anusvara and dot below,
+// U+102B-U+1032, U+1036 and U+1037 (MARK_GROUPS 4-9).
+export const MASK_E_TO_DOT_BELOW = 0x18FF;
 
 // ---------------------------------------------------------------------------------------------------------------
 // Glyph roles: what a font's glyph does in a syllable (DESIGN.md D7, §3.6). The fonts (L2) need them and may not

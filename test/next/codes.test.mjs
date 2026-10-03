@@ -315,7 +315,16 @@ describe('codes.js: mark masks', () => {
     MASK_DOT_BELOW: () => maskOf(storageOrder.DOT_BELOW),
     MASK_VISARGA: () => maskOf(storageOrder.VISARGA),
     MASK_MEDIAL_YA: () => maskOf(storageOrder.MEDIAL_YA),
-    MASK_MEDIAL_HA: () => maskOf(storageOrder.MEDIAL_HA)
+    MASK_MEDIAL_HA: () => maskOf(storageOrder.MEDIAL_HA),
+    // The marks of MARK_GROUPS 4 to 9, RANK_E to dot below (writesAsTyped, engine/syllable.js).
+    MASK_E_TO_DOT_BELOW: () => {
+      let mask = 0;
+      for (let code = 0x102B; code <= 0x103E; code++) {
+        const rank = codes.markRank(code);
+        if (rank >= codes.RANK_E && rank <= codes.markRank(0x1037)) mask |= codes.markBit(code);
+      }
+      return mask;
+    }
   };
 
   for (const [name, union] of Object.entries(MASKS)) {
@@ -457,7 +466,7 @@ describe('codes.js: the module', () => {
   it('exports what the spec lists', () => {
     assert.deepEqual(Object.keys(codes).sort(), [
       'CLASS', 'CLS', 'CP', 'KINZI_TEXT', 'MARK_GROUPS', 'MARK_RANK', 'MASK_ANY_AA', 'MASK_ASAT', 'MASK_DOT_BELOW',
-      'MASK_E_OR_AA', 'MASK_LOWER_VOWELS', 'MASK_MEDIALS', 'MASK_MEDIAL_HA', 'MASK_MEDIAL_YA', 'MASK_UPPER_VOWELS',
+      'MASK_E_OR_AA', 'MASK_E_TO_DOT_BELOW', 'MASK_LOWER_VOWELS', 'MASK_MEDIALS', 'MASK_MEDIAL_HA', 'MASK_MEDIAL_YA', 'MASK_UPPER_VOWELS',
       'MASK_VISARGA', 'MASK_VOWEL_OR_FINAL', 'MYANMAR_BLOCK_PATTERN', 'MYANMAR_SCRIPT_PATTERN', 'RANK_AI_ANUSVARA',
       'RANK_E', 'RANK_FIRST_VOWEL', 'RANK_LAST_MEDIAL', 'RANK_LOWER_VOWEL', 'RANK_UNRANKED', 'ROLE', 'SCRIPT',
       'UNIT_SET_WORDS', 'ZW', 'addBlockUnit', 'classOf', 'isBurmeseConsonant', 'isBurmeseDigit', 'isBurmeseMark', 'isMyanmarBlock', 'isMyanmarScript',

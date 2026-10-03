@@ -317,7 +317,7 @@ export const RANK_UNRANKED: number      // 12 = MARK_GROUPS.length: U+1033-U+103
 export function markBit(code: number): number   // 1 << (code - 0x102B), for U+102B-U+103E
 export const MASK_ANY_AA: number, MASK_UPPER_VOWELS: number, MASK_LOWER_VOWELS: number, MASK_E_OR_AA: number,
   MASK_MEDIALS: number, MASK_VOWEL_OR_FINAL: number, MASK_ASAT: number, MASK_DOT_BELOW: number,
-  MASK_VISARGA: number, MASK_MEDIAL_YA: number, MASK_MEDIAL_HA: number
+  MASK_VISARGA: number, MASK_MEDIAL_YA: number, MASK_MEDIAL_HA: number, MASK_E_TO_DOT_BELOW: number
 
 // Glyph roles (D7). 3.0 names (§5 of the plan): PRE is BEFORE_BASE, TEXT is PLAIN.
 export const ROLE: Readonly<{ BASE: 1, BEFORE_BASE: 2, MARK: 3, STACK: 4, KINZI: 5, PLAIN: 6 }>
@@ -487,6 +487,7 @@ export class SyllableBuffer { /* §3.3 */ }
 export class CopyThroughWriter { /* §3.7 */ }
 // The steps of §3.4. Each is a module function taking the buffer: no closures, no allocation.
 export function closeSyllable(buf: SyllableBuffer, sink: CodeBuffer): void     // orderSyllable, writeHeld, then closed
+export function writesAsTyped(buf: SyllableBuffer): boolean   // orderSyllable would write the parts as they came (§3.4)
 export function orderSyllable(buf: SyllableBuffer, sink: CodeBuffer): void
 export function placeAsat(buf: SyllableBuffer, stacked: boolean): number          // ASAT_PLACE
 export function fixLookAlikeLetters(buf: SyllableBuffer, place: number, stacked: boolean, hadAa: boolean): void
@@ -750,6 +751,7 @@ The cost is small. A table built by a function is still built once, at load, whe
 | MEDIALS | U+103B-U+103E |
 | VOWEL_OR_FINAL | every mark whose rank is `RANK_FIRST_VOWEL` or more, except asat (2.x `hasVowel`, storageOrder.js:376-383) |
 | ASAT, DOT_BELOW, VISARGA, MEDIAL_YA, MEDIAL_HA | one mark each |
+| E_TO_DOT_BELOW | the marks of ranks `RANK_E` to 9: U+102B-U+1032, U+1036, U+1037 (as reviewed, for `writesAsTyped`, §3.4) |
 
 ### 3.3 SyllableBuffer
 
@@ -771,6 +773,7 @@ There is one buffer per reader, a module-level scratch object (§3.11). It holds
 | `keptUpTo` | number | `held[0, keptUpTo)` were held before the syllable last went on. Of those, only the zero-width ones are written. |
 | `spaceHeld` | boolean | a space has been held since the syllable last went on (2.x `after.length !== kept.length`) |
 | `pending`, `pendingLength` | growable Uint16Array, number | e and medial ra waiting for the next base, in typed order, duplicates kept |
+| `typedInOrder` | boolean | no part came out of its place (as reviewed, §3.4): cleared by a pending e or medial ra at `open`, a mark typed twice, a stack pushed after a mark, and `goOn` past a held unit |
 
 Methods (each a few lines):
 
@@ -845,6 +848,14 @@ orderSyllable(buf, sink)
 
 A builder must not reorder the steps: the conditions read state that the earlier steps change.
 
+**As typed** (as reviewed, §7.11). 99.92% of the syllables normalize reads come out unchanged, so before ordering, `writesAsTyped(buf)` asks whether `orderSyllable` would write the parts exactly as they came: kinzi, base, stack, then the marks in typed order. It holds when all of these do:
+- `typedInOrder`: no pending e or medial ra became a mark, no mark was typed twice, no stack came after a mark, and the syllable did not go on past a held unit;
+- the marks came in rank order, so `sortByRank` keeps them, and `rankMarks` changes no rank: ai or anusvara ranks lower only when typed before aa, which ranks below them;
+- the asat stays where it was typed: `placeAsat` does not drop it; `IN_ORDER` sorts it with the marks; `ON_CONSONANT` writes it right after the stack, which is where it was typed only as the first mark; `AFTER_MEDIALS` writes it after the medials, which is where it was typed only when no mark of ranks `RANK_E` to 9 is present (`MASK_E_TO_DOT_BELOW`);
+- `fixLookAlikeLetters` changes nothing: no ca with medial ya where rule 1 reads it, a u that keeps its reading (`keepU`, or no stack, asat or aa), and a seven with no mark but visarga.
+
+The Unicode reader then writes and compares nothing (§3.6). The font reader does not ask: `writesAsTyped` holds on 86% of the syllables of perf's FLORES lines in Zawgyi, but writing those as they came was no faster than `orderSyllable`, which already skips the sort for a syllable of one mark, and the check made the Zawgyi and Win rows 3-7% slower under Node (`npm run perf`, 5 rounds). `syllable.fuzz.test.mjs` checks on 20,000 records that 2.x writes the parts as they came wherever `writesAsTyped` holds.
+
 ### 3.5 Reader options: the four deliberate differences
 
 The two readers share `SyllableBuffer`, `orderSyllable` and the held-character logic. They differ on purpose in four places (ARCHITECTURE.md, "The four deliberate differences between the readers"). Each difference is a named field of the reader's frozen options, and the reader reads it at the one place where it decides. No other branch may encode a difference. The options name the readers' behaviour; they are not switches. Only the shipped values are supported and tested.
@@ -888,6 +899,8 @@ The output goes through a `CopyThroughWriter` (§3.7). For each unit `code` at `
 7. **Anything else** closes the open syllable. The unit stays in place and is copied through.
 
 At the end: close.
+
+Closing a syllable that `writesAsTyped` (§3.4) writes and compares nothing: here its source is exactly what `orderSyllable` would write, since the reader reads a kinzi as its four units, a stack as its virama and consonant, and each mark where it was typed, and the units held after the last mark are written after it as they came (as reviewed, §7.11).
 
 `placePrebaseMark(i)` is the 2.x `placeTypedFirst`, minus the rescan. It decides in O(1) from the mask, and it reads each run of e and medial ra once:
 
@@ -1723,7 +1736,7 @@ W8 compat              after all of them; its option, input and legacy files nee
     The reader prototype (`SCR/performance/fused-arrange.js`) read 0.24-0.28 in the same runs; the buffer objects of §3.3 cost the difference. With W1 and W2, the goals of §6.4 hold for word and string, and line and document sit 0-3% above theirs (0.33 and 0.29), inside perf's noise, so the goals stand until the gate's perf run. Bun 1.4.2, same runs: the reader 0.23-0.33, `normalizeText` 0.28-0.35 with the 2.x typing fixes.
   - **Size.** The normalize-only bundle is 4,640 B gzip with W1 and W2 still stubs, 340 B over the 4,300 B target. With W1 (and its NFC port) and W2 merged locally it is 6,367 B, 1,517 B over the 4,850 B that §6.4 sets after the port. Of its 17,783 minified bytes, `engine/syllable.js` has 6,465 B, `engine/unicodeReader.js` 2,626 B and `stages/normalize.js` 298 B, mostly the field and method names of §3.3 and §3.7, which minifying keeps. The 4,268 B behind the target was the 2.x `library/normalization.js` deep import (infra-8), not a build of this engine. The target needs the maintainer's decision before the gate.
   - **The reader's dispatch.** `reorderUnicode` switches on `classOf` first. The classes are disjoint, so the step order of §3.6 holds: only a unit outside the Burmese classes can be held, and only a consonant can start a kinzi. `seen` is noted where those units are read: U+1025 in the base step, and units outside the block in the step for held and other units.
-  - **One shortcut.** A bare base, or a kinzi and its base, with nothing held after it skips `orderSyllable` and the comparison, because its source is exactly what would be written.
+  - **One shortcut.** A bare base, or a kinzi and its base, with nothing held after it skips `orderSyllable` and the comparison, because its source is exactly what would be written. The review widened it to every syllable that `writesAsTyped` (§3.4, as typed; §7.11).
   - **More members, for W6.** `SyllableBuffer` also has `emptySyllable()`, `replaceBase(code)`, `indexOfMark(code)`, `removeMark(code)` (of a mark it holds) and `capacity()`, the units of all its arrays. `CodeBuffer` also has `makeRoom(units)` and `capacity()`, and keeps its first capacity in `firstCapacity`. `closeSyllable` does nothing when no syllable is open, as 2.x `close()` does. `orderSyllable` skips `rankMarks` and `sortByRank` for fewer than two marks.
   - **Imports.** `stages/normalize.js` also imports `optionsObject` from `core/options.js`, so `engineOptions` is map-safe (§4 rule 3).
   - **Tests.** `readers-unicode.fuzz.test.mjs` and `normalize.fuzz.test.mjs` also check every line of the cached corpora (64,989 lines; the reader also on their NFC) when the corpus cache is complete. They never download it, so in CI they skip. The nightly counts took 11.4 s (`syllable.fuzz`, 2M records), 4.4 s (`readers-unicode.fuzz`, 1M strings and 400k random strings) and 11 s (`normalize.fuzz`, 1M strings) on the build machine. The normalize tests skipped while W1 and W2 were stubs; on `next` they bind (§7.1, as integrated).
@@ -1834,6 +1847,7 @@ A review of W0-W8 on `next-compat` (3af8172) found the problems below. Each fix 
 - **The code cites only what is in the repository.** About 17 comments of `src/` cited the refactor plan's list of 2.x bugs ("refactor plan §7 #11") or its evidence folder (`SCR/verify-engine`), which a contributor cannot open. §10 now restates the kept 2.x bugs, with their counts, and the comments cite `DESIGN.md §10 Q11`; a measurement is cited by its number and the test that pins it. `guards/citations.test.mjs` fails on a citation of the plan or of `SCR/`, and on a decision or quirk that §1.3 or §10 does not list.
 - **Line numbers name a frozen file.** `src/` had 99 citations of the form `file.js:NN` with no path. 32 of them named files with no frozen copy: 31 in 2.x files that the port pull requests rewrite (`converter.js`, `detector.js`, `globalOptions.js`, `truncate.js`, `syllBreak.js`, `spellingCheck.js`, `normalization.js`, `main.js`), whose lines would go stale when §8 merges `main` into `next`, and one in the extracted `scripts/oracle/signatures.js`. Those now name the 2.x function or table instead; the other 67 name files that `scripts/oracle/` keeps frozen at the reference. ARCHITECTURE.md and §1.2 rule 3 state the convention once, and `guards/citations.test.mjs` checks it, reading the list of frozen copies from `test/next/helpers.mjs`, which `guards/oracle.test.mjs` uses for their blob ids.
 - **Unicode to Zawgyi skips the rows that cannot match** (§3.10, gate 3). Every call ran all 57 once rows and the 8 repeat rows, a `String#replace` each, however short its text: in the per-word profile the rule runner held 68.6% of the self time, and per word compat read 0.79 of 2.x under Node (the goal is 0.63) and 1.09 under Bun. Each row now names its `needs`, the collapse notes the text's units in the same pass, and a row with none of its `needs` in the text is skipped; the repeat rows are tested and replaced once, as 2.x's 1584410 does. Against 2.x (`npm run perf`, 5 rounds, on a machine shared with other work): Node 0.48, 0.30, 0.48 and 0.48 per line, word, string and document (W8 read 0.59, 0.79, 0.50 and 0.51); Bun 0.78, 0.41, 0.92 and 0.92 (the review read 1.06, 1.09, 0.94 and 0.92). The growth exponents of the Unicode to Zawgyi and `spellingFix.unicode` forms stay at most 1.23 under Node and 1.18 under Bun.
+- **normalize copies through the syllables typed in order** (§3.4, as typed; §3.6). Every syllable with a mark went through `placeAsat`, `rankMarks`, `sortByRank` and `fixLookAlikeLetters`, a write into a `CodeBuffer` and `equalsText`, though 99.92% of syllables come out unchanged: about 33% of the one-string profile. normalize read 0.32, 0.30, 0.31 and 0.30 of 2.x, missing the one-string and document goals (0.29) and the Phase 2 exit of 3.5x. `writesAsTyped` now decides from the buffer whether `orderSyllable` would write the parts as they came, and the Unicode reader closes such a syllable without writing or comparing. Against 2.x (`npm run perf`, 5 rounds): Node 0.23 on all four workloads, Bun 0.21, 0.20, 0.17 and 0.18; growth at most 1.17 (Node) and 1.06 (Bun).
 
 ---
 

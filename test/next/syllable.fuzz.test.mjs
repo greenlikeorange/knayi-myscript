@@ -10,7 +10,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import fc from 'fast-check';
-import { CodeBuffer, SyllableBuffer, closeSyllable } from '../../src/engine/syllable.js';
+import { CodeBuffer, SyllableBuffer, closeSyllable, writesAsTyped } from '../../src/engine/syllable.js';
 import { internals, fuzz } from './helpers.mjs';
 
 const { order } = internals('storageOrder.js', ['order']);
@@ -84,6 +84,14 @@ const REGRESSIONS = [
 
 // closeSyllable's text for a record, through the adapter.
 function closedText(record) {
+  const buf = bufferOf(record);
+  const sink = new CodeBuffer(4);
+  closeSyllable(buf, sink);
+  return sink.decode();
+}
+
+// The record in a SyllableBuffer, its parts pushed in the order a reader pushes them.
+function bufferOf(record) {
   const buf = new SyllableBuffer();
   buf.reset();
   for (let i = 0; i < record.pending.length; i++) buf.addPending(record.pending.charCodeAt(i));
@@ -96,9 +104,7 @@ function closedText(record) {
     if (event === 'goOn') buf.goOn();
     else buf.hold(event.charCodeAt(0), ZERO_WIDTH.has(event.charCodeAt(0)));
   }
-  const sink = new CodeBuffer(4);
-  closeSyllable(buf, sink);
-  return sink.decode();
+  return buf;
 }
 
 // 2.x: order(syllable) + syllable.after, where a held unit goes into after (and into kept when it is zero-width),
@@ -138,5 +144,17 @@ describe('orderSyllable against 2.x order() (DESIGN.md §7.7)', () => {
     assert.ok(changed > 0.3, 'records that order() changes: ' + changed);
     assert.ok(has(/\u103A/) > 0.2 && has(/\u103B/) > 0.15 && has(/[\u102B\u102C]/) > 0.2, 'asat, medial ya and aa');
     assert.ok(sample.filter((r) => r.base === '\u1005' || r.base === '\u1025' || r.base === '\u1047').length > 500);
+  });
+
+  it('writesAsTyped holds only where 2.x writes the parts as they came, and on a share of the records', () => {
+    const sample = fc.sample(records, { seed: fuzz.SEED, numRuns: 20000 });
+    let asTyped = 0;
+    for (const r of sample) {
+      if (!writesAsTyped(bufferOf(r))) continue;
+      asTyped++;
+      const typed = r.kinzi + r.base + r.stack + r.pending + r.marks + r.held.filter((e) => e !== 'goOn').join('');
+      assert.equal(hex(closedTextBy2x(r)), hex(typed), JSON.stringify(r));
+    }
+    assert.ok(asTyped > 500, 'records written as typed: ' + asTyped); // 1,107 of the 20,000 at the default seed
   });
 });
