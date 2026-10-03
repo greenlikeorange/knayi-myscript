@@ -37,7 +37,7 @@ git config blame.ignoreRevsFile .git-blame-ignore-revs
 npm test
 ```
 
-[ARCHITECTURE.md](ARCHITECTURE.md#running-the-checks) lists every npm script and the CI job that runs it. The sections below say which results a pull request reports.
+[ARCHITECTURE.md](ARCHITECTURE.md#running-the-checks) lists every npm script and the CI check that runs it. The sections below say which results a pull request reports.
 
 - **Run `npm ci` in every clone and every git worktree.** Don't share or symlink `node_modules` between them: a shared one can miss dev dependencies, and then a test such as `test/syntax.test.js`, which needs `acorn`, cannot load.
 - **The tests never write `dist/`.** They build the browser and ESM files into a temporary directory and test that build; `KNAYI_DIST=dist` points them at the committed files instead. `dist/` changes only in release commits, because jsDelivr serves `main`'s `dist/` to sites that load `@master`, and CI fails a pull request that changes it without a new version.
@@ -167,6 +167,8 @@ knayi is MIT-licensed, and contributions are accepted under the same licence.
 
 For the maintainer. A release is the only commit that changes `dist/`.
 
+The checks block a merge only when the rules for `main` (Settings, Rules) require them. Require a pull request, with these checks passing, by the names GitHub shows: `Node 22`, `Node 24`, `Node 26`, `Bun`, `Smoke on Node 16`, `Smoke on Node 18`, `Smoke on Node 20`, `ReDoS, types and size`, `Browsers`, `Compare`, `Perf` and `dist only in releases`; and require branches to be up to date before merging, so that a pull request is tested on the `main` it lands on. Require review from code owners too (`.github/CODEOWNERS`).
+
 1. **Check `main`.** CI is green. Every pull request since the last tag that changed output has its line under "Output changes" in the Unreleased section of `CHANGELOG.md`.
 2. **Branch** `release-X.Y.Z` from `main`.
 3. **Bump the version** in `package.json` and `package-lock.json` (`npm version X.Y.Z --no-git-tag-version`), in `main.js` (`const version`), in `test/compat.test.js`, and in the README (the version line and the unpkg URL). `test/package.test.js` checks that `main.js` and `package.json` agree.
@@ -174,7 +176,7 @@ For the maintainer. A release is the only commit that changes `dist/`.
 5. **Rebuild `dist/`** with `npm run build`, check it with `npm run check:dist -- --fresh`, and run `KNAYI_DIST=dist npm test`, `npm run test:bun` and `npm run test:pack`. Note the `min.js` size from `npm run check:size` in the release notes.
 6. **Commit** the version bump, `CHANGELOG.md` and `dist/` as `chore(release): X.Y.Z`.
 7. **Rebuild the benchmark page** with `npm run bench:page`, after that commit: the page records the commit it measured and whether the code had uncommitted changes, so run before the commit, it would name the previous commit "with uncommitted changes". Commit `docs/benchmark.html` and `docs/benchmark.json` as `docs(benchmark): results for X.Y.Z`. Open the pull request with both commits, and merge it once CI passes.
-8. **Tag** the merge commit on `main`: `git tag -a vX.Y.Z -m X.Y.Z`, then `git push origin vX.Y.Z`.
+8. **Wait for `main`'s CI, then tag.** The test run of the merge commit on `main` must pass first: its `dist only in releases` job builds `main` and compares the build with `dist/`, which catches a release pull request merged on an older `main`. Then tag the merge commit: `git tag -a vX.Y.Z -m X.Y.Z`, then `git push origin vX.Y.Z`.
 9. **Publish to npm with provenance:** `npm publish --provenance` from a GitHub Actions job with `id-token: write`, since npm generates provenance only on a supported CI provider, not on a laptop. A prerelease goes to the `next` dist-tag (`--tag next`). Until a publish workflow exists, publish from a clean checkout of the tag, and say in the release notes that the release has no provenance.
 10. **Pin the demo.** In `docs/index.html`, point the jsDelivr `<script>` at `@X.Y.Z` and set `integrity` to the hash of the published file:
 
