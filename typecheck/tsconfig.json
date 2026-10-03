@@ -6,7 +6,7 @@
     "strict": true,
     "esModuleInterop": true,
     "noEmit": true,
-    "skipLibCheck": true,
+    "skipLibCheck": false,
     "baseUrl": "..",
     "paths": {
       "knayi-myscript": ["index.d.ts"]
