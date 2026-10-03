@@ -86,6 +86,18 @@ The three CLDR pairs 2.10 misses expect ICU's output: the asat of ါ် before 
 - 3 have ၄င်း, and come back as ၎င်း;
 - 7 are FLORES typos that come back corrected.
 
+**Stacked ဈ from Unicode** (refactor plan PR 4.8, after 2.10.0). Unicode → Zawgyi wrote U+1069, Zawgyi's stacked ဈ, for stacked စ with medial ya (`္စျ`), but had no rule for stacked ဈ itself (`္ဈ`, as in မဇ္ဈိမ). Its virama stayed U+1039, which Zawgyi reads as an asat, so မဇ္ဈိမ came back from Zawgyi as မဇ်ဈိမ. A rule next to the one for `္စျ` now writes U+1069 for `္ဈ` too; like the other stacked-consonant rules, it runs before the rule that writes the asat as U+1039. myanmar-tools 1.1.3 and Rabbit write U+1069 for stacked ဈ in every one of the 36 Unicode lines and pairs below that have it, and one of the three Zawgyi spellings of မဇ္ဈိမ in Google's pairs is U+1069. Round trip, Unicode → Zawgyi → Unicode with knayi, on distinct lines:
+
+| Data | Lines | With `္ဈ` | Now come back as `normalize` writes them | Now come back exactly |
+| --- | ---: | ---: | ---: | ---: |
+| FLORES | 2,009 | 0 | 0 | 0 |
+| Wikipedia, current sample | 4,812 | 8 | 8 | 8 |
+| Wikipedia, first sample | 10,732 | 12 | 12 | 9 |
+| Okell | 16,924 | 13 | 12 | 8 |
+| google/language-resources pairs | 80 | 3 | 3 | 3 |
+
+None of these lines came back before. Where a line still differs, the difference is elsewhere: a medial ra written after spaces (the Okell line), a zero typed for ဝ, a no-break space before a virama. A script, not a person, checked every string whose Zawgyi output changed (the counts are in CHANGELOG.md): each output is the old one with U+1039 U+1008 written as U+1069, and each input has a virama before ဈ. In 10 of the 14 mC4 lines that change, the text is Zawgyi read as Unicode, with ေ typed between the asat and ဈ.
+
 **Win**, converted with the shared rules:
 - **Reference pairs:** the ufc and python-myanmar pairs give the same output as before.
 - **Corpus words:** Win text made from 206,714 corpus words converts the same for 206,156. 103 more words now come back as the original.

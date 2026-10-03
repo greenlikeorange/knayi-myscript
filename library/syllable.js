@@ -69,6 +69,7 @@ const convertRules = {
         [/\u1039\u100b/g, "\u106c"],
         // [/\u1009/g, "\u106a"],
         [/\u1039\u1005\u103b/g, "\u1069"],
+        [/\u1039\u1008/g, "\u1069"], // stacked jha, which the rule above writes for stacked ca with medial ya
         [/\u1039\u1007/g, "\u1068"],
         [/\u1039\u1006/g, "\u1066"],
         [/\u1039\u1005/g, "\u1065"],

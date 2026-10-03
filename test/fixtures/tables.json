@@ -2786,7 +2786,7 @@
         "output": "\u1000\u103c\u1033",
         "fired": [
           "unicode-to-zawgyi oneTime 0",
-          "unicode-to-zawgyi oneTime 54"
+          "unicode-to-zawgyi oneTime 55"
         ]
       },
       "covers": [
@@ -2804,7 +2804,7 @@
             "output": "\u1021\u103c\u1033",
             "fired": [
               "unicode-to-zawgyi oneTime 0",
-              "unicode-to-zawgyi oneTime 54"
+              "unicode-to-zawgyi oneTime 55"
             ]
           }
         },
@@ -2816,7 +2816,7 @@
           "expect": {
             "output": "\u0fff\u103c\u102f",
             "fired": [
-              "unicode-to-zawgyi oneTime 54"
+              "unicode-to-zawgyi oneTime 55"
             ]
           }
         },
@@ -2828,7 +2828,7 @@
           "expect": {
             "output": "\u1022\u103c\u102f",
             "fired": [
-              "unicode-to-zawgyi oneTime 54"
+              "unicode-to-zawgyi oneTime 55"
             ]
           }
         },
@@ -2841,7 +2841,7 @@
             "output": "\u100b\u1060\u1033",
             "fired": [
               "unicode-to-zawgyi oneTime 0",
-              "unicode-to-zawgyi oneTime 49"
+              "unicode-to-zawgyi oneTime 50"
             ]
           }
         },
@@ -2886,7 +2886,7 @@
             "output": "\u1000\u103a\u1033",
             "fired": [
               "unicode-to-zawgyi oneTime 0",
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -2898,7 +2898,7 @@
           "expect": {
             "output": "\u1000\u1039\u102f",
             "fired": [
-              "unicode-to-zawgyi oneTime 51"
+              "unicode-to-zawgyi oneTime 52"
             ]
           }
         },
@@ -2912,7 +2912,7 @@
             "fired": [
               "unicode-to-zawgyi oneTime 0",
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 54",
               "unicode-to-zawgyi asLongAsMatch 0"
             ]
           }
@@ -2925,7 +2925,7 @@
           "expect": {
             "output": "\u1000\u1088",
             "fired": [
-              "unicode-to-zawgyi oneTime 50"
+              "unicode-to-zawgyi oneTime 51"
             ]
           }
         },
@@ -2938,7 +2938,7 @@
             "output": "\u1000\u103c\u102d\u1033",
             "fired": [
               "unicode-to-zawgyi oneTime 0",
-              "unicode-to-zawgyi oneTime 54"
+              "unicode-to-zawgyi oneTime 55"
             ]
           }
         },
@@ -2950,7 +2950,7 @@
           "expect": {
             "output": "\u1000\u103c\u102c\u102f",
             "fired": [
-              "unicode-to-zawgyi oneTime 54"
+              "unicode-to-zawgyi oneTime 55"
             ]
           }
         },
@@ -2963,7 +2963,7 @@
             "output": "\u1000\u103c\u102e\u1033",
             "fired": [
               "unicode-to-zawgyi oneTime 0",
-              "unicode-to-zawgyi oneTime 54"
+              "unicode-to-zawgyi oneTime 55"
             ]
           }
         },
@@ -2977,7 +2977,7 @@
             "fired": [
               "unicode-to-zawgyi oneTime 0",
               "unicode-to-zawgyi oneTime 12",
-              "unicode-to-zawgyi oneTime 54"
+              "unicode-to-zawgyi oneTime 55"
             ]
           }
         },
@@ -2990,7 +2990,7 @@
             "output": "\u1000\u103c\u1034\u102f",
             "fired": [
               "unicode-to-zawgyi oneTime 1",
-              "unicode-to-zawgyi oneTime 54"
+              "unicode-to-zawgyi oneTime 55"
             ]
           }
         },
@@ -3003,7 +3003,7 @@
             "output": "\u1000\u103c\u1032\u1033",
             "fired": [
               "unicode-to-zawgyi oneTime 0",
-              "unicode-to-zawgyi oneTime 54"
+              "unicode-to-zawgyi oneTime 55"
             ]
           }
         },
@@ -3015,7 +3015,7 @@
           "expect": {
             "output": "\u1000\u103c\u1033\u102f",
             "fired": [
-              "unicode-to-zawgyi oneTime 54"
+              "unicode-to-zawgyi oneTime 55"
             ]
           }
         },
@@ -3028,7 +3028,7 @@
             "output": "\u1000\u103c\u1036\u1033",
             "fired": [
               "unicode-to-zawgyi oneTime 0",
-              "unicode-to-zawgyi oneTime 54"
+              "unicode-to-zawgyi oneTime 55"
             ]
           }
         },
@@ -3040,7 +3040,7 @@
           "expect": {
             "output": "\u1000\u103c\u1035\u102f",
             "fired": [
-              "unicode-to-zawgyi oneTime 54"
+              "unicode-to-zawgyi oneTime 55"
             ]
           }
         },
@@ -3054,7 +3054,7 @@
             "fired": [
               "unicode-to-zawgyi oneTime 0",
               "unicode-to-zawgyi oneTime 2",
-              "unicode-to-zawgyi oneTime 54"
+              "unicode-to-zawgyi oneTime 55"
             ]
           }
         },
@@ -3066,7 +3066,7 @@
           "expect": {
             "output": "\u1000\u103c\u1038\u102f",
             "fired": [
-              "unicode-to-zawgyi oneTime 54"
+              "unicode-to-zawgyi oneTime 55"
             ]
           }
         },
@@ -3079,7 +3079,7 @@
             "output": "\u1000\u108a\u1033",
             "fired": [
               "unicode-to-zawgyi oneTime 0",
-              "unicode-to-zawgyi oneTime 47"
+              "unicode-to-zawgyi oneTime 48"
             ]
           }
         },
@@ -3092,7 +3092,7 @@
             "output": "\u1000\u103c\u1086\u102f",
             "fired": [
               "unicode-to-zawgyi oneTime 20",
-              "unicode-to-zawgyi oneTime 54"
+              "unicode-to-zawgyi oneTime 55"
             ]
           }
         },
@@ -3106,7 +3106,7 @@
             "fired": [
               "unicode-to-zawgyi oneTime 0",
               "unicode-to-zawgyi oneTime 15",
-              "unicode-to-zawgyi oneTime 42"
+              "unicode-to-zawgyi oneTime 43"
             ]
           }
         }
@@ -3123,7 +3123,7 @@
         "output": "\u1001\u103a\u1034",
         "fired": [
           "unicode-to-zawgyi oneTime 1",
-          "unicode-to-zawgyi oneTime 52"
+          "unicode-to-zawgyi oneTime 53"
         ]
       },
       "covers": [
@@ -3140,7 +3140,7 @@
             "output": "\u1000\u103a\u1034",
             "fired": [
               "unicode-to-zawgyi oneTime 1",
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3153,7 +3153,7 @@
             "output": "\u1021\u103a\u1034",
             "fired": [
               "unicode-to-zawgyi oneTime 1",
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3165,7 +3165,7 @@
           "expect": {
             "output": "\u0fff\u103a\u1030",
             "fired": [
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3177,7 +3177,7 @@
           "expect": {
             "output": "\u1022\u103a\u1030",
             "fired": [
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3190,7 +3190,7 @@
             "output": "\u1001\u1060\u1034",
             "fired": [
               "unicode-to-zawgyi oneTime 1",
-              "unicode-to-zawgyi oneTime 49"
+              "unicode-to-zawgyi oneTime 50"
             ]
           }
         },
@@ -3234,7 +3234,7 @@
           "expect": {
             "output": "\u1001\u1039\u1030",
             "fired": [
-              "unicode-to-zawgyi oneTime 51"
+              "unicode-to-zawgyi oneTime 52"
             ]
           }
         },
@@ -3248,7 +3248,7 @@
             "fired": [
               "unicode-to-zawgyi oneTime 1",
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -3261,7 +3261,7 @@
             "output": "\u1001\u103c\u1034",
             "fired": [
               "unicode-to-zawgyi oneTime 1",
-              "unicode-to-zawgyi oneTime 54"
+              "unicode-to-zawgyi oneTime 55"
             ]
           }
         },
@@ -3273,7 +3273,7 @@
           "expect": {
             "output": "\u1001\u1089",
             "fired": [
-              "unicode-to-zawgyi oneTime 48"
+              "unicode-to-zawgyi oneTime 49"
             ]
           }
         },
@@ -3286,7 +3286,7 @@
             "output": "\u1001\u103a\u102d\u1034",
             "fired": [
               "unicode-to-zawgyi oneTime 1",
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3298,7 +3298,7 @@
           "expect": {
             "output": "\u1001\u103a\u102c\u1030",
             "fired": [
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3311,7 +3311,7 @@
             "output": "\u1001\u103a\u102e\u1034",
             "fired": [
               "unicode-to-zawgyi oneTime 1",
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3325,7 +3325,7 @@
             "fired": [
               "unicode-to-zawgyi oneTime 1",
               "unicode-to-zawgyi oneTime 12",
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3338,7 +3338,7 @@
             "output": "\u1001\u103a\u1032\u1034",
             "fired": [
               "unicode-to-zawgyi oneTime 1",
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3350,7 +3350,7 @@
           "expect": {
             "output": "\u1001\u103a\u1033\u1030",
             "fired": [
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3363,7 +3363,7 @@
             "output": "\u1001\u103a\u1036\u1034",
             "fired": [
               "unicode-to-zawgyi oneTime 1",
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3375,7 +3375,7 @@
           "expect": {
             "output": "\u1001\u103a\u1035\u1030",
             "fired": [
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3389,7 +3389,7 @@
             "fired": [
               "unicode-to-zawgyi oneTime 1",
               "unicode-to-zawgyi oneTime 2",
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3401,7 +3401,7 @@
           "expect": {
             "output": "\u1001\u103a\u1038\u1030",
             "fired": [
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3414,8 +3414,8 @@
             "output": "\u1001\u103a\u103d\u1034",
             "fired": [
               "unicode-to-zawgyi oneTime 1",
-              "unicode-to-zawgyi oneTime 52",
-              "unicode-to-zawgyi oneTime 55"
+              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 56"
             ]
           }
         },
@@ -3428,7 +3428,7 @@
             "output": "\u1001\u103a\u1086\u1030",
             "fired": [
               "unicode-to-zawgyi oneTime 20",
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3441,7 +3441,7 @@
             "output": "\u1002\u1060\u1034",
             "fired": [
               "unicode-to-zawgyi oneTime 1",
-              "unicode-to-zawgyi oneTime 49"
+              "unicode-to-zawgyi oneTime 50"
             ]
           }
         }
@@ -3459,7 +3459,7 @@
         "output": "\u1001\u103a\u1094",
         "fired": [
           "unicode-to-zawgyi oneTime 2",
-          "unicode-to-zawgyi oneTime 52"
+          "unicode-to-zawgyi oneTime 53"
         ]
       },
       "covers": [
@@ -3476,7 +3476,7 @@
             "output": "\u1000\u103a\u1094",
             "fired": [
               "unicode-to-zawgyi oneTime 2",
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3489,7 +3489,7 @@
             "output": "\u1021\u103a\u1094",
             "fired": [
               "unicode-to-zawgyi oneTime 2",
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3501,7 +3501,7 @@
           "expect": {
             "output": "\u0fff\u103a\u1037",
             "fired": [
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3513,7 +3513,7 @@
           "expect": {
             "output": "\u1022\u103a\u1037",
             "fired": [
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3526,7 +3526,7 @@
             "output": "\u1000\u1060\u1094",
             "fired": [
               "unicode-to-zawgyi oneTime 2",
-              "unicode-to-zawgyi oneTime 49"
+              "unicode-to-zawgyi oneTime 50"
             ]
           }
         },
@@ -3570,7 +3570,7 @@
           "expect": {
             "output": "\u1001\u1039\u1037",
             "fired": [
-              "unicode-to-zawgyi oneTime 51"
+              "unicode-to-zawgyi oneTime 52"
             ]
           }
         },
@@ -3584,7 +3584,7 @@
             "fired": [
               "unicode-to-zawgyi oneTime 2",
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -3597,7 +3597,7 @@
             "output": "\u1001\u103c\u1094",
             "fired": [
               "unicode-to-zawgyi oneTime 2",
-              "unicode-to-zawgyi oneTime 54"
+              "unicode-to-zawgyi oneTime 55"
             ]
           }
         },
@@ -3609,7 +3609,7 @@
           "expect": {
             "output": "\u1001\u103d\u1037",
             "fired": [
-              "unicode-to-zawgyi oneTime 55"
+              "unicode-to-zawgyi oneTime 56"
             ]
           }
         },
@@ -3622,7 +3622,7 @@
             "output": "\u1001\u103a\u102d\u1094",
             "fired": [
               "unicode-to-zawgyi oneTime 2",
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3634,7 +3634,7 @@
           "expect": {
             "output": "\u1001\u103a\u102c\u1037",
             "fired": [
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3647,7 +3647,7 @@
             "output": "\u1001\u103a\u102e\u1094",
             "fired": [
               "unicode-to-zawgyi oneTime 2",
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3661,7 +3661,7 @@
             "fired": [
               "unicode-to-zawgyi oneTime 2",
               "unicode-to-zawgyi oneTime 12",
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3674,7 +3674,7 @@
             "output": "\u1001\u103a\u1032\u1094",
             "fired": [
               "unicode-to-zawgyi oneTime 2",
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3687,7 +3687,7 @@
             "output": "\u1001\u103a\u1033\u1095",
             "fired": [
               "unicode-to-zawgyi oneTime 4",
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3700,7 +3700,7 @@
             "output": "\u1001\u103a\u1036\u1094",
             "fired": [
               "unicode-to-zawgyi oneTime 2",
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3712,7 +3712,7 @@
           "expect": {
             "output": "\u1001\u103a\u1035\u1037",
             "fired": [
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3724,7 +3724,7 @@
           "expect": {
             "output": "\u1001\u103a\u1038\u1037",
             "fired": [
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3737,8 +3737,8 @@
             "output": "\u1001\u103a\u103d\u1094",
             "fired": [
               "unicode-to-zawgyi oneTime 2",
-              "unicode-to-zawgyi oneTime 52",
-              "unicode-to-zawgyi oneTime 55"
+              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 56"
             ]
           }
         },
@@ -3751,7 +3751,7 @@
             "output": "\u1001\u103a\u1086\u1037",
             "fired": [
               "unicode-to-zawgyi oneTime 20",
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -3782,7 +3782,7 @@
         "output": "\u1000\u107d\u103c",
         "fired": [
           "unicode-to-zawgyi oneTime 3",
-          "unicode-to-zawgyi oneTime 54"
+          "unicode-to-zawgyi oneTime 55"
         ]
       },
       "covers": [
@@ -3798,7 +3798,7 @@
             "output": "\u1021\u107d\u103c",
             "fired": [
               "unicode-to-zawgyi oneTime 3",
-              "unicode-to-zawgyi oneTime 54"
+              "unicode-to-zawgyi oneTime 55"
             ]
           }
         },
@@ -3810,8 +3810,8 @@
           "expect": {
             "output": "\u0fff\u103a\u103c",
             "fired": [
-              "unicode-to-zawgyi oneTime 52",
-              "unicode-to-zawgyi oneTime 54"
+              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 55"
             ]
           }
         },
@@ -3823,8 +3823,8 @@
           "expect": {
             "output": "\u1022\u103a\u103c",
             "fired": [
-              "unicode-to-zawgyi oneTime 52",
-              "unicode-to-zawgyi oneTime 54"
+              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 55"
             ]
           }
         },
@@ -3837,8 +3837,8 @@
             "output": "\u107e\u1000\u103a",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 52",
               "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 54",
               "unicode-to-zawgyi asLongAsMatch 0"
             ]
           }
@@ -3851,8 +3851,8 @@
           "expect": {
             "output": "\u1000\u103a\u103d",
             "fired": [
-              "unicode-to-zawgyi oneTime 52",
-              "unicode-to-zawgyi oneTime 55"
+              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 56"
             ]
           }
         }
@@ -3973,7 +3973,7 @@
           "expect": {
             "output": "\u1003\u1039\u1039",
             "fired": [
-              "unicode-to-zawgyi oneTime 51"
+              "unicode-to-zawgyi oneTime 52"
             ]
           }
         },
@@ -3985,7 +3985,7 @@
           "expect": {
             "output": "\u1005\u1039\u1039",
             "fired": [
-              "unicode-to-zawgyi oneTime 51"
+              "unicode-to-zawgyi oneTime 52"
             ]
           }
         }
@@ -4057,7 +4057,7 @@
             "output": "\u108b\u103a",
             "fired": [
               "unicode-to-zawgyi oneTime 7",
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -4069,7 +4069,7 @@
           "expect": {
             "output": "\u1064\u1039\u102d",
             "fired": [
-              "unicode-to-zawgyi oneTime 51"
+              "unicode-to-zawgyi oneTime 52"
             ]
           }
         },
@@ -4082,7 +4082,7 @@
             "output": "\u108b\u103b",
             "fired": [
               "unicode-to-zawgyi oneTime 7",
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -4095,7 +4095,7 @@
             "output": "\u108b\u103c",
             "fired": [
               "unicode-to-zawgyi oneTime 7",
-              "unicode-to-zawgyi oneTime 54"
+              "unicode-to-zawgyi oneTime 55"
             ]
           }
         },
@@ -4108,7 +4108,7 @@
             "output": "\u108b\u103d",
             "fired": [
               "unicode-to-zawgyi oneTime 7",
-              "unicode-to-zawgyi oneTime 55"
+              "unicode-to-zawgyi oneTime 56"
             ]
           }
         },
@@ -4225,7 +4225,7 @@
             "output": "\u108c\u103a",
             "fired": [
               "unicode-to-zawgyi oneTime 8",
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -4237,7 +4237,7 @@
           "expect": {
             "output": "\u1064\u1039\u102e",
             "fired": [
-              "unicode-to-zawgyi oneTime 51"
+              "unicode-to-zawgyi oneTime 52"
             ]
           }
         },
@@ -4250,7 +4250,7 @@
             "output": "\u108c\u103b",
             "fired": [
               "unicode-to-zawgyi oneTime 8",
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -4263,7 +4263,7 @@
             "output": "\u108c\u103c",
             "fired": [
               "unicode-to-zawgyi oneTime 8",
-              "unicode-to-zawgyi oneTime 54"
+              "unicode-to-zawgyi oneTime 55"
             ]
           }
         },
@@ -4276,7 +4276,7 @@
             "output": "\u108c\u103d",
             "fired": [
               "unicode-to-zawgyi oneTime 8",
-              "unicode-to-zawgyi oneTime 55"
+              "unicode-to-zawgyi oneTime 56"
             ]
           }
         },
@@ -4384,7 +4384,7 @@
             "output": "\u108d\u103a",
             "fired": [
               "unicode-to-zawgyi oneTime 9",
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -4396,7 +4396,7 @@
           "expect": {
             "output": "\u1064\u1039\u1036",
             "fired": [
-              "unicode-to-zawgyi oneTime 51"
+              "unicode-to-zawgyi oneTime 52"
             ]
           }
         },
@@ -4409,7 +4409,7 @@
             "output": "\u108d\u103b",
             "fired": [
               "unicode-to-zawgyi oneTime 9",
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -4422,7 +4422,7 @@
             "output": "\u108d\u103c",
             "fired": [
               "unicode-to-zawgyi oneTime 9",
-              "unicode-to-zawgyi oneTime 54"
+              "unicode-to-zawgyi oneTime 55"
             ]
           }
         },
@@ -4435,7 +4435,7 @@
             "output": "\u108d\u103d",
             "fired": [
               "unicode-to-zawgyi oneTime 9",
-              "unicode-to-zawgyi oneTime 55"
+              "unicode-to-zawgyi oneTime 56"
             ]
           }
         },
@@ -4520,7 +4520,7 @@
         "output": "\u107e\u1000",
         "fired": [
           "unicode-to-zawgyi oneTime 10",
-          "unicode-to-zawgyi oneTime 53",
+          "unicode-to-zawgyi oneTime 54",
           "unicode-to-zawgyi asLongAsMatch 0"
         ]
       },
@@ -4538,7 +4538,7 @@
             "output": "\u107e\u1021",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 54",
               "unicode-to-zawgyi asLongAsMatch 0"
             ]
           }
@@ -4551,7 +4551,7 @@
           "expect": {
             "output": "\u0fff\u103b",
             "fired": [
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -4563,7 +4563,7 @@
           "expect": {
             "output": "\u1022\u103b",
             "fired": [
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -4576,7 +4576,7 @@
             "output": "\u1000\u107e\u1000",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 54",
               "unicode-to-zawgyi asLongAsMatch 0"
             ]
           }
@@ -4590,7 +4590,7 @@
             "output": "\u1000\u107e\u1021",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 54",
               "unicode-to-zawgyi asLongAsMatch 0"
             ]
           }
@@ -4604,7 +4604,7 @@
             "output": "\u107e\u1000\u0fff",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 54",
               "unicode-to-zawgyi asLongAsMatch 0"
             ]
           }
@@ -4618,7 +4618,7 @@
             "output": "\u107e\u1000\u1022",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 54",
               "unicode-to-zawgyi asLongAsMatch 0"
             ]
           }
@@ -4631,7 +4631,7 @@
           "expect": {
             "output": "\u1000\u103a",
             "fired": [
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -4643,7 +4643,7 @@
           "expect": {
             "output": "\u1000\u103c",
             "fired": [
-              "unicode-to-zawgyi oneTime 54"
+              "unicode-to-zawgyi oneTime 55"
             ]
           }
         },
@@ -4690,8 +4690,8 @@
           "unicode-to-zawgyi oneTime 10",
           "unicode-to-zawgyi oneTime 11",
           "unicode-to-zawgyi oneTime 31",
-          "unicode-to-zawgyi oneTime 53",
-          "unicode-to-zawgyi oneTime 56"
+          "unicode-to-zawgyi oneTime 54",
+          "unicode-to-zawgyi oneTime 57"
         ]
       },
       "edges": [
@@ -4706,7 +4706,7 @@
               "unicode-to-zawgyi oneTime 10",
               "unicode-to-zawgyi oneTime 11",
               "unicode-to-zawgyi oneTime 31",
-              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 54",
               "unicode-to-zawgyi asLongAsMatch 0"
             ]
           }
@@ -4722,7 +4722,7 @@
               "unicode-to-zawgyi oneTime 10",
               "unicode-to-zawgyi oneTime 11",
               "unicode-to-zawgyi oneTime 31",
-              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 54",
               "unicode-to-zawgyi asLongAsMatch 0"
             ]
           }
@@ -4736,7 +4736,7 @@
             "output": "\u0fff\u1039\u107e\u1010",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 54",
               "unicode-to-zawgyi asLongAsMatch 0"
             ]
           }
@@ -4750,7 +4750,7 @@
             "output": "\u1022\u1039\u107e\u1010",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 54",
               "unicode-to-zawgyi asLongAsMatch 0"
             ]
           }
@@ -4765,8 +4765,8 @@
             "fired": [
               "unicode-to-zawgyi oneTime 10",
               "unicode-to-zawgyi oneTime 11",
-              "unicode-to-zawgyi oneTime 49",
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 50",
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -4780,7 +4780,7 @@
             "fired": [
               "unicode-to-zawgyi oneTime 10",
               "unicode-to-zawgyi oneTime 11",
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         }
@@ -4893,7 +4893,7 @@
         "fired": [
           "unicode-to-zawgyi oneTime 12",
           "unicode-to-zawgyi oneTime 13",
-          "unicode-to-zawgyi oneTime 42"
+          "unicode-to-zawgyi oneTime 43"
         ]
       },
       "covers": [
@@ -4910,7 +4910,7 @@
             "fired": [
               "unicode-to-zawgyi oneTime 12",
               "unicode-to-zawgyi oneTime 13",
-              "unicode-to-zawgyi oneTime 42"
+              "unicode-to-zawgyi oneTime 43"
             ]
           }
         },
@@ -4948,7 +4948,7 @@
             "fired": [
               "unicode-to-zawgyi oneTime 12",
               "unicode-to-zawgyi oneTime 13",
-              "unicode-to-zawgyi oneTime 49"
+              "unicode-to-zawgyi oneTime 50"
             ]
           }
         },
@@ -4978,7 +4978,7 @@
         "output": "\u1031\u103b",
         "fired": [
           "unicode-to-zawgyi oneTime 14",
-          "unicode-to-zawgyi oneTime 53"
+          "unicode-to-zawgyi oneTime 54"
         ]
       }
     },
@@ -5047,7 +5047,7 @@
           "expect": {
             "output": "\u1014\u1039",
             "fired": [
-              "unicode-to-zawgyi oneTime 51"
+              "unicode-to-zawgyi oneTime 52"
             ]
           }
         },
@@ -5060,7 +5060,7 @@
             "output": "\u108f\u103a",
             "fired": [
               "unicode-to-zawgyi oneTime 15",
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -5073,7 +5073,7 @@
             "output": "\u108f\u103c",
             "fired": [
               "unicode-to-zawgyi oneTime 15",
-              "unicode-to-zawgyi oneTime 54"
+              "unicode-to-zawgyi oneTime 55"
             ]
           }
         },
@@ -5086,7 +5086,7 @@
             "output": "\u108f\u103d",
             "fired": [
               "unicode-to-zawgyi oneTime 15",
-              "unicode-to-zawgyi oneTime 55"
+              "unicode-to-zawgyi oneTime 56"
             ]
           }
         },
@@ -5115,7 +5115,7 @@
         "output": "\u103b\u108f",
         "fired": [
           "unicode-to-zawgyi oneTime 16",
-          "unicode-to-zawgyi oneTime 53"
+          "unicode-to-zawgyi oneTime 54"
         ]
       }
     },
@@ -5184,7 +5184,7 @@
           "expect": {
             "output": "\u1009\u1039",
             "fired": [
-              "unicode-to-zawgyi oneTime 51"
+              "unicode-to-zawgyi oneTime 52"
             ]
           }
         },
@@ -5197,7 +5197,7 @@
             "output": "\u106a\u103a",
             "fired": [
               "unicode-to-zawgyi oneTime 17",
-              "unicode-to-zawgyi oneTime 52"
+              "unicode-to-zawgyi oneTime 53"
             ]
           }
         },
@@ -5210,7 +5210,7 @@
             "output": "\u106a\u103c",
             "fired": [
               "unicode-to-zawgyi oneTime 17",
-              "unicode-to-zawgyi oneTime 54"
+              "unicode-to-zawgyi oneTime 55"
             ]
           }
         },
@@ -5223,7 +5223,7 @@
             "output": "\u106a\u103d",
             "fired": [
               "unicode-to-zawgyi oneTime 17",
-              "unicode-to-zawgyi oneTime 55"
+              "unicode-to-zawgyi oneTime 56"
             ]
           }
         },
@@ -5594,162 +5594,172 @@
       }
     },
     "unicode-to-zawgyi oneTime 41": {
-      "probe": "\u1039\u1007",
+      "probe": "\u1039\u1008",
       "reach": "call",
       "expect": {
-        "output": "\u1068",
+        "output": "\u1069",
         "fired": [
           "unicode-to-zawgyi oneTime 41"
         ]
       }
     },
     "unicode-to-zawgyi oneTime 42": {
-      "probe": "\u1039\u1006",
+      "probe": "\u1039\u1007",
       "reach": "call",
       "expect": {
-        "output": "\u1066",
+        "output": "\u1068",
         "fired": [
           "unicode-to-zawgyi oneTime 42"
         ]
       }
     },
     "unicode-to-zawgyi oneTime 43": {
-      "probe": "\u1039\u1005",
+      "probe": "\u1039\u1006",
       "reach": "call",
       "expect": {
-        "output": "\u1065",
+        "output": "\u1066",
         "fired": [
           "unicode-to-zawgyi oneTime 43"
         ]
       }
     },
     "unicode-to-zawgyi oneTime 44": {
-      "probe": "\u1039\u1003",
+      "probe": "\u1039\u1005",
       "reach": "call",
       "expect": {
-        "output": "\u1063",
+        "output": "\u1065",
         "fired": [
           "unicode-to-zawgyi oneTime 44"
         ]
       }
     },
     "unicode-to-zawgyi oneTime 45": {
-      "probe": "\u1039\u1002",
+      "probe": "\u1039\u1003",
       "reach": "call",
       "expect": {
-        "output": "\u1062",
+        "output": "\u1063",
         "fired": [
           "unicode-to-zawgyi oneTime 45"
         ]
       }
     },
     "unicode-to-zawgyi oneTime 46": {
-      "probe": "\u1039\u1001",
+      "probe": "\u1039\u1002",
       "reach": "call",
       "expect": {
-        "output": "\u1061",
+        "output": "\u1062",
         "fired": [
           "unicode-to-zawgyi oneTime 46"
         ]
       }
     },
     "unicode-to-zawgyi oneTime 47": {
-      "probe": "\u103d\u103e",
+      "probe": "\u1039\u1001",
       "reach": "call",
       "expect": {
-        "output": "\u108a",
+        "output": "\u1061",
         "fired": [
           "unicode-to-zawgyi oneTime 47"
         ]
       }
     },
     "unicode-to-zawgyi oneTime 48": {
-      "probe": "\u103e\u1030",
+      "probe": "\u103d\u103e",
       "reach": "call",
       "expect": {
-        "output": "\u1089",
+        "output": "\u108a",
         "fired": [
           "unicode-to-zawgyi oneTime 48"
         ]
       }
     },
     "unicode-to-zawgyi oneTime 49": {
-      "probe": "\u1039\u1000",
+      "probe": "\u103e\u1030",
       "reach": "call",
       "expect": {
-        "output": "\u1060",
+        "output": "\u1089",
         "fired": [
           "unicode-to-zawgyi oneTime 49"
         ]
       }
     },
     "unicode-to-zawgyi oneTime 50": {
-      "probe": "\u103e\u102f",
+      "probe": "\u1039\u1000",
       "reach": "call",
       "expect": {
-        "output": "\u1088",
+        "output": "\u1060",
         "fired": [
           "unicode-to-zawgyi oneTime 50"
         ]
       }
     },
     "unicode-to-zawgyi oneTime 51": {
-      "probe": "\u103a",
+      "probe": "\u103e\u102f",
       "reach": "call",
       "expect": {
-        "output": "\u1039",
+        "output": "\u1088",
         "fired": [
           "unicode-to-zawgyi oneTime 51"
         ]
       }
     },
     "unicode-to-zawgyi oneTime 52": {
-      "probe": "\u103b",
+      "probe": "\u103a",
       "reach": "call",
       "expect": {
-        "output": "\u103a",
+        "output": "\u1039",
         "fired": [
           "unicode-to-zawgyi oneTime 52"
         ]
       }
     },
     "unicode-to-zawgyi oneTime 53": {
-      "probe": "\u103c",
+      "probe": "\u103b",
       "reach": "call",
       "expect": {
-        "output": "\u103b",
+        "output": "\u103a",
         "fired": [
           "unicode-to-zawgyi oneTime 53"
         ]
       }
     },
     "unicode-to-zawgyi oneTime 54": {
-      "probe": "\u103d",
+      "probe": "\u103c",
       "reach": "call",
       "expect": {
-        "output": "\u103c",
+        "output": "\u103b",
         "fired": [
           "unicode-to-zawgyi oneTime 54"
         ]
       }
     },
     "unicode-to-zawgyi oneTime 55": {
-      "probe": "\u103e",
+      "probe": "\u103d",
       "reach": "call",
       "expect": {
-        "output": "\u103d",
+        "output": "\u103c",
         "fired": [
           "unicode-to-zawgyi oneTime 55"
         ]
       }
     },
     "unicode-to-zawgyi oneTime 56": {
+      "probe": "\u103e",
+      "reach": "call",
+      "expect": {
+        "output": "\u103d",
+        "fired": [
+          "unicode-to-zawgyi oneTime 56"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 57": {
       "probe": "!\u1071",
       "reach": "call",
       "expect": {
         "output": "!\u1072",
         "fired": [
-          "unicode-to-zawgyi oneTime 56"
+          "unicode-to-zawgyi oneTime 57"
         ]
       },
       "edges": [
@@ -5771,7 +5781,7 @@
           "expect": {
             "output": "\u0fff\u1072",
             "fired": [
-              "unicode-to-zawgyi oneTime 56"
+              "unicode-to-zawgyi oneTime 57"
             ]
           }
         },
@@ -5783,7 +5793,7 @@
           "expect": {
             "output": "\u1001\u1072",
             "fired": [
-              "unicode-to-zawgyi oneTime 56"
+              "unicode-to-zawgyi oneTime 57"
             ]
           }
         },
@@ -5805,7 +5815,7 @@
           "expect": {
             "output": "\u1002\u1072",
             "fired": [
-              "unicode-to-zawgyi oneTime 56"
+              "unicode-to-zawgyi oneTime 57"
             ]
           }
         },
@@ -5817,7 +5827,7 @@
           "expect": {
             "output": "\u1004\u1072",
             "fired": [
-              "unicode-to-zawgyi oneTime 56"
+              "unicode-to-zawgyi oneTime 57"
             ]
           }
         },
@@ -5839,7 +5849,7 @@
           "expect": {
             "output": "\u1005\u1072",
             "fired": [
-              "unicode-to-zawgyi oneTime 56"
+              "unicode-to-zawgyi oneTime 57"
             ]
           }
         },
@@ -5851,7 +5861,7 @@
           "expect": {
             "output": "\u1007\u1072",
             "fired": [
-              "unicode-to-zawgyi oneTime 56"
+              "unicode-to-zawgyi oneTime 57"
             ]
           }
         },
@@ -5873,7 +5883,7 @@
           "expect": {
             "output": "\u100e\u1072",
             "fired": [
-              "unicode-to-zawgyi oneTime 56"
+              "unicode-to-zawgyi oneTime 57"
             ]
           }
         },
@@ -5905,7 +5915,7 @@
           "expect": {
             "output": "\u1012\u1072",
             "fired": [
-              "unicode-to-zawgyi oneTime 56"
+              "unicode-to-zawgyi oneTime 57"
             ]
           }
         },
@@ -5927,7 +5937,7 @@
           "expect": {
             "output": "\u1017\u1072",
             "fired": [
-              "unicode-to-zawgyi oneTime 56"
+              "unicode-to-zawgyi oneTime 57"
             ]
           }
         },
@@ -5940,7 +5950,7 @@
           "expect": {
             "output": "\u1019\u1072",
             "fired": [
-              "unicode-to-zawgyi oneTime 56"
+              "unicode-to-zawgyi oneTime 57"
             ]
           }
         },
@@ -5963,7 +5973,7 @@
           "expect": {
             "output": "\u1020\u1072",
             "fired": [
-              "unicode-to-zawgyi oneTime 56"
+              "unicode-to-zawgyi oneTime 57"
             ]
           }
         },
@@ -5975,7 +5985,7 @@
           "expect": {
             "output": "\u1022\u1072",
             "fired": [
-              "unicode-to-zawgyi oneTime 56"
+              "unicode-to-zawgyi oneTime 57"
             ]
           }
         },
@@ -5997,7 +6007,7 @@
           "expect": {
             "output": "\u101b\u1072",
             "fired": [
-              "unicode-to-zawgyi oneTime 56"
+              "unicode-to-zawgyi oneTime 57"
             ]
           }
         },
@@ -6019,7 +6029,7 @@
           "expect": {
             "output": "\u101d\u1072",
             "fired": [
-              "unicode-to-zawgyi oneTime 56"
+              "unicode-to-zawgyi oneTime 57"
             ]
           }
         },
@@ -6052,7 +6062,7 @@
         "output": "\u107e\u1000",
         "fired": [
           "unicode-to-zawgyi oneTime 10",
-          "unicode-to-zawgyi oneTime 53",
+          "unicode-to-zawgyi oneTime 54",
           "unicode-to-zawgyi asLongAsMatch 0"
         ]
       },
@@ -6069,7 +6079,7 @@
             "output": "\u103b\u1001",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -6082,7 +6092,7 @@
             "output": "\u107e\u1003",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 54",
               "unicode-to-zawgyi asLongAsMatch 0"
             ]
           }
@@ -6096,7 +6106,7 @@
             "output": "\u103b\u1002",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -6109,7 +6119,7 @@
             "output": "\u103b\u1004",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -6122,7 +6132,7 @@
             "output": "\u107e\u1006",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 54",
               "unicode-to-zawgyi asLongAsMatch 0"
             ]
           }
@@ -6136,7 +6146,7 @@
             "output": "\u103b\u1005",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -6149,7 +6159,7 @@
             "output": "\u103b\u1007",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -6162,7 +6172,7 @@
             "output": "\u107e\u100f",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 54",
               "unicode-to-zawgyi asLongAsMatch 0"
             ]
           }
@@ -6176,7 +6186,7 @@
             "output": "\u103b\u100e",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -6189,7 +6199,7 @@
             "output": "\u107e\u1010",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 54",
               "unicode-to-zawgyi asLongAsMatch 0"
             ]
           }
@@ -6203,7 +6213,7 @@
             "output": "\u107e\u1011",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 54",
               "unicode-to-zawgyi asLongAsMatch 0"
             ]
           }
@@ -6217,7 +6227,7 @@
             "output": "\u103b\u1012",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -6230,7 +6240,7 @@
             "output": "\u107e\u1018",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 54",
               "unicode-to-zawgyi asLongAsMatch 0"
             ]
           }
@@ -6244,7 +6254,7 @@
             "output": "\u103b\u1017",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -6258,7 +6268,7 @@
             "output": "\u103b\u1019",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -6271,7 +6281,7 @@
             "output": "\u107e\u1021",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 54",
               "unicode-to-zawgyi asLongAsMatch 0"
             ]
           }
@@ -6286,7 +6296,7 @@
             "output": "\u103b\u1020",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -6299,7 +6309,7 @@
             "output": "\u107e\u101a",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 54",
               "unicode-to-zawgyi asLongAsMatch 0"
             ]
           }
@@ -6313,7 +6323,7 @@
             "output": "\u103b\u101b",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -6326,7 +6336,7 @@
             "output": "\u107e\u101c",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 54",
               "unicode-to-zawgyi asLongAsMatch 0"
             ]
           }
@@ -6340,7 +6350,7 @@
             "output": "\u103b\u101d",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -6353,7 +6363,7 @@
             "output": "\u107e\u101e",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 54",
               "unicode-to-zawgyi asLongAsMatch 0"
             ]
           }
@@ -6367,7 +6377,7 @@
             "output": "\u107e\u101f",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 54",
               "unicode-to-zawgyi asLongAsMatch 0"
             ]
           }
@@ -6385,9 +6395,9 @@
         "output": "\u103a\u1083\u1001\u103c\u102d",
         "fired": [
           "unicode-to-zawgyi oneTime 10",
-          "unicode-to-zawgyi oneTime 52",
           "unicode-to-zawgyi oneTime 53",
           "unicode-to-zawgyi oneTime 54",
+          "unicode-to-zawgyi oneTime 55",
           "unicode-to-zawgyi asLongAsMatch 1"
         ]
       },
@@ -6405,9 +6415,9 @@
             "output": "\u103a\u1081\u1001\u103c\u102c",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 52",
               "unicode-to-zawgyi oneTime 53",
               "unicode-to-zawgyi oneTime 54",
+              "unicode-to-zawgyi oneTime 55",
               "unicode-to-zawgyi asLongAsMatch 5"
             ]
           }
@@ -6421,9 +6431,9 @@
             "output": "\u103a\u1083\u1001\u103c\u102e",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 52",
               "unicode-to-zawgyi oneTime 53",
               "unicode-to-zawgyi oneTime 54",
+              "unicode-to-zawgyi oneTime 55",
               "unicode-to-zawgyi asLongAsMatch 1"
             ]
           }
@@ -6537,8 +6547,8 @@
             "output": "\u107e\u1084\u1021\u103c\u102d",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53",
               "unicode-to-zawgyi oneTime 54",
+              "unicode-to-zawgyi oneTime 55",
               "unicode-to-zawgyi asLongAsMatch 0",
               "unicode-to-zawgyi asLongAsMatch 2"
             ]
@@ -6556,7 +6566,7 @@
         "output": "\u107f\u1012\u102d",
         "fired": [
           "unicode-to-zawgyi oneTime 10",
-          "unicode-to-zawgyi oneTime 53",
+          "unicode-to-zawgyi oneTime 54",
           "unicode-to-zawgyi asLongAsMatch 3"
         ]
       },
@@ -6573,7 +6583,7 @@
             "output": "\u103b\u1012\u102c",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -6586,7 +6596,7 @@
             "output": "\u107f\u1012\u102e",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 54",
               "unicode-to-zawgyi asLongAsMatch 3"
             ]
           }
@@ -6600,7 +6610,7 @@
             "output": "\u103b\u1012\u102f\u102d",
             "fired": [
               "unicode-to-zawgyi oneTime 10",
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         }
@@ -6704,7 +6714,7 @@
       "expect": {
         "output": "\u1081\u1012\u108a",
         "fired": [
-          "unicode-to-zawgyi oneTime 53",
+          "unicode-to-zawgyi oneTime 54",
           "unicode-to-zawgyi asLongAsMatch 5"
         ]
       },
@@ -6720,7 +6730,7 @@
           "expect": {
             "output": "\u103b\u0fff\u108a",
             "fired": [
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -6732,7 +6742,7 @@
           "expect": {
             "output": "\u103b\u1022\u108a",
             "fired": [
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -6744,7 +6754,7 @@
           "expect": {
             "output": "\u1081\u106a\u108a",
             "fired": [
-              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 54",
               "unicode-to-zawgyi asLongAsMatch 5"
             ]
           }
@@ -6757,7 +6767,7 @@
           "expect": {
             "output": "\u103b\u1069\u108a",
             "fired": [
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -6769,7 +6779,7 @@
           "expect": {
             "output": "\u103b\u106b\u108a",
             "fired": [
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -6781,7 +6791,7 @@
           "expect": {
             "output": "\u1081\u108f\u108a",
             "fired": [
-              "unicode-to-zawgyi oneTime 53",
+              "unicode-to-zawgyi oneTime 54",
               "unicode-to-zawgyi asLongAsMatch 5"
             ]
           }
@@ -6794,7 +6804,7 @@
           "expect": {
             "output": "\u103b\u108e\u108a",
             "fired": [
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -6806,7 +6816,7 @@
           "expect": {
             "output": "\u103b\u1090\u108a",
             "fired": [
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -6818,7 +6828,7 @@
           "expect": {
             "output": "\u103b\u1012\u1089",
             "fired": [
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         },
@@ -6830,7 +6840,7 @@
           "expect": {
             "output": "\u103b\u1012\u108b",
             "fired": [
-              "unicode-to-zawgyi oneTime 53"
+              "unicode-to-zawgyi oneTime 54"
             ]
           }
         }
@@ -6899,7 +6909,7 @@
           "expect": {
             "output": "\u107e\u1020\u103d",
             "fired": [
-              "unicode-to-zawgyi oneTime 55"
+              "unicode-to-zawgyi oneTime 56"
             ]
           }
         },
@@ -6938,7 +6948,7 @@
         "output": "\u1081\u106a",
         "fired": [
           "unicode-to-zawgyi oneTime 10",
-          "unicode-to-zawgyi oneTime 53",
+          "unicode-to-zawgyi oneTime 54",
           "unicode-to-zawgyi asLongAsMatch 7"
         ]
       }

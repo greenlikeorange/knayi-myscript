@@ -149,6 +149,7 @@ knayi.fontConvert('မဂၤလာပါ', 'unicode') // 'မင်္ဂလာ�
 knayi.fontConvert('ဗုဒ္ဓ', 'unicode') // 'ဗုဒ်ဓ'  (a tie, read as Zawgyi)
 knayi.fontConvert('ဗုဒ္ဓ', 'unicode', 'unicode') // 'ဗုဒ္ဓ'
 knayi.fontConvert('မြန်မာ', 'zawgyi', 'unicode') // 'ျမန္မာ'
+knayi.fontConvert('မဇ္ဈိမ', 'zawgyi', 'unicode') // 'မဇၩိမ'
 knayi.fontConvert('ကျ', 'unicode') // 'ကျ'
 knayi.fontConvert(' ကာာ ', 'unicode', 'unicode') // 'ကာာ'
 knayi.fontConvert('မဂၤလာပါ', 'uni', 'zaw') // 'မင်္ဂလာပါ'
@@ -194,7 +195,7 @@ knayi.fontConvert('ၿမိဳ ့', 'unicode', 'zawgyi') // 'မြို့'
 - **Zero-width characters:** a zero-width space or non-joiner typed inside a syllable moves to the end of the syllable.
 - **NFC:** the result is NFC.
 
-Converting from Unicode collapses a mark typed twice in a row, as `spellingFix` does, then applies knayi's pattern rules.
+Converting from Unicode collapses a mark typed twice in a row, as `spellingFix` does, then applies knayi's pattern rules. Stacked ဈ, as in မဇ္ဈိမ, and stacked စ with medial ya both become U+1069, Zawgyi's stacked ဈ, which converts back to stacked ဈ.
 
 ### Win fonts
 
