@@ -268,7 +268,7 @@ export class SyllableBuffer {
   }
 
   // The units of every array the buffer holds, for the memory tests.
-  scratchUnits() {
+  capacity() {
     return this.baseCodes.length + this.marks.length + this.ranks.length + this.stack.length + this.held.length +
       this.pending.length;
   }

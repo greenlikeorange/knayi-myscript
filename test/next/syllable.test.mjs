@@ -159,16 +159,16 @@ describe('SyllableBuffer (DESIGN.md §3.3)', () => {
 
   it('grows its stack, held and pending arrays, and releases them past 65,536 units', () => {
     const buf = bufferOf({ base: '\u1000' });
-    const first = buf.scratchUnits();
+    const first = buf.capacity();
     for (let i = 0; i < 70000; i++) {
       buf.pushStack(0x1039);
       buf.hold(0x20, false);
       buf.addPending(0x1031);
     }
     assert.equal(buf.stackLength, 70000);
-    assert.ok(buf.scratchUnits() > 3 * 65536);
+    assert.ok(buf.capacity() > 3 * 65536);
     buf.releaseIfLarge();
-    assert.equal(buf.scratchUnits(), first);
+    assert.equal(buf.capacity(), first);
   });
 });
 

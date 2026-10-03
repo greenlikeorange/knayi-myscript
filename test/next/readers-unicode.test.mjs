@@ -178,7 +178,7 @@ describe('what reorderUnicode returns', () => {
   });
 
   it('leaves no scratch buffer larger than its first size after an 8.9M-unit call', () => {
-    const firstSizes = new SyllableBuffer().scratchUnits() + new CodeBuffer().capacity();
+    const firstSizes = new SyllableBuffer().capacity() + new CodeBuffer().capacity();
     // Each part grows one buffer far past 65,536 units: held spaces (and the syllable written with them), a stack,
     // and a run of e waiting for its base.
     const text = '\u1000' + ' '.repeat(3000000) + 'x' + '\u1000' + '\u1039\u1000'.repeat(1500000) + 'x' +

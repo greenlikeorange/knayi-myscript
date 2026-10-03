@@ -107,7 +107,7 @@ export function reorderUnicode(text) {
 
 // The capacity, in units, of this module's scratch buffers (§3.11), for the memory tests.
 export function unicodeReaderScratchUnits() {
-  return SCRATCH.syllable.scratchUnits() + SCRATCH.writer.syllable.capacity();
+  return SCRATCH.syllable.capacity() + SCRATCH.writer.syllable.capacity();
 }
 
 function startReading(scratch, text) {
