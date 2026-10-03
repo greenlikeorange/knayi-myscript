@@ -1,6 +1,6 @@
 'use strict';
-// Checks main.js, the ES module build and min.js (in a vm) against the API contract matrix under the runtime that
-// runs this file. `npm run test:bun` runs it with Bun; under Node, test/contract/api-matrix.test.js does the same.
+// Checks main.js, the ES module build, min.js (in a vm) and compat against the API contract matrix under the runtime
+// that runs this file. `npm run test:bun` runs it with Bun; under Node, test/contract/api-matrix.test.js does the same.
 const matrix = require('./contract/matrix');
 
 async function main() {
@@ -17,13 +17,15 @@ async function main() {
     }
   }
 
-  const mainBuild = await matrix.loadBuild('main.js');
-  const reversed = matrix.compareCells(matrix.runCells(mainBuild), matrix.runCells(mainBuild, { reverse: true }));
-  if (reversed.changed.length) {
-    console.error(matrix.formatReport('main.js run last to first', reversed));
-    failed = true;
-  } else {
-    console.log('main.js: the cells do not depend on the order they run in.');
+  for (const name of ['main.js', 'compat']) {
+    const build = await matrix.loadBuild(name);
+    const reversed = matrix.compareCells(matrix.runCells(build), matrix.runCells(build, { reverse: true }));
+    if (reversed.changed.length) {
+      console.error(matrix.formatReport(name + ' run last to first', reversed));
+      failed = true;
+    } else {
+      console.log(name + ': the cells do not depend on the order they run in.');
+    }
   }
 
   process.exit(failed ? 1 : 0);

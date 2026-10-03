@@ -24,9 +24,13 @@ describe('API contract matrix', () => {
     });
   }
 
-  it('gives the same cells whatever order they run in', async () => {
-    const build = await matrix.loadBuild('main.js');
-    const comparison = matrix.compareCells(matrix.runCells(build), matrix.runCells(build, { reverse: true }));
-    assert.ok(!comparison.changed.length, matrix.formatReport('main.js run last to first', comparison));
-  });
+  // compat holds the 2.x option store and the myanmar-tools loader as module state, as main.js does, so it is checked
+  // for state left behind too (docs/next/DESIGN.md §6.3).
+  for (const name of ['main.js', 'compat']) {
+    it(name + ' gives the same cells whatever order they run in', async () => {
+      const build = await matrix.loadBuild(name);
+      const comparison = matrix.compareCells(matrix.runCells(build), matrix.runCells(build, { reverse: true }));
+      assert.ok(!comparison.changed.length, matrix.formatReport(name + ' run last to first', comparison));
+    });
+  }
 });

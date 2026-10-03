@@ -2,10 +2,11 @@
 // Rewrites test/contract/api-matrix.json from main.js: `npm run matrix:update`.
 // `--out <file>` writes the snapshot to another file instead, for comparing runtimes or checkouts.
 //
-// It also runs the dist builds (a fresh build in a temporary directory, or KNAYI_DIST) and records the cells
-// where they differ from main.js as known build differences. A difference that scripts/contract/matrix.js does
-// not explain stops the update: either a KNAYI_DIST build is stale (rebuild it) or the builds really disagree,
-// which needs a reason in KNOWN_BUILD_DIFFERENCES.
+// It also runs the dist builds (a fresh build in a temporary directory, or KNAYI_DIST) and compat, and records the
+// cells where they differ from main.js as known build differences. A difference that scripts/contract/matrix.js
+// does not explain stops the update: either a KNAYI_DIST build is stale (rebuild it) or the builds really disagree,
+// which needs a reason in KNOWN_BUILD_DIFFERENCES. compat records none of its own: it must differ exactly where the
+// ES module build does (SHARES_RECORDED_DIFFERENCES).
 
 const fs = require('fs');
 const path = require('path');
@@ -42,6 +43,11 @@ async function main() {
           extra: differences.extra
         }));
     }
+    const sharedWith = matrix.SHARES_RECORDED_DIFFERENCES[name];
+    if (sharedWith) {
+      checkShared(build, sharedWith, differences.known, known.filter((entry) => entry.build === sharedWith));
+      continue;
+    }
     known.push.apply(known, differences.known);
   }
 
@@ -60,6 +66,17 @@ async function main() {
   console.log(`Wrote ${shown.indexOf('..') === 0 ? out : shown}: ${matrix.formatCount(cells.length)} cells ` +
     `from main.js on ${matrix.runtimeName()}; known build differences: ` +
     (known.length ? Object.keys(byBuild).map((name) => name + ' ' + byBuild[name]).join(', ') : 'none') + '.');
+}
+
+// A build that shares another build's recorded differences (matrix.SHARES_RECORDED_DIFFERENCES) records none of its
+// own, so it must differ from main.js in exactly the cells that build does, the same way. That build comes first in
+// matrix.BUILDS, so its differences are already in `sharedKnown`.
+function checkShared(build, sharedWith, ownKnown, sharedKnown) {
+  const unshared = matrix.unsharedDifferences(ownKnown, sharedKnown);
+  if (unshared.length) {
+    fail(`${build.label} shares the known build differences of ${sharedWith}, but differs from them in ` +
+      `${unshared.length} cells: ${unshared.slice(0, 5).join('; ')}${unshared.length > 5 ? '; ...' : ''}`);
+  }
 }
 
 function fail(message) {

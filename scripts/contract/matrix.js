@@ -1,8 +1,9 @@
 'use strict';
 // The API contract matrix: every public function and call form, run on fixed synthetic probes. Each call is one
 // cell, which records the value the call returned and its type, the error it threw and what it wrote to the
-// console. test/contract/api-matrix.test.js (Node) and scripts/bun-matrix.js (Bun) check main.js and the dist
-// builds against test/contract/api-matrix.json, and `npm run matrix:update` rewrites that file from main.js.
+// console. test/contract/api-matrix.test.js (Node) and scripts/bun-matrix.js (Bun) check main.js, the dist builds
+// and compat (the 2.x API on the 3.0 core) against test/contract/api-matrix.json, and `npm run matrix:update`
+// rewrites that file from main.js.
 //
 // Errors. The library throws no error of its own today: every throw in the matrix is an accident of the code,
 // such as a TypeError from reading a property of undefined. The wording of those messages belongs to the
@@ -20,15 +21,24 @@ const SNAPSHOT = path.join(ROOT, 'test', 'contract', 'api-matrix.json');
 
 // The builds the matrix runs on. main.js is the source of truth; the dist files come from a fresh build of this
 // checkout in a temporary directory, or from KNAYI_DIST when it is set (`KNAYI_DIST=dist` checks the committed
-// release build); see builtDist() in scripts/build.js.
-const BUILDS = ['main.js', 'knayi-myscript.mjs', 'knayi-myscript.min.js'];
+// release build); see builtDist() in scripts/build.js. `compat` is the 2.x API on the 3.0 core, src/compat/index.js
+// (docs/next/DESIGN.md §5), imported as the ES module it is.
+const BUILDS = ['main.js', 'knayi-myscript.mjs', 'knayi-myscript.min.js', 'compat'];
+
+// src/compat/index.js, the module the `compat` build imports.
+const COMPAT = path.join(ROOT, 'src', 'compat', 'index.js');
+
+// A build whose known differences are exactly those of another build, so the snapshot records them once, under
+// that build. compat is a strict ES module, like the 2.x ES module build, and differs from main.js in the same
+// cells, the same way (docs/next/DESIGN.md §5.4, D2). `npm run matrix:update` checks that this still holds.
+const SHARES_RECORDED_DIFFERENCES = { compat: 'knayi-myscript.mjs' };
 
 // Cells in which a build is expected to differ from main.js, with the reason. `npm run matrix:update` refuses to
 // record a build difference that no entry here explains.
 const KNOWN_BUILD_DIFFERENCES = [
   {
     name: 'debug flag read from this',
-    builds: ['knayi-myscript.mjs'],
+    builds: ['knayi-myscript.mjs', 'compat'],
     matches: (id) => id.indexOf('detached fontConvert(') === 0,
     reason: 'fontConvert reads its debug flag from `this` (library/converter.js). A detached call in sloppy code ' +
       '(CommonJS main.js and the script builds) reads the global object, so a global `debug` variable turns on ' +
@@ -256,6 +266,10 @@ async function loadBuild(name) {
     const knayi = require(path.join(ROOT, 'main.js'));
     return hostBuild(name, 'main.js', knayi, logs);
   }
+  if (name === 'compat') {
+    const module = await import(pathToFileURL(COMPAT).href);
+    return hostBuild(name, path.relative(ROOT, COMPAT), module.default, logs);
+  }
   const file = path.join(distDir(), name);
   const relative = path.relative(ROOT, file);
   const label = relative && relative.indexOf('..') !== 0 ? relative
@@ -446,13 +460,25 @@ function formatSnapshot(cells, known) {
   return escapeInvisible(lines.join('\n')) + '\n';
 }
 
-// The cells a build should give: main.js's cells, with that build's known differences put in.
+// The cells a build should give: main.js's cells, with that build's known differences put in (those of the build
+// it shares them with, if any).
 function expectedCells(snapshot, buildName) {
+  const recordedUnder = SHARES_RECORDED_DIFFERENCES[buildName] || buildName;
   const replaced = new Map();
   for (const entry of snapshot.knownBuildDifferences.cells) {
-    if (entry.build === buildName) replaced.set(entry.id, Object.assign({ id: entry.id }, entry.cell));
+    if (entry.build === recordedUnder) replaced.set(entry.id, Object.assign({ id: entry.id }, entry.cell));
   }
   return snapshot.cells.map((cell) => replaced.get(cell.id) || cell);
+}
+
+// The known differences of a build that shares another build's (SHARES_RECORDED_DIFFERENCES) that are not exactly
+// that build's, as cell ids: a cell one of them has and the other lacks, or has with another result.
+function unsharedDifferences(known, sharedKnown) {
+  const key = (entry) => entry.id + '\u0000' + entry.reason + '\u0000' + cellKey(entry.cell);
+  const shared = new Set(sharedKnown.map(key));
+  const own = new Set(known.map(key));
+  return known.filter((entry) => !shared.has(key(entry))).map((entry) => entry.id)
+    .concat(sharedKnown.filter((entry) => !own.has(key(entry))).map((entry) => entry.id));
 }
 
 // Differences between a build's cells and main.js's that KNOWN_BUILD_DIFFERENCES explains, and those it does not.
@@ -646,6 +672,7 @@ module.exports = {
   ROOT,
   SNAPSHOT,
   BUILDS,
+  SHARES_RECORDED_DIFFERENCES,
   // The content probes, which scripts/eval/lib/inputs.mjs also hands to compare.
   CONTENTS,
   defineCells,
@@ -655,6 +682,7 @@ module.exports = {
   formatSnapshot,
   expectedCells,
   buildDifferences,
+  unsharedDifferences,
   compareCells,
   checkBuild,
   formatReport,
