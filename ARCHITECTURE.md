@@ -293,7 +293,7 @@ These are the 2.x API. Changing them needs a major version.
 | Surface | Where it is defined or relied on |
 | --- | --- |
 | The exports and their shapes | `main.js`. `scripts/build.js` builds the ESM named exports from its keys, and `test/package.test.js` checks every one. New exports may come in a minor version, with types and tests. |
-| The types | `index.d.ts` and `library/converter.d.ts` may only grow. `typecheck/` (`npm test`) and `typecheck/packed/` (`npm run check:types`) compile code that uses them. |
+| The types | `index.d.ts` and `library/converter.d.ts` may only grow. One change so far is an exception: 2.11 narrows `fontDetect`'s result type from `string` to the values it returns, which stops some code compiling (CHANGELOG.md, under Changed); the release notes list it under "Before you upgrade" ([CONTRIBUTING.md](CONTRIBUTING.md#release-checklist)). `typecheck/` (`npm test`) and `typecheck/packed/` (`npm run check:types`) compile code that uses them. |
 | The dist file names and the `knayi` global | `scripts/build.js`; `test/compat.test.js`, `test/browser.test.js`. |
 | The option keys | `silent_mode`, `detector.use_myanmartools`, `detector.myanmartools_zg_threshold`, the per-call `adapter`, and `truncate`'s `length`, `omission` and `fontType`. |
 | The deep path `knayi-myscript/library/converter` | README ("These paths load"); `test/compat.test.js`; its types, `library/converter.d.ts`, in `typecheck/deep-path.ts` and `typecheck/packed/`. |

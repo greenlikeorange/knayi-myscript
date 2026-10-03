@@ -188,5 +188,5 @@ The checks block a merge only when the rules for `main` (Settings, Rules) requir
     ```
 
     It must equal the hash of the local build (`openssl dgst -sha384 -binary dist/knayi-myscript.min.js | openssl base64 -A`). Commit as `docs(site): pin the demo to X.Y.Z`.
-11. **Publish the GitHub release** for the tag, with the CHANGELOG section as its notes, and a "Before you upgrade" list when output changed. If a draft release for this version exists, check its target first: a draft made earlier points at an older commit, so set its target to the tag (or make it again from the tag).
+11. **Publish the GitHub release** for the tag, with the CHANGELOG section as its notes, and a "Before you upgrade" list when output changed or when a change to `index.d.ts` stops some TypeScript code compiling. The list links the CHANGELOG entry for each; for 2.11, that is the **Changed** entry on `fontDetect`'s narrower result type. If a draft release for this version exists, check its target first: a draft made earlier points at an older commit, so set its target to the tag (or make it again from the tag).
 12. **For a security fix,** say so in the CHANGELOG and the release notes, and publish the GitHub security advisory (see [SECURITY.md](SECURITY.md)).
