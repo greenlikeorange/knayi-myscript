@@ -2234,7 +2234,7 @@ The tools follow: compare, perf, eval and bench load a 3.0 copy's compat through
 ### 12.6 Checks
 
 On `next-pack` (Node 26.5, Bun 1.4.2):
-- `npm test`: 1,720 pass, 3 skipped, and the 62 timing tests; `npm run test:bun`: 1,720 pass; `npm run test:pack`; `npm run check:types`; `npm run check:redos` (84 patterns, all safe); `npm run test:browser` (15 passed); the dist and import sizes within their budgets.
+- `npm test`, on a fresh build and on the committed `dist/` of 3.0.0-next.0 (`KNAYI_DIST=dist`): 1,738 pass, 3 skipped, and the 62 timing tests; the test files pass on Node 24.12 too; `npm run test:bun`: 1,738 pass; `npm run test:pack`; `npm run check:types`; `npm run check:redos` (84 patterns, all safe); `npm run test:browser` (15 passed); `npm run check:dist -- --fresh`; the dist and import sizes within their budgets. Node 22.12 itself runs in CI only.
 - The contract matrix: 3,523 cells match for compat, the compat module build, the script build's `knayi.compat` and the reference's `main.js`, under Node and Bun.
 - `npm run compare -- --base e5f6e24fa756f8f9c8d790f9a15ede85b135e8ae --head mjs:src/compat/index.js`, with every corpus cached and pinned, mC4 included: 0 differences in 2,773,918 comparisons under Node and under Bun, and 0 in 8,960,356 with `--fuzz 200000 --seed 7`. With the head `.`, compat through the exports map, 0 (`--offline`); compat against the script build (`min:.`) and against `next`: 0.
 - `npm run perf -- --base . --offline`: 0 of 2,264 growth cells above 1.3 under Node (highest 1.21) and under Bun (highest 1.25).
