@@ -1,8 +1,9 @@
 // Checks index.d.ts the way users get it: from the packed tarball, under every module resolution.
 //
 // npm test type-checks typecheck/*.ts against index.d.ts through a `paths` mapping with node10 resolution.
-// This script packs the package instead, unpacks the tarball into the node_modules of a scratch project (it
-// has no dependencies, so that is all npm install would do), and:
+// This script packs the package instead, with a fresh build in dist/ (scripts/pack-fresh.mjs), unpacks the
+// tarball into the node_modules of a scratch project (it has no dependencies, so that is all npm install would
+// do), and:
 // 1. compiles typecheck/packed/ there with tsc under node16 and nodenext resolution (an ES module, esm.mts,
 //    and a CommonJS module, cjs.cts) and under bundler resolution (bundler.ts), with skipLibCheck off;
 // 2. runs the compiled node16 and nodenext modules in Node, and bundler.ts bundled by esbuild, so the types
@@ -18,6 +19,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { packFresh } from './pack-fresh.mjs';
 
 const root = path.join(import.meta.dirname, '..');
 const require = createRequire(path.join(root, 'package.json'));
@@ -63,14 +65,8 @@ try {
   // ---- Pack, and install the tarball into a scratch project by unpacking it.
   const packDir = path.join(work, 'pack');
   fs.mkdirSync(packDir);
-  run('npm', ['pack', '--silent', '--pack-destination', packDir], {
-    cwd: root,
-    stdio: ['ignore', 'ignore', 'inherit'],
-    shell: process.platform === 'win32'
-  });
-  const tarballName = fs.readdirSync(packDir).find((name) => name.endsWith('.tgz'));
-  if (!tarballName) throw new Error('npm pack did not write a tarball');
-  const tarball = path.join(packDir, tarballName);
+  const tarball = packFresh(packDir, { quiet: true });
+  const tarballName = path.basename(tarball);
 
   const app = path.join(work, 'app');
   const installed = path.join(app, 'node_modules', 'knayi-myscript');
