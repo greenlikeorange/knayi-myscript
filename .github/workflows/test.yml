@@ -15,6 +15,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # npm test: the unit, table, README, fuzz, property, adapter, layering, growth and Unicode tests, the API
+  # contract matrix on main.js and on the .mjs and min.js builds, and the browser floor and RegExp checks of the
+  # builds. The builds are made in a temporary directory; dist/ is not touched.
   node:
     name: Node ${{ matrix.node }}
     runs-on: ubuntu-latest
@@ -32,13 +35,14 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
       - run: npm ci
-      # Builds dist into a temporary directory and tests that build, type-checks typecheck/, then checks the
-      # min.js size budget (posttest).
+      # The tests, a type-check of typecheck/, then the min.js size budget (posttest).
       - run: npm test
       # test/syntax.test.js is the ES2015 gate for every dist file (one test each); it must run, not be skipped.
       - name: Check the syntax test ran
         run: node scripts/check-tests-ran.mjs --min 4 test/syntax.test.js
 
+  # The same tests under Bun, including the contract matrix on all three builds in a process of its own, and the
+  # packed tarball installed with Bun.
   bun:
     name: Bun
     runs-on: ubuntu-latest
@@ -83,6 +87,195 @@ jobs:
           node-version: ${{ matrix.node }}
       - run: node scripts/smoke.js "$RUNNER_TEMP/dist"
 
+  # Static checks that need Node 20.11 or newer: every regex the library ships through recheck, the types as
+  # users get them from the packed tarball, and the min.js size with a per-module breakdown.
+  checks:
+    name: ReDoS, types and size
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check:redos
+      - run: npm run check:types
+      - run: npm run check:size
+
+  # The script and module builds in Chromium, Firefox and WebKit against main.js, and axe on the demo and
+  # benchmark pages. The browsers are cached by the lockfile (it pins @playwright/test); the install step then
+  # only adds the system packages they need.
+  browser:
+    name: Browsers
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: npm run test:browser
+      - if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-results
+          path: test-results/browser
+          retention-days: 7
+
+  # Output identity (CONTRIBUTING.md): every call form on two copies of knayi.
+  # - A pull request is compared with its base branch under Node and Bun. With the DELIBERATE label, the
+  #   `--expect form:set=n` lines of its description are the differences it may show (CI skips `all` totals and
+  #   mC4). After adding the label or editing the counts, re-run this job.
+  # - Every run compares main.js with the min.js and .mjs builds made from it.
+  # The corpus cache holds every pinned corpus but mC4 (decision 22) and never queries.tsv. It is keyed on
+  # scripts/eval/datasets.mjs, which holds every pin, and only a push to the default branch fills it. Fork pull
+  # requests and runs with a cold cache compare generated and fuzz inputs only (--offline).
+  compare:
+    name: Compare
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # compare unpacks the base branch with git archive.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.2
+      - run: npm ci
+      - name: Restore the corpus cache
+        id: corpus
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .eval-cache/data
+            !.eval-cache/data/mc4.gz
+            !.eval-cache/data/queries.tsv
+            !.eval-cache/data/flores.gz
+          key: corpus-${{ hashFiles('scripts/eval/datasets.mjs') }}
+      # Downloads from GitHub, FLORES, Zenodo and Hugging Face, each checked against its pin. A failed download
+      # leaves the cache cold; the run then continues offline.
+      - name: Fill the corpus cache
+        id: fill
+        if: >-
+          steps.corpus.outcome == 'success' && steps.corpus.outputs.cache-hit != 'true' &&
+          github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
+        continue-on-error: true
+        run: node scripts/eval/datasets.mjs --fetch --without mc4
+      - name: Save the corpus cache
+        if: steps.fill.outcome == 'success'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .eval-cache/data
+            !.eval-cache/data/mc4.gz
+            !.eval-cache/data/queries.tsv
+            !.eval-cache/data/flores.gz
+          key: corpus-${{ hashFiles('scripts/eval/datasets.mjs') }}
+      - name: Choose the inputs
+        id: inputs
+        env:
+          CACHED: ${{ steps.corpus.outputs.cache-hit == 'true' || steps.fill.outcome == 'success' }}
+        run: |
+          if [ "$CACHED" = "true" ]; then
+            node scripts/eval/datasets.mjs --check
+            echo "flags=--without mc4" >> "$GITHUB_OUTPUT"
+          else
+            echo "No corpus cache: comparing generated and fuzz inputs only."
+            echo "flags=--offline" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Compare with the base branch under Node
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          FLAGS: ${{ steps.inputs.outputs.flags }}
+          DELIBERATE: ${{ contains(github.event.pull_request.labels.*.name, 'DELIBERATE') }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          args=(--base "origin/$BASE_REF" $FLAGS)
+          if [ "$DELIBERATE" = "true" ]; then
+            entries=$(printf '%s\n' "$PR_BODY" | grep -oE -- '--expect [A-Za-z0-9._-]+:[A-Za-z0-9._-]+=[0-9]+' \
+              | cut -d' ' -f2 | grep -vE ':(all|mc4)=' || true)
+            if [ "$FLAGS" = "--offline" ]; then
+              entries=$(printf '%s\n' "$entries" | grep -E ':(generated|fuzz)\.' || true)
+            fi
+            for entry in $entries; do args+=(--expect "$entry"); done
+          fi
+          printf '%s\n' "${args[@]}" > "$RUNNER_TEMP/compare-args"
+          echo "npm run compare -- ${args[*]}"
+          npm run compare -- "${args[@]}"
+      - name: Compare with the base branch under Bun
+        if: github.event_name == 'pull_request'
+        run: |
+          args=()
+          while IFS= read -r arg; do args+=("$arg"); done < "$RUNNER_TEMP/compare-args"
+          bun scripts/eval/compare.mjs "${args[@]}"
+      - name: Compare main.js with the min.js and .mjs builds
+        env:
+          FLAGS: ${{ steps.inputs.outputs.flags }}
+        run: |
+          npm run compare -- --base . --head min:. $FLAGS
+          npm run compare -- --base . --head mjs:. $FLAGS
+          bun scripts/eval/compare.mjs --base . --head min:. $FLAGS
+
+  # Speed (CONTRIBUTING.md). Blocking: a growth exponent above 1.3 on the adversarial inputs, under Node and Bun,
+  # which needs no corpus. On a pull request with the corpus cache, also a Node row more than 20% slower than the
+  # base branch (a provisional threshold until an A/A run on GitHub runners sets it).
+  perf:
+    name: Perf
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.2
+      - run: npm ci
+      - name: Growth exponents under Node and Bun
+        run: npm run perf -- --base . --offline
+      - name: Restore the corpus cache
+        id: corpus
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .eval-cache/data
+            !.eval-cache/data/mc4.gz
+            !.eval-cache/data/queries.tsv
+            !.eval-cache/data/flores.gz
+          key: corpus-${{ hashFiles('scripts/eval/datasets.mjs') }}
+      - name: Node timing against the base branch
+        if: steps.corpus.outputs.cache-hit == 'true'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: npm run perf -- --base "origin/$BASE_REF" --runtimes node --growth none
+
   # jsDelivr serves main's dist/ to @master links, so dist/ changes only in a release commit, which also changes
   # the version in package.json; then dist/ must equal a fresh build. Pull requests compare with their base,
   # pushes with the previous commit of the branch.
@@ -111,24 +304,3 @@ jobs:
             base="origin/$DEFAULT_BRANCH"
           fi
           node scripts/check-dist.js --base "$base"
-
-  # Placeholders for jobs still to be wired in when their scripts land. Pin every action they add by SHA, and keep
-  # them read-only.
-  #
-  # compare: two-copy output comparison against the base branch, on main.js and on the .mjs and min.js builds
-  #   made in a temporary directory, under Node and Bun. Needs the base ref (fetch-depth: 0, as in the dist job)
-  #   and the corpus cache, restored with actions/cache keyed on scripts/eval/datasets.mjs. Fork pull requests
-  #   run with --offline (generated inputs only). The cache must never hold mC4 or queries.tsv.
-  #     run: npm run compare -- --base "origin/$GITHUB_BASE_REF"
-  #
-  # matrix: the API contract matrix on main.js, the .mjs build and min.js, under Node and Bun.
-  #
-  # browser: the dist token and built-in denylist for the README browser floor, and the Playwright smoke run of
-  #   min.js with the README examples in Chromium, Firefox and WebKit. Install the browsers with
-  #   `npx playwright install --with-deps chromium firefox webkit`, and cache ~/.cache/ms-playwright keyed on the
-  #   @playwright/test version.
-  #
-  # redos: recheck over every regular expression the library ships.
-  #
-  # perf: growth exponents on the adversarial inputs (blocking above 1.3), and Node rows slower than the
-  #   threshold set from an A/A run on GitHub runners.
