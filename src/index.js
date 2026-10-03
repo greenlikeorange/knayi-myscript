@@ -22,3 +22,4 @@ export { OUTPUT_VERSION };
 export { createTrace };
 
 export { normalize, isNormalized } from './api/normalize.js';
+export { detectEncoding } from './api/encoding.js';

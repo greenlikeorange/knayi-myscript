@@ -8,7 +8,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { growthExponent } from '../../../scripts/eval/lib/timing.mjs';
 import { SHAPES, PUMPS, NFC_RUNS } from '../helpers.mjs';
-import { normalize, isNormalized } from '../../../src/index.js';
+import { normalize, isNormalized, detectEncoding } from '../../../src/index.js';
 
 const LIMIT = 1.3;
 
@@ -48,7 +48,8 @@ const ALL = SHAPES.concat(NFC_RUNS, CHAINS);
 const FUNCTIONS = {
   normalize: (text) => normalize(text),
   'normalize with a report': (text) => normalize(text, { report: true }),
-  isNormalized: (text) => isNormalized(text)
+  isNormalized: (text) => isNormalized(text),
+  detectEncoding: (text) => detectEncoding(text)
 };
 
 describe('growth of the 3.0 API (DESIGN.md §6.2)', () => {

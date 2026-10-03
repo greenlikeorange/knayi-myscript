@@ -9,5 +9,6 @@
     "allowJs": true,
     "checkJs": false
   },
-  "files": ["api.ts", "../../src/index.d.ts", "../../src/api/args.js", "../../src/api/normalize.js"]
+  "files": ["api.ts", "../../src/index.d.ts", "../../src/api/args.js", "../../src/api/normalize.js",
+    "../../src/api/encoding.js"]
 }

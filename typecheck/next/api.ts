@@ -33,3 +33,15 @@ try {
 } catch (error) {
   const code: string = (error as KnayiError).code;
 }
+
+// detectEncoding, with and without a detector
+import { detectEncoding } from '../../src/index.js';
+import type { EncodingEvidence, ZawgyiDetector } from '../../src/index.js';
+
+const detector: ZawgyiDetector = { getZawgyiProbability: (text: string) => text.length % 2 };
+const evidence: EncodingEvidence = detectEncoding(lines[0]);
+const byModel: EncodingEvidence = detectEncoding(lines[0], { zawgyiDetector: detector, thresholds: [0.1, 0.9] });
+const encodings: string[] = lines.map(detectEncoding).map((found) => found.encoding);
+const probability: number | undefined = byModel.zawgyiProbability;
+// @ts-expect-error: the encodings are named
+const notAnEncoding: EncodingEvidence = { encoding: 'en', unicode: 0, zawgyi: 0 };

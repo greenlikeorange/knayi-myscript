@@ -82,3 +82,34 @@ export declare function normalize(text: string, options?: NormalizeOptions | num
 
 /** Whether normalize would return the text unchanged. It does not tell Zawgyi from Unicode. */
 export declare function isNormalized(text: string): boolean;
+
+// ---------------------------------------------------------------------------------------------------------------
+// detectEncoding
+
+/** The shape of myanmar-tools' ZawgyiDetector that knayi uses. */
+export interface ZawgyiDetector {
+  getZawgyiProbability(text: string): number;
+}
+
+export interface DetectorOptions {
+  /** myanmar-tools' ZawgyiDetector, or any object with the same method, to decide instead of the rule evidence. */
+  zawgyiDetector?: ZawgyiDetector | null;
+  /** [low, high]: a Zawgyi probability below low is Unicode, above high Zawgyi. Default [0.05, 0.95]. */
+  thresholds?: readonly [number, number] | null;
+}
+
+export type Encoding = 'unicode' | 'zawgyi' | 'unknown' | 'none';
+
+export interface EncodingEvidence {
+  /** 'none' with no character of U+1000-U+109F, 'unknown' when the evidence ties. */
+  encoding: Encoding;
+  /** Matches of the Unicode signatures. */
+  unicode: number;
+  /** Matches of the Zawgyi signatures. */
+  zawgyi: number;
+  /** With a zawgyiDetector: its probability that the text is Zawgyi. */
+  zawgyiProbability?: number;
+}
+
+/** Whether text is Unicode or Zawgyi, with the evidence. */
+export declare function detectEncoding(text: string, options?: DetectorOptions | number | null): EncodingEvidence;

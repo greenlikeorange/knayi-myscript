@@ -50,6 +50,7 @@ const LAYER_OF = {
   'index.js': 'L4 public',
   'api/args.js': 'L4 public',
   'api/normalize.js': 'L4 public',
+  'api/encoding.js': 'L4 public',
   'spec/detectorSignatures.js': 'spec',
   'spec/breakRules.js': 'spec',
   'spec/typoRows.js': 'spec'

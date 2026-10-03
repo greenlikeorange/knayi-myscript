@@ -15,6 +15,7 @@ import { NO_OPTIONS } from '../core/options.js';
 
 /** @typedef {Readonly<Record<string, unknown>>} Options the options object of a call, as readOptions gives it */
 /** @typedef {import('../index.js').Trace} Trace */
+/** @typedef {import('../index.js').ZawgyiDetector} ZawgyiDetector */
 
 // value when it is a string; else a TypeError. 3.0 takes strings only: no String objects, numbers or null.
 /**
@@ -67,6 +68,42 @@ export function readTrace(api, options) {
   if (typeof value === 'object' && Array.isArray(value.records)) return value;
   throw libraryError(ERR.INVALID_ARG_TYPE, wrongType(api, 'options.trace', 'a trace from createTrace()', value),
     TypeError);
+}
+
+// options.zawgyiDetector: myanmar-tools' ZawgyiDetector, or any object with getZawgyiProbability(text), or null.
+/**
+ * @param {string} api
+ * @param {Options} options
+ * @returns {ZawgyiDetector | null}
+ */
+export function readZawgyiDetector(api, options) {
+  const value = /** @type {ZawgyiDetector | null | undefined} */ (options.zawgyiDetector);
+  if (value === undefined || value === null) return null;
+  if (typeof value === 'object' && typeof value.getZawgyiProbability === 'function') return value;
+  throw libraryError(ERR.INVALID_ARG_TYPE,
+    wrongType(api, 'options.zawgyiDetector', 'an object with getZawgyiProbability(text)', value), TypeError);
+}
+
+// options.thresholds: [unicodeBelow, zawgyiAbove], two numbers from 0 to 1, the first no greater than the second;
+// `fallback` when undefined or null.
+/**
+ * @param {string} api
+ * @param {Options} options
+ * @param {readonly number[]} fallback
+ * @returns {readonly number[]}
+ */
+export function readThresholds(api, options, fallback) {
+  const value = options.thresholds;
+  if (value === undefined || value === null) return fallback;
+  if (!Array.isArray(value) || value.length !== 2 || typeof value[0] !== 'number' || typeof value[1] !== 'number') {
+    throw libraryError(ERR.INVALID_ARG_TYPE, wrongType(api, 'options.thresholds', 'an array of two numbers', value),
+      TypeError);
+  }
+  if (!(value[0] >= 0 && value[0] <= value[1] && value[1] <= 1)) {
+    throw libraryError(ERR.INVALID_ARG_VALUE,
+      where(api, 'options.thresholds must be [low, high] with 0 <= low <= high <= 1'), RangeError);
+  }
+  return value;
 }
 
 // The message of an error of the 3.0 API: 'knayi.<function>: <what is wrong>' (core/errors.js).
