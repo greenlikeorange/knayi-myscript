@@ -69,8 +69,8 @@ describe('compat: every function as an Array#map callback (C27)', () => {
   }
 });
 
-// The examples of README.md and ARCHITECTURE.md, run against compat. test/readme.test.js runs the same examples
-// against main.js and pins how many each file has.
+// The examples of README.md and ARCHITECTURE.md, run against compat as an ES module. test/readme.test.js runs the
+// same examples against compat through require, and pins how many each file has.
 for (const file of ['README.md', 'ARCHITECTURE.md']) {
   describe('compat: the examples of ' + file, () => {
     const examples = readExamples(fs.readFileSync(path.join(ROOT, file), 'utf8'), file);

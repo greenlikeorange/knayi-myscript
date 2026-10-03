@@ -8,13 +8,13 @@
 // Unicode side uses Noto Sans Myanmar from Google Fonts, or a Myanmar font installed on the machine.
 import fs from 'node:fs';
 import path from 'node:path';
-import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { legacyWinTables } from '../../src/compat/legacy.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const require = createRequire(import.meta.url);
-const { tables } = require('../../library/win.js');
-const { BASE, PRE, MARK, STACK, KINZI } = tables.ROLES;
+// The Win table in 2.x's shape, { WIN, SEQUENCES, ROLES } with role strings, built from the 3.0 core's table.
+const tables = legacyWinTables();
+const { PRE, MARK, STACK, KINZI } = tables.ROLES;
 
 const args = process.argv.slice(2);
 const winFont = args.find((a) => !a.startsWith('--'));
@@ -65,7 +65,7 @@ p { max-width: 70ch; }
 .uni { font-family: 'Noto Sans Myanmar', 'Myanmar MN', 'Myanmar Text', Padauk, sans-serif; font-size: 30px; line-height: 2; color: #b5301a; white-space: nowrap; }
 </style></head><body>
 <h1>knayi Win → Unicode glyph table</h1>
-<p>Blue: the Win font, with marks on <code>u</code> (က). Red: the Unicode text knayi converts it to, with marks on U+1000, in a Unicode font. Each pair should show the same letters; the two fonts differ in style. ${cells.length} entries from library/win.js.</p>
+<p>Blue: the Win font, with marks on <code>u</code> (က). Red: the Unicode text knayi converts it to, with marks on U+1000, in a Unicode font. Each pair should show the same letters; the two fonts differ in style. ${cells.length} entries from src/fonts/win.js.</p>
 <div class="grid">${cells.join('')}</div></body></html>`;
 
 fs.mkdirSync(path.dirname(out), { recursive: true });

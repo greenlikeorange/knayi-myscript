@@ -5,7 +5,7 @@
 //
 // An example is the call (over several lines if its parentheses close later), the expected value from the comment
 // after it (on the line where the call ends, or alone on the next line), and a note in parentheses after the
-// value, such as "(no target font; warns)". test/readme.test.js runs them against main.js and pins how many each
+// value, such as "(no target font; warns)". test/readme.test.js runs them against compat and pins how many each
 // file has; scripts/browser/examples.js runs the same calls in the builds.
 
 const fs = require('fs');

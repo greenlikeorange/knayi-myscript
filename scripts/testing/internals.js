@@ -1,23 +1,24 @@
-// Loads a fresh copy of a library module with some of its private bindings exported, for tests that read the
-// library's rule tables or need a module with its load-time state reset. The copy requires the library's other
-// modules by the usual relative paths, so it shares them (and their state) with main.js.
+// Loads a fresh copy of a module of the 2.x library with some of its private bindings exported, for tests that read
+// the 2.x rule tables or need a module with its load-time state reset. The 2.x library is the frozen copy of
+// library/ at the reference in scripts/oracle/ (docs/next/DESIGN.md D19), which 3.0 no longer ships. The copy
+// requires the library's other modules by the usual relative paths, so it shares them (and their state) with
+// scripts/oracle/main.js.
 //
-// The library itself is not changed: the source is read from disk, and a line exporting the named bindings is
-// added to the end before it is compiled, the way Node wraps a CommonJS module.
+// The file itself is not changed: the source is read from disk, and a line exporting the named bindings is added
+// to the end before it is compiled, the way Node wraps a CommonJS module.
 
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const LIBRARY = path.join(__dirname, '..', '..', 'library');
+const ORACLE = path.join(__dirname, '..', 'oracle');
 
-// options.moduleRequire: what the module sees as module.require (library/detector.js loads myanmar-tools
-// through it). options.context: a vm context to compile the module in, for a global object without `process`.
-// options.dir: the directory to read the file from, library/ by default. Its relative requires resolve in that
-// directory too, so test/next reads the frozen copies of scripts/oracle/ (docs/next/DESIGN.md D19).
+// options.moduleRequire: what the module sees as module.require (2.x detector.js loads myanmar-tools through it).
+// options.context: a vm context to compile the module in, for a global object without `process`. options.dir: the
+// directory to read the file from, scripts/oracle/ by default. Its relative requires resolve in that directory too.
 function loadWithInternals(file, names, options) {
   options = options || {};
-  const dir = options.dir || LIBRARY;
+  const dir = options.dir || ORACLE;
   const filename = path.join(dir, file);
   let source = fs.readFileSync(filename, 'utf8');
   // Compiled as a function, as Node compiles a CommonJS module. A copy of the unchanged source keeps the file's
@@ -41,4 +42,4 @@ function loadWithInternals(file, names, options) {
   return mod.exports;
 }
 
-module.exports = { LIBRARY: LIBRARY, loadWithInternals: loadWithInternals };
+module.exports = { ORACLE: ORACLE, loadWithInternals: loadWithInternals };
