@@ -1,0 +1,72 @@
+'use strict';
+// Rewrites test/contract/api-matrix.json from main.js: `npm run matrix:update` (which builds dist/ first).
+// `--out <file>` writes the snapshot to another file instead, for comparing runtimes or checkouts.
+//
+// It also runs the dist builds and records the cells where they differ from main.js as known build differences.
+// A difference that scripts/contract/matrix.js does not explain stops the update: either the build is stale
+// (rebuild it) or the builds really disagree, which needs a reason in KNOWN_BUILD_DIFFERENCES.
+
+const fs = require('fs');
+const path = require('path');
+const matrix = require('./matrix');
+
+async function main() {
+  const outIndex = process.argv.indexOf('--out');
+  const out = outIndex === -1
+    ? matrix.SNAPSHOT
+    : path.resolve(process.argv[outIndex + 1] || fail('--out needs a file name'));
+  const mainBuild = await matrix.loadBuild('main.js');
+  const cells = matrix.runCells(mainBuild);
+
+  // Every cell must come out the same whatever ran before it.
+  const reversed = matrix.runCells(mainBuild, { reverse: true });
+  const orderCheck = matrix.compareCells(cells, reversed);
+  if (orderCheck.changed.length) {
+    fail('Cells depend on the order they run in, so the matrix would not be repeatable.\n' +
+      matrix.formatReport('main.js run last to first', orderCheck));
+  }
+
+  const known = [];
+  for (const name of matrix.BUILDS) {
+    if (name === 'main.js') continue;
+    const build = await matrix.loadBuild(name);
+    const differences = matrix.buildDifferences(cells, name, matrix.runCells(build));
+    if (differences.unexplained.length || differences.missing.length || differences.extra.length) {
+      fail(`${build.label} differs from main.js in cells that no known build difference explains. ` +
+        'Rebuild dist/ (npm run build) if it is stale.\n' +
+        matrix.formatReport(build.label + ' against main.js', {
+          total: cells.length,
+          changed: differences.unexplained,
+          missing: differences.missing,
+          extra: differences.extra
+        }));
+    }
+    known.push.apply(known, differences.known);
+  }
+
+  if (fs.existsSync(matrix.SNAPSHOT)) {
+    const previous = matrix.readSnapshot();
+    const comparison = matrix.compareCells(previous.cells, cells);
+    const changes = comparison.changed.length + comparison.missing.length + comparison.extra.length;
+    if (changes) console.log(matrix.formatReport('main.js against the previous snapshot', comparison) + '\n');
+  }
+
+  fs.mkdirSync(path.dirname(out), { recursive: true });
+  fs.writeFileSync(out, matrix.formatSnapshot(cells, known));
+  const byBuild = {};
+  for (const entry of known) byBuild[entry.build] = (byBuild[entry.build] || 0) + 1;
+  const shown = path.relative(process.cwd(), out);
+  console.log(`Wrote ${shown.indexOf('..') === 0 ? out : shown}: ${matrix.formatCount(cells.length)} cells ` +
+    `from main.js on ${matrix.runtimeName()}; known build differences: ` +
+    (known.length ? Object.keys(byBuild).map((name) => name + ' ' + byBuild[name]).join(', ') : 'none') + '.');
+}
+
+function fail(message) {
+  console.error(message);
+  process.exit(1);
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
