@@ -5,8 +5,8 @@
 
 import { VERSION, OUTPUT_VERSION } from '../../src/index.js';
 
-// { add(text, result), counts, json() } for a command from commands.js. records counts the lines; the command adds
-// its own counts:
+// { add(text, result), counts, json() } for a command from commands.js. records counts the lines of plain text, or
+// the records of JSON Lines (a blank line is none); the command adds its own counts:
 //   normalize, to-unicode, to-zawgyi   changed: the texts the command changed
 //   detect                             encodings: the texts of each encoding
 //   segment                            syllables: how many syllables in all

@@ -32,6 +32,7 @@ describe('knayi usage errors exit with 2, before reading any input', () => {
     assertStops(['detect', '--policy', 'pairs'], 2, /--policy does not apply to detect/);
     assertStops(['to-zawgyi', '--detector', 'rules'], 2, /--detector does not apply to to-zawgyi/);
     assertStops(['detect', '--to', 'unicode'], 2, /--to is an option of convert; detect takes no --to/);
+    assertStops(['normalize', '--field', 'body'], 2, /--field names a field of a record, and needs --jsonl/);
   });
 
   it('a value the command does not take: names are exact, as in the 3.0 API', () => {
@@ -44,6 +45,7 @@ describe('knayi usage errors exit with 2, before reading any input', () => {
     assertStops(['detect', '--encoding', 'latin1'], 2, /--encoding must be 'utf-8' or 'windows-1252'/);
     assertStops(['normalize', '--max-line-length', '1e3'], 2, /--max-line-length must be a whole number from 1/);
     assertStops(['normalize', '--max-line-length', '0'], 2, /--max-line-length must be a whole number from 1/);
+    assertStops(['normalize', '--jsonl', '--into', ''], 2, /--into needs a field name/);
   });
 
   it('writes nothing to standard output', () => {
@@ -68,5 +70,20 @@ describe('knayi input errors exit with 3, naming the input and the line', () => 
       /^knayi: <stdin>:2: the line is longer than 3 UTF-16 units, the limit --max-line-length sets/, 'abc\nabcd\n');
     assertStops(['normalize', '--max-line-length', '3'], 3, /<stdin>:1: the line is longer than 3/, 'abcd');
     assert.equal(spawnKnayi(['normalize', '--max-line-length', '3'], { input: 'abc\nabc' }).status, 0);
+  });
+
+  it('a JSON Lines line that is not JSON, not an object, or has no string --field', () => {
+    assertStops(['normalize', '--jsonl'], 3, /^knayi: <stdin>:2: not JSON \(/, '{"text":"a"}\n{"text":"a"\n');
+    assertStops(['normalize', '--jsonl'], 3, /<stdin>:1: a record must be a JSON object, not an array/, '[1]\n');
+    assertStops(['normalize', '--jsonl'], 3, /<stdin>:1: a record must be a JSON object, not a string/, '"a"\n');
+    assertStops(['normalize', '--jsonl'], 3,
+      /<stdin>:1: the record has no string field "text" \(it is missing\); --field names the field/, '{"body":"a"}');
+    assertStops(['normalize', '--jsonl'], 3, /no string field "text" \(it is null\)/, '{"text":null}');
+    assertStops(['normalize', '--jsonl', '--field', 'body'], 3, /no string field "body" \(it is a number\)/,
+      '{"body":1}');
+  });
+
+  it('check stops with 3, not 1, when an input error follows an issue', () => {
+    assertStops(['check', '--jsonl'], 3, /<stdin>:2: not JSON/, '{"text":"\u1000\u102D\u102D"}\nnot json\n');
   });
 });

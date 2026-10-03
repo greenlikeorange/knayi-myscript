@@ -35,6 +35,11 @@ Options:
                          chains, joined to the syllable after it; pairs,
                          joined two by two, as 2.x syllBreak did
   --separator <text>     segment: what goes between syllables (default: |)
+  --jsonl                read and write JSON Lines, one object per line; every
+                         field but the one written is passed through as it was
+  --field <name>         --jsonl: the field that holds the text (default: text)
+  --into <name>          --jsonl: the field the result is written to (default:
+                         --field for text; encoding, syllables or issues)
   --encoding <name>      the bytes of the input: utf-8 (the default) or
                          windows-1252; the output is always UTF-8
   --max-line-length <n>  the longest line read, in UTF-16 units (default:
@@ -49,7 +54,8 @@ Exit status:
   2  a usage error: an unknown command or option, a value the command does not
      take, or a detector that is not installed
   3  an input error: a file that cannot be read, bytes not valid in --encoding,
-     or a line over --max-line-length
+     a line over --max-line-length, or a JSON Lines line that is not an object
+     with a string --field
   4  any other failure, such as an output that cannot be written
 `;
 

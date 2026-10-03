@@ -12,7 +12,9 @@ export const COMMANDS = Object.freeze(['normalize', 'to-unicode', 'to-zawgyi', '
   'check']);
 
 // The longest line knayi reads by default, and the most --max-line-length may allow, in UTF-16 units. A line is
-// held whole until its line break, so the limit keeps an input with no line break from filling the memory.
+// held whole until its line break, so the limit keeps an input with no line break from filling the memory. It is
+// generous, since a JSON Lines record holds a whole document and its other fields, and Python's json.dumps writes
+// each Burmese character as an escape of 6 units.
 export const DEFAULT_MAX_LINE_LENGTH = 16 * 1024 * 1024;
 const MOST_MAX_LINE_LENGTH = 256 * 1024 * 1024;
 
@@ -24,6 +26,9 @@ const OPTION_TYPES = Object.freeze({
   detector: { type: 'string' },
   policy: { type: 'string' },
   separator: { type: 'string' },
+  jsonl: { type: 'boolean' },
+  field: { type: 'string' },
+  into: { type: 'string' },
   encoding: { type: 'string' },
   'max-line-length': { type: 'string' },
   report: { type: 'boolean' },
@@ -62,6 +67,7 @@ export function parseCommandLine(argv) {
   const command = resolveCommand(positionals[0], values.to);
   const label = positionals[0] === 'convert' ? 'convert --to ' + values.to : command; // for messages
   checkCommandOptions(command, label, values);
+  checkJsonlOptions(values);
   const files = positionals.length > 1 ? positionals.slice(1) : ['-'];
   return { kind: 'run', command: command, settings: readSettings(values), files: files };
 }
@@ -105,6 +111,15 @@ function checkCommandOptions(command, label, values) {
   if (values['max-line-length'] !== undefined) readLineLimit(values['max-line-length']);
 }
 
+// --field and --into name the fields of a JSON Lines record, so they need --jsonl, and a name.
+function checkJsonlOptions(values) {
+  for (const name of ['field', 'into']) {
+    if (values[name] === undefined) continue;
+    if (!values.jsonl) throw usageError('--' + name + ' names a field of a record, and needs --jsonl');
+    if (values[name] === '') throw usageError('--' + name + ' needs a field name');
+  }
+}
+
 function checkChoice(option, value, choices, command) {
   if (choices.indexOf(value) !== -1) return;
   throw usageError(option + ' must be ' + listOf(choices, true) + ' for ' + command + ', not ' + JSON.stringify(value));
@@ -119,6 +134,9 @@ function readSettings(values) {
     detector: values.detector === undefined ? 'rules' : values.detector,
     policy: orNull(values.policy),
     separator: values.separator === undefined ? '|' : values.separator,
+    jsonl: values.jsonl === true,
+    field: values.field === undefined ? 'text' : values.field,
+    into: orNull(values.into),
     encoding: values.encoding === undefined ? 'utf-8' : values.encoding,
     maxLineLength: values['max-line-length'] === undefined ? DEFAULT_MAX_LINE_LENGTH
       : readLineLimit(values['max-line-length']),

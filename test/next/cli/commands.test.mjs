@@ -1,6 +1,6 @@
 // The commands of knayi, run as a process on the fixtures of test/next/cli/fixtures/ (README.md, "Command line").
 //
-// Each command's output is the 3.0 API's on each line (src/index.js), written as plain text; these
+// Each command's output is the 3.0 API's on each line (src/index.js), written as plain text or JSON Lines; these
 // tests pin the output for hand-written lines, the exit status of each kind of run, and --report.
 
 import { describe, it } from 'node:test';
@@ -128,6 +128,44 @@ describe('knayi line breaks and inputs', () => {
   it('drops a byte order mark at the start of an input, which marks its encoding, and keeps U+FEFF elsewhere', () => {
     const run = spawnKnayi(['to-unicode', '--from', 'zawgyi'], { input: '\uFEFF' + ZAWGYI + '\n\uFEFF' });
     assert.equal(run.stdout, ZAWGYI_IN_UNICODE + '\n\uFEFF');
+    assert.equal(spawnKnayi(['normalize', '--jsonl'], { input: '\uFEFF{"text":"a"}\n' }).stdout, '{"text":"a"}\n');
+  });
+});
+
+describe('knayi --jsonl', () => {
+  it('writes the result to --field, and passes every other byte through, a record it does not change whole', () => {
+    const run = spawnKnayi(['to-unicode', '--jsonl', fixture('records.jsonl')]);
+    assert.equal(run.status, 0, run.stderr);
+    assert.deepEqual(run.stdout.split('\n'), [
+      '{"id": 12345678901234567890, "text": "' + ZAWGYI_IN_UNICODE + '", "meta": {"tags": ["a", "}"], "n": 1.50}}',
+      '{"id":2,"text":"' + UNICODE + '","lang":"my"}',
+      '',
+      '{"id": 3, "text": "\u1000\u1031\u102C\u1004\u103A\u1038"}',
+      '{"text": "abc", "n": 1.50}',
+      ''
+    ]);
+  });
+
+  it('writes detect, segment and check to a field of their own, or to --into; --field names the text', () => {
+    const input = '{"body":"' + ZAWGYI + '","text":"' + UNICODE + '"}\n';
+    assert.equal(spawnKnayi(['detect', '--jsonl'], { input }).stdout,
+      '{"body":"' + ZAWGYI + '","text":"' + UNICODE + '","encoding":"unicode"}\n');
+    assert.equal(spawnKnayi(['detect', '--jsonl', '--field', 'body', '--into', 'enc'], { input }).stdout,
+      '{"body":"' + ZAWGYI + '","text":"' + UNICODE + '","enc":"zawgyi"}\n');
+    const segmented = JSON.parse(spawnKnayi(['segment', '--jsonl'], { input: '{"text":"' + MYANMAR + '"}' }).stdout);
+    assert.deepEqual(segmented, { text: MYANMAR, syllables: segmentSyllables(MYANMAR) });
+    const converted = spawnKnayi(['to-unicode', '--jsonl', '--field', 'body', '--into', 'unicode'], { input });
+    assert.equal(JSON.parse(converted.stdout).unicode, ZAWGYI_IN_UNICODE);
+  });
+
+  it('check writes every record with its issues, offsets in characters, and exits with 1 when any has one', () => {
+    const input = '{"text":"\uD83D\uDE00 \u1014\u103E\u1004\u103A\u103A\u1038"}\n{"text":"abc"}\n';
+    const run = spawnKnayi(['check', '--jsonl'], { input });
+    assert.equal(run.status, 1);
+    const records = run.stdout.trim().split('\n').map((line) => JSON.parse(line));
+    assert.deepEqual(records[0].issues, [{ kind: 'mark', rule: 'mark.repeated', start: 4, end: 8,
+      text: '\u1004\u103A\u103A\u1038', fix: '\u1004\u103A\u1038' }]);
+    assert.deepEqual(records[1], { text: 'abc', issues: [] });
   });
 });
 
@@ -140,6 +178,9 @@ describe('knayi --report, --help and --version', () => {
     assert.deepEqual(JSON.parse(check.stderr), { command: 'check', version: VERSION, outputVersion: OUTPUT_VERSION,
       records: 7, issues: 6, recordsWithIssues: 6, rules: { 'encoding.zawgyi': 1, 'look-alike.zero-as-wa': 1,
         'mark.repeated': 2, 'order.marks': 1, 'typo.lagaung': 1 } });
+    const jsonl = spawnKnayi(['to-unicode', '--jsonl', '--report', fixture('records.jsonl')]);
+    assert.deepEqual(JSON.parse(jsonl.stderr), { command: 'to-unicode', version: VERSION,
+      outputVersion: OUTPUT_VERSION, records: 4, changed: 2 });
     const segment = spawnKnayi(['segment', '--report'], { input: MYANMAR + '\n' + MYANMAR });
     assert.equal(JSON.parse(segment.stderr).syllables, 6);
   });

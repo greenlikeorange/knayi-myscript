@@ -4,6 +4,7 @@ fonts and test data").
 
 mixed.txt         a Unicode line, a Zawgyi line, a line whose evidence ties, and a line with no Myanmar letter
 issues.txt        one line for each kind of issue check reports, a clean line, a Zawgyi line, an issue after an emoji
+records.jsonl     JSON Lines: a 20-digit id, nested values, a blank line, 1.50, text escaped as Python writes it
 win.txt           Win Innwa text typed in ASCII
 win-1252.txt      Win Innwa text saved in Windows-1252: the bytes 61 D3 0A, which are not UTF-8
 invalid-utf8.txt  the bytes of "ok", "a" with 0xFF, and "ok", one per line: line 2 is not UTF-8

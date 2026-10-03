@@ -83,6 +83,43 @@ describe('knayi output does not depend on where the chunks of its input end', ()
       assert.equal(run.stdout, '\u1000\n\uD83D\uDE00\u1001\n', 'chunks of ' + size);
     }
   });
+
+  it('stops at a JSON Lines error after writing the records before it, for chunks of any size', async () => {
+    const input = '{"text":"a"}\n{"text":"b"}\n{"text":\n{"text":"c"}\n';
+    for (let size = 1; size <= input.length; size++) {
+      const run = await runKnayi(['normalize', '--jsonl'], inChunks(input, size));
+      assert.equal(run.status, 3);
+      assert.match(run.stderr, /<stdin>:3: not JSON/);
+      assert.equal(run.stdout, '{"text":"a"}\n{"text":"b"}\n');
+    }
+  });
+});
+
+describe('knayi --jsonl writes one field and passes the rest through', () => {
+  // A record written as JSON.stringify writes it, or with a space after each colon and comma, as Python's json.dumps
+  // does. Its members are written in the order given, whatever JavaScript would make of them ("0" before "a").
+  const members = fc.tuple(fc.array(fc.tuple(fc.string().filter((key) => key !== 'text' && key !== 'encoding'),
+    fc.jsonValue()), { maxLength: 4 }), arb.zawgyiText(10), fc.nat(4), fc.boolean());
+  function recordLine(entries, spaced) {
+    const write = (pairs) => pairs.map(([key, value]) => JSON.stringify(key) + (spaced ? ': ' : ':') +
+      JSON.stringify(value)).join(spaced ? ', ' : ',');
+    return '{' + write(entries) + '}';
+  }
+
+  it('the line is the same but for the value of the field, or the result added at its end', async () => {
+    await fc.assert(fc.asyncProperty(members, chunkSize, async ([others, text, at, spaced], size) => {
+      const entries = others.slice();
+      entries.splice(Math.min(at, entries.length), 0, ['text', text]);
+      const line = recordLine(entries, spaced);
+      const converted = toUnicode(text, { from: 'zawgyi' });
+      const run = await runKnayi(['to-unicode', '--jsonl', '--from', 'zawgyi'], inChunks(line, size));
+      assert.equal(run.stdout, recordLine(entries.map(([key, value]) => [key, key === 'text' ? converted : value]),
+        spaced));
+      const detected = await runKnayi(['detect', '--jsonl'], inChunks(line + '\n', size));
+      assert.equal(detected.stdout, recordLine(entries.concat([['encoding', detectEncoding(text).encoding]]), spaced) +
+        '\n');
+    }), { seed: fuzz.SEED, numRuns: fuzz.runs(300, 6000) });
+  });
 });
 
 describe('knayi holds about one chunk of its input at a time', () => {

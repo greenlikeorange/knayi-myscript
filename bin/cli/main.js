@@ -10,6 +10,7 @@ import { createCommand } from './commands.js';
 import { createSummary } from './summary.js';
 import { createOutput } from './output.js';
 import { readLines } from './lines.js';
+import { plainLine, jsonLine } from './records.js';
 import { USAGE, versionText } from './usage.js';
 import { EXIT, CliError } from './errors.js';
 
@@ -40,10 +41,9 @@ async function run(request, io) {
 // that writes one line for each line ends it as the input line ended; check's report lines end themselves.
 function lineHandler(command, settings, summary) {
   return (line, ending, where) => {
-    const result = command.run(line);
-    summary.add(line, result);
-    const output = command.plainText(result, line, where);
-    return command.writesLines ? output + ending : output;
+    const done = settings.jsonl ? jsonLine(command, line, where, settings) : plainLine(command, line, where);
+    if (done.text !== null) summary.add(done.text, done.result);
+    return settings.jsonl || command.writesLines ? done.output + ending : done.output;
   };
 }
 
