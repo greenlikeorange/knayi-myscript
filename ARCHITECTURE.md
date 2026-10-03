@@ -225,7 +225,7 @@ knayi.fontConvert('လဲဥ္း', 'unicode', 'zawgyi') // 'လဲဉ်း'
 knayi.normalize('လဲဥ်း') // 'လဲဥ်း'
 ```
 
-One more difference follows from the encodings, not from a choice: in the fonts, e and medial ra always belong to the next base, while in Unicode they may also belong to the syllable before (`HERE`). That is why the converters write an e or medial ra with no base after it where it was typed, and `normalize` can move it into the syllable before. On the 10,166 distinct mC4 lines that `fontDetect` calls Zawgyi, `normalize` changes the converted output of 31, each with an e or medial ra where the two first differ.
+One more difference follows from the encodings, not from a choice: in the fonts, e and medial ra always belong to the next base, while in Unicode they may also belong to the syllable before (`HERE`). That is why the converters write an e or medial ra with no base after it where it was typed, and `normalize` can move it into the syllable before. On the 10,166 distinct mC4 lines that `fontDetect` calls Zawgyi, `normalize` changes the converted output of 31, each with an e or medial ra where the two first differ. On generated and random strings it changes converted text in other places too: marks with no consonant before them, which the two readers read differently, and typing fixes that find more to fix on a second pass.
 
 ## NFC in linear time: library/nfc.js
 

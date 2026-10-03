@@ -8,7 +8,10 @@ const nfc = require('./nfc');
 
 // Unicode text -> the same text in Unicode storage order (Unicode Technical Note #11), with a few typing fixes,
 // as NFC. The syllables are put in order, and the typing fixes made, by the same rules as Zawgyi and Win
-// conversion (storageOrder.js, typingFixes.js), so their output comes back unchanged.
+// conversion (storageOrder.js, typingFixes.js), so their output mostly comes back unchanged. In real text, the
+// exception is an e or medial ra with no consonant after it: the converters write it where it was typed, and
+// arrangeUnicode may attach it to the syllable before (31 of the 10,166 mC4 lines that fontDetect calls
+// Zawgyi). Garbled text, such as marks with no consonant before them, can change in other ways too.
 
 // A character of the Myanmar blocks: Myanmar, Extended-B and Extended-A. Text with none is only put in NFC.
 const MYANMAR_BLOCKS = /[\u1000-\u109F\uA9E0-\uA9FF\uAA60-\uAA7F]/;

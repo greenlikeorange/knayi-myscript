@@ -258,7 +258,8 @@ knayi.spellingFix('\u1033\u1033', 'zaw') // '\u1033'
 ## normalize(content)
 
 Unicode only, written for Burmese. Puts every syllable in Unicode storage order ([UTN #11](https://www.unicode.org/notes/tn11/)) with the rules of [Zawgyi to Unicode](#zawgyi-to-unicode), makes a few typing fixes, and returns NFC.
-- **What stays the same:** text that is already right, and text normalized a second time. The output of `fontConvert` comes back unchanged too, except where the source has an ေ or medial ra with no consonant after it. The converters leave such a mark where it was typed, and `normalize` may attach it to the syllable before: Zawgyi `ကေျ` converts to `ကေြ`, which `normalize` makes `ကြေ`. This changes 31 of the 10,166 mC4 lines that `fontDetect` calls Zawgyi.
+- **What stays the same:** text that is already right, and text normalized a second time, unless it is garbled (below). The output of `fontConvert` comes back unchanged too, except where the source has an ေ or medial ra with no consonant after it. The converters leave such a mark where it was typed, and `normalize` may attach it to the syllable before: Zawgyi `ကေျ` converts to `ကေြ`, which `normalize` makes `ကြေ`. This changes 31 of the 10,166 mC4 lines that `fontDetect` calls Zawgyi.
+- **What can change again:** garbled text, such as marks with no consonant before them. A second pass changes 104 of the 14,304 mC4 lines, which are mostly Zawgyi, and no line of the Burmese, Shan, Mon, S'gaw Karen and Pa'o Unicode text knayi is tested on. `normalize` can also change garbled text from `fontConvert` in other places than an ေ or medial ra.
 - **What it keeps:** surrounding spaces, zero-width spaces and joiners.
 
 It is not the same operation as `spellingFix`.

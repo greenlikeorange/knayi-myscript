@@ -6,7 +6,7 @@ Notes behind knayi 2.10's `normalize`, from October 2026: what the 2.9 version d
 
 - 2.9's `normalize` changed half of the lines of clean, human-typed Unicode. It turned correct words and numbers into wrong ones, broke contractions, and wrote the dot below and asat in the opposite order to NFC.
 - 2.10's `normalize` puts each syllable in Unicode storage order with the same rules as Zawgyi and Win conversion (`library/storageOrder.js`). It then makes a few typing fixes, shared with conversion (`library/typingFixes.js`), and returns NFC.
-- On clean text it changes far less, and what it changes is meant: NFC order, Unicode Technical Note #11 order, typos and Zawgyi typing habits. Normalizing twice changes nothing more, and text from `fontConvert` comes back unchanged.
+- On clean text it changes far less, and what it changes is meant: NFC order, Unicode Technical Note #11 order, typos and Zawgyi typing habits. Normalizing twice changes no line of the Unicode corpora, and text from `fontConvert` comes back unchanged except where an ေ or medial ra has no consonant after it (section 4). Garbled text can change in both cases.
 
 ## 1. What 2.9 did to correct text
 
@@ -33,7 +33,7 @@ What 2.9 got wrong:
 ## 2. Design
 
 - **Syllables:** `arrangeUnicode` reads Unicode in its logical order. Kinzi (nga or ra, asat, virama) belongs to the consonant after it, virama plus consonant is a stacked consonant, and ေ and medial ra are marks like the others. Each syllable then goes through the same `order` as Zawgyi and Win: a mark typed twice counts once, asat goes where UTN #11 puts it, and the look-alike letters are fixed.
-- **Typing fixes** (`typingFixes.js`): look-alike digits and letters, and a few misspellings. Zawgyi and Win conversion apply them too, so normalize leaves converted text as it is.
+- **Typing fixes** (`typingFixes.js`): look-alike digits and letters, and a few misspellings. Zawgyi and Win conversion apply them too, so converted text rarely has anything left for them to fix (section 4).
 - **NFC first and last.** NFC can move a dot below in front of an asat or virama, which changes what they attach to, so the syllables are read from NFC text. Text with no character of the Myanmar blocks (U+1000–U+109F, U+A9E0–U+A9FF, U+AA60–U+AA7F) is returned after the first NFC, since the other steps would give it back as it is.
 
 ## 3. Decisions
@@ -74,7 +74,7 @@ Sharing the typing fixes changes 226 of 9,987 real Zawgyi lines (mC4), all check
 - **The asat of ော်:** ကျော်.
 - **Neutral:** a dozen lines of garbled text.
 
-Win output is unchanged on the ufc and python-myanmar pairs. normalize still changes 22 converted Zawgyi lines, all with marks that belong to no syllable.
+Win output is unchanged on the ufc and python-myanmar pairs. normalize still changed 22 of those converted Zawgyi lines, all with marks that belong to no syllable. On the current mC4 sample it changes 31 of the 10,166 distinct lines that `fontDetect` calls Zawgyi, once converted, and none of the 2,329 WaitZar words it calls Zawgyi. Each of the 31 has an ေ or medial ra with no consonant after it: the converters leave it where it was typed, and `normalize` attaches it to the syllable before, as Zawgyi `ကေျ` converts to `ကေြ` and `normalize` makes that `ကြေ`. On generated and random strings, `normalize` also changes converted text in other places, for example where marks have no consonant before them.
 
 **One order for the typing fixes.** 2.10's conversion made them in the opposite order to `normalize`: look-alikes, then typos. Both now make the typos first, as `normalize` did. The order counts only where a typo fix and a look-alike read the same characters, as with a ရ before the digit ၄ of a lagaung:
 - **Typos first:** the ၄ follows no digit, so it is ၎, and the ရ, next to no digit, stays ရ. Win `&4if;` is ရ၎င်း, as `normalize` makes ရ၄င်း and as Zawgyi `ရ၄င္း` already was, since Zawgyi's own sequence rule reads the ၄ before anything else.
