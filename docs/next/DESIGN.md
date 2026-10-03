@@ -1061,7 +1061,7 @@ Slices that copy-through returns keep the input string alive. ARCHITECTURE.md do
 
 1. **No configuration state.**
    - No module holds options, cached results, a loaded module, or a warned-once flag.
-   - Module-level values are frozen data (tables, compiled fonts, rule rows), the scratch objects of §3.11, or `NFC_MEMO` in `core/nfc.js` (D20). The memo holds facts about the runtime's Unicode data, never the result of a call.
+   - Module-level values are frozen data (tables, compiled fonts, rule rows), the scratch objects of §3.11, `NFC_MEMO` in `core/nfc.js` (D20), or the three module-private exec-loop regexes of `rules/typingFixes.js` (`TYPOS`, `ZERO_OR_SEVEN`, `BURMESE_DIGIT`). The memo holds facts about the runtime's Unicode data, never the result of a call. Each exec loop sets its regex's `lastIndex` to 0 first and runs until `exec` returns null, which leaves it at 0, so the regex carries nothing from one call to the next.
    - Top-level `let` and `var` are not allowed.
    - A global regex in a row is never frozen (D16). `replace` and `search`, the only methods the core calls on it, leave its `lastIndex` at 0.
 2. **No console and no environment.**
@@ -1079,14 +1079,14 @@ Slices that copy-through returns keep the input string alive. ARCHITECTURE.md do
 5. **The myanmar-tools detector is injected.** `rules/detect.js` takes a `zawgyiModel` object with `getZawgyiProbability(text)`. The core never loads it. compat loads it, for the 2.x API, in `compat/zawgyiModel.js` (D3).
 6. **Determinism.** Outputs depend only on the arguments and on the runtime's NFC data.
 
-`test/next/guards/stateless.test.mjs` checks this. It parses every core file with acorn and checks rules 1 and 2. Its one exemption is listed by name: the constant `NFC_MEMO` in `core/nfc.js`. No other may be added. It runs these configurations interleaved in one process:
+`test/next/guards/stateless.test.mjs` checks this. It parses every core file with acorn and checks rules 1 and 2. For rule 1 it reads what each top-level `const` holds (`test/next/guards/moduleState.mjs`): a literal, an identifier or a function; a regex literal that no code drives with `exec`, a sticky or global `test`, or a write to `lastIndex`; frozen data, made by `deepFreeze(...)` or by a builder, in the file or imported, whose every `return` is `deepFreeze(...)`; a table, made by a builder whose every `return` is a typed array it makes; or an exported primitive, checked at run time. Anything else is module state and must be listed by name, with its reason, in the guard's `MODULE_STATE`: `NFC_MEMO`, the readers' scratch (`SCRATCH` in `engine/unicodeReader.js`, `FONT_SYLLABLE` and `FONT_OUTPUT` in `engine/fontReader.js`) and the three exec-loop regexes. No other may be added without a line there and here. (As built, the guard flagged only object and array literals, so it never saw the objects made by calls, and a `/* @__PURE__ */ new Map()` cache would have passed; the review made it read the initialisers, §7.11.) It runs these configurations interleaved in one process:
 - `detectFont` with two different stub models;
 - `normalizeText` with and without `openAllGates`;
 - `toNfc` (the warm memo) against `toNfcWith(text, createNfcMemo())` (a cold one); `core-nfc.fuzz.test.mjs` repeats it on the fuzz.
 
 It requires each call to honour its own arguments, with no carry-over (Phase 6 exit).
 
-It also checks freezing. Every exported plain object and array must be `Object.isFrozen`, deeply through plain objects and arrays. RegExps and typed arrays are exempt (§2.3): they are read-only by contract, and the test checks that every row's `re` has `lastIndex` 0 after the fuzz.
+It also checks freezing. Every exported plain object and array must be `Object.isFrozen`, deeply through plain objects and arrays. RegExps and typed arrays are exempt (§2.3): they are read-only by contract, and the test checks that every row's `re` has `lastIndex` 0 after the fuzz. The exec-loop regexes are private, so the test checks them by their effect: each typing fix runs on a fuzz string built to make its loop pass over a match before the end, then at once on a probe whose match is at index 0, and must give 2.x's result. A loop that left `lastIndex` past 0 would skip that match.
 
 ---
 
@@ -1814,6 +1814,7 @@ A review of W0-W8 on `next-compat` (3af8172) found the problems below. Each fix 
 - **`segment.js` checks its font and its policy.** An unknown bare-consonant policy acted as `SEPARATE` in Unicode and as `CHAINS` in Zawgyi, and an unknown font as Unicode. Every function now throws a coded `RangeError` for them (§2.3, "`src/rules/segment.js`"), and Zawgyi reads the policy through `bareConsonantJoins`, as Unicode does.
 - **`legacyWinTables` lives in compat.** It moved from `fonts/win.js` to `compat/legacy.js` (§5.1), so the font module holds data only.
 - **One directory per L3 part** (D15). `engine/` holds the engine, `rules/` the rules (`typingFixes.js`, `detect.js`, `segment.js`, `unicodeToZawgyi.js`) and `stages/` the stage lists (`normalize.js`, `fonts.js`, formerly `engine/normalizeStages.js` and `engine/fontStages.js`). A path now names its layer, and so the imports it may make (§2.2). As ES modules the move costs no bytes: compat 16,009 B and normalize-only 6,357 B gzip, before and after.
+- **The stateless guard reads every top-level value** (§4). Its rule 1 flagged only object and array literals, so the module state the core really holds, all made by calls (`NFC_MEMO`, `SCRATCH`, `FONT_SYLLABLE`, `FONT_OUTPUT`) or regex literals (the exec-loop regexes), went unchecked, and its `NFC_MEMO` exemption was never used. It now classifies each initialiser and requires module state to be listed by name; six mutants (a `new Map()` cache, an unfrozen builder result, an `exec`-driven literal, an unlisted typed array, and two exec loops that leave early without their reset) each fail it.
 
 ---
 

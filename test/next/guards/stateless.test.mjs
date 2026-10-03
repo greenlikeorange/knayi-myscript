@@ -1,9 +1,10 @@
 // The stateless core (docs/next/DESIGN.md §4). The core is every file of src/ outside compat/ and spec/.
 //
-// Rule 1: no configuration state. Module-level values are frozen data, the readers' scratch objects (made by
-// /* @__PURE__ */ factories), or NFC_MEMO in core/nfc.js (D20), the one exemption, listed by name below. No other
-// may be added. Rule 2: no console and no environment: no console, process, globalThis, window or self, no eval
-// or Function, and no module loading.
+// Rule 1: no configuration state. A module-level value is a literal or a function, frozen data, a table (a typed
+// array built once at load), a primitive, or one of the names of MODULE_STATE below, each with its reason: the
+// memo of NFC_MEMO (D20), the readers' scratch objects (§3.11) and the exec-loop regexes of the typing fixes. No
+// other may be added without a line here and in DESIGN.md §4. Rule 2: no console and no environment: no console,
+// process, globalThis, window or self, no eval or Function, and no module loading.
 //
 // The configuration runs call the entry points with different per-call options, interleaved in one process, and
 // require each call to give what it gives alone: nothing carries over (Phase 6 exit).
@@ -13,12 +14,30 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parsedSources, walk, isReference, codeLoadingSites, where } from './ast.mjs';
-import { SRC } from '../helpers.mjs';
+import { topLevelConsts, constKind } from './moduleState.mjs';
+import { SRC, oracle } from '../helpers.mjs';
 import { detectFont } from '../../../src/rules/detect.js';
 import { normalizeText } from '../../../src/stages/normalize.js';
 import * as nfc from '../../../src/core/nfc.js';
+import {
+  fixTypos, readDigitsAsLetters, readLettersAsDigits, fixLookAlikes, zeroAsWa
+} from '../../../src/rules/typingFixes.js';
 
-const EXEMPT = { 'core/nfc.js': ['NFC_MEMO'] };
+// The module state the core holds, by name, with the reason each may (DESIGN.md §4 rule 1). Rule 1 fails on any
+// other top-level value that is not state-free.
+const MODULE_STATE = {
+  'core/nfc.js': { NFC_MEMO: 'the memo of facts about the runtime\'s Unicode data, never a result (D20)' },
+  'engine/unicodeReader.js': { SCRATCH: 'the Unicode reader\'s scratch, reset at each call (§3.11)' },
+  'engine/fontReader.js': {
+    FONT_SYLLABLE: 'the font reader\'s SyllableBuffer, reset at each call (§3.11)',
+    FONT_OUTPUT: 'the font reader\'s CodeBuffer, cleared at each call (§3.11)'
+  },
+  'rules/typingFixes.js': {
+    TYPOS: 'an exec-loop regex: each loop sets lastIndex to 0 first and ends with it at 0',
+    ZERO_OR_SEVEN: 'an exec-loop regex, as TYPOS',
+    BURMESE_DIGIT: 'an exec-loop regex, as TYPOS'
+  }
+};
 const ENVIRONMENT = new Set(['console', 'process', 'globalThis', 'window', 'self', 'eval', 'Function']);
 
 const isCore = (file) => !file.startsWith('compat/') && !file.startsWith('spec/');
@@ -59,22 +78,51 @@ function assertNoCarryOver(configurations, texts) {
 }
 
 describe('the stateless core (DESIGN.md §4)', () => {
-  it('rule 1: no top-level let or var, and no mutable top-level object but NFC_MEMO', () => {
+  it('rule 1: no top-level let or var', () => {
     const bad = [];
     for (const { file, ast } of CORE) {
       for (const statement of ast.body) {
         const node = statement.type === 'ExportNamedDeclaration' ? statement.declaration : statement;
-        if (!node || node.type !== 'VariableDeclaration') continue;
-        if (node.kind !== 'const') bad.push(where(file, node) + ': top-level ' + node.kind);
-        for (const declarator of node.declarations) {
-          const mutable = declarator.init && /^(ObjectExpression|ArrayExpression)$/.test(declarator.init.type);
-          if (mutable && !(EXEMPT[file] || []).includes(declarator.id.name)) {
-            bad.push(where(file, declarator) + ': ' + declarator.id.name + ' is not frozen');
-          }
+        if (node && node.type === 'VariableDeclaration' && node.kind !== 'const') {
+          bad.push(where(file, node) + ': top-level ' + node.kind);
         }
       }
     }
     assert.deepEqual(bad, []);
+  });
+
+  it('rule 1: every top-level const is state-free, or module state listed by name with its reason', async () => {
+    const sources = new Map(CORE.map((source) => [source.file, source]));
+    const bad = [];
+    for (const source of CORE) {
+      const listed = MODULE_STATE[source.file] || {};
+      const exports = await import(pathToFileURL(path.join(SRC, source.file)).href);
+      for (const constant of topLevelConsts(source)) {
+        const kind = constKind(sources, source, constant);
+        const at = where(source.file, constant.node) + ': ' + constant.name;
+        if (Object.prototype.hasOwnProperty.call(listed, constant.name)) {
+          if (kind === 'free' || kind === 'frozen' || kind === 'table' || kind === 'regex') {
+            bad.push(at + ' is state-free: take it out of MODULE_STATE');
+          }
+        } else if (kind === 'unfrozen literal') {
+          bad.push(at + ' is not frozen');
+        } else if (kind === 'stateful regex') {
+          bad.push(at + ' keeps state in its lastIndex (exec, test with g or y, or a write)');
+        } else if (kind === 'call' && !(constant.exported && isPrimitive(exports[constant.name]))) {
+          bad.push(at + ' is made by a call that returns neither deepFreeze(...) nor a typed array');
+        }
+      }
+    }
+    assert.deepEqual(bad, [], 'make these frozen data or tables, or list them in MODULE_STATE and DESIGN.md §4');
+  });
+
+  it('rule 1: every name of MODULE_STATE is a top-level const of its file', () => {
+    for (const [file, names] of Object.entries(MODULE_STATE)) {
+      const source = CORE.find((candidate) => candidate.file === file);
+      assert.ok(source, file);
+      const consts = topLevelConsts(source).map((constant) => constant.name);
+      for (const name of Object.keys(names)) assert.ok(consts.indexOf(name) !== -1, file + ' ' + name);
+    }
   });
 
   it('rule 2: no console, process, globalThis, window, self, eval or Function, and no module loading', () => {
@@ -129,6 +177,34 @@ describe('the stateless core (DESIGN.md §4)', () => {
     for (const text of texts) assert.equal(nfc.toNfc(text), nfc.toNfcWith(text, nfc.createNfcMemo()));
   });
 
+  it('the exec-loop regexes of the typing fixes carry nothing from one call to the next', () => {
+    // Each function runs on a fuzz string, then at once on a probe whose match is at index 0: a lastIndex left past
+    // 0 by the first call would skip that match. The pieces put a match the loop may pass over (four after a digit,
+    // zero inside a number) before the end of the string, where an early exit would leave lastIndex.
+    const pieces = ['\u1041\u1044\u1004\u103A\u1038', '\u1040\u1041', '\u1041\u1040', '\u102D\u102E', '\u1040\u102C',
+      '\u101D\u1041', '\u1047', '\u1000', ' ', '.', '\u1004\u103A'];
+    // 2.x exports its two look-alike passes only together; on each probe here the other pass changes nothing.
+    const checks = [
+      [fixTypos, '\u102D\u102E\u1000', oracle.typingFixes.typos],
+      [readDigitsAsLetters, '\u1040\u102C', oracle.typingFixes.lookAlikes],
+      [readLettersAsDigits, '\u101D\u1041', oracle.typingFixes.lookAlikes],
+      [fixLookAlikes, '\u1040\u102C', oracle.typingFixes.lookAlikes],
+      [fixLookAlikes, '\u101D\u1041', oracle.typingFixes.lookAlikes]
+    ];
+    let seed = 4711;
+    for (let n = 0; n < 3000; n++) {
+      let text = '';
+      for (let k = (n % 6) + 1; k > 0; k--) {
+        seed = (seed * 1103515245 + 12345) >>> 0;
+        text += pieces[seed % pieces.length];
+      }
+      for (const [fix, probe, expected] of checks) {
+        fix(text);
+        assert.equal(fix(probe), expected(probe), fix.name + ' on ' + JSON.stringify(probe) + ' after ' + text);
+      }
+    }
+  });
+
   it('every global regex the core exports is left with lastIndex 0', async () => {
     const bad = [];
     for (const { name, value } of await coreExports()) {
@@ -139,3 +215,7 @@ describe('the stateless core (DESIGN.md §4)', () => {
     assert.deepEqual(bad, []);
   });
 });
+
+function isPrimitive(value) {
+  return value === null || (typeof value !== 'object' && typeof value !== 'function');
+}
