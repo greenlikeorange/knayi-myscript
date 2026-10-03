@@ -277,7 +277,10 @@ jobs:
 
   # jsDelivr serves main's dist/ to @master links, so dist/ changes only in a release commit, which also changes
   # the version in package.json; then dist/ must equal a fresh build. Pull requests compare with their base,
-  # pushes with the previous commit of the branch.
+  # pushes with the previous commit of the branch. Every other run also checks that dist/ equals the dist/ of the
+  # last release (the tag v<version>, or the commit that set the version while there is no tag), so a dist/ edited
+  # in one push still fails in the next. The job also checks that the commits .git-blame-ignore-revs names are in
+  # the history: a squash or rebase merge gives them new hashes, and the file then ignores nothing.
   dist:
     name: dist only in releases
     runs-on: ubuntu-latest
@@ -303,3 +306,11 @@ jobs:
             base="origin/$DEFAULT_BRANCH"
           fi
           node scripts/check-dist.js --base "$base"
+      - name: Check .git-blame-ignore-revs
+        run: |
+          for hash in $(grep -E '^[0-9a-f]{40}$' .git-blame-ignore-revs); do
+            if ! git merge-base --is-ancestor "$hash" HEAD; then
+              echo "::error file=.git-blame-ignore-revs::$hash is not in this history; merge with a merge commit, or update the hash"
+              exit 1
+            fi
+          done
