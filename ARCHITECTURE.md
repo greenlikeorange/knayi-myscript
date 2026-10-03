@@ -48,7 +48,7 @@ All library code is CommonJS in `library/`.
 | `syllBreak.js` | `syllBreak` | Input checks, font choice, then `breakParts` and `joinParts`. |
 | `spellingCheck.js` | `spellingFix` | Input checks, font choice, then `collapseMarks`. The file name differs from the export name. |
 | `truncate.js` | `truncate` | Input checks, font choice, `breakParts`, then a fit loop over the parts. |
-| `contentGate.js` | `isMissing`, `toText`, `hasMyanmar`, `resolveFont`, `fontName`, `breakFont`, `libraryError`, `INVALID_FONT`, `cleanText` | Shared input helpers, the font-name aliases (`uni`, `zaw`) and the font-name policy, and `libraryError`, which makes every error knayi throws on purpose. |
+| `contentGate.js` | `isMissing`, `toText`, `hasMyanmar`, `resolveFont`, `fontName`, `breakFont`, `libraryError`, `cleanText` | Shared input helpers, the font-name aliases (`uni`, `zaw`) and the font-name policy, and `libraryError`, which makes every error knayi throws on purpose. |
 | `globalOptions.js` | `isSilentMode`, `setOptions`, `detector` | The module-level option store and the detector-option merge. |
 | `storageOrder.js` | `ROLES`, `font`, `toUnicode`, `arrangeUnicode` | The syllable engine: the shared syllable sort `order`, the font reader `arrange`, the Unicode reader `arrangeUnicode`, the font compiler `font` and the font pipeline `toUnicode`. |
 | `typingFixes.js` | `lookAlikes`, `typos` | Zero and seven read as wa and ra (and back), and four typo rules. |
