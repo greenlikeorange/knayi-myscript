@@ -13,9 +13,12 @@ const LIBRARY = path.join(__dirname, '..', '..', 'library');
 
 // options.moduleRequire: what the module sees as module.require (library/detector.js loads myanmar-tools
 // through it). options.context: a vm context to compile the module in, for a global object without `process`.
+// options.dir: the directory to read the file from, library/ by default. Its relative requires resolve in that
+// directory too, so test/next reads the frozen copies of scripts/oracle/ (docs/next/DESIGN.md D19).
 function loadWithInternals(file, names, options) {
   options = options || {};
-  const filename = path.join(LIBRARY, file);
+  const dir = options.dir || LIBRARY;
+  const filename = path.join(dir, file);
   let source = fs.readFileSync(filename, 'utf8');
   // Compiled as a function, as Node compiles a CommonJS module. A copy of the unchanged source keeps the file's
   // name, so test coverage counts what it runs. A copy with an added line, or in another context (where V8
@@ -31,10 +34,10 @@ function loadWithInternals(file, names, options) {
     ? vm.compileFunction(source, params, { filename: name + ' (vm context)', parsingContext: options.context })
     : vm.compileFunction(source, params, { filename: name });
   const localRequire = function (id) {
-    return require(id.charAt(0) === '.' ? path.join(LIBRARY, id) : id);
+    return require(id.charAt(0) === '.' ? path.join(dir, id) : id);
   };
   const mod = { exports: {}, filename: filename, require: options.moduleRequire || localRequire };
-  compiled.call(mod.exports, mod.exports, localRequire, mod, filename, LIBRARY);
+  compiled.call(mod.exports, mod.exports, localRequire, mod, filename, dir);
   return mod.exports;
 }
 
