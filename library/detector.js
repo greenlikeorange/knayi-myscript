@@ -18,12 +18,9 @@ function nodeRequire(id) {
     req = null;
   }
   if (typeof req === 'function') return req.call(module, id);
-  if (typeof proc.getBuiltinModule === 'function') {
-    var nodeModule = proc.getBuiltinModule('module');
-    if (nodeModule && typeof nodeModule.createRequire === 'function') {
-      var from = typeof __filename === 'string' ? __filename : proc.cwd() + '/package.json';
-      return nodeModule.createRequire(from)(id);
-    }
+  var nodeModule = typeof proc.getBuiltinModule === 'function' && proc.getBuiltinModule('module');
+  if (nodeModule && typeof nodeModule.createRequire === 'function') {
+    return nodeModule.createRequire(typeof __filename === 'string' ? __filename : proc.cwd() + '/package.json')(id);
   }
   return null;
 }
