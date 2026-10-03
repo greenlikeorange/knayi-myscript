@@ -46,8 +46,12 @@ function tally(uses) {
   return counts;
 }
 
-function ids(code, sourceType, at) {
-  return [...new Set(floor.check(code, { sourceType: sourceType || 'script', floor: at }).map((v) => v.id))].sort();
+// The rule ids check() reports for a snippet. The snippets below use undeclared names such as `x` and `f`, so the
+// allowlist ids ('unlisted global', 'unlisted static') are left out unless `unlisted` is set.
+const UNLISTED = ['unlisted global', 'unlisted static'];
+function ids(code, sourceType, at, unlisted) {
+  const found = floor.check(code, { sourceType: sourceType || 'script', floor: at }).map((v) => v.id);
+  return [...new Set(found)].filter((id) => unlisted || UNLISTED.indexOf(id) === -1).sort();
 }
 
 describe('dist builds and the README browser floor', () => {
@@ -128,6 +132,31 @@ describe('floor checker', () => {
     for (const code of cases) assert.deepEqual(ids(code, 'script', at), [], code);
   });
 
+  it('flags a global or static member that no rule names and the floor allowlists leave out', () => {
+    const cases = [
+      ['var s = new Intl.Segmenter("my");', ['Intl.Segmenter']],
+      ['var l = new Intl.ListFormat("my");', ['Intl.ListFormat']],
+      ['var p = new Intl.PluralRules("my");', ['Intl.PluralRules']],
+      ['var o = {}; var c = structuredClone(o);', ['structuredClone']],
+      ['queueMicrotask(function () {});', ['queueMicrotask']],
+      ['var d = new Intl.DisplayNames(["my"], { type: "language" });', ['unlisted static']],
+      ['var e = new Error("x"); Error.captureStackTrace(e);', ['unlisted static']],
+      ['var n = Math.sumPrecise([1, 2]);', ['unlisted static']],
+      ['var i = Iterator.from([1]);', ['unlisted global']],
+      ['var l = navigator.language;', ['unlisted global']],
+      ['fetch("/");', ['unlisted global']]
+    ];
+    for (const [code, expected] of cases) assert.deepEqual(ids(code, 'script', at, true), expected, code);
+    const allowed = [
+      'var x = [1]; Object.keys(x); Math.max(1, 2); String.fromCharCode(65); Array.isArray(x); JSON.stringify(x);',
+      'window.knayi = 1; self.knayi = 1; console.log(new Map(), new Set(), new Intl.Collator("my"), parseInt("1", 10));',
+      'var u = "/"; if (typeof fetch === "function") fetch(u);',
+      'typeof Intl.Segmenter === "function" && new Intl.Segmenter("my");',
+      'function g() { return arguments.length; }'
+    ];
+    for (const code of allowed) assert.deepEqual(ids(code, 'script', at, true), [], code);
+  });
+
   it('switches rules off when the floor rises', () => {
     const es2015 = { chrome: 51, edge: 15, firefox: 54, safari: 10 };
     assert.deepEqual(ids('let a = 1; for (const x of y) f(x); var { b } = c;', 'script', es2015), []);
@@ -198,6 +227,9 @@ describe('floor emulation', () => {
       const removed = vm.runInContext(floor.removalScript(), context);
       assert.ok(removed.length > 50, 'removed ' + removed.length);
       assert.equal(vm.runInContext('typeof globalThis + typeof Symbol + typeof "".includes', context), 'undefinedundefinedundefined');
+      // What no rule names goes too: the allowlists leave these out.
+      assert.equal(vm.runInContext('[typeof Intl.Segmenter, typeof Object.groupBy, typeof [].at, typeof Iterator, ' +
+        'typeof WeakRef, typeof Error.captureStackTrace].join()', context), 'undefined,undefined,undefined,undefined,undefined,undefined');
       vm.runInContext(fs.readFileSync(path.join(DIST, file), 'utf8'), context, { filename: file });
       const actual = JSON.parse(vm.runInContext('(' + examples.runCalls + ')(knayi, JSON.parse(' +
         JSON.stringify(JSON.stringify(calls)) + '))', context));

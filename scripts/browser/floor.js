@@ -66,7 +66,9 @@ const GLOBALS = [
   { id: 'Atomics', since: [68, 79, 78, 15.2], source: 'builtins.Atomics' },
   { id: 'Float16Array', since: [135, 135, 129, 18.2], source: 'builtins.Float16Array' },
   { id: 'TextEncoder', since: [38, 79, 18, 10.1], source: 'api.TextEncoder' },
-  { id: 'TextDecoder', since: [38, 79, 19, 10.1], source: 'api.TextDecoder' }
+  { id: 'TextDecoder', since: [38, 79, 19, 10.1], source: 'api.TextDecoder' },
+  { id: 'structuredClone', since: [98, 98, 94, 15.4], source: 'api.structuredClone' },
+  { id: 'queueMicrotask', since: [71, 79, 69, 12.1], source: 'api.queueMicrotask' }
 ];
 
 // Static members of globals that exist at the floor.
@@ -86,7 +88,12 @@ const STATICS = [
   { id: 'Promise.try', since: [128, 128, 134, 18.2] },
   { id: 'RegExp.escape', since: [136, 136, 134, 18.2] },
   { id: 'Intl.getCanonicalLocales', since: [54, 16, 48, 10.1] },
-  { id: 'Intl.supportedValuesOf', since: [99, 99, 93, 15.4] }
+  { id: 'Intl.supportedValuesOf', since: [99, 99, 93, 15.4] },
+  { id: 'Intl.PluralRules', since: [63, 18, 58, 13] },
+  { id: 'Intl.RelativeTimeFormat', since: [71, 79, 65, 14] },
+  { id: 'Intl.ListFormat', since: [72, 79, 78, 14.1] },
+  { id: 'Intl.Locale', since: [74, 79, 75, 14] },
+  { id: 'Intl.Segmenter', since: [87, 87, 125, 14.1] }
 ].map((rule) => Object.assign({ source: 'builtins.' + rule.id }, rule));
 
 // Methods that no built-in had at the floor, matched by name on any object. `on` lists the prototypes the floor
@@ -142,10 +149,143 @@ const RUNTIME_ONLY = [
   { id: 'Array.prototype.values', since: [66, 14, 60, 9], source: 'builtins.Array.values' }
 ];
 
+// Allowlists: the built-ins every browser of the 2.x floor has (Chrome 49, Edge 14, Firefox 34, Safari 10). They
+// come from BCD (read 2026-10): the javascript.builtins entries, static members and prototype members whose first
+// version is at or below the floor in all four browsers, among the names Node 26 has. A rule above names a feature
+// and its versions; the allowlists catch what no rule names. check() flags any other free global and any other
+// static member of these namespaces ('unlisted global', 'unlisted static'), unless the use is behind a typeof
+// guard; removalScript() deletes every other global, static member and prototype member before a build runs. The
+// lists are fixed at the 2.x floor: a higher floor in README.md switches the rules above off, but these lists only
+// grow by hand. To use a built-in they lack, check BCD and add it here.
+const FLOOR_GLOBALS = [
+  'Array', 'ArrayBuffer', 'Boolean', 'DataView', 'Date', 'Error', 'EvalError', 'Float32Array', 'Float64Array',
+  'Function', 'Infinity', 'Int16Array', 'Int32Array', 'Int8Array', 'Intl', 'JSON', 'Map', 'Math', 'NaN', 'Number',
+  'Object', 'Promise', 'Proxy', 'RangeError', 'ReferenceError', 'RegExp', 'Set', 'String', 'SyntaxError', 'TypeError',
+  'URIError', 'Uint16Array', 'Uint32Array', 'Uint8Array', 'Uint8ClampedArray', 'WeakMap', 'WeakSet', 'decodeURI',
+  'decodeURIComponent', 'encodeURI', 'encodeURIComponent', 'escape', 'eval', 'isFinite', 'isNaN', 'parseFloat',
+  'parseInt', 'undefined', 'unescape'
+];
+
+const FLOOR_STATICS = {
+  Array: ['from', 'isArray', 'of'],
+  ArrayBuffer: ['isView'],
+  Boolean: [],
+  DataView: [],
+  Date: ['UTC', 'now', 'parse'],
+  Error: [],
+  EvalError: [],
+  Float32Array: ['BYTES_PER_ELEMENT'],
+  Float64Array: ['BYTES_PER_ELEMENT'],
+  Function: [],
+  Int16Array: ['BYTES_PER_ELEMENT'],
+  Int32Array: ['BYTES_PER_ELEMENT'],
+  Int8Array: ['BYTES_PER_ELEMENT'],
+  Intl: ['Collator', 'DateTimeFormat', 'NumberFormat'],
+  JSON: ['parse', 'stringify'],
+  Map: [],
+  Math: [
+    'E', 'LN10', 'LN2', 'LOG10E', 'LOG2E', 'PI', 'SQRT1_2', 'SQRT2', 'abs', 'acos', 'acosh', 'asin', 'asinh', 'atan',
+    'atan2', 'atanh', 'cbrt', 'ceil', 'clz32', 'cos', 'cosh', 'exp', 'expm1', 'floor', 'fround', 'hypot', 'imul',
+    'log', 'log10', 'log1p', 'log2', 'max', 'min', 'pow', 'random', 'round', 'sign', 'sin', 'sinh', 'sqrt', 'tan',
+    'tanh', 'trunc'
+  ],
+  Number: [
+    'EPSILON', 'MAX_SAFE_INTEGER', 'MAX_VALUE', 'MIN_SAFE_INTEGER', 'MIN_VALUE', 'NEGATIVE_INFINITY', 'NaN',
+    'POSITIVE_INFINITY', 'isFinite', 'isInteger', 'isNaN', 'isSafeInteger', 'parseFloat', 'parseInt'
+  ],
+  Object: [
+    'assign', 'create', 'defineProperties', 'defineProperty', 'freeze', 'getOwnPropertyDescriptor',
+    'getOwnPropertyNames', 'getPrototypeOf', 'is', 'isExtensible', 'isFrozen', 'isSealed', 'keys',
+    'preventExtensions', 'seal', 'setPrototypeOf'
+  ],
+  Promise: ['all', 'race', 'reject', 'resolve'],
+  Proxy: [],
+  RangeError: [],
+  ReferenceError: [],
+  RegExp: ['input', 'lastMatch', 'lastParen', 'leftContext', 'rightContext'],
+  Set: [],
+  String: ['fromCharCode', 'fromCodePoint', 'raw'],
+  SyntaxError: [],
+  TypeError: [],
+  URIError: [],
+  Uint16Array: ['BYTES_PER_ELEMENT'],
+  Uint32Array: ['BYTES_PER_ELEMENT'],
+  Uint8Array: ['BYTES_PER_ELEMENT'],
+  Uint8ClampedArray: ['BYTES_PER_ELEMENT'],
+  WeakMap: [],
+  WeakSet: []
+};
+
+const FLOOR_PROTOTYPES = {
+  Array: [
+    'concat', 'copyWithin', 'entries', 'every', 'fill', 'filter', 'find', 'findIndex', 'forEach', 'indexOf', 'join',
+    'keys', 'lastIndexOf', 'length', 'map', 'pop', 'push', 'reduce', 'reduceRight', 'reverse', 'shift', 'slice',
+    'some', 'sort', 'splice', 'toLocaleString', 'toString', 'unshift'
+  ],
+  ArrayBuffer: ['byteLength', 'slice'],
+  Boolean: ['toString', 'valueOf'],
+  DataView: [
+    'buffer', 'byteLength', 'byteOffset', 'getFloat32', 'getFloat64', 'getInt16', 'getInt32', 'getInt8', 'getUint16',
+    'getUint32', 'getUint8', 'setFloat32', 'setFloat64', 'setInt16', 'setInt32', 'setInt8', 'setUint16', 'setUint32',
+    'setUint8'
+  ],
+  Date: [
+    'getDate', 'getDay', 'getFullYear', 'getHours', 'getMilliseconds', 'getMinutes', 'getMonth', 'getSeconds',
+    'getTime', 'getTimezoneOffset', 'getUTCDate', 'getUTCDay', 'getUTCFullYear', 'getUTCHours', 'getUTCMilliseconds',
+    'getUTCMinutes', 'getUTCMonth', 'getUTCSeconds', 'getYear', 'setDate', 'setFullYear', 'setHours',
+    'setMilliseconds', 'setMinutes', 'setMonth', 'setSeconds', 'setTime', 'setUTCDate', 'setUTCFullYear',
+    'setUTCHours', 'setUTCMilliseconds', 'setUTCMinutes', 'setUTCMonth', 'setUTCSeconds', 'setYear', 'toDateString',
+    'toGMTString', 'toISOString', 'toJSON', 'toLocaleDateString', 'toLocaleString', 'toLocaleTimeString', 'toString',
+    'toTimeString', 'toUTCString', 'valueOf'
+  ],
+  Error: ['message', 'name', 'toString'],
+  Function: [
+    'apply', 'arguments', 'bind', 'call', 'caller', 'length', 'name', 'toString'
+  ],
+  Map: [
+    'clear', 'delete', 'entries', 'forEach', 'get', 'has', 'keys', 'set', 'size', 'values'
+  ],
+  Number: ['toExponential', 'toFixed', 'toLocaleString', 'toPrecision', 'toString', 'valueOf'],
+  Object: ['hasOwnProperty', 'isPrototypeOf', 'propertyIsEnumerable', 'toLocaleString', 'toString', 'valueOf'],
+  Promise: ['catch', 'then'],
+  RegExp: [
+    'compile', 'exec', 'global', 'ignoreCase', 'multiline', 'source', 'sticky', 'test', 'toString'
+  ],
+  Set: [
+    'add', 'clear', 'delete', 'entries', 'forEach', 'has', 'keys', 'size', 'values'
+  ],
+  String: [
+    'anchor', 'big', 'blink', 'bold', 'charAt', 'charCodeAt', 'codePointAt', 'concat', 'endsWith', 'fixed',
+    'fontcolor', 'fontsize', 'indexOf', 'italics', 'lastIndexOf', 'length', 'link', 'localeCompare', 'match',
+    'normalize', 'repeat', 'replace', 'search', 'slice', 'small', 'split', 'startsWith', 'strike', 'sub', 'substr',
+    'substring', 'sup', 'toLocaleLowerCase', 'toLocaleUpperCase', 'toLowerCase', 'toString', 'toUpperCase', 'trim',
+    'trimLeft', 'trimRight', 'valueOf'
+  ],
+  WeakMap: ['delete', 'get', 'has', 'set'],
+  WeakSet: ['add', 'delete', 'has']
+};
+
+// Host names a browser page has, which the builds may read: the global object under its names, and console.
+const FLOOR_HOST_GLOBALS = ['window', 'self', 'console'];
+// Prototype members the removal keeps although BCD gives the floor no version for them: V8's split and replace
+// read RegExp#flags on their slow path, and the others are older than BCD's records.
+const KEEP_PROTOTYPE_MEMBERS = ['constructor', 'flags', '__proto__', '__defineGetter__', '__defineSetter__',
+  '__lookupGetter__', '__lookupSetter__'];
+const FUNCTION_STATICS = ['length', 'name', 'prototype', 'arguments', 'caller'];
+
+// The rules the allowlists add: a free global or a static member that none of the lists or rules above names.
+const UNLISTED = [
+  { id: 'unlisted global', kind: 'global', since: [Infinity, Infinity, Infinity, Infinity],
+    source: 'not in FLOOR_GLOBALS (scripts/browser/floor.js)' },
+  { id: 'unlisted static', kind: 'static', since: [Infinity, Infinity, Infinity, Infinity],
+    source: 'not in FLOOR_STATICS (scripts/browser/floor.js)' }
+];
+
 const ALL = [].concat(
   SYNTAX.map((r) => Object.assign({ kind: 'syntax' }, r)),
   GLOBALS.map((r) => Object.assign({ kind: 'global' }, r)),
   STATICS.map((r) => Object.assign({ kind: 'static' }, r)),
+  UNLISTED,
   METHODS.map((r) => Object.assign({ kind: 'method' }, r)),
   TYPED.map((r) => Object.assign({ kind: 'typed-array' }, r)),
   RUNTIME_ONLY.map((r) => Object.assign({ kind: 'runtime' }, r))
@@ -164,7 +304,8 @@ function blockedAt(rule, floor, since) {
   const versions = since || rule.since;
   const out = [];
   BROWSERS.forEach((browser, i) => {
-    if (versions[i] > floor[browser]) out.push(browser + ' ' + floor[browser] + ' (needs ' + versions[i] + ')');
+    if (versions[i] === Infinity) out.push(browser + ' ' + floor[browser] + ' (not on the floor allowlists)');
+    else if (versions[i] > floor[browser]) out.push(browser + ' ' + floor[browser] + ' (needs ' + versions[i] + ')');
   });
   return out;
 }
@@ -323,6 +464,7 @@ function scan(code, sourceType) {
   const globalIds = new Set(GLOBALS.map((r) => r.id));
   const staticIds = new Set(STATICS.map((r) => r.id));
   const methodIds = new Set(METHODS.map((r) => r.id));
+  const floorGlobals = new Set(FLOOR_GLOBALS.concat(FLOOR_HOST_GLOBALS, 'arguments'));
 
   walk(ast, (node, ancestors) => {
     const parentEntry = ancestors[ancestors.length - 1];
@@ -407,6 +549,9 @@ function scan(code, sourceType) {
         }
         if (globalIds.has(node.name) && !declared.has(node.name) && !isGuarded(ancestors, node.name)) {
           add(node.name, 'global', node);
+        } else if (!globalIds.has(node.name) && !floorGlobals.has(node.name) && !declared.has(node.name) &&
+          !isGuarded(ancestors, node.name)) {
+          add('unlisted global', 'global', node, { name: node.name });
         }
         break;
       }
@@ -417,6 +562,10 @@ function scan(code, sourceType) {
         const objectName = node.object.type === 'Identifier' ? node.object.name : null;
         if (k && staticIds.has(k) && !declared.has(objectName) && !isGuarded(ancestors, k)) {
           add(k, 'static', node);
+        } else if (objectName && Object.prototype.hasOwnProperty.call(FLOOR_STATICS, objectName) && !declared.has(objectName) &&
+          FLOOR_STATICS[objectName].indexOf(name) === -1 && FUNCTION_STATICS.indexOf(name) === -1 && !staticIds.has(k) &&
+          !isGuarded(ancestors, k) && !isGuarded(ancestors, objectName)) {
+          add('unlisted static', 'static', node, { name: k });
         }
         if (objectName && ['window', 'self', 'globalThis'].indexOf(objectName) !== -1 && globalIds.has(name)) {
           add(name, 'global', node);
@@ -490,7 +639,9 @@ function regexpProblems(pattern, flags, options) {
 }
 
 // A script for a vm context that deletes every built-in the floor lacks, so a build that calls one throws or
-// takes its fallback. It also sets `window`, which the script builds fall back to without globalThis.
+// takes its fallback: the ones the rules name, and then every global, static member and prototype member the
+// allowlists leave out (one the runtime will not let go of is left, and the script returns only what it removed).
+// It also sets `window`, which the script builds fall back to without globalThis.
 function removalScript(options) {
   const floor = (options && options.floor) || readmeFloor();
   const paths = [];
@@ -516,8 +667,27 @@ function removalScript(options) {
     '    if (owner && Object.prototype.hasOwnProperty.call(owner, name)) delete owner[name];\n' +
     '    if (owner && Object.prototype.hasOwnProperty.call(owner, name)) throw new Error("could not remove " + paths[i]);\n' +
     '  }\n' +
+    '  var allow = ' + JSON.stringify({ globals: FLOOR_GLOBALS.concat(FLOOR_HOST_GLOBALS), statics: FLOOR_STATICS,
+    prototypes: FLOOR_PROTOTYPES, functionStatics: FUNCTION_STATICS, keep: KEEP_PROTOTYPE_MEMBERS }) + ';\n' +
+    '  var removed = paths.slice();\n' +
+    '  function prune(owner, label, allowed) {\n' +
+    '    var names = Object.getOwnPropertyNames(owner);\n' +
+    '    for (var k = 0; k < names.length; k++) {\n' +
+    '      if (allowed(names[k])) continue;\n' +
+    '      try { delete owner[names[k]]; } catch (e) {}\n' +
+    '      if (!Object.prototype.hasOwnProperty.call(owner, names[k])) removed.push(label + names[k]);\n' +
+    '    }\n' +
+    '  }\n' +
+    '  var ns;\n' +
+    '  for (ns in allow.statics) {\n' +
+    '    if (g[ns]) prune(g[ns], ns + ".", function (n) { return allow.statics[ns].indexOf(n) !== -1 || allow.functionStatics.indexOf(n) !== -1; });\n' +
+    '  }\n' +
+    '  for (ns in allow.prototypes) {\n' +
+    '    if (g[ns] && g[ns].prototype) prune(g[ns].prototype, ns + ".prototype.", function (n) { return allow.prototypes[ns].indexOf(n) !== -1 || allow.keep.indexOf(n) !== -1; });\n' +
+    '  }\n' +
+    '  prune(g, "", function (n) { return allow.globals.indexOf(n) !== -1; });\n' +
     '  g.window = g;\n' +
-    '  return paths;\n' +
+    '  return removed;\n' +
     '})(this);\n';
 }
 
