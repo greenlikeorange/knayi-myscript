@@ -12,6 +12,7 @@ How knayi-myscript is built today: version 2.10.0, including the Shan look-alike
 - [Stable surfaces](#stable-surfaces)
 - [Quirks kept on purpose](#quirks-kept-on-purpose)
 - [Where the rules are justified](#where-the-rules-are-justified)
+- [The 3.0 core on next](#the-30-core-on-next)
 - [Running the checks](#running-the-checks)
 
 ## Entry points and builds
@@ -306,6 +307,14 @@ The rules in `storageOrder.js`, `typingFixes.js` and the glyph tables have a com
 | [`scripts/eval/README.md`](scripts/eval/README.md) | The eval data, its licences, and what the benchmark measures. |
 
 A change to a rule adds its evidence there. [CONTRIBUTING.md](CONTRIBUTING.md) has the protocol.
+
+## The 3.0 core on next
+
+The branch `next` builds the 3.0 core once, beside the 2.x library, which it does not change ([docs/next/DESIGN.md](docs/next/DESIGN.md) is its spec). Everything above describes `library/`, which stays the 2.x reference while the core is built.
+
+- **`src/`** holds ES modules (`src/package.json` sets `"type": "module"`), in layers that import only downwards: code points and classes (`script/codes.js`), the core (`core/`: errors, option defaults, the font registry, rule rows and the stage runner, a linear-time NFC), the glyph tables (`fonts/`), the engine (`engine/`: one syllable sort and two one-pass readers, the typing fixes and the two stage lists), the one-pass scanners (`detect.js`, `segment.js`) and the Unicode to Zawgyi rows (`unicodeToZawgyi.js`). The core holds no options and writes nothing to the console; every option is an argument, and myanmar-tools is passed in as an object. `test/next/guards/` checks the layers, the stateless core, top-level code free of side effects (so a normalize-only import leaves out the glyph tables), the ES2015 floor, function sizes and the error codes.
+- **`src/compat/`** is the 2.x API on that core: the same eight exports, the non-enumerable `default`, `fontConvert.debugging`, the option store, the console messages, the 2.x input checks and font names, and the TypeErrors 2.x throws by accident. It holds the 2.x global options itself, and loads myanmar-tools the way the 2.x ES module build does. Its output equals the 2.x reference (commit `e5f6e24`, the `main.js` of 2.10.0) on every input, with the two differences the 2.x ES module build has too: a detached `fontConvert` call never reads a global `debug`, and myanmar-tools is looked up from the working directory, not from `library/` (DESIGN.md §5.4).
+- **The checks.** `npm run compare -- --base e5f6e24fa756f8f9c8d790f9a15ede85b135e8ae --head mjs:src/compat/index.js` compares compat with the reference on every call form and input set; the contract matrix runs compat as one more build, which shares the recorded cells of the 2.x ES module build; `test/next/compat-*.test.mjs` test each 2.x behaviour against the live `main.js`; and the Compat job of CI runs compare, the matrix and the growth check on every pull request into `next`.
 
 ## Running the checks
 
