@@ -30,6 +30,7 @@
     "bench": "node scripts/eval/bench.mjs",
     "bench:page": "node scripts/eval/page.mjs",
     "compare": "node scripts/eval/compare.mjs",
+    "perf": "node scripts/eval/perf.mjs",
     "build": "node scripts/build.js"
   },
   "repository": {

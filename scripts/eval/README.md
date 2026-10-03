@@ -40,6 +40,23 @@ The inputs (`scripts/eval/lib/inputs.mjs`) are the distinct lines of every cache
 
 A differing cell prints its count and first examples with code points. `--expect form:set=n` lists a deliberate difference (`all` as the set counts the form's total), and every cell not listed must be 0; the exit status is 1 otherwise. The work is split over one worker thread per CPU: about 2.5 million comparisons take 4 s on a 16-core laptop and use about 50 s of CPU time in all. Run it under Bun with `bun scripts/eval/compare.mjs`.
 
+## Speed of a change
+
+`npm run perf` times two copies against each other, named as for `compare`, and reports only their ratio: absolute times on the same machine drift by 10-25% between runs, while two identical copies timed this way stay within a few percent.
+
+```bash
+npm run perf                              # this working tree against origin/main, under Node and Bun
+npm run perf -- --base HEAD               # an A/A run: how much the ratios move when nothing changed
+npm run perf -- --runtimes node --forms normalize,fontConvert.zawgyi-unicode
+npm run perf -- --offline                 # growth exponents only; no corpus cache needed
+```
+
+- **Rows.** Every call form except three of the truncate lengths, on the same text in four shapes: a call per line (400 FLORES lines), a call per word, one call on the lines joined by spaces, and one on the lines joined by line breaks. Zawgyi forms read that text converted by the base copy, and Win forms a synthetic Win version of it (speed only). Both copies run in one process, interleaved: 3 rounds over all rows, each with 7 runs per copy that alternate which copy goes first, and each run repeats the workload until it takes 10 ms. A row's ratio is the median over the rounds; the round range is printed beside it. Under Bun a full garbage collection runs before each timed run.
+- **Growth exponents.** Every adversarial shape (`SHAPES` in `lib/inputs.mjs`: the plan's 26 long-input shapes, the shapes of `test/performance.test.js` and the 2.10 quadratic ones) through 10 call forms, at 1,024, 2,048 and 4,096 units: log2(t(4n)/t(n))/2, so 1 is linear and 2 quadratic. Larger sizes mislead: once strings pass 64k units, V8 stores them as large objects and linear code costs about three times as much per unit, which reads as 1.3-2.2 across that step. A reading above the limit is measured twice more and the median kept.
+- **Limits.** The run fails (exit status 1) when a growth exponent of the head is above 1.3 (`--max-exponent`) or a Node row is more than 20% slower than the base (`--max-slowdown`). Bun rows are reported, and those more than 10% slower are listed for a written reason. A full run takes about 2 minutes on a laptop: about 40 s of rows and 20 s of growth per runtime.
+
+On an M3 Max shared with other jobs, an A/A run (`--base HEAD`) gave Node rows between 0.97 and 1.02 (single rounds 0.96 to 1.03) and Bun rows between 0.96 and 1.06 (single rounds 0.91 to 1.09); the highest growth exponent was 1.05 under Node and 1.11 under Bun. With `--growth both` against origin/main, which does not have the 2.10 normalize fix yet, its six quadratic shapes read 1.4-2.0 for the base.
+
 ## Data
 
 There is no large public corpus of human-typed Zawgyi with a human-checked Unicode version. The reference pairs are few, and the larger sets are real text with labels from tools, or real text without labels. Every set is measured on its distinct lines: pages repeat headings and boilerplate (Wikipedia's "references" heading alone appears hundreds of times in a sample).

@@ -1,5 +1,5 @@
-// Inputs for compare.mjs: the cached corpora, generated inputs and seeded fuzz. Only the corpora need the eval
-// cache; everything else is made here.
+// Inputs for compare.mjs and perf.mjs: the cached corpora, generated inputs, seeded fuzz, perf workloads and the
+// adversarial shapes for growth exponents. Only the corpora need the eval cache; everything else is made here.
 import { loadAll } from '../datasets.mjs';
 
 const cp = (...codes) => String.fromCodePoint(...codes);
@@ -125,3 +125,83 @@ export async function corpusSets() {
     data
   };
 }
+
+// The text perf.mjs times: `count` FLORES lines in file order, the same lines in Zawgyi (converted by the base
+// copy, so both copies get the same input), and a synthetic Win version of them for speed only: each Zawgyi glyph
+// is replaced by a Win key that the base copy reads as the same Unicode text.
+export function perfTexts(flores, base, count) {
+  const unicode = flores.slice(0, count);
+  const zawgyi = unicode.map((u) => base.fontConvert(u, 'zawgyi', 'unicode'));
+  const byText = new Map();
+  for (const w of [...LATIN1, ...CP1252]) {
+    const u = base.fontConvert(cp(w), 'unicode', 'win');
+    if (typeof u === 'string' && u !== '' && !byText.has(u)) byText.set(u, cp(w));
+  }
+  const glyph = new Map();
+  for (const z of MYANMAR) {
+    const w = byText.get(base.fontConvert(cp(z), 'unicode', 'zawgyi'));
+    if (w) glyph.set(cp(z), w);
+  }
+  const win = zawgyi.map((z) => Array.from(z, (ch) => glyph.get(ch) || ch).join(''));
+  return { unicode, zawgyi, win };
+}
+
+// The same text in four shapes: a call per line, a call per word, one call on the lines joined by spaces into one
+// long line, and one call on the lines joined by line breaks (a document).
+export const WORKLOADS = ['line', 'word', 'string', 'document'];
+export function workloads(lines) {
+  return {
+    line: lines,
+    word: distinct(lines.flatMap((l) => l.split(/\s+/)).filter(Boolean)),
+    string: [lines.join(' ')],
+    document: [lines.join('\n')]
+  };
+}
+
+// Inputs that once took, or could take, super-linear time. make(n) returns about n UTF-16 units.
+// The first 26 are the adversarial sweep of the refactor plan; the rest come from test/performance.test.js and the
+// 2.10 quadratic normalize (a consonant followed by a long run of e or medial ra).
+const rep = (unit, n) => unit.repeat(Math.max(1, Math.round(n / unit.length)));
+const s = (...codes) => cp(...codes);
+export const SHAPES = [
+  ['marks on one consonant', (n) => s(KA) + rep(s(0x102d, 0x102f, 0x103a, 0x103b), n)],
+  ['e, no consonant', (n) => rep(s(0x1031), n)],
+  ['e before consonants', (n) => rep(s(0x1031, KA), n)],
+  ['medial ra, no consonant', (n) => rep(s(0x103c), n)],
+  ['wa', (n) => rep(s(0x101d), n)],
+  ['zero', (n) => rep(s(0x1040), n)],
+  ['seven', (n) => rep(s(0x1047), n)],
+  ['digit wa', (n) => rep(s(0x1041, 0x101d), n)],
+  ['zero dot', (n) => rep(s(0x1040, 0x2e), n)],
+  ['spaces before marks', (n) => s(KA) + rep(s(0x20, 0x1037), n)],
+  ['stacked consonants', (n) => s(KA) + rep(s(0x1039, KA), n)],
+  ['kinzi', (n) => rep(s(0x1004, 0x103a, 0x1039, KA), n)],
+  ['virama run', (n) => s(KA) + rep(s(0x1039), n)],
+  ['asat run', (n) => s(KA) + rep(s(0x103a), n)],
+  ['ZWSP in syllable', (n) => s(KA) + rep(s(0x200b, AA), n)],
+  ['ZWSP run then mark', (n) => s(KA) + rep(s(0x200b), n) + s(0x20, 0x1037)],
+  ['spaces only + one letter', (n) => s(KA) + rep(' ', n)],
+  ['consonants, no marks', (n) => rep(s(KA), n)],
+  ['syllables ka-aa', (n) => rep(s(KA, AA), n)],
+  ['Zawgyi e-ka-aa-asat', (n) => rep(s(0x1031, KA, AA, 0x1039), n)],
+  ['Zawgyi medial ra glyphs', (n) => rep(s(0x107e), n)],
+  ['Shan letters + tone', (n) => rep(s(0x1075, 0x1087), n)],
+  ['ASCII only', (n) => rep('a', n)],
+  ['ASCII + one Myanmar', (n) => rep('a ', n) + s(KA)],
+  ['Win e+ra+ka (a j u)', (n) => rep('aju', n)],
+  ['Win marks on one base', (n) => 'u' + rep('dkfs', n)],
+  ['Zawgyi stacked ka + aa i', (n) => s(KA, 0x1060) + rep(s(AA, 0x102d), n)],
+  ['Zawgyi kinzi + aa i', (n) => s(0x1064) + rep(s(AA, 0x102d), n)],
+  ['ka + e run', (n) => s(KA) + rep(s(0x1031), n)],
+  ['ka + medial ra run', (n) => s(KA) + rep(s(0x103c), n)],
+  ['ka + asat run, then medial ra run', (n) => s(KA) + rep(s(0x103a), n / 2) + rep(s(0x103c), n / 2)],
+  ['ka + (e + medial ra) run', (n) => s(KA) + rep(s(0x1031, 0x103c), n)],
+  ['ka + i + e run', (n) => s(KA, 0x102d) + rep(s(0x1031), n)],
+  ['ka + medial ya run, then e', (n) => s(KA) + rep(s(0x103b), n) + s(0x1031)],
+  ['ka + (medial ya + e) run', (n) => s(KA) + rep(s(0x103b, 0x1031), n)],
+  ['(ka + 50 e) repeated', (n) => rep(s(KA) + s(0x1031).repeat(50), n)]
+].map(([id, make]) => ({ id, make }));
+
+// The call forms each shape runs through (the operations of the plan's sweep).
+export const GROWTH_FORMS = ['normalize', 'fontConvert.zawgyi-unicode', 'fontConvert.unicode-zawgyi', 'fontConvert.win-unicode',
+  'fontConvert.detected-unicode', 'syllBreak.unicode', 'syllBreak.zawgyi', 'spellingFix.unicode', 'truncate.30', 'fontDetect'];
