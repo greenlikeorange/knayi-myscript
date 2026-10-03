@@ -94,7 +94,7 @@ The three CLDR pairs 2.10 misses expect ICU's output: the asat of ါ် before 
 
 ## 5. Open questions
 
-1. **ချ် or ခ်ျ:** people type ချ်; UTN #11 and myanmar-tools write ခ်ျ. knayi 2.10 writes ခ်ျ. `knayi.normalize` still sorts asat after the medials and vowels, and so breaks contractions (ယောက်ျား becomes ယောကျာ်း); it should use the same order.
-2. **Unicode → Zawgyi:** picks the cut form of medial ra from the next syllable's vowel (ဆန္ဒပြသူ gives ႂပ). The text still converts back correctly. 54 FLORES sentences are affected.
+1. **ချ် or ခ်ျ:** people type ချ်; UTN #11 and myanmar-tools write ခ်ျ. knayi 2.10 writes ခ်ျ, and `knayi.normalize` now puts Unicode text in the same order (`research/normalize.md`).
+2. **Unicode → Zawgyi, ha under medial ra:** knayi writes the full ha (ျမွင့္), Rabbit the short one (ျမႇင့္). Real Zawgyi text has both: 128 and 84 times in mC4.
 3. **Look-alike digit ၈** typed for ဂ stays a digit.
 4. **Mixed text:** lines that mix Zawgyi with Unicode or other scripts cannot be read well by any converter.

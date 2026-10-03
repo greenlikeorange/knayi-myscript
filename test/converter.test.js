@@ -43,6 +43,15 @@ assert.equal(			knayi.fontConvert('င်္ကျံ', 'zawgyi', 'unicode'), '\
 		it('keeps zero-width spaces', () => {
 assert.equal(			knayi.fontConvert('မြန်\u200Bမာ', 'zawgyi', 'unicode'), 'ျမန္\u200Bမာ');
 		})
+		it('picks the medial ra shape from its own consonant, not the next syllable', () => {
+			// The next syllable has a mark below (သူ, ဂု) or a stacked consonant (ဟ္မ): the ra stays whole.
+assert.equal(			knayi.fontConvert('ဆန္ဒပြသူ', 'zawgyi', 'unicode'), 'ဆႏၵျပသူ');
+assert.equal(			knayi.fontConvert('သြဂုတ်', 'zawgyi', 'unicode'), 'ၾသဂုတ္');
+assert.equal(			knayi.fontConvert('ဗြဟ္မာ', 'zawgyi', 'unicode'), 'ျဗဟၼာ');
+			// Its own consonant has medial wa below: the ra is cut.
+assert.equal(			knayi.fontConvert('ကြွ', 'zawgyi', 'unicode'), 'ႂကြ');
+assert.equal(			knayi.fontConvert('ပြွတ်', 'zawgyi', 'unicode'), 'ႁပြတ္');
+		})
 	})
 
 	describe('content gate', () => {

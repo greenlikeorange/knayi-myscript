@@ -10,8 +10,6 @@ const convertRules = {
         [/([\u1033\u1034])[\u1037\u1094]/g, "$1\u1095"],
         // [/\u107e([\u1000-\u1021])/],
 
-        [/\u103c([\u1000-\u1021][\u102f\u1030\u1039\u103b\u103d\u103e])/g, "\u1082$1"],
-
         [/\u1004\u103a\u1039/g, "\u1064"],
         [/\u1064([\u1000-\u1021])/g, "$1\u1064"],
 
@@ -103,7 +101,6 @@ const convertRules = {
 };
 
 const C = "က-အ";
-const SHORT_C = "ခဂငစဇဈဉဎဒဓနပဖဗမရဝဠ";
 const M = "ျြွှ";
 const V = "ါာိီုူေဲ";
 const S = "္";
@@ -116,121 +113,6 @@ const ASAT = A;
 const VIRAMA = S;
 const KINZI = "\u1004" + ASAT + VIRAMA;
 const CONSONANT = new RegExp("[" + C + "]");
-const E = "ဣဥဦဩ၎";
-const WA_LONE = "ဝ";
-const NUMBER_ZERO = "၀";
-
-const rankingMap = {
-  "ျ": 1,
-  "ြ": 2,
-  "ွ": 3,
-  "ှ": 4,
-  "ေ": 5,
-  "ါ": 6,
-  "ာ": 7,
-  "ိ": 8,
-  "ီ": 9,
-  "ု": 10,
-  "ူ": 11,
-  "ဲ": 12,
-  "်": 13,
-  "ံ": 14,
-  "့": 15,
-  "း": 16
-};
-
-const brakePoint = new RegExp("([" + C + E + NUMBER_ZERO + "])([" + M + V + A + F + "]+)", "gm");
-
-function addRule(list, pattern, replacement) {
-  list.push([new RegExp(pattern, "gm"), replacement]);
-}
-
-const extendedRules = [];
-const postExtendedRules = [];
-[
-  ["၀", "ဝ"],
-  ["ဦ", "ဦ"],
-  ["ဩော်", "ဪ"],
-  ["ိီ", "ီ"],
-  ["ုူ", "ူ"],
-  ["စျ", "ဈ"]
-].forEach(function (pair) {
-  addRule(extendedRules, pair[0], pair[1]);
-});
-addRule(postExtendedRules, "([" + SHORT_C + "])\\s(္[က-အ])", "$1$2");
-
-function uniquify(marks) {
-  return Array.from(new Set(marks));
-}
-
-function applyReplacementRules(rules, content) {
-  return rules.reduce(function (text, rule) {
-    return text.replace(rule[0], rule[1]);
-  }, content);
-}
-
-const NON_NUMBER_BEHIND = new RegExp(S + "$");
-// No optional space here: a sign after a space belongs to the next word, so "၂၀ ခံ" keeps its zero (as in 2.8.3).
-const NON_NUMBER_AHEAD_SIGN = new RegExp("^[" + M + V + S + A + F + "]");
-const NON_NUMBER_AHEAD_C_SIGN = new RegExp("^[" + C + "][" + S + A + F + "]");
-
-function fixWaAndYa(text) {
-  // `tail` is the last two characters of the text rebuilt so far; the end-anchored checks never need more.
-  // Keeping pieces in an array avoids re-reading the whole growing string at every split (quadratic time).
-  function rebuild(content, splitter, num, char) {
-    var isWa = char === WA_LONE;
-    var parts = content.split(splitter);
-    var out = [parts[0]];
-    var tail = parts[0].slice(-2);
-    for (var i = 1; i < parts.length; i++) {
-      var ahead = parts[i];
-      var isNumber = isWa;
-      if (NON_NUMBER_BEHIND.test(tail)) isNumber = false;
-      if (!isWa) {
-        if (/[၀-၉=+-/]\s?$/.test(tail) && /^\s|\s?[၀-၉=+-/]/.test(ahead)) isNumber = true;
-        if (/[၀-၉]|\s?[=+-/]/.test(ahead)) isNumber = true;
-      }
-      if (NON_NUMBER_AHEAD_SIGN.test(ahead) || NON_NUMBER_AHEAD_C_SIGN.test(ahead)) isNumber = false;
-      if (isWa && /^\s?လုံး/.test(ahead) && !/[၀-၉]\s?$/.test(tail)) isNumber = false;
-      var letter = isNumber ? num : char;
-      out.push(letter, ahead);
-      tail = ahead.length >= 2 ? ahead.slice(-2) : (tail + letter + ahead).slice(-2);
-    }
-    return out.join("");
-  }
-  var content = String(text == null ? "" : text);
-  return rebuild(rebuild(content, /၀|ဝ/, "၀", "ဝ"), /၇|ရ/, "၇", "ရ");
-}
-
-function parseChunks(content) {
-  var chunks = [];
-  var re = brakePoint;
-  re.lastIndex = 0;
-  var last = 0;
-  var match;
-  while ((match = re.exec(content))) {
-    if (match.index > last) chunks.push(content.slice(last, match.index));
-    chunks.push({ base: match[1], marks: match[2] });
-    last = match.index + match[0].length;
-  }
-  if (last < content.length) chunks.push(content.slice(last));
-  return chunks;
-}
-
-function serializeCanonical(chunk) {
-  var marks = uniquify(chunk.marks).sort(function (a, b) {
-    return rankingMap[a] - rankingMap[b];
-  }).join("");
-  return applyReplacementRules(extendedRules, chunk.base + marks);
-}
-
-function normalizeText(content) {
-  var chunks = parseChunks(content);
-  var result = chunks.map(function (chunk) {
-    return typeof chunk === "string" ? chunk : serializeCanonical(chunk);
-  }).join("");
-  return fixWaAndYa(applyReplacementRules(postExtendedRules, result));
-}
 
 function isConsonant(ch) {
   return !!ch && CONSONANT.test(ch);
@@ -447,7 +329,6 @@ function convertText(content, from, to, debug) {
 module.exports = {
   parseUnicode: parseUnicode,
   serializeUnicode: serializeUnicode,
-  normalizeText: normalizeText,
   collapseMarks: collapseMarks,
   breakParts: breakParts,
   joinParts: joinParts,
