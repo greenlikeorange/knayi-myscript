@@ -7,8 +7,8 @@
 //   or a package.
 // - There are no import cycles, the two readers do not import each other but both import engine/syllable.js, and
 //   compat's files import each other one way only (§5.1).
-// - The two public APIs stand apart: the 3.0 API (index.js and api/) and compat import neither each other nor the
-//   other's files (§11.1).
+// - The two public APIs stand apart: the 3.0 API (index.js, stream.js and api/) and compat import neither each
+//   other nor the other's files (§11.1).
 // - No file loads code at run time, except compat/zawgyiModel.js (D3).
 
 import { describe, it } from 'node:test';
@@ -54,6 +54,9 @@ const LAYER_OF = {
   'api/encoding.js': 'L4 public',
   'api/convert.js': 'L4 public',
   'api/segment.js': 'L4 public',
+  'stream.js': 'L4 public',
+  'api/lines.js': 'L4 public',
+  'api/stream.js': 'L4 public',
   'spec/detectorSignatures.js': 'spec',
   'spec/breakRules.js': 'spec',
   'spec/typoRows.js': 'spec'
@@ -89,8 +92,8 @@ const COMPAT_IMPORTS = {
   'compat/index.js': ['compat/fontDetect.js', 'compat/fontConvert.js', 'compat/text.js', 'compat/globalOptions.js']
 };
 
-// The files of the 3.0 API: index.js and api/ (§11.1).
-const isApiFile = (file) => file === 'index.js' || file.startsWith('api/');
+// The files of the 3.0 API: index.js, stream.js and api/ (§11.1, §12).
+const isApiFile = (file) => file === 'index.js' || file === 'stream.js' || file.startsWith('api/');
 
 // The one file that may load code: myanmar-tools, for the 2.x API (D3).
 const LOADER = 'compat/zawgyiModel.js';
