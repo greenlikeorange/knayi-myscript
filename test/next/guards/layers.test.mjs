@@ -1,18 +1,20 @@
 // The layers of src/ and their import rules (docs/next/DESIGN.md §2.1, §2.2, §5.1). There are no known
 // exceptions, and none may be added.
 //
-// - Every file of src/ has a layer, and imports only from the layers below it, or its own where §2.2 allows.
+// - Every file of src/ has a layer, the one the tree of §2.1 gives it, and imports only from the layers below it,
+//   or its own where §2.2 allows.
 // - An import is a literal relative path ending in .js that stays inside src/: nothing imports library/, main.js
 //   or a package.
-// - There are no import cycles, the two readers do not import each other, and compat's files import each other
-//   one way only (§5.1).
+// - There are no import cycles, the two readers do not import each other but both import engine/syllable.js, and
+//   compat's files import each other one way only (§5.1).
 // - No file loads code at run time, except compat/zawgyiModel.js (D3).
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import path from 'node:path';
 import { parsedSources, codeLoadingSites, where } from './ast.mjs';
-import { AT_ACCEPTANCE_GATE, srcFiles } from '../helpers.mjs';
+import { AT_ACCEPTANCE_GATE, ROOT, srcFiles } from '../helpers.mjs';
 
 const LAYER_OF = {
   'version.js': 'L0 script',
@@ -60,10 +62,10 @@ const MAY_IMPORT = {
   spec: []
 };
 
-// Files of one layer that may not import each other, either way.
-const NEVER = [
-  ['engine/unicodeReader.js', 'engine/fontReader.js'] // both import engine/syllable.js instead (§2.2)
-];
+// The two readers: they may not import each other, either way, and both import the syllable steps they share
+// (§2.2, D9).
+const READERS = ['engine/unicodeReader.js', 'engine/fontReader.js'];
+const SHARED_BY_READERS = 'engine/syllable.js';
 
 // compat's one-way imports (§5.1): the compat files each compat file may import.
 const COMPAT_IMPORTS = {
@@ -100,10 +102,31 @@ function importsOf({ file, ast }) {
 
 const GRAPH = new Map(SOURCES.map((source) => [source.file, importsOf(source)]));
 
+// The layer of each file in the tree of DESIGN.md §2.1, which writes them L0, L1, L2, L3 engine, L3 rules,
+// L3 stages, L4 and (spec): { 'version.js': 'L0', ... }.
+function layersInDesign() {
+  const design = fs.readFileSync(path.join(ROOT, 'docs', 'next', 'DESIGN.md'), 'utf8');
+  const tree = design.slice(design.indexOf('### 2.1 Tree'), design.indexOf('### 2.2 '));
+  const layers = {};
+  for (const [, file, layer] of tree.matchAll(/^ {2}(\S+\.js) +(L[0-4](?: engine| rules| stages)?|\(spec\))/gm)) {
+    layers[file] = layer;
+  }
+  return layers;
+}
+
+// A layer of LAYER_OF as the tree of §2.1 writes it: 'L0 script' is L0, 'L3 rules' stays, 'spec' is (spec).
+const designName = (layer) => (layer === 'spec' ? '(spec)' : layer.startsWith('L3 ') ? layer : layer.slice(0, 2));
+
 describe('layers of src/ (DESIGN.md §2.2)', () => {
   it('every file of src/ has a layer', () => {
     const unplaced = srcFiles().filter((file) => !LAYER_OF[file]);
     assert.deepEqual(unplaced, [], 'give these files a layer in DESIGN.md §2.1 and in LAYER_OF');
+  });
+
+  it('gives each file the layer of the tree in DESIGN.md §2.1, and no file the tree leaves out', () => {
+    const inGuard = {};
+    for (const file of Object.keys(LAYER_OF)) inGuard[file] = designName(LAYER_OF[file]);
+    assert.deepEqual(inGuard, layersInDesign(), 'LAYER_OF and the tree of DESIGN.md §2.1 must agree');
   });
 
   it('every planned file exists', { skip: !AT_ACCEPTANCE_GATE && 'binds at the acceptance gate (§6.3)' }, () => {
@@ -139,11 +162,13 @@ describe('layers of src/ (DESIGN.md §2.2)', () => {
     assert.deepEqual(bad, []);
   });
 
-  it('the readers do not import each other', () => {
+  it('the readers do not import each other, and both import ' + SHARED_BY_READERS, () => {
     const bad = [];
-    for (const [a, b] of NEVER) {
-      for (const [from, to] of [[a, b], [b, a]]) {
-        if ((GRAPH.get(from) || []).some((edge) => edge.target === to)) bad.push(from + ' imports ' + to);
+    for (const [from, to] of [READERS, READERS.slice().reverse()]) {
+      const targets = (GRAPH.get(from) || []).map((edge) => edge.target);
+      if (targets.indexOf(to) !== -1) bad.push(from + ' imports ' + to);
+      if (GRAPH.has(from) && targets.indexOf(SHARED_BY_READERS) === -1) {
+        bad.push(from + ' does not import ' + SHARED_BY_READERS);
       }
     }
     assert.deepEqual(bad, []);
