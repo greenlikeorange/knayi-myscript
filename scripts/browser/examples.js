@@ -1,8 +1,9 @@
 'use strict';
-// One list of calls for every place that runs a build outside Node's main.js: the browsers
+// One list of calls for every place that runs a build outside Node's ES module sources: the browsers
 // (scripts/browser/smoke.spec.js), the floor emulation (test/dist-floor.test.js) and the RegExp check
-// (test/regex-floor.test.js). It holds the README examples, a few more call forms, and generated inputs over
-// the Myanmar block and Latin-1 (synthetic only, decision 22).
+// (test/regex-floor.test.js). allCalls() calls the 2.x API (compat, and knayi.compat in the script build): the
+// README examples, a few more call forms, and generated inputs over the Myanmar block and Latin-1 (synthetic only,
+// decision 22). apiCalls() calls the 3.0 API on the same generated inputs.
 
 const { readExamples } = require('../testing/readme-examples');
 
@@ -36,16 +37,22 @@ const EXTRA = [
   "knayi.spellingFix('ကိုု', 'uni')"
 ];
 
-// [functionName, ...args] calls over generated text.
-function generatedCalls() {
+// Generated text: every character of the Myanmar block alone, after and before ka, and doubled after ka, and a
+// few strings with zero-width characters, spaces, a line break and Latin.
+function generatedTexts() {
   const texts = [];
   for (let cp = 0x1000; cp <= 0x109f; cp++) {
     const c = String.fromCharCode(cp);
     texts.push(c, '\u1000' + c, c + '\u1000', '\u1000' + c + c);
   }
   texts.push('\u1000\u200b\u1001', '\u1000\u200c\u1001', ' \u1000 ', '\u1000\n\u1001', 'abc');
+  return texts;
+}
+
+// [functionName, ...args] calls of the 2.x API over generated text.
+function generatedCalls() {
   const calls = [];
-  for (const t of texts) {
+  for (const t of generatedTexts()) {
     calls.push(
       ['normalize', t],
       ['fontConvert', t, 'unicode', 'zawgyi'],
@@ -70,6 +77,32 @@ function generatedCalls() {
 // Strings are source text to evaluate with `knayi` in scope; arrays are [functionName, ...args].
 function allCalls() {
   return readmeExamples().concat(EXTRA, generatedCalls());
+}
+
+// [functionName, ...args] calls of the 3.0 API over generated text, and calls that it refuses (a thrown error is
+// kept by class, as everywhere here). Win text converts only when named.
+function apiCalls() {
+  const calls = [['createTrace'], ['normalize', 42], ['toUnicode', 'x', { from: 'Zawgyi' }], ['truncate', 'abc', { length: 1 }]];
+  for (const t of generatedTexts()) {
+    calls.push(
+      ['normalize', t],
+      ['normalize', t, { report: true }],
+      ['isNormalized', t],
+      ['explain', t],
+      ['detectEncoding', t],
+      ['toUnicode', t],
+      ['toUnicode', t, { from: 'zawgyi', offsets: true }],
+      ['toUnicode', t, { tie: 'zawgyi' }],
+      ['toZawgyi', t],
+      ['segmentSyllables', t],
+      ['segmentSyllables', t, { font: 'zawgyi', policy: 'pairs' }],
+      ['syllableBoundaries', t],
+      ['truncate', t, { length: 2 }],
+      ['collapseRepeatedMarks', t]
+    );
+  }
+  for (let b = 0x20; b <= 0xff; b++) calls.push(['toUnicode', 'u' + String.fromCharCode(b), { from: 'win' }]);
+  return calls;
 }
 
 // Runs the calls against one copy of the library and returns the results as a JSON string. The function is
@@ -140,4 +173,4 @@ function differences(calls, actual, expected, options) {
   return out;
 }
 
-module.exports = { readmeExamples, generatedCalls, allCalls, runCalls, describeCall, differences, EXTRA };
+module.exports = { readmeExamples, generatedCalls, allCalls, apiCalls, runCalls, describeCall, differences, EXTRA };

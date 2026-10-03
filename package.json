@@ -3,19 +3,16 @@
   "version": "2.10.0",
   "description": "Knayi Myanmar languages JavaScirpt library",
   "main": "./main.js",
-  "module": "./dist/knayi-myscript.es.js",
   "types": "./index.d.ts",
   "sideEffects": [
-    "./dist/knayi-myscript.js",
     "./dist/knayi-myscript.min.js"
   ],
   "files": [
     "main.js",
     "index.d.ts",
     "library",
-    "dist/knayi-myscript.mjs",
-    "dist/knayi-myscript.es.js",
-    "dist/knayi-myscript.js",
+    "dist/knayi-myscript.min.mjs",
+    "dist/knayi-myscript-compat.min.mjs",
     "dist/knayi-myscript.min.js"
   ],
   "scripts": {

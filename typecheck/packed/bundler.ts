@@ -1,6 +1,5 @@
 // Code for a bundler that uses the packed package. scripts/check-types.mjs compiles it in a project that has
-// the tarball installed, under bundler resolution, then bundles it with esbuild (which follows the `module`
-// field to dist/knayi-myscript.es.js) and runs the bundle in Node.
+// the tarball installed, under bundler resolution, then bundles it with esbuild and runs the bundle in Node.
 import knayi from "knayi-myscript";
 import { fontConvert, fontDetect, normalize, setGlobalOptions, syllBreak, version } from "knayi-myscript";
 import type { ConvertDebug, DetectorOptions, Knayi } from "knayi-myscript";

@@ -4,129 +4,72 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 const acorn = require('acorn');
-
-// test/syntax.test.js checks the regex literals in the builds, because acorn validates them at ES2015. A RegExp
-// built from a string at run time is invisible to it, so this records every one the library builds and checks
-// it the same way: no lookbehind, named groups, \p{} or s flag, and no u flag below the README floor.
-
-const ROOT = path.join(__dirname, '..');
-const LIBRARY = path.join(ROOT, 'library') + path.sep;
-const MAIN = path.join(ROOT, 'main.js');
-
-// Hooks go in before anything loads the library.
-const NativeRegExp = RegExp;
-const records = [];
-
-function librarySite() {
-  const prepare = Error.prepareStackTrace;
-  Error.prepareStackTrace = (error, frames) => frames;
-  const frames = new Error().stack;
-  Error.prepareStackTrace = prepare;
-  for (const frame of frames) {
-    const file = frame.getFileName();
-    if (file && (file.startsWith(LIBRARY) || file === MAIN)) {
-      return path.relative(ROOT, file).split(path.sep).join('/') + ':' + frame.getLineNumber();
-    }
-  }
-  return null;
-}
-
-function record(via, pattern, flags) {
-  const site = librarySite();
-  if (site) records.push({ via, site, pattern, flags: flags === undefined ? '' : String(flags) });
-}
-
-global.RegExp = new Proxy(NativeRegExp, {
-  construct(target, args, newTarget) {
-    record('new RegExp', args[0], args[1]);
-    return Reflect.construct(target, args, newTarget === global.RegExp ? target : newTarget);
-  },
-  apply(target, thisArg, args) {
-    record('RegExp()', args[0], args[1]);
-    return Reflect.apply(target, thisArg, args);
-  }
-});
-
-// match, search and matchAll turn a string argument into a RegExp inside the engine.
-const nativeStringMethods = {};
-for (const name of ['match', 'search', 'matchAll']) {
-  const original = String.prototype[name];
-  nativeStringMethods[name] = original;
-  Object.defineProperty(String.prototype, name, {
-    configurable: true,
-    writable: true,
-    value: function (pattern) {
-      if (!(pattern instanceof NativeRegExp)) {
-        record('.' + name, pattern === undefined ? '' : String(pattern), name === 'matchAll' ? 'g' : '');
-      }
-      return original.apply(this, arguments);
-    }
-  });
-}
-
-// `bun test` runs every test file in one process with one module cache, so another file may have loaded the
-// library before the hooks went in. This file loads its own copy, and puts the cached modules back afterwards.
-const cached = {};
-for (const id of Object.keys(require.cache)) {
-  if (id === MAIN || id.startsWith(LIBRARY)) {
-    cached[id] = require.cache[id];
-    delete require.cache[id];
-  }
-}
-const knayi = require('../main');
+const { execFileSync } = require('child_process');
 const floor = require('../scripts/browser/floor');
 const examples = require('../scripts/browser/examples');
 
-examples.runCalls(knayi, examples.allCalls());
+// test/syntax.test.js checks the regex literals in the builds, because acorn validates them at ES2015. A RegExp
+// built from a string at run time is invisible to it, so this records every one the code of src/ builds and checks
+// it the same way: no lookbehind, named groups, \p{} or s flag, and no u flag below the README floor. The records
+// come from scripts/browser/built-regexps.js, in a process of its own (see there).
 
-// The records are complete, so the hooks come out again: under `bun test` they would also see the test files
-// that run after this one.
-global.RegExp = NativeRegExp;
-for (const name of Object.keys(nativeStringMethods)) {
-  Object.defineProperty(String.prototype, name, { configurable: true, writable: true, value: nativeStringMethods[name] });
-}
-for (const id of Object.keys(require.cache)) {
-  if (id === MAIN || id.startsWith(LIBRARY)) delete require.cache[id];
-}
-Object.assign(require.cache, cached);
+const ROOT = path.join(__dirname, '..');
+const SRC = path.join(ROOT, 'src');
 
-// Every `new RegExp(...)` and `RegExp(...)` in library/ and main.js, as 'file:line'.
+const records = JSON.parse(execFileSync(process.execPath, [path.join(ROOT, 'scripts', 'browser', 'built-regexps.js')],
+  { maxBuffer: 1 << 26 }));
+
+// Every `new RegExp(...)` and `RegExp(...)` in src/, as 'src/<file>:<line>'. spec/ is not shipped: nothing in src/
+// imports it.
 function constructorSites() {
-  const files = fs.readdirSync(path.join(ROOT, 'library')).filter((f) => f.endsWith('.js')).map((f) => path.join('library', f));
   const sites = [];
-  for (const file of files.concat('main.js')) {
-    const code = fs.readFileSync(path.join(ROOT, file), 'utf8');
-    const ast = acorn.parse(code, { ecmaVersion: 'latest', sourceType: 'script', locations: true });
-    (function visit(node) {
-      if ((node.type === 'NewExpression' || node.type === 'CallExpression') &&
-        node.callee.type === 'Identifier' && node.callee.name === 'RegExp') {
-        sites.push(file.split(path.sep).join('/') + ':' + node.loc.start.line);
+  (function walkDir(dir) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory() && entry.name !== 'spec') walkDir(full);
+      else if (entry.isFile() && entry.name.endsWith('.js')) sites.push.apply(sites, sitesIn(full));
+    }
+  })(SRC);
+  return sites.sort();
+}
+
+function sitesIn(file) {
+  const ast = acorn.parse(fs.readFileSync(file, 'utf8'), { ecmaVersion: 'latest', sourceType: 'module', locations: true });
+  const where = path.relative(ROOT, file).split(path.sep).join('/');
+  const found = [];
+  (function visit(node) {
+    if ((node.type === 'NewExpression' || node.type === 'CallExpression') &&
+      node.callee.type === 'Identifier' && node.callee.name === 'RegExp') {
+      found.push(where + ':' + node.loc.start.line);
+    }
+    for (const key of Object.keys(node)) {
+      const value = node[key];
+      for (const child of Array.isArray(value) ? value : [value]) {
+        if (child && typeof child.type === 'string') visit(child);
       }
-      for (const key of Object.keys(node)) {
-        const value = node[key];
-        for (const child of Array.isArray(value) ? value : [value]) {
-          if (child && typeof child.type === 'string') visit(child);
-        }
-      }
-    })(ast);
-  }
-  return sites;
+    }
+  })(ast);
+  return found;
+}
+
+function isRegExpPattern(record) {
+  return record.pattern !== null && typeof record.pattern === 'object';
 }
 
 function unique(list) {
   const seen = new Map();
-  for (const r of list) seen.set(String(r.pattern) + '/' + r.flags, r);
+  for (const r of list) seen.set(JSON.stringify(r.pattern) + '/' + r.flags, r);
   return [...seen.values()];
 }
 
 describe('RegExps built from strings', () => {
-  it('records every RegExp constructor call site in library/ and main.js', (t) => {
+  it('records every RegExp constructor call site in src/', (t) => {
     const sites = constructorSites();
     t.diagnostic(sites.length + ' call sites: ' + sites.join(', '));
     const seen = new Set(records.map((r) => r.site));
     const missed = sites.filter((site) => !seen.has(site));
     assert.ok(sites.length > 0);
-    assert.deepEqual(missed, [], 'never reached, so never checked; add a call form to scripts/browser/examples.js');
+    assert.deepEqual(missed, [], 'never reached, so never checked; add a call to scripts/browser/built-regexps.js');
   });
 
   it('compiles every one under ES2015 rules at the README floor', (t) => {
@@ -134,8 +77,8 @@ describe('RegExps built from strings', () => {
     t.diagnostic(unique(records).length + ' distinct patterns from ' + records.length + ' constructions');
     const problems = [];
     for (const r of unique(records)) {
-      if (r.pattern instanceof NativeRegExp) continue;
-      for (const problem of floor.regexpProblems(String(r.pattern), r.flags, { floor: at })) {
+      if (isRegExpPattern(r)) continue;
+      for (const problem of floor.regexpProblems(r.pattern, r.flags, { floor: at })) {
         problems.push(r.site + ' ' + r.via + ' /' + r.pattern + '/' + r.flags + ': ' + problem);
       }
     }
@@ -144,14 +87,15 @@ describe('RegExps built from strings', () => {
   });
 
   it('never builds a RegExp from another RegExp with new flags', () => {
-    // ES2015 allows new RegExp(regexp, flags); ES5 engines throw a TypeError. Which floor browsers still
-    // followed ES5 here is not in browser-compat-data, so the library simply does not do it.
-    const found = records.filter((r) => r.pattern instanceof NativeRegExp && r.flags !== '');
+    // ES2015 allows new RegExp(regexp, flags); ES5 engines throw a TypeError. Which floor browsers still followed
+    // ES5 here is not in browser-compat-data, so the code simply does not do it.
+    const found = records.filter((r) => isRegExpPattern(r) && r.flags !== '');
     assert.deepEqual(found.map((r) => r.site), []);
   });
 
-  it('builds the same RegExps in the min.js build', () => {
-    // The browsers get min.js, so check that it builds exactly the patterns checked above.
+  it('builds the same RegExps, on the same calls, in the script build', () => {
+    // The browsers get the builds, so check that the script build makes exactly the patterns checked above. It holds
+    // both APIs, and the module builds the same code. legacyWinTables is not in it: no API calls it.
     const context = vm.createContext({});
     vm.runInContext([
       'var console = { log: function () {}, warn: function () {}, error: function () {} };',
@@ -163,10 +107,13 @@ describe('RegExps built from strings', () => {
     ].join('\n'), context);
     const dist = require('../scripts/build').builtDist();
     vm.runInContext(fs.readFileSync(path.join(dist, 'knayi-myscript.min.js'), 'utf8'), context);
-    vm.runInContext('(' + examples.runCalls + ')(knayi, JSON.parse(' + JSON.stringify(JSON.stringify(examples.allCalls())) + '))', context);
-    const fromMin = [...new Set(vm.runInContext('built', context))].sort();
-    const fromMain = [...new Set(records.filter((r) => r.via === 'new RegExp' || r.via === 'RegExp()')
-      .map((r) => String(r.pattern) + '/' + r.flags))].sort();
-    assert.deepEqual(fromMin, fromMain);
+    const run = (target, list) => vm.runInContext('(' + examples.runCalls + ')(' + target + ', JSON.parse(' +
+      JSON.stringify(JSON.stringify(list)) + '))', context);
+    run('knayi.compat', examples.allCalls());
+    run('knayi', examples.apiCalls());
+    const fromScript = [...new Set(vm.runInContext('built', context))].sort();
+    const fromSources = [...new Set(records.filter((r) => (r.via === 'new RegExp' || r.via === 'RegExp()') &&
+      r.site.indexOf('src/compat/legacy.js:') !== 0).map((r) => String(r.pattern) + '/' + r.flags))].sort();
+    assert.deepEqual(fromScript, fromSources);
   });
 });

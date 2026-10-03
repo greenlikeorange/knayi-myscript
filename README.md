@@ -41,9 +41,9 @@ TypeScript types are `index.d.ts`. Named imports such as `import { fontConvert }
 
 In Node, `require` and `import` both load `main.js` and share `setGlobalOptions`. A bundler that follows the `module` field loads `dist/knayi-myscript.es.js` instead. That file is a second copy. If one part of an app uses `main.js` and another uses `dist/knayi-myscript.es.js`, silent mode and detector settings do not cross between them.
 
-The script build sets the global `knayi`, both in a `<script>` tag and when a bundler loads it with `import 'knayi-myscript/dist/knayi-myscript.min.js'`.
+The script build sets the global `knayi`, both in a `<script>` tag and when a bundler loads it with `import 'knayi-myscript/dist/knayi-myscript.min.js'`. In 3.0 `knayi` is the 3.0 API, and `knayi.compat` the 2.x API this page documents.
 
-The `dist/` builds are ES2015. They run in Chrome 49, Edge 14, Firefox 34, Safari 10 (iOS 10), Samsung Internet 5 and Opera 36, or newer. Internet Explorer needs knayi 2.8.3.
+The `dist/` builds are ES2015. They run in Chrome 51, Edge 15, Firefox 54, Safari 10.1 (iOS 10.3), Samsung Internet 5 and Opera 38, or newer: the first versions with all of ES2015. Older browsers need knayi 2.x, and Internet Explorer knayi 2.8.3.
 
 These paths load without an `exports` map:
 
@@ -259,12 +259,11 @@ knayi.truncate(null) // ''
 
 ## Build
 
-`dist/` holds the build of the last release, or of the release being prepared, because jsDelivr serves the `dist/` of the main branch. It changes only in a release commit, which also changes the version. `npm run build` writes:
+`dist/` holds the build of the last release, or of the release being prepared, because jsDelivr serves the `dist/` of the main branch. It changes only in a release commit, which also changes the version. `npm run build` writes three minified files for browsers:
 
-- `dist/knayi-myscript.mjs`
-- `dist/knayi-myscript.es.js` (same bytes as the `.mjs` file)
-- `dist/knayi-myscript.js`
-- `dist/knayi-myscript.min.js`
+- `dist/knayi-myscript.min.mjs`: the 3.0 API as one ES module
+- `dist/knayi-myscript-compat.min.mjs`: the 2.x API as one ES module, with the named exports and the default export of 2.x's `knayi-myscript.mjs`
+- `dist/knayi-myscript.min.js`: a script that sets the global `knayi`, the 3.0 API, with the 2.x API as `knayi.compat`
 
 `npm test` runs the tests on a build made in a temporary directory. [ARCHITECTURE.md](ARCHITECTURE.md#running-the-checks) lists every test and check script.
 

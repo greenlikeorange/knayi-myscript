@@ -26,7 +26,7 @@ const require = createRequire(path.join(root, 'package.json'));
 const keep = process.argv.includes('--keep');
 
 // The entry points README.md lists under "These paths load without an exports map".
-const ENTRYPOINTS = ['.', './library/converter', './dist/knayi-myscript.min.js', './dist/knayi-myscript.es.js'];
+const ENTRYPOINTS = ['.', './library/converter', './dist/knayi-myscript.min.js'];
 
 // Problems attw reports today. Each is a gap in what the package ships (index.d.ts, file names, package.json),
 // left for the PRs that may change those files.
@@ -43,14 +43,6 @@ const KNOWN_PROBLEMS = {
   'UntypedResolution ./dist/knayi-myscript.min.js node16-cjs': 'script build, imported for the global',
   'UntypedResolution ./dist/knayi-myscript.min.js node16-esm': 'script build, imported for the global',
   'UntypedResolution ./dist/knayi-myscript.min.js bundler': 'script build, imported for the global',
-  // Bundlers reach the ESM copy through the `module` field, where index.d.ts types it. Imported by its own
-  // path it has no types, and as a '.js' file in a package without "type": "module" Node reads it as
-  // CommonJS, so it loads in Node only through ES module syntax detection (Node 22.7 and later).
-  'UntypedResolution ./dist/knayi-myscript.es.js node10': 'no types for the path itself',
-  'UntypedResolution ./dist/knayi-myscript.es.js node16-cjs': 'no types for the path itself',
-  'UntypedResolution ./dist/knayi-myscript.es.js node16-esm': 'no types for the path itself',
-  'UntypedResolution ./dist/knayi-myscript.es.js bundler': 'no types for the path itself',
-  'UnexpectedModuleSyntax dist/knayi-myscript.es.js': 'ESM syntax in a .js file of a package without "type"'
 };
 
 const failures = [];

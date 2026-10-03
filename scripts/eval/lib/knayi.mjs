@@ -10,8 +10,8 @@
 //                           a 3.0 script build's global holds the 2.x API as knayi.compat
 //   min:<spec>              the script build of that copy, built by its own scripts/build.js in a temporary directory
 //                           (an npm package's own dist file is used as shipped)
-//   mjs:<file>, mjs:<spec>  the same for the ES module build of the 2.x API (3.0: knayi-myscript-compat.mjs), which
-//                           is imported
+//   mjs:<file>, mjs:<spec>  the same for the ES module build of the 2.x API (3.0: knayi-myscript-compat.min.mjs),
+//                           which is imported
 //
 // prepareKnayi() does the git and build work and returns a plain descriptor. instantiate() turns a descriptor into a
 // library, so worker threads and a Bun child process load the very same copy without repeating that work.
@@ -237,10 +237,10 @@ export function prepareKnayi(spec) {
   }
   const source = prepareSource(inner, { withBuild: true });
   const dist = buildDist(source);
-  // The ES module build of the 2.x API: 3.0's knayi-myscript-compat.mjs (its knayi-myscript.mjs is the 3.0 API),
-  // 2.9 and 2.10's knayi-myscript.mjs, and knayi-myscript.es.js, the only one of the releases before 2.9.
+  // The ES module build of the 2.x API: 3.0's knayi-myscript-compat.min.mjs (its knayi-myscript.min.mjs is the 3.0
+  // API), 2.9 and 2.10's knayi-myscript.mjs, and knayi-myscript.es.js, the only one of the releases before 2.9.
   const names = m[1] === 'min' ? ['knayi-myscript.min.js']
-    : ['knayi-myscript-compat.mjs', 'knayi-myscript.mjs', 'knayi-myscript.es.js'];
+    : ['knayi-myscript-compat.min.mjs', 'knayi-myscript.mjs', 'knayi-myscript.es.js'];
   const name = names.find((n) => fs.existsSync(path.join(dist, n)));
   if (!name) throw new Error(source.label + ' has no dist/' + names.join(' or dist/'));
   const file = path.join(dist, name);

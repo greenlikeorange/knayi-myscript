@@ -31,11 +31,9 @@ describe('runtime contract', () => {
     assert.equal(knayi.syllBreak(unicodeGreeting, null, '|'), 'မင်္ဂလာ|ပါ');
   });
 
-  it('ships the browser file and the module file under the 2.8 names', () => {
+  it('keeps the name of the script build, and names the module builds for what they hold', () => {
     const dist = builtDist();
-    const es = fs.readFileSync(path.join(dist, 'knayi-myscript.es.js'));
-    const mjs = fs.readFileSync(path.join(dist, 'knayi-myscript.mjs'));
-    assert.ok(fs.existsSync(path.join(dist, 'knayi-myscript.min.js')));
-    assert.deepEqual(es, mjs);
+    assert.deepEqual(fs.readdirSync(dist).sort(),
+      ['knayi-myscript-compat.min.mjs', 'knayi-myscript.min.js', 'knayi-myscript.min.mjs']);
   });
 });
