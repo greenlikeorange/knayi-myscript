@@ -27,8 +27,8 @@ import { ERR, libraryError } from '../core/errors.js';
 //             so ကကက breaks as ကက|က (legacyBareConsonantPair; DESIGN.md §10 Q11).
 //   CHAINS    every bare consonant joins the syllable after it, as the comment of 2.x syllable.js:239 says: ကကက.
 //   SEPARATE  none joins: a bare consonant is a syllable of its own, with its inherent vowel (UTN #11): က|က|က.
-// forEachBreak, breakParts and breakString default to PAIRS, as 2.x does. Decision 34 picks the default of the
-// 3.0 API from corpus counts (DESIGN.md §7.5); until then segmentSyllables and syllableBoundaries default to PAIRS.
+// Every function here defaults to PAIRS, as 2.x does. The 3.0 API passes SEPARATE by default, chosen by decision 34
+// from corpus counts (DESIGN.md §11.6; api/segment.js DEFAULT_POLICY).
 export const BARE_CONSONANTS = /* @__PURE__ */ deepFreeze({ PAIRS: 'pairs', CHAINS: 'chains', SEPARATE: 'separate' });
 
 // 2.x joinParts puts U+200B between the parts when no separator is given (syllable.js:272-275).
