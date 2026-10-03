@@ -23,15 +23,24 @@
 // A row is { id, re, to, repeat, needs, label? } (core/rules.js). Its why is the comment above it, and its example is
 // in test/next/unicodeToZawgyi.test.mjs under its id (D17). `needs` names units of which every match of `re` holds at
 // least one, a literal of the pattern that no match can leave out (the rarest, where it has several): a text with none
-// of them cannot match, so the row is skipped (applyRowsThatCanMatch below; DESIGN.md §3.10). Each regex is the 2.x
-// literal byte for byte, because its source is 2.x debug output: fontConvert.debugging lists the source of every rule
-// that fired. On V8, a regex that is a pure literal starting at U+1000-U+1010 takes a slow search path, 10-50 times
-// slower (decision 29), so the six such rows wrap their first unit in a one-character class and keep the 2.x source as
-// their label.
+// of them cannot match, so the row is skipped (applyRowsThatCanMatch below; DESIGN.md §3.10). Each regex has the
+// source of the 2.x literal byte for byte, because that source is 2.x debug output: fontConvert.debugging lists the
+// source of every rule that fired. On V8, a regex that is a pure literal starting at U+1000-U+1010 takes a slow search
+// path, 10-50 times slower (decision 29), so the six such rows wrap their first unit in a one-character class and keep
+// the 2.x source as their label.
+//
+// The glyph table is the one source of the glyph that a fixed Unicode text becomes. A section names such a row by
+// that text alone, and tableRows makes the row: the text's \u escapes are its regex, as 2.x wrote them, and the
+// glyph the table draws the text with, read backwards (tableGlyph), is its replacement. That gives the kinzi row and
+// 37 of the 38 rows of GLYPHS. A row with one fixed text and one fixed replacement is written by hand only where the
+// table read backwards does not give it, with the reason above it: uz.order.5, uz.small.2, uz.glyphs.23 and
+// uz.medial-ra.8. test/next/unicodeToZawgyi.test.mjs checks both ways.
 
 import { deepFreeze } from '../freeze.js';
-import { UNIT_SET_WORDS, addBlockUnit } from '../script/codes.js';
+import { KINZI_TEXT, UNIT_SET_WORDS, addBlockUnit } from '../script/codes.js';
+import { ERR, libraryError } from '../core/errors.js';
 import { ruleMatches, ruleLabel, startTrace, recordStep } from '../core/rules.js';
+import { ZAWGYI_GLYPHS } from '../fonts/zawgyi.js';
 import { collapseRepeatedMarks } from './segment.js';
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -81,13 +90,10 @@ const SHAPES_IN_CONTEXT = /* @__PURE__ */ deepFreeze([
 // U+1064, stored after that consonant, and three glyphs with i, ii or anusvara drawn in
 // (research/zawgyi-to-unicode.md §2, the glyph table: U+1064, U+108B-U+108D).
 
-const KINZI = /* @__PURE__ */ deepFreeze([
-  // Kinzi becomes the kinzi glyph (research/zawgyi-to-unicode.md §2, glyph table: U+1064). The 2.x literal starts
-  // at U+1004, so its first unit is wrapped (decision 29).
-  {
-    id: 'uz.kinzi.1', re: /[\u1004]\u103a\u1039/g,
-    to: '\u1064', repeat: false, needs: '\u1039', label: '\\u1004\\u103a\\u1039'
-  },
+const KINZI = /* @__PURE__ */ tableRows('kinzi', [
+  // Kinzi becomes the kinzi glyph, U+1064, read from the table (research/zawgyi-to-unicode.md §2, glyph table:
+  // U+1064). The text starts at U+1004, so its regex wraps its first unit (decision 29).
+  KINZI_TEXT,
   // The kinzi glyph moves after the consonant it sits on. UTN #11 stores kinzi before that consonant; Zawgyi stores
   // kinzi and stacked consonants after it (research/zawgyi-to-unicode.md §2).
   { id: 'uz.kinzi.2', re: /\u1064([\u1000-\u1021])/g, to: '$1\u1064', repeat: false, needs: '\u1064' },
@@ -143,7 +149,8 @@ const VISUAL_ORDER = /* @__PURE__ */ deepFreeze([
     to: '\u1031$1$2', repeat: false, needs: '\u1039'
   },
   // e goes before medial ra: Zawgyi draws e to the left of the ra that wraps the consonant
-  // (research/zawgyi-to-unicode.md §2).
+  // (research/zawgyi-to-unicode.md §2). Written by hand: it moves e and writes no glyph, so the glyph table has
+  // nothing to give it.
   { id: 'uz.order.5', re: /\u103c\u1031/g, to: '\u1031\u103c', repeat: false, needs: '\u103c' }
 ]);
 
@@ -161,7 +168,8 @@ const SMALL_LETTERS = /* @__PURE__ */ deepFreeze([
     to: '\u108f$1', repeat: false, needs: '\u1014'
   },
   // na after medial ra, which the rows above have put first, is the short na too: the ra runs under it
-  // (research/zawgyi-to-unicode.md §2, glyph table: U+108F).
+  // (research/zawgyi-to-unicode.md §2, glyph table: U+108F). Written by hand: read backwards, the table gives U+108F
+  // for every na, since a plain na is a base with no row of its own, so only the ra before it says when it is meant.
   { id: 'uz.small.2', re: /\u103c\u1014/g, to: '\u103c\u108f', repeat: false, needs: '\u1014' },
   // nya before the same marks is the small nya U+106A (research/zawgyi-to-unicode.md §2, glyph table: "nya, small,
   // for a mark below").
@@ -174,117 +182,59 @@ const SMALL_LETTERS = /* @__PURE__ */ deepFreeze([
 // ---------------------------------------------------------------------------------------------------------------
 // GLYPHS
 //
-// Glyph for glyph (research/zawgyi-to-unicode.md §2, the glyph table read from Unicode to Zawgyi). The order inside
-// this section matters, so it stays sequential: a two-consonant glyph comes before the stacked consonant it holds,
-// stacked ca with medial ya before stacked ca, and the medials and asat take their Zawgyi code points last, from
-// asat down to medial ha, each after every row that still reads its Unicode meaning.
+// Glyph for glyph: each Unicode text below becomes the glyph the table draws it with (research/zawgyi-to-unicode.md
+// §2, the glyph table, read backwards by tableGlyph). The order is 2.x's, and it counts twice:
+// - in the output, where two rows can match the same units. A glyph that joins two consonants comes before the
+//   stacked consonant it holds, which would take its virama; stacked ca with medial ya comes before stacked ca; and
+//   the medials and asat take their Zawgyi code points last, from asat down to medial ha, each after every row that
+//   still reads its Unicode meaning.
+// - in fontConvert.debugging, which lists the rows that changed the text in this order. So rows that never meet,
+//   such as stacked la and medial ha with u, keep their 2.x places too.
 
-const GLYPHS = /* @__PURE__ */ deepFreeze([
+const GLYPHS = /* @__PURE__ */ tableRows('glyphs', [
   // Lagaung followed by nga, asat and visarga is the lagaung glyph alone, which draws all four
   // (research/zawgyi-to-unicode.md §2, glyph table: U+104E; §3 on lagaung).
-  { id: 'uz.glyphs.1', re: /\u104e\u1004\u103a\u1038/g, to: '\u104e', repeat: false, needs: '\u104e' },
+  '\u104E\u1004\u103A\u1038',
   // Tall aa with asat is one glyph, U+105A (research/zawgyi-to-unicode.md §2, glyph table: "tall aa with asat").
-  { id: 'uz.glyphs.2', re: /\u102b\u103a/g, to: '\u105a', repeat: false, needs: '\u102b' },
+  '\u102B\u103A',
   // Great sa is U+1086 (research/zawgyi-to-unicode.md §2, glyph table: "great sa").
-  { id: 'uz.glyphs.3', re: /\u103f/g, to: '\u1086', repeat: false, needs: '\u103f' },
+  '\u103F',
   // A virama and a consonant (UTN #11) are the stacked consonant's glyph (research/zawgyi-to-unicode.md §2, glyph
-  // table: stacked consonants). Stacked la, U+1085.
-  { id: 'uz.glyphs.4', re: /\u1039\u101c/g, to: '\u1085', repeat: false, needs: '\u1039' },
-  // Stacked ma, U+107C (research/zawgyi-to-unicode.md §2, glyph table: stacked consonants).
-  { id: 'uz.glyphs.5', re: /\u1039\u1019/g, to: '\u107c', repeat: false, needs: '\u1039' },
-  // Stacked bha, U+107B (research/zawgyi-to-unicode.md §2, glyph table: stacked consonants).
-  { id: 'uz.glyphs.6', re: /\u1039\u1018/g, to: '\u107b', repeat: false, needs: '\u1039' },
-  // Stacked ba, U+107A (research/zawgyi-to-unicode.md §2, glyph table: stacked consonants).
-  { id: 'uz.glyphs.7', re: /\u1039\u1017/g, to: '\u107a', repeat: false, needs: '\u1039' },
-  // Stacked pha, U+1079 (research/zawgyi-to-unicode.md §2, glyph table: stacked consonants).
-  { id: 'uz.glyphs.8', re: /\u1039\u1016/g, to: '\u1079', repeat: false, needs: '\u1039' },
-  // Stacked pa, U+1078 (research/zawgyi-to-unicode.md §2, glyph table: stacked consonants).
-  { id: 'uz.glyphs.9', re: /\u1039\u1015/g, to: '\u1078', repeat: false, needs: '\u1039' },
-  // Stacked na, U+1077 (research/zawgyi-to-unicode.md §2, glyph table: stacked consonants).
-  { id: 'uz.glyphs.10', re: /\u1039\u1014/g, to: '\u1077', repeat: false, needs: '\u1039' },
-  // Stacked dha, U+1076 (research/zawgyi-to-unicode.md §2, glyph table: stacked consonants).
-  { id: 'uz.glyphs.11', re: /\u1039\u1013/g, to: '\u1076', repeat: false, needs: '\u1039' },
-  // Stacked da, U+1075 (research/zawgyi-to-unicode.md §2, glyph table: stacked consonants).
-  { id: 'uz.glyphs.12', re: /\u1039\u1012/g, to: '\u1075', repeat: false, needs: '\u1039' },
-  // Stacked tha, U+1073 (research/zawgyi-to-unicode.md §2, glyph table: stacked consonants).
-  { id: 'uz.glyphs.13', re: /\u1039\u1011/g, to: '\u1073', repeat: false, needs: '\u1039' },
-  // Stacked ta, U+1071, the wide form; NARROW_TA picks the narrow one (research/zawgyi-to-unicode.md §2, glyph
-  // table: stacked consonants).
-  { id: 'uz.glyphs.14', re: /\u1039\u1010/g, to: '\u1071', repeat: false, needs: '\u1039' },
-  // Stacked nna, U+1070 (research/zawgyi-to-unicode.md §2, glyph table: stacked consonants).
-  { id: 'uz.glyphs.15', re: /\u1039\u100f/g, to: '\u1070', repeat: false, needs: '\u1039' },
-  // dda with a stacked ddha is one glyph, U+106F (research/zawgyi-to-unicode.md §2, glyph table: two consonants in
-  // one glyph). The 2.x literal starts at U+100D, so its first unit is wrapped (decision 29).
-  {
-    id: 'uz.glyphs.16', re: /[\u100d]\u1039\u100e/g,
-    to: '\u106f', repeat: false, needs: '\u1039', label: '\\u100d\\u1039\\u100e'
-  },
-  // nna with a stacked dda is U+1091 (research/zawgyi-to-unicode.md §2, glyph table: two consonants in one glyph).
-  // Wrapped, as above.
-  {
-    id: 'uz.glyphs.17', re: /[\u100f]\u1039\u100d/g,
-    to: '\u1091', repeat: false, needs: '\u1039', label: '\\u100f\\u1039\\u100d'
-  },
-  // dda with a stacked dda is U+106E (research/zawgyi-to-unicode.md §2, glyph table: two consonants in one glyph).
-  // Wrapped.
-  {
-    id: 'uz.glyphs.18', re: /[\u100d]\u1039\u100d/g,
-    to: '\u106e', repeat: false, needs: '\u1039', label: '\\u100d\\u1039\\u100d'
-  },
-  // tta with a stacked ttha is U+1092 (research/zawgyi-to-unicode.md §2, glyph table: two consonants in one glyph),
-  // before the stacked ttha below can take its virama. Wrapped.
-  {
-    id: 'uz.glyphs.19', re: /[\u100b]\u1039\u100c/g,
-    to: '\u1092', repeat: false, needs: '\u1039', label: '\\u100b\\u1039\\u100c'
-  },
-  // Stacked ttha, U+106D (research/zawgyi-to-unicode.md §2, glyph table: stacked consonants).
-  { id: 'uz.glyphs.20', re: /\u1039\u100c/g, to: '\u106d', repeat: false, needs: '\u1039' },
-  // tta with a stacked tta is U+1097 (research/zawgyi-to-unicode.md §2, glyph table: two consonants in one glyph),
-  // before the stacked tta below can take its virama. Wrapped.
-  {
-    id: 'uz.glyphs.21', re: /[\u100b]\u1039\u100b/g,
-    to: '\u1097', repeat: false, needs: '\u1039', label: '\\u100b\\u1039\\u100b'
-  },
-  // Stacked tta, U+106C (research/zawgyi-to-unicode.md §2, glyph table: stacked consonants).
-  { id: 'uz.glyphs.22', re: /\u1039\u100b/g, to: '\u106c', repeat: false, needs: '\u1039' },
+  // table: stacked consonants): la, ma, bha, ba, pha, pa, na, dha, da, tha, ta and nna. The table draws stacked ta
+  // with its wide form, U+1071, first; NARROW_TA picks the narrow one.
+  '\u1039\u101C', '\u1039\u1019', '\u1039\u1018', '\u1039\u1017', '\u1039\u1016', '\u1039\u1015', '\u1039\u1014',
+  '\u1039\u1013', '\u1039\u1012', '\u1039\u1011', '\u1039\u1010', '\u1039\u100F',
+  // Two consonants in one glyph (research/zawgyi-to-unicode.md §2, glyph table: two consonants in one glyph): dda
+  // with ddha, nna with dda, dda with dda, tta with ttha before stacked ttha, and tta with tta before stacked tta.
+  // Their texts start at U+100B-U+100F, so their regexes wrap the first unit (decision 29).
+  '\u100D\u1039\u100E', '\u100F\u1039\u100D', '\u100D\u1039\u100D', '\u100B\u1039\u100C', '\u1039\u100C',
+  '\u100B\u1039\u100B', '\u1039\u100B',
   // Stacked ca with medial ya is the stacked jha U+1069, which Zawgyi draws that way (research/zawgyi-to-unicode.md
-  // §3, letters Zawgyi draws alike); it comes before stacked ca.
+  // §3, letters Zawgyi draws alike); it comes before stacked ca. Written by hand: the table reads U+1069 as stacked
+  // jha, U+1039 U+1008, so read backwards it gives U+1069 for stacked jha, which 2.x leaves alone (uz.glyphs.34).
   { id: 'uz.glyphs.23', re: /\u1039\u1005\u103b/g, to: '\u1069', repeat: false, needs: '\u1039' },
-  // Stacked ja, U+1068 (research/zawgyi-to-unicode.md §2, glyph table: stacked consonants).
-  { id: 'uz.glyphs.24', re: /\u1039\u1007/g, to: '\u1068', repeat: false, needs: '\u1039' },
-  // Stacked cha, U+1066 (research/zawgyi-to-unicode.md §2, glyph table: stacked consonants).
-  { id: 'uz.glyphs.25', re: /\u1039\u1006/g, to: '\u1066', repeat: false, needs: '\u1039' },
-  // Stacked ca, U+1065 (research/zawgyi-to-unicode.md §2, glyph table: stacked consonants).
-  { id: 'uz.glyphs.26', re: /\u1039\u1005/g, to: '\u1065', repeat: false, needs: '\u1039' },
-  // Stacked gha, U+1063 (research/zawgyi-to-unicode.md §2, glyph table: stacked consonants).
-  { id: 'uz.glyphs.27', re: /\u1039\u1003/g, to: '\u1063', repeat: false, needs: '\u1039' },
-  // Stacked ga, U+1062 (research/zawgyi-to-unicode.md §2, glyph table: stacked consonants).
-  { id: 'uz.glyphs.28', re: /\u1039\u1002/g, to: '\u1062', repeat: false, needs: '\u1039' },
-  // Stacked kha, U+1061 (research/zawgyi-to-unicode.md §2, glyph table: stacked consonants).
-  { id: 'uz.glyphs.29', re: /\u1039\u1001/g, to: '\u1061', repeat: false, needs: '\u1039' },
-  // Medial wa with medial ha is one glyph, U+108A (research/zawgyi-to-unicode.md §2, glyph table: "wa with ha").
-  { id: 'uz.glyphs.30', re: /\u103d\u103e/g, to: '\u108a', repeat: false, needs: '\u103e' },
-  // Medial ha with uu is U+1089 (research/zawgyi-to-unicode.md §2, glyph table: "ha with uu").
-  { id: 'uz.glyphs.31', re: /\u103e\u1030/g, to: '\u1089', repeat: false, needs: '\u103e' },
-  // Stacked ka, U+1060 (research/zawgyi-to-unicode.md §2, glyph table: stacked consonants).
-  { id: 'uz.glyphs.32', re: /\u1039\u1000/g, to: '\u1060', repeat: false, needs: '\u1039' },
-  // Medial ha with u is U+1088 (research/zawgyi-to-unicode.md §2, glyph table: "ha with u").
-  { id: 'uz.glyphs.33', re: /\u103e\u102f/g, to: '\u1088', repeat: false, needs: '\u103e' },
+  // The stacked consonants ja, cha, ca, gha, ga and kha (research/zawgyi-to-unicode.md §2, glyph table: stacked
+  // consonants).
+  '\u1039\u1007', '\u1039\u1006', '\u1039\u1005', '\u1039\u1003', '\u1039\u1002', '\u1039\u1001',
+  // Medial wa with medial ha is one glyph, U+108A, and medial ha with uu is U+1089; then stacked ka, U+1060, and
+  // medial ha with u, U+1088 (research/zawgyi-to-unicode.md §2, glyph table: "wa with ha", "ha with uu", stacked
+  // consonants, "ha with u").
+  '\u103D\u103E', '\u103E\u1030', '\u1039\u1000', '\u103E\u102F',
   // Asat takes Zawgyi's code point for it, U+1039, which is Unicode's virama, now that every row that reads a
   // virama has run (research/zawgyi-to-unicode.md §2, glyph table: U+1039, "asat"). A virama that no row read stays
   // U+1039 and so reads as asat, as in 2.x: stacked jha typed with U+1008, for one, since only stacked ca with
   // medial ya becomes U+1069.
-  { id: 'uz.glyphs.34', re: /\u103a/g, to: '\u1039', repeat: false, needs: '\u103a' },
+  '\u103A',
   // Medial ya takes U+103A, now free (research/zawgyi-to-unicode.md §2, glyph table: U+103A, "ya").
-  { id: 'uz.glyphs.35', re: /\u103b/g, to: '\u103a', repeat: false, needs: '\u103b' },
+  '\u103B',
   // Medial ra takes U+103B, the narrow ra; MEDIAL_RA_SHAPES picks its shape (research/zawgyi-to-unicode.md §2,
   // glyph table: "ra, narrow").
-  { id: 'uz.glyphs.36', re: /\u103c/g, to: '\u103b', repeat: false, needs: '\u103c' },
+  '\u103C',
   // Medial wa takes U+103C (research/zawgyi-to-unicode.md §2, glyph table: U+103C, "wa").
-  { id: 'uz.glyphs.37', re: /\u103d/g, to: '\u103c', repeat: false, needs: '\u103d' },
+  '\u103D',
   // Medial ha takes U+103D, the full ha, also under medial ra, where real Zawgyi text has both the full and the
   // short ha (research/zawgyi-to-unicode.md §5, open question 2).
-  { id: 'uz.glyphs.38', re: /\u103e/g, to: '\u103d', repeat: false, needs: '\u103e' }
+  '\u103E'
 ]);
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -361,9 +311,60 @@ const MEDIAL_RA_SHAPES = /* @__PURE__ */ deepFreeze([
     to: '\u1082$1', repeat: true, needs: '\u107e'
   },
   // Narrow ra on nya is the ra cut for a lower mark, with the small nya: U+1081 U+106A
-  // (research/zawgyi-to-unicode.md §2, glyph table: U+1081, U+106A).
+  // (research/zawgyi-to-unicode.md §2, glyph table: U+1081, U+106A). Written by hand: it writes two glyphs, each
+  // chosen by the other, where the table gives one glyph for one text.
   { id: 'uz.medial-ra.8', re: /\u103b\u1009/g, to: '\u1081\u106a', repeat: true, needs: '\u1009' }
 ]);
+
+// ---------------------------------------------------------------------------------------------------------------
+// Rows read from the glyph table.
+
+// The rows of a section, from its entries in order: a row written by hand stays as it is, and a Unicode text
+// becomes the row that writes the table's glyph for it (tableRow), with the id 'uz.<section>.<n>' of the n-th entry.
+function tableRows(section, entries) {
+  const rows = [];
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
+    rows.push(typeof entry === 'string' ? tableRow('uz.' + section + '.' + (i + 1), entry) : entry);
+  }
+  return deepFreeze(rows);
+}
+
+// The row `id` that writes the table's glyph for each `text`. Its regex is the text's \u escapes, lowercase, as 2.x
+// wrote its literals, and so its label is too; where the text starts at U+1000-U+1010, the regex wraps that first
+// unit in a one-character class, and the row keeps the plain escapes as its label (decision 29). Every match is the
+// text, so it holds the text's virama where it has one, else its first unit (needs).
+function tableRow(id, text) {
+  const escapes = escapedUnits(text);
+  const first = text.charCodeAt(0);
+  const wrapped = first >= 0x1000 && first <= 0x1010;
+  const pattern = wrapped ? '[' + escapes.slice(0, 6) + ']' + escapes.slice(6) : escapes;
+  const needs = text.indexOf('\u1039') === -1 ? text.charAt(0) : '\u1039';
+  const row = { id: id, re: new RegExp(pattern, 'g'), to: tableGlyph(text), repeat: false, needs: needs };
+  if (wrapped) row.label = escapes;
+  return row;
+}
+
+// The units of text as lowercase \u escapes, the way 2.x wrote its regex literals: \u1039\u101c for stacked la. The
+// table's units all lie in U+1000-U+109F, so each has four hex digits.
+function escapedUnits(text) {
+  let escapes = '';
+  for (let i = 0; i < text.length; i++) escapes += '\\u' + text.charCodeAt(i).toString(16);
+  return escapes;
+}
+
+// The glyph the Zawgyi table draws text with: the table read backwards (research/zawgyi-to-unicode.md §2), the
+// first glyph whose row is exactly text, its attached marks included. Where several glyphs draw one text, the table
+// lists the plain shape first; the others are the shapes the context rows choose (the narrow stacked ta, the short
+// ya), or shapes no row writes (the other widths of stacked cha, tha and bha, the short ha).
+function tableGlyph(text) {
+  const glyphs = Object.keys(ZAWGYI_GLYPHS);
+  for (let i = 0; i < glyphs.length; i++) {
+    const row = ZAWGYI_GLYPHS[glyphs[i]];
+    if (row[1] + (row.length > 2 ? row[2] : '') === text) return glyphs[i];
+  }
+  throw libraryError(ERR.INVALID_FONT_TABLE, 'knayi fonts/zawgyi.js: no glyph draws ' + escapedUnits(text));
+}
 
 // ---------------------------------------------------------------------------------------------------------------
 // The rows and their runner.

@@ -90,6 +90,7 @@ A parallel effort is changing the 2.x line: a linear NFC helper, the Phase 1c co
 5. **Regex sources are 2.x debug output.**
    - The Unicode to Zawgyi labels must equal 2.x's `RegExp#source` strings byte for byte, with the same `\u` escapes and the same letter case.
    - Write regex literals with `\u` escapes. Never paste the characters themselves.
+   - One kind of regex is built rather than written: a Unicode to Zawgyi row read from the Zawgyi glyph table, whose pattern is its text's `\u` escapes, made at load by `tableRow` (§3.9). The floor guard lets that one function build a regex from data, and the module test compares each pattern with 2.x's source (§6.2).
 6. **Linear time on every input.** Super-linear time is a security bug (SECURITY.md). No loop may rescan text it has already read.
 7. **Tree-shakable.** Top-level code follows §2.4, so that an import pulls in only what it uses.
 
@@ -608,6 +609,8 @@ export function unicodeToZawgyi(text: string): string     // collapseRepeatedMar
 export function traceUnicodeToZawgyi(text: string, trace: Trace): string   // trace.start = the collapsed text
 ```
 
+The rows of one fixed text whose glyph the Zawgyi glyph table gives, read backwards, are built from `fonts/zawgyi.js` at load (§3.9, Phase 6 #5): a section lists such a row by its Unicode text alone.
+
 #### `src/stages/normalize.js` (L3 stages, W5)
 
 ```ts
@@ -672,7 +675,7 @@ A 3.0 user who imports only `normalize` must not download the glyph tables (§6.
 3. **Anything else goes in a builder function**, called once with a `/* @__PURE__ */` annotation. That covers a call, a `new` (typed arrays and scratch objects included), a property read such as `CP.KA`, and an operator on any value. For example, `export const CLASS = /* @__PURE__ */ buildClassTable()`, and `const ZAWGYI = /* @__PURE__ */ compileFont(ZAWGYI_FONT)`. The arguments of an annotated call follow rule 2: identifiers and literals only.
    - **A table whose rows read properties**, such as glyph rows that name `ROLE.BASE`, is returned by its builder: `export const ZAWGYI_GLYPHS = /* @__PURE__ */ zawgyiGlyphTable()`. The builder's body is a single `return deepFreeze({ ... })`. The function-size guard counts such a body as data, not code, so its 40-line limit does not apply (§6.2).
 4. **Frozen data goes through `deepFreeze`**, annotated: `export const ERR = /* @__PURE__ */ deepFreeze({ ... })`. A bare `Object.freeze(...)` is not allowed at the top level.
-5. **Strings are literals**, with `\u` escapes, never built at load. `KINZI_TEXT` is a literal of three escapes.
+5. **Strings are literals**, with `\u` escapes, never built at load. `KINZI_TEXT` is a literal of three escapes. The patterns and labels of the rows read from the glyph table (§3.9) are the one exception: an annotated builder makes them from the table's texts, which are literals.
 6. **Bit masks and option bits are number literals**, each with a comment that names what it combines (`MASK_ANY_AA`, `UNICODE_READING.heldZeroWidth`). A test checks each one against its definition.
 
 The evidence is from esbuild 0.25.12, with `"sideEffects": false` and with and without minify. These stay in the bundle when nothing uses them:
@@ -1016,8 +1019,10 @@ All of this goes in flat typed arrays, built at load. There are no per-glyph obj
 ### 3.9 Rule rows and traces
 
 **Rule rows** (`RuleRow`, §2.3) replace 2.x's bare tuples. A row ships only what the code reads: `id`, `re`, `to`, `repeat`, `needs` on the Unicode to Zawgyi rows (§3.10, gate 3), and `label` on six rows (D17). The row tables are:
-- Unicode to Zawgyi: 65 rows in 2.x order. The source holds them in named section arrays, SHAPES_IN_CONTEXT, KINZI, VISUAL_ORDER, SMALL_LETTERS, GLYPHS, NARROW_TA and MEDIAL_RA_SHAPES (PR 3.5 of the plan). They are joined in 2.x order by a `/* @__PURE__ */` builder (§2.4). GLYPHS stays sequential, because order matters inside it. Each row has a `why` comment above it, and each id has an example in `test/next/unicodeToZawgyi.test.mjs`.
+- Unicode to Zawgyi: 65 rows in 2.x order. The source holds them in named section arrays, SHAPES_IN_CONTEXT, KINZI, VISUAL_ORDER, SMALL_LETTERS, GLYPHS, NARROW_TA and MEDIAL_RA_SHAPES (PR 3.5 of the plan). They are joined in 2.x order by a `/* @__PURE__ */` builder (§2.4). The rows of one fixed text whose glyph the Zawgyi glyph table gives are read from it (below). Each row has a `why` comment above it, a run of table texts one comment for the run, and each id has an example in `test/next/unicodeToZawgyi.test.mjs`.
 - the font sequences, with their 2.x comments.
+
+**Rows read from the Zawgyi glyph table** (plan Phase 6 #5, §7.12). 42 of 2.x's 65 rows replace one fixed Unicode text with one fixed text. For 38 of them, the replacement is the glyph that `fonts/zawgyi.js` draws that text with: the table read backwards, taking the first glyph whose row is exactly the text, its attached marks included (where several glyphs draw one text, the table lists the plain shape first). A section lists such a row by its Unicode text alone, and `tableRows` builds the row at load: its regex is the text's `\u` escapes in lowercase, as 2.x wrote them, so its label is 2.x's source, and a text that starts at U+1000-U+1010 gets the wrapped regex and the label of decision 29. Its `needs` is the text's virama, or its first unit. That is the kinzi row and 37 of the 38 rows of GLYPHS. The other four are written by hand, each with the reason above it, because the table read backwards does not give them: `uz.order.5` moves e and writes no glyph; `uz.small.2` writes the short na, which the table gives for every na, only after medial ra; `uz.glyphs.23` writes the stacked jha glyph U+1069 for stacked ca with medial ya, while the table reads U+1069 as stacked jha, which 2.x leaves alone; `uz.medial-ra.8` writes two glyphs, each chosen by the other. The test checks both ways: the rows the source lists as texts are exactly the 2.x rows whose replacement is the table's glyph for their text. The order of the rows stays 2.x's and is written out: it decides the output where two rows can match the same units, and `fontConvert.debugging` lists the rows that changed the text in it.
 
 The typo rules are not rule rows: `fixTypos` is one scan (below). They are documented, with a `why` and an example each, in `spec/typoRows.js`, which the tests read.
 
@@ -1381,7 +1386,7 @@ The 2.x line brings each of these, and they reach compat through §8.
    - pipelines: stage ids unique within each `*_STAGES` list (§2.3);
    - errors: every `throw` in `src/` throws `libraryError(...)`, except `legacyTypeError()` in `compat/legacy.js` (D13);
    - stateless core (§4);
-   - floor (D14): acorn at ES2015, the regex floor (no lookbehind, named groups, `\p{}` or `s` flag in any regex, literal or built), and the ES2016+ built-in denylist below;
+   - floor (D14): acorn at ES2015, the regex floor (no lookbehind, named groups, `\p{}` or `s` flag in any regex, literal or built; a built regex is built from string literals, except in the one function the guard lists, `tableRow` of `rules/unicodeToZawgyi.js`, whose patterns `unicodeToZawgyi.test.mjs` reads instead, §3.9), and the ES2016+ built-in denylist below;
    - function size: every function in `src/` is at most 40 lines, except `reorderUnicode` and `readFont`, which may reach 70, and the table builders of §2.4, whose body is a single `return` of a literal or of `deepFreeze` of a literal;
    - atom lint: no `re` in a rule row and no `indexOf` needle is a pure literal starting at exactly U+1000-U+1010 (decision 29);
    - citations (as reviewed, §7.11): no comment in `src/` cites the refactor plan or its evidence folder, which are outside the repository; every plan decision and every kept 2.x quirk it names is a row of §1.3 or §10; and every 2.x line number names a file that `scripts/oracle/` keeps frozen at the reference;
@@ -1876,6 +1881,15 @@ A review of W0-W8 on `next-compat` (3af8172) found the problems below. Each fix 
 - **Sizes.** The gates and the `needs` of the 65 Unicode to Zawgyi rows cost bytes: compat is 16,708 B gzip (16,009 B before the review's speed changes) and the normalize-only bundle 6,528 B (6,357 B). Both targets of §6.4 were missed before, and still need the maintainer's decision before the gate.
 - **The branch.** The review found `next` holding only the design (e1fb695) and checked out in the `next-design` worktree, while the built core sat on `next-integration` and `next-compat`, merged into `next` by no one. The fixes above are commits on `next-review`, which starts from `next-compat` and so contains every module of W0-W8; `next` is an ancestor of it. Once `next` is free of the `next-design` worktree, `next-review` merges into `next`, with a merge commit as CONTRIBUTING.md asks of stacked pull requests, or as a fast-forward.
 - **Speed after the review**, `npm run perf -- --base e5f6e24fa756f8f9c8d790f9a15ede85b135e8ae --head mjs:src/compat/index.js --rounds 5 --max-slowdown 0`, on a machine shared with other work (load 4-7), so not the gate's quiet run: it passes the binding checks of D22, with no Node row above 1.00 (the highest is `spellingFix.unicode` per string, 0.54) and no growth exponent above 1.3 of the 2,264 cells under Node (highest 1.20) or Bun (highest 1.18). Node, line / word / string / document: `normalize` 0.23 / 0.23 / 0.23 / 0.24; `fontConvert.zawgyi-unicode` 0.36 / 0.39 / 0.37 / 0.37; `fontConvert.win-unicode` 0.38 / 0.43 / 0.38 / 0.38; `fontConvert.detected-unicode` 0.30 / 0.25 / 0.33 / 0.33; `fontConvert.unicode-zawgyi` 0.49 / 0.30 / 0.49 / 0.49; `fontDetect` 0.19 / 0.11 / 0.23 / 0.23; `syllBreak.unicode` 0.31 / 0.23 / 0.41 / 0.41; `syllBreak.zawgyi` 0.35 / 0.24 / 0.44 / 0.44; `spellingFix.unicode` 0.37 / 0.19 / 0.54 / 0.54 (round ranges 0.27-0.37 and 0.44-0.54); `spellingFix.zawgyi` 0.11 / 0.05 / 0.17 / 0.17; `truncate.30` 0.29 / 0.18 / 0.34 / 0.33. Every goal of §6.4 holds, the one-string goals at 2,000,000 units. Bun reads no row over 1.10: `fontConvert.unicode-zawgyi` 0.80 / 0.41 / 0.91 / 0.92, `normalize` 0.21-0.23, Zawgyi to Unicode 0.33-0.49, and `fontDetect` per string 0.58.
+
+### 7.12 The generated Unicode to Zawgyi writer (plan Phase 6 #5)
+
+Phase 6 #5 of the plan: the rows of Unicode to Zawgyi that write one glyph for one fixed text are generated from the Zawgyi glyph table read backwards, and the rows where that inverse does not hold stay written by hand. Built on `next-u2z-writer`, from `next` at c8ebefe. No output changes: compat and its debug log stay the reference's.
+
+- **The rows** (§3.9). 42 of 2.x's rows replace one fixed text with one fixed text. 38 of them replace it with the glyph the table draws it with, and none with another of its glyphs, as reuse-11 of the plan counted. These 38, the kinzi row and 37 of GLYPHS, are listed as their Unicode texts and built at load by `tableRows`, with 2.x's labels, the six wrapped rows of decision 29 among them. The four the table does not give are written by hand, each with its reason above it. The test checks both ways, and that each hand-written row says why. The order of GLYPHS stays written out: no rule of the table gives it (medial wa with ha and ha with uu sit between stacked kha and stacked ka), and it is output, through the rows that overlap and through the order of `fontConvert.debugging`. One `needs` changed: `uz.glyphs.30`, medial wa with ha, now names its first unit, wa, where it named ha.
+- **The floor guard** reads every regex of `src/`, and these rows' regexes are built from the table's texts. It now lists `tableRow` as the one function that may build a regex from data (`BUILT_FROM_DATA`), whose patterns `unicodeToZawgyi.test.mjs` compares with 2.x's sources, and a test pins that it is the only one.
+- **Checks.** `npm run compare -- --base e5f6e24fa756f8f9c8d790f9a15ede85b135e8ae --head mjs:src/compat/index.js`: 0 differences in 2,771,318 comparisons under Node 26.5 and under Bun 1.4.2. The contract matrix: all 3,523 cells match for compat under Node and Bun, in either order. `unicodeToZawgyi.fuzz.test.mjs`: 0 differences.
+- **Speed and size.** The rows run as before, so the speed is `next`'s: 0.98-1.01 of it per line, word, string and document under Node and Bun, interleaved. compat is 16,601 B gzip, 107 B less than `next`'s 16,708 B (51,433 B minified, 1,832 B less): the texts and their builder are smaller than the 38 regex literals they replace. The normalize-only bundle is unchanged at 6,528 B.
 
 ---
 
