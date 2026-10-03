@@ -127,10 +127,14 @@ function zawgyiGlyphTable() {
 // Applied before the glyphs, in order, each once (the stage 'sequences'). research/zawgyi-to-unicode.md §3,
 // "Letters Zawgyi draws alike": the digit four before nga, asat and visarga is lagaung unless a digit comes before
 // it, and the lagaung glyph followed by the nga, asat and visarga it already draws is one lagaung, which
-// myanmar-tools and 2.9 doubled.
+// myanmar-tools and 2.9 doubled. The first row starts with a group, so its regex is tried at every position of the
+// text; it names the four it needs (core/rules.js), and a text with no four skips it.
 export const LAGAUNG_SEQUENCES = /* @__PURE__ */ deepFreeze([
   // The digit four typed for lagaung.
-  { id: 'zg.lagaung.1', re: /(^|[^\u1040-\u1049])\u1044\u1004\u1039\u1038/g, to: '$1\u104E', repeat: false },
+  {
+    id: 'zg.lagaung.1', re: /(^|[^\u1040-\u1049])\u1044\u1004\u1039\u1038/g, to: '$1\u104E', repeat: false,
+    needs: '\u1044'
+  },
   // Lagaung typed with the nga, asat and visarga it draws.
   { id: 'zg.lagaung.2', re: /\u104E\u1004\u1039\u1038/g, to: '\u104E', repeat: false }
 ]);

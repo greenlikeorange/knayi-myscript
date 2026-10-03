@@ -74,6 +74,30 @@ describe('src/fonts/zawgyi.js (DESIGN.md §2.3)', () => {
   it('LAGAUNG_SEQUENCES are the 2.x sequences', () => {
     assertSameSequences(LAGAUNG_SEQUENCES, zawgyi2x.SEQUENCES);
   });
+  it('a sequence that names its needs holds one of them in every match (DESIGN.md §3.10, gate 3)', () => {
+    // Pieces, the whole sequences among them, so that the rows match often.
+    const units = ['\u1040', '\u1041', '\u1044', '\u1004\u1039\u1038', '\u1044\u1004\u1039\u1038', '\u104E', 'a', ' '];
+    let seed = 4711;
+    let matches = 0;
+    for (const row of LAGAUNG_SEQUENCES.concat(LOOK_ALIKE_SEQUENCES).filter((r) => r.needs !== undefined)) {
+      for (const unit of row.needs) {
+        const escape = '\\u' + unit.charCodeAt(0).toString(16);
+        assert.ok(row.re.source.toLowerCase().indexOf(escape) !== -1, row.id + ' names ' + hex(unit.charCodeAt(0)));
+      }
+      for (let n = 0; n < 20000; n++) {
+        let text = '';
+        for (let k = 1 + (n % 9); k > 0; k--) {
+          seed = (seed * 1103515245 + 12345) >>> 0;
+          text += units[(seed >>> 16) % units.length];
+        }
+        for (const match of text.matchAll(new RegExp(row.re.source, 'g'))) {
+          matches++;
+          assert.ok([...row.needs].some((unit) => match[0].indexOf(unit) !== -1), row.id + ' on ' + text);
+        }
+      }
+    }
+    assert.ok(matches > 100, matches + ' matches');
+  });
 
   it('ZAWGYI_FONT declares the table, the sequences, the digits and lagaung as a whole base', () => {
     assert.equal(ZAWGYI_FONT.name, 'zawgyi');

@@ -196,7 +196,7 @@ describe('the stateless core (DESIGN.md §4)', () => {
       let text = '';
       for (let k = (n % 6) + 1; k > 0; k--) {
         seed = (seed * 1103515245 + 12345) >>> 0;
-        text += pieces[seed % pieces.length];
+        text += pieces[(seed >>> 16) % pieces.length];
       }
       for (const [fix, probe, expected] of checks) {
         fix(text);

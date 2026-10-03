@@ -1,9 +1,11 @@
 // Rule rows and their runner, traces, and the stage runner (DESIGN.md §2.3, §3.9, §3.10, D4, D10). Layer L1.
 // Owner: W1 (core).
 //
-// A RuleRow is { id, re, to, repeat, label? }: a global regex, its replacement, whether it repeats, and, on the
-// six wrapped Unicode to Zawgyi rows only, the 2.x source as its label (decision 29). A row's `why` is a comment
-// above it in its table, never a field (D17).
+// A RuleRow is { id, re, to, repeat, needs?, label? }: a global regex, its replacement, whether it repeats, the
+// units of which every match holds one (where its table names them), and, on the six wrapped Unicode to Zawgyi
+// rows only, the 2.x source as its label (decision 29). A row's `why` is a comment above it in its table, never a
+// field (D17). A row with `needs` is skipped on a text that holds none of them: it cannot match there (DESIGN.md
+// §3.10, gate 3).
 //
 // A Trace is { start, records: [{ id, label, text }] }: the text a pipeline started from, then the text after each
 // step that changed it. It is one shape for both kinds of 2.x debug log (D4): 2.x's `steps` is
@@ -27,13 +29,26 @@ export function ruleMatches(row, text) {
 }
 
 // text after every row, in order: a once row replaces every match once; a repeat row replaces until it no
-// longer matches or changes the text, at most REPEAT_LIMIT times (syllable.js replaceOnce, replaceRepeated).
+// longer matches or changes the text, at most REPEAT_LIMIT times (syllable.js replaceOnce, replaceRepeated). A row
+// that cannot match is skipped.
 export function applyRuleRows(text, rows) {
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
+    if (!mayMatch(row, text)) continue;
     text = row.repeat ? replaceRepeatedly(text, row) : text.replace(row.re, row.to);
   }
   return text;
+}
+
+// Whether the row may match the text: it names no `needs`, or the text holds one of them. Searching for a unit is
+// one fast scan, where a regex that starts with a class or a group is tried at every position of the text.
+function mayMatch(row, text) {
+  const needs = row.needs;
+  if (needs === undefined) return true;
+  for (let i = 0; i < needs.length; i++) {
+    if (text.indexOf(needs[i]) !== -1) return true;
+  }
+  return false;
 }
 
 // 2.x replaceRepeated: a rule whose replacement makes a new match runs again, so a run of marks moves one step
@@ -56,6 +71,7 @@ function replaceRepeatedly(text, row) {
 export function traceRuleRows(text, rows, trace) {
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
+    if (!mayMatch(row, text)) continue; // a row that cannot match changes nothing, and 2.x logs nothing for it
     const next = row.repeat ? replaceRepeatedly(text, row) : text.replace(row.re, row.to);
     const logged = row.repeat ? ruleMatches(row, text) : next !== text;
     if (logged) recordStep(trace, row.id, ruleLabel(row), next);

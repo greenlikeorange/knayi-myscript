@@ -125,6 +125,26 @@ describe('core/rules.js traceRuleRows', () => {
   });
 });
 
+describe('core/rules.js rows that name their needs (DESIGN.md §3.10, gate 3)', () => {
+  // A row that would count its skipped calls: it matches every text, so only the skip keeps it from changing one.
+  const counted = Object.assign(row('needs.x', /^/g, 'seen ', false), { needs: 'xy' });
+
+  it('applyRuleRows skips a row on a text that holds none of its needs, and runs it on one that holds any', () => {
+    assert.equal(applyRuleRows('abc', [counted]), 'abc');
+    assert.equal(applyRuleRows('abx', [counted]), 'seen abx');
+    assert.equal(applyRuleRows('yab', [counted]), 'seen yab');
+  });
+
+  it('traceRuleRows skips it the same way, and records nothing for it', () => {
+    const trace = createTrace();
+    startTrace(trace, 'abc');
+    assert.equal(traceRuleRows('abc', [counted], trace), 'abc');
+    assert.deepEqual(trace.records, []);
+    startTrace(trace, 'abx');
+    assert.equal(traceRuleRows('abx', [counted], trace), 'seen abx');
+    assert.deepEqual(trace.records, [{ id: 'needs.x', label: '^', text: 'seen abx' }]);
+  });
+});
 describe('core/rules.js traces', () => {
   it('createTrace makes an empty trace, and startTrace starts it over', () => {
     const trace = createTrace();
