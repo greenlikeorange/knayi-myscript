@@ -96,7 +96,7 @@ The three CLDR pairs 2.10 misses expect ICU's output: the asat of ါ် before 
 | Okell | 16,924 | 13 | 12 | 8 |
 | google/language-resources pairs | 80 | 3 | 3 | 3 |
 
-None of these lines came back before. Where a line still differs, the difference is elsewhere: a medial ra written after spaces (the Okell line), a zero typed for ဝ, a no-break space before a virama. A script, not a person, checked every string whose Zawgyi output changed (the counts are in CHANGELOG.md): each output is the old one with U+1039 U+1008 written as U+1069, and each input has a virama before ဈ. In 10 of the 14 mC4 lines that change, the text is Zawgyi read as Unicode, with ေ typed between the asat and ဈ.
+None of these lines came back before. Where a line still differs, the difference is elsewhere: a medial ra written after spaces (the Okell line), a zero typed for ဝ, a no-break space before a virama. No changed line was checked by hand: 0 of the 50 corpus lines and pair strings whose Zawgyi output changed (8 Wikipedia, 12 of the first Wikipedia sample, 13 Okell, 14 mC4, 1 Shan, 1 Pa'o and 1 Google pair string; CHANGELOG.md). A script checked every changed string, those and the generated and random ones: each output is the old one with U+1039 U+1008 written as U+1069, and each input has a virama before ဈ. In 10 of the 14 mC4 lines that change, the text is Zawgyi read as Unicode, with ေ typed between the asat and ဈ.
 
 **Win**, converted with the shared rules:
 - **Reference pairs:** the ufc and python-myanmar pairs give the same output as before.
