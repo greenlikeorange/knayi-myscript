@@ -162,7 +162,7 @@ How it was made:
 - **Last step:** the result is NFC.
 
 **Decisions.**
-- **Name:** the font name is `win` ([#25](https://github.com/greenlikeorange/knayi-myscript/issues/25)).
+- **Name:** the font name is `win` ([#25](https://github.com/greenlikeorange/knayi-myscript/issues/25)), in any letter case, like every font name: `Win` and `WIN` work too.
 - **Direction:** Win → Unicode only, the maintainer's decision. A Win target, or Win to Zawgyi, returns the text unchanged with an error, like an unknown font.
 - **Direct rules:** an earlier version named Win glyphs by their Zawgyi code points and reused knayi's Zawgyi rules. At the maintainer's request it was replaced by the direct rules above.
 - **No detection:** the source font must be named. Win text is ASCII, and `fontDetect` returns `'en'` for it.

@@ -22,8 +22,13 @@ function hasMyanmar(content) {
   return typeof content === 'string' && MYANMAR.test(content);
 }
 
+// 'unicode', 'zawgyi' or 'win' for a font name or alias, else null. Names are case-insensitive, so 'Unicode' and
+// 'ZAWGYI' are fonts too; a String object counts as its string. Any other value is looked up by its property name,
+// as it is.
 function resolveFont(fontType) {
   if (fontType == null || fontType === '') return null;
+  fontType = toText(fontType);
+  if (typeof fontType === 'string') fontType = fontType.toLowerCase();
   if (Object.prototype.hasOwnProperty.call(FONT_ALIASES, fontType)) {
     return FONT_ALIASES[fontType];
   }

@@ -3,13 +3,16 @@ const assert = require('node:assert/strict');
 const knayi = require('../main');
 
 // Font names (README, "Font names"). A name is a string other than '': 'unicode', 'zawgyi', their aliases 'uni'
-// and 'zaw', and 'win'. A font that is not a string, or '', means "detect the font". syllBreak and truncate break
-// Unicode and Zawgyi text only, so they throw a TypeError with the code ERR_KNAYI_INVALID_FONT for 'win' and for
-// unknown names; spellingFix uses the Unicode marks for them; fontConvert detects an unknown source and warns.
+// and 'zaw', and 'win', in any case. A font that is not a string, or '', means "detect the font". syllBreak and
+// truncate break Unicode and Zawgyi text only, so they throw a TypeError with the code ERR_KNAYI_INVALID_FONT for
+// 'win' and for unknown names; spellingFix uses the Unicode marks for them; fontConvert detects an unknown source
+// and warns.
 
 const UNICODE = 'မြန်မာ';
 const ZAWGYI = 'ျမန္မာ';
-const UNKNOWN = ['foo', 'Unicode', 'ZAWGYI', ' unicode', 'constructor', '__proto__', 'toString', 'valueOf',
+// U+0130, capital I with a dot, lowercases to i and a combining dot above: not a letter of 'unicode'.
+const DOTTED_UNICODE = 'UN' + String.fromCharCode(0x130) + 'CODE';
+const UNKNOWN = ['foo', 'zg', ' unicode', DOTTED_UNICODE, 'constructor', '__proto__', 'toString', 'valueOf',
   'hasOwnProperty'];
 const NOT_NAMES = [undefined, null, '', 0, 1, NaN, true, false, {}, []];
 
@@ -147,6 +150,73 @@ describe('font names', () => {
       assert.deepEqual(capture(() => knayi.fontConvert('abc', 'unicode', 'foo')), { value: 'abc', messages: [] });
       assert.deepEqual(capture(() => knayi.fontConvert(ZAWGYI, 'foo', 'bar')),
         { value: ZAWGYI, messages: ["error: Convert library doesn't have this fontType."] });
+    });
+  });
+
+  // Names are case-insensitive. Only the ASCII letters of a name fold: no other character lowercases to one of its
+  // letters (DOTTED_UNICODE, in UNKNOWN, stays unknown).
+  describe('letter case', () => {
+    const UNICODE_NAMES = ['Unicode', 'UNICODE', 'uNiCoDe', 'Uni', 'UNI', new String('UNICODE')];
+    const ZAWGYI_NAMES = ['Zawgyi', 'ZAWGYI', 'zAwGyI', 'Zaw', 'ZAW', new String('Zawgyi')];
+    const WIN_NAMES = ['Win', 'WIN', 'wIN', new String('WIN')];
+
+    it('syllBreak and truncate take the names of Unicode and Zawgyi in any case', () => {
+      // Unicode reads U+1039 as a virama, so 'က္က' is one syllable; Zawgyi reads it as an asat, which ends one.
+      for (const name of UNICODE_NAMES) {
+        assert.equal(knayi.syllBreak('က္က', name, '|'), 'က္က', String(name));
+        assert.equal(knayi.truncate('က္က', { fontType: name, length: 5 }), '...', String(name));
+      }
+      for (const name of ZAWGYI_NAMES) {
+        assert.equal(knayi.syllBreak('က္က', name, '|'), 'က္|က', String(name));
+        assert.equal(knayi.truncate('က္က', { fontType: name, length: 5 }), 'က္...', String(name));
+      }
+    });
+
+    it('syllBreak and truncate throw for win in any case, and name it as given', () => {
+      for (const name of WIN_NAMES) {
+        assert.throws(() => knayi.syllBreak(UNICODE, name, '|'), invalidFont(String(name), 'syllBreak'), String(name));
+        assert.throws(() => knayi.truncate(UNICODE, { fontType: name }), invalidFont(String(name), 'truncate'),
+          String(name));
+      }
+    });
+
+    it('spellingFix collapses the Zawgyi marks for the names of Zawgyi in any case, and the Unicode marks else', () => {
+      for (const name of ZAWGYI_NAMES) {
+        assert.equal(knayi.spellingFix('ကဳဳ', name), 'ကဳ', String(name));
+      }
+      for (const name of UNICODE_NAMES.concat(WIN_NAMES)) {
+        assert.equal(knayi.spellingFix('ကဳဳ', name), 'ကဳဳ', String(name));
+        assert.equal(knayi.spellingFix('ကာာ', name), 'ကာ', String(name));
+      }
+    });
+
+    it('fontConvert takes source and target names in any case, without a warning', () => {
+      for (const zawgyi of ZAWGYI_NAMES) {
+        for (const unicode of UNICODE_NAMES) {
+          const label = String(zawgyi) + ' ' + String(unicode);
+          assert.deepEqual(capture(() => knayi.fontConvert(ZAWGYI, unicode, zawgyi)), { value: UNICODE, messages: [] },
+            label);
+          assert.deepEqual(capture(() => knayi.fontConvert(UNICODE, zawgyi, unicode)), { value: ZAWGYI, messages: [] },
+            label);
+        }
+      }
+      const debug = capture(() => knayi.fontConvert.debugging(ZAWGYI, 'UNICODE', 'Zawgyi'));
+      assert.deepEqual([debug.value.to, debug.value.from, debug.messages], ['unicode', 'zawgyi', []]);
+    });
+
+    it('fontConvert reads Win text from win in any case, and writes none', () => {
+      for (const name of WIN_NAMES) {
+        // Win text has no Myanmar letters; a Win source is converted all the same.
+        assert.deepEqual(capture(() => knayi.fontConvert('jrefrm', 'Unicode', name)), { value: UNICODE, messages: [] },
+          String(name));
+        assert.deepEqual(capture(() => knayi.fontConvert(UNICODE, name, 'unicode')),
+          { value: UNICODE, messages: ['error: knayi.fontConvert converts Win text to Unicode only.'] }, String(name));
+      }
+    });
+
+    it('fontDetect returns its fallback as given: a value to return, not a font name it reads', () => {
+      assert.equal(knayi.fontDetect('abc', 'Unicode'), 'Unicode');
+      assert.equal(knayi.fontDetect('ဗုဒ္ဓ', 'ZAWGYI'), 'ZAWGYI');
     });
   });
 });

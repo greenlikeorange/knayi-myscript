@@ -1,6 +1,6 @@
 # Architecture
 
-How knayi-myscript is built today: version 2.10.0, including the Shan look-alike fix (#73), the fix for `normalize`'s quadratic time on runs of e and medial ra (#74), NFC in linear time (`library/nfc.js`), and one policy for font names (`breakFont` and `fontName` in `library/contentGate.js`). This is a map of the current code, not a target design. A pull request that changes something described here updates this file in the same PR.
+How knayi-myscript is built today: version 2.10.0, including the Shan look-alike fix (#73), the fix for `normalize`'s quadratic time on runs of e and medial ra (#74), NFC in linear time (`library/nfc.js`), and one policy for font names, in any letter case (`resolveFont`, `breakFont` and `fontName` in `library/contentGate.js`). This is a map of the current code, not a target design. A pull request that changes something described here updates this file in the same PR.
 
 - [Entry points and builds](#entry-points-and-builds)
 - [Module map](#module-map)
@@ -48,7 +48,7 @@ All library code is CommonJS in `library/`.
 | `syllBreak.js` | `syllBreak` | Input checks, font choice, then `breakParts` and `joinParts`. |
 | `spellingCheck.js` | `spellingFix` | Input checks, font choice, then `collapseMarks`. The file name differs from the export name. |
 | `truncate.js` | `truncate` | Input checks, font choice, `breakParts`, then a fit loop over the parts. |
-| `contentGate.js` | `isMissing`, `toText`, `hasMyanmar`, `resolveFont`, `fontName`, `breakFont`, `libraryError`, `cleanText` | Shared input helpers, the font-name aliases (`uni`, `zaw`) and the font-name policy, and `libraryError`, which makes every error knayi throws on purpose. |
+| `contentGate.js` | `isMissing`, `toText`, `hasMyanmar`, `resolveFont`, `fontName`, `breakFont`, `libraryError`, `cleanText` | Shared input helpers; the font names and their aliases (`uni`, `zaw`), read in any letter case, and the font-name policy; and `libraryError`, which makes every error knayi throws on purpose. |
 | `globalOptions.js` | `isSilentMode`, `setOptions`, `detector` | The module-level option store and the detector-option merge. |
 | `storageOrder.js` | `ROLES`, `font`, `toUnicode`, `arrangeUnicode` | The syllable engine: the shared syllable sort `order`, the font reader `arrange`, the Unicode reader `arrangeUnicode`, the font compiler `font` and the font pipeline `toUnicode`. |
 | `typingFixes.js` | `lookAlikes`, `typos` | Zero and seven read as wa and ra (and back), and four typo rules. |
@@ -95,8 +95,8 @@ Every public function starts the same way, with small differences. `toText` unwr
 
 ### fontConvert(content, to, from)
 
-1. Missing content: `''`. A non-string: returned. No Myanmar character and a source other than `win`: returned unchanged. No target: an error, and the text is returned.
-2. The text is trimmed. `to` and `from` go through the aliases. An unknown target is an error. An unknown or missing source is detected with `fontDetect(content)`, whose tie result is `'zawgyi'`; an unknown name (a string, `fontName`) also warns.
+1. Missing content: `''`. A non-string: returned. No Myanmar character and a source other than `win` (in any case): returned unchanged. No target: an error, and the text is returned.
+2. The text is trimmed. `to` and `from` go through `resolveFont`, which lowercases a name (a string, or a `String` object) and resolves the aliases. An unknown target is an error. An unknown or missing source is detected with `fontDetect(content)`, whose tie result is `'zawgyi'`; an unknown name (a string, `fontName`) also warns.
 3. Same source and target: the trimmed text.
 4. A Win target, or a Win source with a target other than Unicode: an error, and the text is returned.
 5. Zawgyi or Win to Unicode: `zawgyi.toUnicode` or `win.toUnicode`, which both call `storageOrder.toUnicode` with their compiled font.
@@ -139,7 +139,7 @@ So text with no Myanmar characters still comes back in NFC. The first NFC is the
 
 ### syllBreak, spellingFix and truncate
 
-All three read the font with `fontName`: a name is a string other than `''`, or a `String` object that holds one. Anything else names no font, and the call uses `fontDetect(content)`. A name goes through the aliases. syllBreak and truncate pass it to `breakFont(name, apiName)`, which returns `'unicode'` or `'zawgyi'`, and throws a `TypeError` with the code `ERR_KNAYI_INVALID_FONT` for `'win'` and for any other name: the break rules exist for Unicode and Zawgyi only. They call it after the input checks, so missing content and text with no Myanmar character never throw. spellingFix passes any name on, and `collapseMarks` uses the Unicode marks for every name but `'zawgyi'`.
+All three read the font with `fontName`: a name is a string other than `''`, or a `String` object that holds one. Anything else names no font, and the call uses `fontDetect(content)`. A name goes through `resolveFont`, which lowercases it and resolves the aliases, so `'Unicode'`, `'ZAWGYI'` and `'Zaw'` are fonts too. Only a name's ASCII letters fold to it: no other character lowercases to one of its letters (U+0130, capital I with a dot, lowercases to i and a combining dot; the Kelvin sign U+212A lowercases to k, which no name has). syllBreak and truncate pass the name to `breakFont(name, apiName)`, which returns `'unicode'` or `'zawgyi'`, and throws a `TypeError` with the code `ERR_KNAYI_INVALID_FONT` for `'win'` (in any case) and for any other name, quoting the name as given: the break rules exist for Unicode and Zawgyi only. They call it after the input checks, so missing content and text with no Myanmar character never throw. spellingFix passes any name on, resolved where it names a font, and `collapseMarks` uses the Unicode marks for every name but `'zawgyi'`. `fontDetect`'s fallback is not a name it reads: it is returned as given, in its own case.
 
 - **syllBreak:** no Myanmar character returns the text unchanged. Otherwise `cleanText(content, true)`, then `breakParts(content, font)` and `joinParts(parts, breakpoint)`. `breakParts` applies `BREAK_RULES[font]` (7 rules for Unicode, 8 for Zawgyi), which insert and remove U+200B (the first Unicode rule instead puts a dot below in front of an asat typed before it), drops a leading U+200B, and splits on U+200B and U+200C. `joinParts` joins with the breakpoint, U+200B by default.
 - **spellingFix:** detects the font on the raw text, then cleans it and runs `collapseMarks(content, font)`: one `[mark]{2,}` regex per mark of `COLLAPSE[font]`, or of `COLLAPSE.unicode` when `COLLAPSE` has no own property of that name (so `'constructor'` finds no `Object.prototype` member).
@@ -306,7 +306,7 @@ The 2.x code keeps these so that refactors stay byte-identical. Each one changes
 - **The typing-fix order** differs between the pipelines (above).
 - **`fontConvert.debugging`** returns what `fontConvert` returns, not an object, on every early exit: missing or non-string content, no Myanmar text, a missing or unknown target, the same source and target, or a Win direction knayi does not convert.
 - **The debug flag is read from `this`.** A detached call such as `const f = knayi.fontConvert; f(...)` reads `debug` from the global object in `main.js` and the script builds, which are sloppy-mode code, so a global `debug` variable makes it return the debug object. The ESM builds are strict and do not.
-- **`fontConvert` reads a font that is not a string by its string form:** `resolveFont` looks the value up as a property name, so `['zawgyi']` is Zawgyi, where `syllBreak`, `spellingFix` and `truncate` detect the font for any value that is not a string. Only an unknown name that is a string warns.
+- **`fontConvert` reads a font that is not a string by its string form:** `resolveFont` looks the value up as a property name, with no case folding, so `['zawgyi']` is Zawgyi and `['ZAWGYI']` is detected, where `syllBreak`, `spellingFix` and `truncate` detect the font for any value that is not a string. Only an unknown name that is a string warns.
 - **`truncate` throws on an object that `String()` cannot convert,** such as `Object.create(null)` or `{ toString: undefined }`: it turns non-strings into strings with `String(content)` (`truncate.js`), where the other functions return them unchanged. `test/properties.test.js` pins the `TypeError`.
 - **Only U+1000–U+109F counts as Myanmar** for the input checks (`contentGate.js`). The extended blocks (U+A9E0–U+A9FF, U+AA60–U+AA7F) are read by the typing fixes and by `arrangeUnicode`, but `fontDetect`, `fontConvert`, `syllBreak`, `spellingFix` and `truncate` treat text made only of them as having no Myanmar character. Myanmar Extended-C (U+116D0–U+116E3) is not read anywhere. The ranges are written by hand, not generated from Unicode data. They match Unicode 15.1, apart from the classes `test/unicode.test.js` lists, and that test fails when the runtime knows Myanmar code points they miss.
 

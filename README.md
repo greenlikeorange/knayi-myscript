@@ -54,7 +54,7 @@ These paths load without an `exports` map:
 
 ## Font names
 
-`unicode`, `uni`, `zawgyi`, `zaw`, and `win`. `uni` is Unicode. `zaw` is Zawgyi. `win` is the Win Innwa family of legacy fonts, which `fontConvert` converts to Unicode. Any other string is an unknown font. In `syllBreak`, `spellingFix` and `truncate`, a font that is not a string, such as `null` or the index `Array#map` passes, and `''` name no font, and `fontDetect` chooses it.
+`unicode`, `uni`, `zawgyi`, `zaw`, and `win`. `uni` is Unicode. `zaw` is Zawgyi. `win` is the Win Innwa family of legacy fonts, which `fontConvert` converts to Unicode. Names are case-insensitive, so `Unicode`, `ZAWGYI` and `Win` name the same fonts. Any other string is an unknown font. `fontDetect` does not read its fallback as a font name: it returns it as given. In `syllBreak`, `spellingFix` and `truncate`, a font that is not a string, such as `null` or the index `Array#map` passes, and `''` name no font, and `fontDetect` chooses it.
 
 | Function | `win` | An unknown font |
 | --- | --- | --- |
@@ -68,6 +68,7 @@ These paths load without an `exports` map:
 ```javascript
 knayi.syllBreak(knayi.fontConvert('jrefrm', 'unicode', 'win'), 'unicode', '|') // 'မြန်|မာ'
 knayi.fontConvert('ျမန္မာ', 'unicode', 'zg') // 'မြန်မာ'  (unknown source font, detected; warns)
+knayi.fontConvert('ျမန္မာ', 'Unicode', 'ZAWGYI') // 'မြန်မာ'
 ```
 
 ## Missing content
