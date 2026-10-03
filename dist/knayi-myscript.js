@@ -331,7 +331,6 @@ var knayi = (() => {
         }
       };
       var C = "\u1000-\u1021";
-      var SHORT_C = "\u1001\u1002\u1004\u1005\u1007\u1008\u1009\u100E\u1012\u1013\u1014\u1015\u1016\u1017\u1019\u101B\u101D\u1020";
       var M = "\u103B\u103C\u103D\u103E";
       var V = "\u102B\u102C\u102D\u102E\u102F\u1030\u1031\u1032";
       var S = "\u1039";
@@ -344,107 +343,6 @@ var knayi = (() => {
       var VIRAMA = S;
       var KINZI = "\u1004" + ASAT + VIRAMA;
       var CONSONANT = new RegExp("[" + C + "]");
-      var E = "\u1023\u1025\u1026\u1029\u104E";
-      var WA_LONE = "\u101D";
-      var NUMBER_ZERO = "\u1040";
-      var rankingMap = {
-        "\u103B": 1,
-        "\u103C": 2,
-        "\u103D": 3,
-        "\u103E": 4,
-        "\u1031": 5,
-        "\u102B": 6,
-        "\u102C": 7,
-        "\u102D": 8,
-        "\u102E": 9,
-        "\u102F": 10,
-        "\u1030": 11,
-        "\u1032": 12,
-        "\u103A": 13,
-        "\u1036": 14,
-        "\u1037": 15,
-        "\u1038": 16
-      };
-      var brakePoint = new RegExp("([" + C + E + NUMBER_ZERO + "])([" + M + V + A + F + "]+)", "gm");
-      function addRule(list, pattern, replacement) {
-        list.push([new RegExp(pattern, "gm"), replacement]);
-      }
-      var extendedRules = [];
-      var postExtendedRules = [];
-      [
-        ["\u1040", "\u101D"],
-        ["\u1025\u102E", "\u1026"],
-        ["\u1029\u1031\u102C\u103A", "\u102A"],
-        ["\u102D\u102E", "\u102E"],
-        ["\u102F\u1030", "\u1030"],
-        ["\u1005\u103B", "\u1008"]
-      ].forEach(function(pair) {
-        addRule(extendedRules, pair[0], pair[1]);
-      });
-      addRule(postExtendedRules, "([" + SHORT_C + "])\\s(\u1039[\u1000-\u1021])", "$1$2");
-      function uniquify(marks) {
-        return Array.from(new Set(marks));
-      }
-      function applyReplacementRules(rules, content) {
-        return rules.reduce(function(text, rule) {
-          return text.replace(rule[0], rule[1]);
-        }, content);
-      }
-      var NON_NUMBER_BEHIND = new RegExp(S + "$");
-      var NON_NUMBER_AHEAD_SIGN = new RegExp("^[" + M + V + S + A + F + "]");
-      var NON_NUMBER_AHEAD_C_SIGN = new RegExp("^[" + C + "][" + S + A + F + "]");
-      function fixWaAndYa(text) {
-        function rebuild(content2, splitter, num, char) {
-          var isWa = char === WA_LONE;
-          var parts = content2.split(splitter);
-          var out = [parts[0]];
-          var tail = parts[0].slice(-2);
-          for (var i = 1; i < parts.length; i++) {
-            var ahead = parts[i];
-            var isNumber = isWa;
-            if (NON_NUMBER_BEHIND.test(tail)) isNumber = false;
-            if (!isWa) {
-              if (/[၀-၉=+-/]\s?$/.test(tail) && /^\s|\s?[၀-၉=+-/]/.test(ahead)) isNumber = true;
-              if (/[၀-၉]|\s?[=+-/]/.test(ahead)) isNumber = true;
-            }
-            if (NON_NUMBER_AHEAD_SIGN.test(ahead) || NON_NUMBER_AHEAD_C_SIGN.test(ahead)) isNumber = false;
-            if (isWa && /^\s?လုံး/.test(ahead) && !/[၀-၉]\s?$/.test(tail)) isNumber = false;
-            var letter = isNumber ? num : char;
-            out.push(letter, ahead);
-            tail = ahead.length >= 2 ? ahead.slice(-2) : (tail + letter + ahead).slice(-2);
-          }
-          return out.join("");
-        }
-        var content = String(text == null ? "" : text);
-        return rebuild(rebuild(content, /၀|ဝ/, "\u1040", "\u101D"), /၇|ရ/, "\u1047", "\u101B");
-      }
-      function parseChunks(content) {
-        var chunks = [];
-        var re = brakePoint;
-        re.lastIndex = 0;
-        var last = 0;
-        var match;
-        while (match = re.exec(content)) {
-          if (match.index > last) chunks.push(content.slice(last, match.index));
-          chunks.push({ base: match[1], marks: match[2] });
-          last = match.index + match[0].length;
-        }
-        if (last < content.length) chunks.push(content.slice(last));
-        return chunks;
-      }
-      function serializeCanonical(chunk) {
-        var marks = uniquify(chunk.marks).sort(function(a, b) {
-          return rankingMap[a] - rankingMap[b];
-        }).join("");
-        return applyReplacementRules(extendedRules, chunk.base + marks);
-      }
-      function normalizeText(content) {
-        var chunks = parseChunks(content);
-        var result = chunks.map(function(chunk) {
-          return typeof chunk === "string" ? chunk : serializeCanonical(chunk);
-        }).join("");
-        return fixWaAndYa(applyReplacementRules(postExtendedRules, result));
-      }
       function isConsonant(ch) {
         return !!ch && CONSONANT.test(ch);
       }
@@ -643,7 +541,6 @@ var knayi = (() => {
       module.exports = {
         parseUnicode,
         serializeUnicode,
-        normalizeText,
         collapseMarks,
         breakParts,
         joinParts,
@@ -652,9 +549,90 @@ var knayi = (() => {
     }
   });
 
+  // library/typingFixes.js
+  var require_typingFixes = __commonJS({
+    "library/typingFixes.js"(exports, module) {
+      var ZERO = "\u1040";
+      var SEVEN = "\u1047";
+      var WA = "\u101D";
+      var RA = "\u101B";
+      var VISARGA = "\u1038";
+      var TYPOS = [
+        [/\u102D\u102E|\u102E\u102D/g, "\u102E"],
+        // i with ii is ii
+        [/\u102F\u1030|\u1030\u102F/g, "\u1030"],
+        // u with uu is uu
+        [/\u1029\u1031\u102C\u103A/g, "\u102A"],
+        // o with e, aa and asat is au (UTN #11)
+        [/(^|[^\u1040-\u1049])\u1044(?=\u1004\u103A\u1038)/g, "$1\u104E"]
+        // the digit four typed for lagaung
+      ];
+      function isDigit(ch) {
+        return ch >= "\u1040" && ch <= "\u1049";
+      }
+      function isMark(ch) {
+        return ch >= "\u102B" && ch <= "\u103E";
+      }
+      function isConsonant(ch) {
+        return ch >= "\u1000" && ch <= "\u1021";
+      }
+      function isWordChar(ch) {
+        return ch >= "\u1000" && ch <= "\u109F" && !isDigit(ch) && ch !== "\u104A" && ch !== "\u104B";
+      }
+      function isSeparator(ch) {
+        return ch === "." || ch === ",";
+      }
+      function startsClosedSyllable(text, i) {
+        if (!isConsonant(text.charAt(i + 1))) return false;
+        var j = i + 2;
+        while (text.charAt(j) === "\u1037" || text.charAt(j) === VISARGA) j++;
+        return text.charAt(j) === "\u103A" || text.charAt(j) === "\u1039";
+      }
+      function nextToDigit(text, i) {
+        return isDigit(text.charAt(i - 1)) || isDigit(text.charAt(i + 1)) || isSeparator(text.charAt(i - 1)) && isDigit(text.charAt(i - 2)) || isSeparator(text.charAt(i + 1)) && isDigit(text.charAt(i + 2));
+      }
+      var BARE = "[\u101D\u101B](?![\u102B-\u103E]|[\u1000-\u1021][\u1037\u1038]*[\u103A\u1039])";
+      var PART = "(?:[\u1040-\u1049]|" + BARE + ")";
+      var RUN = new RegExp(PART + "(?:[.,]?" + PART + ")*", "g");
+      var HAS_DIGIT = /[\u1040-\u1049]/;
+      function lookAlikes(text) {
+        text = text.replace(/[\u1040\u1047]/g, function(ch, i) {
+          var next = text.charAt(i + 1);
+          var letter = isMark(next) && next !== VISARGA || startsClosedSyllable(text, i) || ch === ZERO && isWordChar(text.charAt(i - 1)) && !nextToDigit(text, i);
+          return letter ? ch === ZERO ? WA : RA : ch;
+        });
+        return text.replace(RUN, function(run, start) {
+          if (!HAS_DIGIT.test(run)) return run;
+          var glued = isWordChar(text.charAt(start - 1));
+          var after = text.charAt(start + run.length);
+          var out = "";
+          for (var k = 0; k < run.length; k++) {
+            var c = run.charAt(k);
+            if (isDigit(c)) glued = false;
+            else if (!glued && c === WA) c = ZERO;
+            else if (!glued && c === RA && (k + 1 < run.length || !isWordChar(after))) c = SEVEN;
+            out += c;
+          }
+          return out;
+        });
+      }
+      function fixTypos(text) {
+        for (var t = 0; t < TYPOS.length; t++) {
+          text = text.replace(TYPOS[t][0], TYPOS[t][1]);
+        }
+        return text;
+      }
+      module.exports = {
+        lookAlikes,
+        typos: fixTypos
+      };
+    }
+  });
+
   // library/storageOrder.js
   var require_storageOrder = __commonJS({
     "library/storageOrder.js"(exports, module) {
+      var typingFixes = require_typingFixes();
       var BASE = "base";
       var PRE = "pre";
       var MARK = "mark";
@@ -672,14 +650,14 @@ var knayi = (() => {
         // medial ha
         "\u1031",
         // e
-        "\u102D\u102E\u1032",
-        // upper vowels
+        "\u102D\u102E",
+        // i, ii
         "\u102F\u1030",
         // lower vowels
         "\u102B\u102C",
         // aa
-        "\u1036",
-        // anusvara
+        "\u1032\u1036",
+        // ai and anusvara: after a lower vowel or aa, as Mon and Pa'o write them (UTN #11)
         "\u1037",
         // dot below
         "\u103A",
@@ -688,9 +666,18 @@ var knayi = (() => {
         // visarga
       ];
       var LAST_MEDIAL = 3;
+      var LOWER_RANK = 6;
+      var AI_ANUSVARA = 8;
+      var FIRST_VOWEL = 5;
       var ASAT = "\u103A";
+      var VIRAMA = "\u1039";
       var VISARGA = "\u1038";
       var AA = "\u102B\u102C";
+      var AA_TALL = "\u102B";
+      var AA_SHORT = "\u102C";
+      var ANUSVARA = "\u1036";
+      var LOWER_VOWELS = "\u102F\u1030";
+      var E_AA = "\u1031\u102B\u102C";
       var I = "\u102D\u102E";
       var DOT_BELOW = "\u1037";
       var MEDIALS = "\u103B\u103C\u103D\u103E";
@@ -705,6 +692,7 @@ var knayi = (() => {
       var DIGIT = /[\u1040-\u1049]/;
       var NEXT_TO_ZERO_IN_NUMBER = /[\u1040-\u1049+\-*\/]/;
       var DECIMAL_POINT = /[.,]/;
+      var RANKS = [];
       var RANK = {};
       MARK_ORDER.forEach(function(group, index) {
         for (var i = 0; i < group.length; i++) RANK[group[i]] = index;
@@ -733,6 +721,7 @@ var knayi = (() => {
         var base = syllable.base;
         var stack = syllable.stack;
         if (!syllable.marks.length && !stack) return syllable.kinzi + base;
+        var stacked = stack !== "" || base.indexOf(VIRAMA) > 0;
         var marks = [];
         for (var m = 0; m < syllable.marks.length; m++) {
           if (marks.indexOf(syllable.marks[m]) < 0) marks.push(syllable.marks[m]);
@@ -742,14 +731,15 @@ var knayi = (() => {
         var asat = marks.indexOf(ASAT);
         var hasAa = hasAny(marks, AA);
         if (asat >= 0) {
-          var slip = !hasAa && hasAny(marks, I);
-          var last = marks.indexOf(DOT_BELOW) >= 0 || hasAa && (hasAny(marks, AA, asat) || !hasAny(marks, MEDIALS));
-          if (slip || !last) {
+          var dotBelow = marks.indexOf(DOT_BELOW) >= 0;
+          var slip = !hasAa && (hasAny(marks, I) || stacked && !dotBelow);
+          var last = dotBelow || hasAny(marks, E_AA, asat) || hasAa && !hasAny(marks, MEDIALS);
+          if (slip) {
             marks.splice(asat, 1);
-            if (!slip && !stack) {
-              if (marks.indexOf(MEDIAL_HA) >= 0) afterMedials = true;
-              else early = true;
-            }
+          } else if (!last) {
+            marks.splice(asat, 1);
+            if (marks.indexOf(MEDIAL_HA) >= 0) afterMedials = true;
+            else early = true;
           }
         }
         var ya = marks.indexOf(MEDIAL_YA);
@@ -760,19 +750,37 @@ var knayi = (() => {
           base = JHA;
           marks.splice(ya, 1);
         }
-        if (base === U && (stack || early || afterMedials || marks.indexOf(ASAT) >= 0 || hasAa)) {
+        if (base === U && !syllable.keepU && (stacked || early || afterMedials || marks.indexOf(ASAT) >= 0 || hasAa)) {
           base = NYA;
         }
         var marksBesidesVisarga = marks.length - (marks.indexOf(VISARGA) >= 0 ? 1 : 0);
         if (base === SEVEN && (early || afterMedials || marksBesidesVisarga > 0)) {
           base = RA;
         }
-        var sorted = [];
-        for (var n = 0; n < marks.length; n++) {
-          var at = sorted.length;
-          while (at > 0 && rank(sorted[at - 1]) > rank(marks[n])) at--;
-          sorted.splice(at, 0, marks[n]);
+        var lower = hasAny(marks, LOWER_VOWELS);
+        var ranks = RANKS;
+        for (var r = 0; r < marks.length; r++) {
+          var markRank = rank(marks[r]);
+          if (markRank === AI_ANUSVARA && !lower) {
+            var aa = marks.indexOf(AA_SHORT) >= 0 ? marks.indexOf(AA_SHORT) : marks.indexOf(AA_TALL);
+            var beforeAa = aa > r && !(marks[r] === ANUSVARA && marks[aa] === AA_TALL);
+            if (beforeAa) markRank = LOWER_RANK;
+          }
+          ranks[r] = markRank;
         }
+        for (var n = 1; n < marks.length; n++) {
+          var mark = marks[n];
+          var markRankN = ranks[n];
+          var at = n - 1;
+          while (at >= 0 && ranks[at] > markRankN) {
+            marks[at + 1] = marks[at];
+            ranks[at + 1] = ranks[at];
+            at--;
+          }
+          marks[at + 1] = mark;
+          ranks[at + 1] = markRankN;
+        }
+        var sorted = marks;
         if (afterMedials) {
           var medials = 0;
           while (medials < sorted.length && rank(sorted[medials]) <= LAST_MEDIAL) medials++;
@@ -848,6 +856,114 @@ var knayi = (() => {
         close();
         return out + pending.join("");
       }
+      var MYANMAR_CHARS = [];
+      for (c = 4096; c <= 4255; c++) MYANMAR_CHARS.push(String.fromCharCode(c));
+      var c;
+      function isConsonant(code) {
+        return code >= 4096 && code <= 4129;
+      }
+      function isUnicodeMark(code) {
+        return code >= 4139 && code <= 4146 || code >= 4150 && code <= 4152 || code >= 4154 && code <= 4158;
+      }
+      function isKinziAt(content, i) {
+        var code = content.charCodeAt(i);
+        return (code === 4100 || code === 4123) && content.charCodeAt(i + 1) === 4154 && content.charCodeAt(i + 2) === 4153 && isConsonant(content.charCodeAt(i + 3));
+      }
+      function isDigit(code) {
+        return code >= 4160 && code <= 4169;
+      }
+      function isOtherMyanmar(code) {
+        var inBlocks = code >= 4096 && code <= 4255 || code >= 43488 && code <= 43519 || code >= 43616 && code <= 43647;
+        return inBlocks && !isMyanmarLetter(code) && !isDigit(code) && !isUnicodeMark(code) && code !== 4153 && code !== 4170 && code !== 4171;
+      }
+      function isTypedFirst(code) {
+        return code === 4145 || code === 4156;
+      }
+      var HERE = "here";
+      var NEXT = "next";
+      var ALONE = "alone";
+      function arrangeUnicode(content) {
+        var out = "";
+        var syllable = null;
+        var pending = [];
+        var runEnd = 0;
+        function close() {
+          if (!syllable) return;
+          out += order(syllable) + syllable.after;
+          syllable = null;
+        }
+        function start(kinzi, base, keepU) {
+          close();
+          syllable = { kinzi, base, stack: "", marks: pending, after: "", kept: "", keepU };
+          pending = [];
+        }
+        function write(text) {
+          close();
+          out += pending.join("") + text;
+          pending = [];
+        }
+        function goesOn(code2) {
+          if (syllable.after === syllable.kept) return true;
+          return !isTypedFirst(code2) && !isDigit(syllable.base.charCodeAt(0));
+        }
+        function placeTypedFirst(i2) {
+          var code2 = content.charCodeAt(i2);
+          if (i2 >= runEnd) {
+            runEnd = i2 + 1;
+            while (isTypedFirst(content.charCodeAt(runEnd))) runEnd++;
+          }
+          var after = content.charCodeAt(runEnd);
+          if (!syllable && isOtherMyanmar(content.charCodeAt(i2 - 1))) return ALONE;
+          var finished = !syllable || syllable.after !== syllable.kept;
+          for (var m = 0; !finished && m < syllable.marks.length; m++) {
+            var mark = syllable.marks[m];
+            if (rank(mark) < FIRST_VOWEL) continue;
+            if (mark === ASAT && (code2 === 4156 || syllable.marks.indexOf(MEDIAL_HA) >= 0)) continue;
+            finished = true;
+          }
+          if (!finished || syllable && (isUnicodeMark(after) || after === 4153)) return HERE;
+          return isMyanmarLetter(after) || isDigit(after) ? NEXT : ALONE;
+        }
+        function stackedAt(i2) {
+          var next = i2 + 1;
+          while (isTypedFirst(content.charCodeAt(next))) next++;
+          return isConsonant(content.charCodeAt(next)) ? next : -1;
+        }
+        for (var i = 0; i < content.length; i++) {
+          var code = content.charCodeAt(i);
+          var zeroWidth = isZeroWidth(code) && code !== 8204 && code !== 8205;
+          var place = isTypedFirst(code) ? placeTypedFirst(i) : HERE;
+          if (syllable && (zeroWidth || isSpace(code))) {
+            syllable.after += content.charAt(i);
+            if (zeroWidth) syllable.kept += content.charAt(i);
+          } else if (isKinziAt(content, i)) {
+            start(content.slice(i, i + 3), content.charAt(i + 3));
+            i += 3;
+          } else if (isMyanmarLetter(code) || isDigit(code)) {
+            var previous = content.charCodeAt(i - 1);
+            var afterVowel = previous >= 4139 && previous <= 4146 || previous === 4150;
+            start("", content.charAt(i), code === 4133 && afterVowel);
+          } else if (place === NEXT) {
+            close();
+            pending.push(MYANMAR_CHARS[code - 4096]);
+          } else if (place === ALONE) {
+            write(content.charAt(i));
+          } else if (syllable && code === 4153 && stackedAt(i) >= 0 && goesOn(code)) {
+            var stacked = stackedAt(i);
+            syllable.after = syllable.kept;
+            for (var t = i + 1; t < stacked; t++) syllable.marks.push(MYANMAR_CHARS[content.charCodeAt(t) - 4096]);
+            syllable.stack += "\u1039" + content.charAt(stacked);
+            i = stacked;
+          } else if (syllable && isUnicodeMark(code) && goesOn(code)) {
+            syllable.after = syllable.kept;
+            syllable.marks.push(MYANMAR_CHARS[code - 4096]);
+          } else {
+            write(content.charAt(i));
+          }
+        }
+        close();
+        return out + pending.join("");
+      }
       function glyphsInTypedOrder(content, glyphs) {
         var out = "";
         for (var i = 0; i < content.length; i++) {
@@ -884,13 +1000,16 @@ var knayi = (() => {
         if (debug) step("glyphs", glyphsInTypedOrder(text, font2.glyphs));
         var result = step("syllables", arrange(text, font2.glyphs));
         result = step("zero as wa", zeroAsWa(result));
+        result = step("look-alikes", typingFixes.lookAlikes(result));
+        result = step("typos", typingFixes.typos(result));
         result = step("NFC", result.normalize("NFC"));
         return debug ? { matched_patterns: patterns, steps } : result;
       }
       module.exports = {
         ROLES: { BASE, PRE, MARK, STACK, KINZI, TEXT },
         font,
-        toUnicode
+        toUnicode,
+        arrangeUnicode
       };
     }
   });
@@ -1606,7 +1725,8 @@ var knayi = (() => {
     "library/normalization.js"(exports, module) {
       var globalOptions = require_globalOptions();
       var gate = require_contentGate();
-      var syllable = require_syllable();
+      var storageOrder = require_storageOrder();
+      var typingFixes = require_typingFixes();
       function normalize(content) {
         content = gate.toText(content);
         if (gate.isMissing(content)) {
@@ -1615,7 +1735,8 @@ var knayi = (() => {
         }
         if (typeof content !== "string")
           return content;
-        return syllable.normalizeText(gate.cleanText(content, false));
+        var text = storageOrder.arrangeUnicode(content.normalize("NFC"));
+        return typingFixes.lookAlikes(typingFixes.typos(text)).normalize("NFC");
       }
       module.exports = normalize;
     }
