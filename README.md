@@ -259,8 +259,6 @@ knayi.truncate(null) // ''
 
 ## Build
 
-`npm test` runs the tests, type-checks `typecheck/`, and checks that `knayi-myscript.min.js` stays within the 2.x size budget, 1 KB gzip over 2.10. The tests build the browser and ESM files into a temporary directory. `npm run test:bun` runs the Bun checks. `npm run test:pack` packs the tarball with a fresh build, installs it with Bun, and converts the Zawgyi greeting through `require` and `import`. `npm run test:smoke` runs README examples on plain Node, as CI does on Node 16, 18 and 20. `npm run test:browser` builds the files and runs the script and module builds in Chromium, Firefox, and WebKit with Playwright, comparing every README example with Node, and checks the demo and benchmark pages with axe; install the browsers once with `npx playwright install chromium firefox webkit`.
-
 `dist/` holds the build of the last release, because jsDelivr serves the `dist/` of the main branch. It changes only in a release commit, which also changes the version. `npm run build` writes:
 
 - `dist/knayi-myscript.mjs`
@@ -268,7 +266,7 @@ knayi.truncate(null) // ''
 - `dist/knayi-myscript.js`
 - `dist/knayi-myscript.min.js`
 
-`npm run check:dist -- --fresh` checks that `dist/` matches a fresh build.
+`npm test` runs the tests on a build made in a temporary directory. [ARCHITECTURE.md](ARCHITECTURE.md#running-the-checks) lists every test and check script.
 
 `npm run eval` measures conversion and detection on public Zawgyi and Unicode data, next to a published knayi release, myanmar-tools, and Rabbit. `npm run bench` measures speed on real text and long input. Both download their data on first use. See [scripts/eval/README.md](scripts/eval/README.md). The latest results are published at <https://greenlikeorange.github.io/knayi-myscript/benchmark.html>.
 

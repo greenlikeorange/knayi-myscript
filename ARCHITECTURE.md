@@ -29,6 +29,8 @@ How knayi-myscript is built today: version 2.10.0, including the Shan look-alike
 | `dist/knayi-myscript.js` | IIFE | Sets the global `knayi`, also when a bundler imports the file. |
 | `dist/knayi-myscript.min.js` | IIFE, minified | The file the README, unpkg and jsDelivr serve. |
 
+The committed `dist/` is the build of the last release: jsDelivr serves `main`'s `dist/` to `@master` links, so it changes only in a release commit (`scripts/check-dist.js`). Everything else builds into a temporary directory: `builtDist()` in `scripts/build.js` builds once per process and removes the directory on exit, or returns `KNAYI_DIST` when that is set.
+
 `main.js` and `dist/knayi-myscript.es.js` are two copies of the library with their own module state. Silent mode and detector options set on one are not seen by the other (README, "Runtime").
 
 The npm package ships `main.js`, `index.d.ts`, all of `library/` and the four `dist/` files (`package.json` `files`). There is no `exports` map, so every `library/*.js` file can be required by path. The README promises one deep path: `knayi-myscript/library/converter`.
@@ -70,6 +72,8 @@ leaves: globalOptions.js, contentGate.js, syllable.js, typingFixes.js
 ```
 
 Two edges point the unexpected way. The font data modules (`zawgyi.js`, `win.js`) require the engine and call its pipeline, instead of the engine reading the tables. And the engine (`storageOrder.js`) requires `typingFixes.js`, because `toUnicode` runs the whole font pipeline, typing fixes included.
+
+`test/unit/layers.test.js` puts every file in a layer (core, fonts, engine, rules, public, entry) and fails on a new `require` that points up a layer. These edges are its only known exceptions, and the list may only shrink.
 
 ### Module state
 
@@ -303,23 +307,26 @@ A change to a rule adds its evidence there. [CONTRIBUTING.md](CONTRIBUTING.md) h
 
 ## Running the checks
 
-Setup is `npm ci` in each clone or worktree; see [CONTRIBUTING.md](CONTRIBUTING.md).
+Setup is `npm ci` in each clone or worktree; see [CONTRIBUTING.md](CONTRIBUTING.md), which also says which results a pull request reports. Every npm script, and the job of `.github/workflows/test.yml` that runs it:
 
-| Command | What it runs |
-| --- | --- |
-| `npm test` | `pretest` rebuilds `dist/`, then `node --test` runs every file under `test/`, then `tsc` type-checks `typecheck/` with and without `esModuleInterop`. `test/syntax.test.js` needs `acorn` from the dev dependencies. |
-| `npm run test:bun` | `scripts/bun-contract.js` and `scripts/bun-esm.mjs` under Bun. |
-| `npm run test:pack` | Packs the tarball, installs it with Bun in a temporary app, and converts the Zawgyi greeting through `require` and `import`. |
-| `npm run build` | Writes the four `dist/` files. |
-| `npm run eval` | Accuracy on public data, next to a published knayi release, myanmar-tools and Rabbit. Downloads data into `.eval-cache/` on first use. |
-| `npm run bench` | Speed on real text and long input; `-- --sweep` adds 1,059 long inputs. |
-| `npm run bench:page` | Both, then rebuilds `docs/benchmark.html` and `docs/benchmark.json`. Run it for a release. |
-| `node scripts/eval/win-glyphs.mjs <font>` | Draws every Win table entry next to its Unicode text, with your own copy of the font. |
+| Command | What it runs | CI job |
+| --- | --- | --- |
+| `npm run build` | Writes the four `dist/` files. Only a release commit runs it. | — |
+| `npm test` | `node --test "test/**/*.test.js"`, then `tsc` on `typecheck/` with and without `esModuleInterop`, then the size check (`posttest`). The tests read the dist files from a temporary build. Among them: the tests per module; the contract matrix (`test/contract/`); a probe for every table row (`test/tables.test.js`, probes in `test/fixtures/tables.json`, rewritten by `node scripts/testing/table-cases.js --write`); the README examples; differential fuzz against the frozen 2.10 engine in `scripts/oracle/`; property tests; the myanmar-tools adapter; the layering test; the browser floor checks (`test/syntax.test.js`, `test/dist-floor.test.js`, `test/regex-floor.test.js`); the growth test on random structured input; and the Unicode version check. | node (22, 24, 26) |
+| `npm run test:bun` | `scripts/bun-contract.js`, `scripts/bun-esm.mjs` and `scripts/bun-matrix.js` (the contract matrix in a process of its own), then `bun test ./test`. | bun |
+| `npm run test:pack` | Packs the package with a fresh build (`scripts/pack-fresh.mjs`), installs it with Bun in a temporary app, and converts the Zawgyi greeting through `require` and `import`. | bun |
+| `npm run test:smoke -- [dir]` | README examples on plain Node through `main.js`, `library/converter` and, given a build directory, the script and module builds. It runs on Node 16 and later. | smoke (16, 18, 20) |
+| `npm run test:fuzz` | The fuzz and property tests alone. `KNAYI_FUZZ_SEED` and `KNAYI_FUZZ_SCALE` set the seed and size; `KNAYI_GROWTH_SEED` and `KNAYI_GROWTH_RUNS` do the same for `test/growth.test.js`. | nightly (`fuzz.yml`) |
+| `npm run test:browser` | Playwright: the script and module builds in Chromium, Firefox and WebKit against `main.js`, and axe on the demo and benchmark pages. Install the browsers once with `npx playwright install chromium firefox webkit`. | browser |
+| `npm run check:size` | The gzip size of `min.js` (Node's zlib, level 9) against the 2.10 baseline of 9,830 B and the limit of 10,854 B, with each module's share. `npm test` runs it without the breakdown. | checks |
+| `npm run check:dist -- --base <rev>` | Fails when `dist/` differs from `<rev>` without a version change; with a version change, or with `--fresh`, checks that `dist/` equals a fresh build. | dist |
+| `npm run check:redos` | Every regex the library ships, as literals, built at run time or exported, through recheck. The allowlist is `scripts/redos-allowlist.json`. | checks |
+| `npm run check:types` | Packs the package, then compiles `typecheck/packed/` against it under node16, nodenext and bundler resolution, runs the output, and runs @arethetypeswrong/cli on it. | checks |
+| `npm run matrix:update` | Rewrites `test/contract/api-matrix.json` after a deliberate change, and refuses build differences that `scripts/contract/matrix.js` does not explain. | — |
+| `npm run compare -- --base <ref>` | Two copies of knayi on every call form, including `fontConvert.debugging`, over every cached corpus, generated input and seeded fuzz; lists the differences. `--expect form:set=n` declares the differences a deliberate change expects, `--offline` uses no corpus, and `--head min:.` or `mjs:.` compares `main.js` with its builds. | compare (Node and Bun) |
+| `npm run perf -- --base <ref>` | Two copies timed interleaved in one process, under Node and Bun: ratios per line, per word, on one string and on one document, and growth exponents on adversarial inputs (`--offline`: growth only). | perf |
+| `npm run eval` | Accuracy on public data, next to a published knayi release, myanmar-tools and Rabbit. | — |
+| `npm run bench` | Speed on real text and long input; `-- --sweep` adds 1,059 long inputs. | — |
+| `npm run bench:page` | Both, then rebuilds `docs/benchmark.html` and `docs/benchmark.json`. Run it for a release. | — |
 
-CI (`.github/workflows/test.yml`) runs `npm test` on Node 22 and 24, and `npm test`, `npm run test:bun` and `npm run test:pack` with Bun 1.4.2.
-
-The refactor's safety net adds three checks that every pull request reports (see `.github/pull_request_template.md`). If a command below is missing, the change that adds it has not merged yet.
-
-- **Output comparison:** `npm run compare -- --base origin/main` runs two copies of knayi on every call form, including `fontConvert.debugging`, over every cached corpus plus generated input, and lists the differences. `--expect form:corpus=n` declares the differences a deliberate change expects.
-- **Contract matrix:** `test/contract/api-matrix.test.js`, run by `npm test`, records for every public function on a fixed set of probe inputs the return value, the console output and the thrown error: its message for errors knayi throws itself, only its class for a `TypeError` raised by accident.
-- **Speed:** `npm run perf -- --base origin/main` times two copies interleaved in one process, under Node and Bun, and prints ratios per line, per word and on one long string, and growth exponents on adversarial shapes.
+Other commands: `node scripts/eval/datasets.mjs --check`, `--fetch` or `--refresh-samples` checks, fills or redraws the corpus cache; `node scripts/browser/floor.js` prints the floor rules and what each build uses; `node scripts/eval/win-glyphs.mjs <font>` draws every Win table entry next to its Unicode text, with your own copy of the font. [scripts/eval/README.md](scripts/eval/README.md) covers the corpora, compare and perf in detail.

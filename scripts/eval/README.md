@@ -29,10 +29,13 @@ npm run compare                                   # this working tree against or
 npm run compare -- --base origin/main --head .    # the same, spelled out
 npm run compare -- --base . --head min:.          # main.js against the min.js built from it, run in a vm
 npm run compare -- --offline                      # generated and fuzz inputs only: no corpus cache, no network
+npm run compare -- --without mc4                  # every corpus but mC4, as CI runs it
 npm run compare -- --expect normalize:ksw=15 --expect normalize:all=66
 ```
 
-A copy is named by a spec: a path (`.` is this working tree), a git ref (`origin/main`, `v2.9.1`, `git:HEAD~1`) unpacked read-only with `git archive` into a temporary directory, `npm:<version>` for a release that is already installed (in `node_modules/` or the eval cache; nothing is downloaded), or `min:` and `mjs:` followed by a dist file or by any of these, which builds that copy's dist files with its own `scripts/build.js` in a temporary directory. Both copies run in one process, each as its own module instance, so `--base . --head .` is a valid A/A check. In CI, fetch the base first (`git fetch --depth=1 origin main`), since a shallow checkout has no `origin/main`.
+A copy is named by a spec: a path (`.` is this working tree), a git ref (`origin/main`, `v2.9.1`, `git:HEAD~1`) unpacked read-only with `git archive` into a temporary directory, `npm:<version>` for a release that is already installed (in `node_modules/` or the eval cache; nothing is downloaded), or `min:` and `mjs:` followed by a dist file or by any of these, which builds that copy's dist files with its own `scripts/build.js` in a temporary directory. Both copies run in one process, each as its own module instance, so `--base . --head .` is a valid A/A check. In CI, fetch the base first, since a shallow checkout has no `origin/main`; `.github/workflows/test.yml` checks out with full history.
+
+CI keeps a corpus cache without mC4 and without the query log (CONTRIBUTING.md, licence policy), so it runs with `--without mc4`. Only a push to the default branch fills that cache, with `node scripts/eval/datasets.mjs --fetch --without mc4`; fork pull requests and runs with a cold cache use `--offline`. A pull request labelled DELIBERATE writes its counts in its description as `--expect form:set=n`, and CI passes those for the sets it reads.
 
 Every public call form is compared (`scripts/eval/lib/callForms.mjs`): normalize; fontConvert from Zawgyi, Win and a detected font to Unicode, and from Unicode to Zawgyi; the four `fontConvert.debugging` forms; fontDetect with the default and the `unicode` fallback; syllBreak with `unicode`, `zawgyi` and a detected font; spellingFix with both fonts; and truncate at 10, 30, 60 and 120 characters. A string result is compared as it is, any other value as its JSON, and a throw by its error class only.
 
@@ -79,6 +82,7 @@ The Hugging Face rows come from the current revision of each dataset, so a new d
 
 ```bash
 node scripts/eval/datasets.mjs --check                        # compare the cache with the pins; downloads nothing
+node scripts/eval/datasets.mjs --fetch --without mc4          # download what the cache lacks, except mC4, then check it
 node scripts/eval/datasets.mjs --refresh-samples wikipedia    # download a sample again and print its sha256
 ```
 

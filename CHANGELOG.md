@@ -23,6 +23,7 @@ None.
 ### Changed
 
 - Contributor documentation: `ARCHITECTURE.md`, a rewritten `CONTRIBUTING.md`, `SECURITY.md`, this changelog and a pull request template.
+- Development: `npm test` no longer rewrites `dist/`; it tests a build made in a temporary directory. CI also runs the output comparison, the API contract matrix, table, README, fuzz, property and adapter tests, the browser floor checks and a Playwright run, ReDoS, type, size and `dist/` checks, growth exponents, and a smoke run on Node 16, 18 and 20.
 - README: `normalize` returns text with no Myanmar letters in NFC, and a Win source is converted even though it has no Myanmar letters; name the source font for short text, because a detection tie reads it as Zawgyi; `normalize` can change converted text where an ေ or medial ra has no consonant after it.
 
 ## 2.10.0
@@ -66,7 +67,7 @@ Not yet tagged or published to npm. Pull requests #68 to #74.
 ### Changed
 
 - **Every `dist/` file is ES2015** (#72). The browser builds run in Chrome 49, Edge 14, Firefox 34, Safari 10 (iOS 10), Samsung Internet 5 and Opera 36, or newer. 2.9.x's `min.js` needed ES2020.
-- **The browser build is larger,** for the glyph tables: `dist/knayi-myscript.min.js` is 29,125 bytes (9,826 after `gzip -9`), up from 19,105 (6,104) in 2.9.1.
+- **The browser build is larger,** for the glyph tables: `dist/knayi-myscript.min.js` is 29,125 bytes (9,879 gzipped at level 9, as `npm run check:size` measures), up from 19,105 (6,126) in 2.9.1.
 
 ## Earlier versions
 

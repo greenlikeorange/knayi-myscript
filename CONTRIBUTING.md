@@ -26,23 +26,24 @@ For a feature request, say what you are trying to do and why the existing functi
 
 ## Setup
 
-You need Node.js 22 or newer to build and test (`.nvmrc` has 24), and [Bun](https://bun.sh) for `npm run test:bun` and `npm run test:pack` (CI uses Bun 1.4.2).
+You need Node.js 22 or newer to build and test (`.nvmrc` has 24), [Bun](https://bun.sh) for the Bun checks (CI uses Bun 1.4.2), and Playwright's browsers for the browser tests.
 
 ```bash
 git clone https://github.com/greenlikeorange/knayi-myscript.git
 cd knayi-myscript
 npm ci
+npx playwright install chromium firefox webkit
 npm test
-npm run test:bun
-npm run test:pack
 ```
 
+[ARCHITECTURE.md](ARCHITECTURE.md#running-the-checks) lists every npm script and the CI job that runs it. The sections below say which results a pull request reports.
+
 - **Run `npm ci` in every clone and every git worktree.** Don't share or symlink `node_modules` between them: a shared one can miss dev dependencies, and then a test such as `test/syntax.test.js`, which needs `acorn`, cannot load.
-- **`npm test` rebuilds `dist/`** before it runs the tests. Don't commit those files: `dist/` changes only in release commits, because jsDelivr serves `main`'s `dist/` to sites that load `@master`. Run `git restore dist` before you commit.
+- **The tests never write `dist/`.** They build the browser and ESM files into a temporary directory and test that build; `KNAYI_DIST=dist` points them at the committed files instead. `dist/` changes only in release commits, because jsDelivr serves `main`'s `dist/` to sites that load `@master`, and CI fails a pull request that changes it without a new version.
 - **Indentation is two spaces.** `.editorconfig` still says tabs and some older files use them; that is being fixed in one whitespace-only change. Don't reformat lines you don't otherwise change.
 - **Never push a branch named `master`.** The default branch is `main`. GitHub redirects `master` to `main` only while no `master` branch exists, and jsDelivr links to `@master` depend on that redirect.
 
-`npm run eval` and `npm run bench` download their data into `.eval-cache/` on first use; see [scripts/eval/README.md](scripts/eval/README.md).
+The corpora for compare, perf, eval and bench are downloaded into `.eval-cache/` on first use; see [scripts/eval/README.md](scripts/eval/README.md).
 
 ## Commit messages
 
@@ -74,11 +75,12 @@ Knayi's output is used as data, so an unannounced change to it is a bug even whe
 
 - **Show that nothing changed:**
   - `npm run compare -- --base origin/main` reports 0 differences on every call form, including `fontConvert.debugging`;
-  - the contract matrix (`test/contract/api-matrix.test.js`) shows 0 changed cells;
-  - both hold for `main.js`, the `.mjs` build and `min.js`, under Node and Bun.
-- **The matrix records error messages only for errors knayi throws itself.** For a `TypeError` the engine raises by accident, it records only the class, because those messages differ between runtimes and builds.
+  - the contract matrix (`test/contract/api-matrix.test.js`, part of `npm test` and `npm run test:bun`) shows 0 changed cells;
+  - both hold for `main.js`, the `.mjs` build and `min.js`, under Node and Bun. CI checks all of this.
+- **The matrix records error messages only for errors knayi throws itself.** For a `TypeError` the engine raises by accident, it records only the class, because those messages differ between runtimes and builds. An error knayi throws on purpose carries a string `code` property; that is how the matrix tells the two apart.
 - **A pull request that changes output on purpose** gets the `DELIBERATE` label and:
-  - lists the exact counts it expects, as `--expect form:corpus=n` for compare, and the matrix cells that change;
+  - lists the exact counts it expects in its description, one `--expect form:corpus=n` per changed cell, and the matrix cells that change. CI's compare job reads those lines (it skips mC4, which CI does not read, and `all` totals); re-run the job after you add the label or change the counts;
+  - commits the new matrix written by `npm run matrix:update`;
   - changes nothing else;
   - adds a line under "Output changes" in [CHANGELOG.md](CHANGELOG.md);
   - updates the README, the research note behind the rule, and the demo (`docs/index.html`) in the same pull request.
@@ -87,7 +89,7 @@ Knayi's output is used as data, so an unannounced change to it is a bug even whe
 
 - Run `npm run perf -- --base origin/main` and paste the ratios from a run on a quiet machine. Quote ratios, never absolute times from another run.
 - A Node row more than 5% slower needs a written reason. A Bun row more than 10% slower needs one too.
-- CI blocks a pull request only when an adversarial input's growth exponent goes above 1.3, or when a Node row is slower by more than the CI threshold (15–20%, set from an A/A run on GitHub's runners). Smaller differences are noise on shared runners.
+- CI blocks a pull request only when an adversarial input's growth exponent goes above 1.3 under Node or Bun, or when a Node row is slower than the base branch by more than the CI threshold. The threshold is 20% for now; an A/A run on GitHub's runners will set it between 15 and 20%. Smaller differences are noise on shared runners.
 - Every input must run in linear time. Super-linear time on any input is treated as a security bug (see [SECURITY.md](SECURITY.md)).
 
 ### Browser floor
@@ -95,8 +97,9 @@ Knayi's output is used as data, so an unannounced change to it is a bug even whe
 The README promises Chrome 49, Edge 14, Firefox 34, Safari 10, Samsung Internet 5 and Opera 36. So the `dist/` builds must:
 
 - parse as ES2015 (`test/syntax.test.js`);
-- avoid syntax and built-ins those browsers lack: no `let`, `const`, `for…of` or `class`, and no newer built-in, such as `TypedArray.prototype.fill`, on a path they run;
-- build no regex from a string that uses lookbehind, named groups, `\p{…}` or the `s` flag, since the syntax test cannot see inside strings.
+- avoid syntax and built-ins those browsers lack: no `let`, `const`, `for…of` or `class`, and no newer built-in, such as `TypedArray.prototype.fill`, on a path they run (`test/dist-floor.test.js`, whose rules are in `scripts/browser/floor.js`);
+- build no regex from a string that uses lookbehind, named groups, `\p{…}` or the `s` flag, since the syntax test cannot see inside strings (`test/regex-floor.test.js`);
+- give `main.js`'s results in Chromium, Firefox and WebKit (`npm run test:browser`).
 
 ### The 2.x API stays stable
 
@@ -108,7 +111,7 @@ The exports, `index.d.ts`, the `dist/` file names and the `knayi` global, the op
 
 ### Bundle size
 
-Report the size of `dist/knayi-myscript.min.js` after `gzip -9`, before and after. The 2.x refactor may add at most 1 KB in total over the 2.10 baseline of 9,830 bytes.
+Report the size of `knayi-myscript.min.js` from `npm run check:size`, before and after, with its per-module breakdown. The 2.x refactor may add at most 1 KB in total over the 2.10 baseline of 9,830 bytes, and `npm test` fails above 10,854 bytes. The script measures with Node's zlib at level 9, as the baseline was measured; the `gzip` command gives slightly different numbers for the same file, so quote only the script's.
 
 ### Readable code
 
@@ -140,7 +143,7 @@ A rule is anything that decides output: a glyph table entry, an ordering rule, a
    - how many of the changed lines were checked by hand, and how many of those are right;
    - what Unicode Technical Note #11, myanmar-tools, Rabbit and human-typed text do, where they disagree;
    - open questions.
-2. **Get the counts from compare.** Run `npm run compare -- --base origin/main` and list its counts with `--expect`. Each count names its corpus.
+2. **Get the counts from compare** (see [above](#output-stays-byte-identical-unless-the-pull-request-is-deliberate)) and list them with `--expect`. Each count names its corpus.
 3. **Add tests** with synthetic or hand-written strings (see the next section). Don't copy corpus lines into tests.
 4. **Open one pull request per rule**, labelled `DELIBERATE`, with the CHANGELOG line, the README change and the demo change.
 
@@ -154,7 +157,7 @@ knayi is MIT-licensed, and contributions are accepted under the same licence.
 - **Never commit or ship the Win fonts.** They are freeware with all rights reserved. Check the Win table with your own copy (`node scripts/eval/win-glyphs.mjs path/to/WININNWA.TTF`) and don't publish the page it writes.
 - **Don't add a font to the repository or the site** unless its licence allows redistribution.
 - **Test fixtures are synthetic or hand-written by default.** Short snippets are allowed from sources under CC BY, CC0 or Apache-2.0, listed in a `SOURCES` file next to the fixtures with the source, its licence and where the snippet is used.
-- **Never commit corpus text or digests of it** from other sources. mC4 and other Common Crawl text, and the unlicensed 2018 query log (`queries.tsv`), stay out of the repository and out of CI. The eval scripts keep their downloads in `.eval-cache/`, which git ignores.
+- **Never commit corpus text or digests of it** from other sources, Common Crawl text included. mC4 and the unlicensed 2018 query log (`queries.tsv`) also stay out of CI: CI's corpus cache holds the other pinned corpora, and compare runs there with `--without mc4`. The eval scripts keep their downloads in `.eval-cache/`, which git ignores.
 - **Dependencies:** no runtime dependencies in 2.x (myanmar-tools stays an optional peer). Dev dependencies are fine when they are pinned to an exact version and their licence is checked.
 
 ## Release checklist
@@ -163,9 +166,9 @@ For the maintainer. A release is the only commit that changes `dist/`.
 
 1. **Check `main`.** CI is green. Every pull request since the last tag that changed output has its line under "Output changes" in the Unreleased section of `CHANGELOG.md`.
 2. **Branch** `release-X.Y.Z` from `main`.
-3. **Bump the version** in `package.json` and `package-lock.json` (`npm version X.Y.Z --no-git-tag-version`), in `main.js` (`const version`), and in the README (the version line and the unpkg URL). `test/package.test.js` checks that `main.js` and `package.json` agree.
+3. **Bump the version** in `package.json` and `package-lock.json` (`npm version X.Y.Z --no-git-tag-version`), in `main.js` (`const version`), in `test/compat.test.js`, and in the README (the version line and the unpkg URL). `test/package.test.js` checks that `main.js` and `package.json` agree.
 4. **Update `CHANGELOG.md`:** rename Unreleased to `X.Y.Z` with the date, and start a new, empty Unreleased section.
-5. **Rebuild `dist/`** with `npm run build`, and run `npm test`, `npm run test:bun` and `npm run test:pack`. Check the `min.js` size after `gzip -9`.
+5. **Rebuild `dist/`** with `npm run build`, check it with `npm run check:dist -- --fresh`, and run `KNAYI_DIST=dist npm test`, `npm run test:bun` and `npm run test:pack`. Note the `min.js` size from `npm run check:size` in the release notes.
 6. **Rebuild the benchmark page** with `npm run bench:page`, and commit `docs/benchmark.html` and `docs/benchmark.json`.
 7. **Commit** as `chore(release): X.Y.Z`, open the pull request, and merge it once CI passes.
 8. **Tag** the merge commit on `main`: `git tag -a vX.Y.Z -m X.Y.Z`, then `git push origin vX.Y.Z`.
