@@ -6,15 +6,14 @@
 // or Function, and no module loading.
 //
 // The configuration runs call the entry points with different per-call options, interleaved in one process, and
-// require each call to give what it gives alone: nothing carries over (Phase 6 exit). They skip while their module
-// is a skeleton stub.
+// require each call to give what it gives alone: nothing carries over (Phase 6 exit).
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parsedSources, walk, isReference, codeLoadingSites, where } from './ast.mjs';
-import { SRC, skipUntilBuilt } from '../helpers.mjs';
+import { SRC } from '../helpers.mjs';
 import { detectFont } from '../../../src/detect.js';
 import { normalizeText } from '../../../src/engine/normalizeStages.js';
 import * as nfc from '../../../src/core/nfc.js';
@@ -104,7 +103,7 @@ describe('the stateless core (DESIGN.md §4)', () => {
     assert.deepEqual(bad, []);
   });
 
-  it('detectFont honours each call\'s own model', { skip: skipUntilBuilt(() => detectFont('\u1000')) }, () => {
+  it('detectFont honours each call\'s own model', () => {
     const model = (probability) => ({ getZawgyiProbability: () => probability });
     const unicodeModel = { zawgyiModel: model(0) };
     const zawgyiModel = { zawgyiModel: model(1) };
@@ -117,9 +116,7 @@ describe('the stateless core (DESIGN.md §4)', () => {
     assert.ok(results[1].every((font) => font === 'zawgyi'));
   });
 
-  it('normalizeText honours each call\'s own gate setting', {
-    skip: skipUntilBuilt(() => normalizeText('\u1000'))
-  }, () => {
+  it('normalizeText honours each call\'s own gate setting', () => {
     const results = assertNoCarryOver([
       (text) => normalizeText(text),
       (text) => normalizeText(text, { openAllGates: true })
@@ -127,9 +124,7 @@ describe('the stateless core (DESIGN.md §4)', () => {
     assert.deepEqual(results[0], results[1]);
   });
 
-  it('toNfc with the warm memo equals toNfcWith a cold one', {
-    skip: typeof nfc.createNfcMemo !== 'function' && 'until the port of the NFC helper (DESIGN.md §8)'
-  }, () => {
+  it('toNfc with the warm memo equals toNfcWith a cold one', () => {
     const texts = MYANMAR_TEXTS.concat(['e\u0301\u0323', '\u1000' + '\u1037\u1039'.repeat(40)]);
     for (const text of texts) assert.equal(nfc.toNfc(text), nfc.toNfcWith(text, nfc.createNfcMemo()));
   });

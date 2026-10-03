@@ -6,17 +6,14 @@
 // test/growth.timing.js: each input gets a quick first reading, an input that reads above the limit is measured
 // in full three times, and it fails only when all three readings are above the limit. Super-linear code reads
 // high every time, while a burst of load on the machine seldom spoils three readings in a row.
-//
-// It skips while the module, or a module it calls, is a skeleton stub.
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { unicodeToZawgyi } from '../../src/unicodeToZawgyi.js';
-import { skipUntilBuilt, SHAPES, PUMPS } from './helpers.mjs';
+import { SHAPES, PUMPS } from './helpers.mjs';
 import { growthExponent } from '../../scripts/eval/lib/timing.mjs';
 
 const LIMIT = 1.3;
-const skip = skipUntilBuilt(() => unicodeToZawgyi('\u1000'));
 
 // The lowest of the readings: a quick one, then, when it is above the limit, three full ones.
 function screenedGrowth(make) {
@@ -46,6 +43,6 @@ function checkGrowth(inputs, t) {
 }
 
 describe('growth of src/unicodeToZawgyi.js (DESIGN.md §6.2)', () => {
-  it('is linear on every adversarial shape', { skip }, (t) => checkGrowth(SHAPES, t));
-  it('is linear on every single-character run', { skip }, (t) => checkGrowth(PUMPS, t));
+  it('is linear on every adversarial shape', (t) => checkGrowth(SHAPES, t));
+  it('is linear on every single-character run', (t) => checkGrowth(PUMPS, t));
 });

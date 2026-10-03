@@ -17,10 +17,9 @@ import assert from 'node:assert/strict';
 import { normalizeText } from '../../src/engine/normalizeStages.js';
 import { reorderUnicode } from '../../src/engine/unicodeReader.js';
 import { growthExponent, timeOnce } from '../../scripts/eval/lib/timing.mjs';
-import { SHAPES, PUMPS, skipUntilBuilt } from './helpers.mjs';
+import { SHAPES, PUMPS } from './helpers.mjs';
 
 const LIMIT = 1.3;
-const skip = skipUntilBuilt(() => normalizeText('\u1000'));
 
 // A quick reading, then, above the limit, the lowest of three full readings (perf.mjs screenedGrowth).
 function screenedGrowth(call, make) {
@@ -69,25 +68,24 @@ describe('growth of reorderUnicode (DESIGN.md §6.2)', () => {
 });
 
 describe('growth of normalizeText (DESIGN.md §6.2)', () => {
-  it('is linear on every shape', { skip }, () => {
+  it('is linear on every shape', () => {
     assert.deepEqual(superLinear((text) => normalizeText(text), SHAPES), []);
   });
 
-  it('is linear on every pump', { skip }, () => {
+  it('is linear on every pump', () => {
     assert.deepEqual(superLinear((text) => normalizeText(text), PUMPS), []);
   });
 
-  it('takes under 100 ms on ka, then zero-width space and aa a million times (the 2.10.0 quadratic path)', { skip },
-    (t) => {
-      const ms = fastest(() => normalizeText(ZWSP_AA_MILLION));
-      t.diagnostic(ms.toFixed(1) + ' ms');
-      assert.ok(ms < 100, ms.toFixed(1) + ' ms');
-    });
+  it('takes under 100 ms on ka, then zero-width space and aa a million times (the 2.10.0 quadratic path)', (t) => {
+    const ms = fastest(() => normalizeText(ZWSP_AA_MILLION));
+    t.diagnostic(ms.toFixed(1) + ' ms');
+    assert.ok(ms < 100, ms.toFixed(1) + ' ms');
+  });
 });
 
 describe('known super-linear time', () => {
   it('normalizeText on ka, then dot below and virama repeated', {
-    skip, todo: 'String#normalize reorders a long run of combining marks in quadratic time; the port of the 2.x ' +
+    todo: 'String#normalize reorders a long run of combining marks in quadratic time; the port of the 2.x ' +
       'linear NFC helper (DESIGN.md §8) makes this linear'
   }, (t) => {
     // One quick reading: the probe only reports, and a full one takes seconds on quadratic time.

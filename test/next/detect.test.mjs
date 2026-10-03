@@ -11,7 +11,7 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { countEvidence, decide, scoreByZawgyiModel, detectFont, detectEncoding } from '../../src/detect.js';
 import { DETECTOR_SIGNATURES } from '../../src/spec/detectorSignatures.js';
-import { oracle, tableProbes, skipUntilBuilt } from './helpers.mjs';
+import { oracle, tableProbes } from './helpers.mjs';
 
 const require = createRequire(import.meta.url);
 const SIGNATURES = oracle.signatures.detect;
@@ -212,10 +212,8 @@ describe('scoreByZawgyiModel: the injected myanmar-tools model', () => {
   });
 });
 
-const detectFontSkip = skipUntilBuilt(() => detectFont('\u1000'));
-
 describe('detectFont', () => {
-  it('uses the rule evidence with no model, and falls back to zawgyi on a tie', { skip: detectFontSkip }, () => {
+  it('uses the rule evidence with no model, and falls back to zawgyi on a tie', () => {
     assert.equal(detectFont('\u1000'), 'zawgyi');
     assert.equal(detectFont('\u1000\u103B'), 'unicode');
     assert.equal(detectFont('\u103B\u1019\u1014\u1039\u1019\u102C'), 'zawgyi');
@@ -224,12 +222,12 @@ describe('detectFont', () => {
     assert.equal(detectFont('\u1000', { zawgyiModel: null }), 'zawgyi');
   });
 
-  it('is map-safe: an index or an array in the options place is no options', { skip: detectFontSkip }, () => {
+  it('is map-safe: an index or an array in the options place is no options', () => {
     assert.deepEqual(['\u1000', '\u1000\u103B'].map(detectFont), ['zawgyi', 'unicode']);
     assert.equal(detectFont('\u1000', ['unicode']), 'zawgyi');
   });
 
-  it('asks the injected model, with the default thresholds or the given ones', { skip: detectFontSkip }, () => {
+  it('asks the injected model, with the default thresholds or the given ones', () => {
     assert.equal(detectFont('\u1000', { zawgyiModel: stubModel(0.04) }), 'unicode');
     assert.equal(detectFont('\u1000', { zawgyiModel: stubModel(0.05) }), 'zawgyi', 'the fallback');
     assert.equal(detectFont('\u1000', { zawgyiModel: stubModel(0.05), fallback: 'tie' }), 'tie');
@@ -238,7 +236,7 @@ describe('detectFont', () => {
     assert.equal(detectFont('\u1000', { zawgyiModel: stubModel(0.5), thresholds: [0.6, 0.9] }), 'unicode');
   });
 
-  it('reads its options and never writes or keeps them', { skip: detectFontSkip }, () => {
+  it('reads its options and never writes or keeps them', () => {
     const options = Object.freeze({ zawgyiModel: Object.freeze(stubModel(1)), thresholds: Object.freeze([0.1, 0.2]) });
     assert.equal(detectFont('\u1000', options), 'zawgyi');
     assert.equal(detectFont('\u1000'), 'zawgyi');
@@ -246,23 +244,20 @@ describe('detectFont', () => {
   });
 });
 
-const detectEncodingSkip = skipUntilBuilt(() => detectEncoding('\u1000'));
-
 describe('detectEncoding', () => {
-  it('is none for text with no unit of the Myanmar block, as 2.x fontDetect\'s gate', { skip: detectEncodingSkip },
-    () => {
-      for (const text of ['', 'abc', '\uAA60\uAA61', '\uA9E0', '\u0BB5']) {
-        assert.deepEqual(detectEncoding(text), { encoding: 'none', unicode: 0, zawgyi: 0 }, units(text));
-        assert.deepEqual(countEvidence(text), { unicode: 0, zawgyi: 0 }, units(text) + ': no row matches');
-      }
-    });
+  it('is none for text with no unit of the Myanmar block, as 2.x fontDetect\'s gate', () => {
+    for (const text of ['', 'abc', '\uAA60\uAA61', '\uA9E0', '\u0BB5']) {
+      assert.deepEqual(detectEncoding(text), { encoding: 'none', unicode: 0, zawgyi: 0 }, units(text));
+      assert.deepEqual(countEvidence(text), { unicode: 0, zawgyi: 0 }, units(text) + ': no row matches');
+    }
+  });
 
-  it('is unknown on a tie, and gives the evidence', { skip: detectEncodingSkip }, () => {
+  it('is unknown on a tie, and gives the evidence', () => {
     assert.deepEqual(detectEncoding('\u1000'), { encoding: 'unknown', unicode: 0, zawgyi: 0 });
     assert.deepEqual(detectEncoding('\u1000\u103B\u1031\u1031'), { encoding: 'unknown', unicode: 1, zawgyi: 1 });
   });
 
-  it('names the side with more evidence, with both counts', { skip: detectEncodingSkip }, () => {
+  it('names the side with more evidence, with both counts', () => {
     for (const row of DETECTOR_SIGNATURES) {
       const evidence = oracleEvidence(row.example);
       const result = detectEncoding(row.example);
@@ -271,7 +266,7 @@ describe('detectEncoding', () => {
     }
   });
 
-  it('is 2.x fontDetect, with the fallback in place of none and unknown', { skip: detectEncodingSkip }, () => {
+  it('is 2.x fontDetect, with the fallback in place of none and unknown', () => {
     const texts = DETECTOR_SIGNATURES.map((row) => row.example).concat(['', 'abc', '\u1000', '\uAA60']);
     for (const text of texts) {
       const { encoding } = detectEncoding(text);

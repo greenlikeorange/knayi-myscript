@@ -2,9 +2,8 @@
 // §3.10, §7.7). Owner: W5 (engine-unicode).
 //
 // The stage list, the two gates, the trace, the normalize examples of README.md and ARCHITECTURE.md, and the table
-// probes of test/fixtures/tables.json, each against the frozen 2.x oracle (D19). The tests that call the pipeline
-// skip until its dependencies are built: core/rules.js, core/nfc.js, core/input.js and core/options.js (W1), and
-// engine/typingFixes.js (W2). normalize.fuzz.test.mjs compares normalizeText with 2.x on fuzzed strings.
+// probes of test/fixtures/tables.json, each against the frozen 2.x oracle (D19). normalize.fuzz.test.mjs compares
+// normalizeText with 2.x on fuzzed strings.
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -16,15 +15,11 @@ import { NORMALIZE_STAGES, normalizeText, traceNormalizeText } from '../../src/e
 import { createTrace } from '../../src/core/rules.js';
 import { toNfc } from '../../src/core/nfc.js';
 import { fixTypos, fixLookAlikes } from '../../src/engine/typingFixes.js';
-import { oracle, ROOT, skipUntilBuilt, tableProbes } from './helpers.mjs';
+import { oracle, ROOT, tableProbes } from './helpers.mjs';
 
 const require = createRequire(import.meta.url);
 const { readExamples } = require('../../scripts/testing/readme-examples.js');
 
-const skip = skipUntilBuilt(() => {
-  normalizeText('\u1000');
-  traceNormalizeText('\u1000', createTrace());
-});
 const hex = (text) => Array.from(text, (ch) => ch.charCodeAt(0).toString(16).toUpperCase()).join(' ');
 
 // normalizeText's text, checked against 2.x first, with the gates and with every gate open.
@@ -97,13 +92,13 @@ describe('NORMALIZE_STAGES (DESIGN.md §2.3)', () => {
 });
 
 describe('normalizeText (DESIGN.md §3.10)', () => {
-  it('gives the results README.md and ARCHITECTURE.md show', { skip }, () => {
+  it('gives the results README.md and ARCHITECTURE.md show', () => {
     const examples = normalizeExamples('README.md').concat(normalizeExamples('ARCHITECTURE.md'));
     assert.ok(examples.length >= 14, examples.length + ' examples');
     for (const [input, expected] of examples) assert.equal(hex(normalized(input)), hex(expected), hex(input));
   });
 
-  it('takes the no-Myanmar fast path to NFC alone (decision 16)', { skip }, () => {
+  it('takes the no-Myanmar fast path to NFC alone (decision 16)', () => {
     assert.equal(normalized('e\u0301'), '\u00E9');
     assert.equal(normalized(''), '');
     assert.equal(normalized('abc ​‌'), 'abc ​‌');
@@ -112,7 +107,7 @@ describe('normalizeText (DESIGN.md §3.10)', () => {
     assert.equal(nfcCalls(() => normalizeText('e\u0301')), 1);
   });
 
-  it('runs the final NFC only when the gate opens, or when every gate is open', { skip }, () => {
+  it('runs the final NFC only when the gate opens, or when every gate is open', () => {
     assert.equal(hex(normalized('\u1025\u102D\u102E')), hex('\u1026')); // typos make U+1025 U+102E
     assert.equal(hex(normalized('\u1000\u102D\u102E\u0301')), hex('\u1000\u102E\u0301'));
     const burmese = '\u1019\u103C\u1014\u103A\u1019\u102C';
@@ -125,7 +120,7 @@ describe('normalizeText (DESIGN.md §3.10)', () => {
       'openAllGates skips the fast path');
   });
 
-  it('reads engineOptions map-safely: only an object with openAllGates: true opens the gates', { skip }, () => {
+  it('reads engineOptions map-safely: only an object with openAllGates: true opens the gates', () => {
     const text = '\u1019\u103C\u1014\u103A';
     const closed = nfcCalls(() => normalizeText(text));
     for (const options of [undefined, null, 0, 1, 'openAllGates', [], [true], { openAllGates: 'yes' }]) {
@@ -135,7 +130,7 @@ describe('normalizeText (DESIGN.md §3.10)', () => {
     assert.deepEqual(['\u1031\u1000', 'abc'].map(normalizeText), ['\u1000\u1031', 'abc']);
   });
 
-  it('agrees with 2.x on every probe of test/fixtures/tables.json', { skip }, () => {
+  it('agrees with 2.x on every probe of test/fixtures/tables.json', () => {
     let probes = 0;
     for (const entry of Object.values(tableProbes())) {
       for (const probe of [entry.probe].concat((entry.edges || []).map((edge) => edge.probe))) {
@@ -157,7 +152,7 @@ describe('traceNormalizeText', () => {
     return trace.records.map((record) => [record.id, record.label, hex(record.text)]);
   }
 
-  it('records each stage that changed the text, with its id and label', { skip }, () => {
+  it('records each stage that changed the text, with its id and label', () => {
     assert.deepEqual(traced('\u1000\u102C'), []);
     assert.deepEqual(traced('e\u0301'), [['nfc.input', 'NFC', hex('\u00E9')]]);
     assert.deepEqual(traced('\u1031\u1000\u102C'), [['syllables', 'syllables', hex('\u1000\u1031\u102C')]]);
@@ -166,7 +161,7 @@ describe('traceNormalizeText', () => {
       ['nfc.final', 'NFC', hex('\u1026')]]);
   });
 
-  it('never gates: the final NFC runs, and is recorded only when it changes the text', { skip }, () => {
+  it('never gates: the final NFC runs, and is recorded only when it changes the text', () => {
     const burmese = '\u1019\u103C\u1014\u103A\u1019\u102C';
     assert.ok(nfcCalls(() => traceNormalizeText(burmese, createTrace())) >= 2);
     assert.deepEqual(traced(burmese), []);

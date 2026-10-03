@@ -2,22 +2,18 @@
 // convertRules.unicode.zawgyi (the frozen scripts/oracle/syllable.js), the sections and the why comment of each
 // row, the six wrapped rows (decision 29), an example for each row id (D17), the table probes, and the trace
 // (§3.9, D4). The differential fuzz is in unicodeToZawgyi.fuzz.test.mjs.
-//
-// The rows are data and are tested now. The examples, the probes and the trace run through unicodeToZawgyi,
-// which calls core/rules.js (W1) and segment.js's collapseRepeatedMarks (W3): they skip until both are built.
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import * as acorn from 'acorn';
 import { UNICODE_TO_ZAWGYI_RULES, unicodeToZawgyi, traceUnicodeToZawgyi } from '../../src/unicodeToZawgyi.js';
 import { createTrace, ruleLabel } from '../../src/core/rules.js';
-import { skipUntilBuilt, srcText, tableProbes } from './helpers.mjs';
+import { srcText, tableProbes } from './helpers.mjs';
 import {
   TWO_X_ROWS, TWO_X_PROBE_IDS, twoXUnicodeToZawgyi, twoXDebugLog, traceAsDebugLog, asFontConvert
 } from './unicodeToZawgyi.oracle.mjs';
 
 const ROWS = UNICODE_TO_ZAWGYI_RULES;
-const BUILT = skipUntilBuilt(() => traceUnicodeToZawgyi('\u1000', createTrace()));
 
 // The sections in the order they run, with the id prefix and the row count of each (DESIGN.md §3.9).
 const SECTIONS = [
@@ -116,8 +112,6 @@ const EXAMPLES = [
   ['uz.medial-ra.8', '\u1009\u103C', '\u1081\u106A'] // synthetic: nya with medial ra
 ];
 
-// The 2.x label of a row, restated from DESIGN.md §2.3: core/rules.js ruleLabel gives the same once it is built.
-const labelOf = (row) => (row.label !== undefined ? row.label : row.re.source);
 const codes = (text) => Array.from(text, (c) => c.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')).join(' ');
 
 // The units of a regex source that is a pure literal of \u escapes, or null.
@@ -147,7 +141,7 @@ describe('the Unicode to Zawgyi rows (DESIGN.md §7.9)', () => {
   it('each row is its 2.x rule: label, replacement, flags and pattern', () => {
     ROWS.forEach((row, i) => {
       const [re, to] = TWO_X_ROWS[i].rule;
-      assert.equal(labelOf(row), re.source, row.id + ' label');
+      assert.equal(ruleLabel(row), re.source, row.id + ' label (core/rules.js ruleLabel)');
       assert.equal(row.to, to, row.id + ' replacement');
       assert.equal(row.re.flags, 'g', row.id + ' flags');
       const expected = isSlowAtom(re.source) ? wrapFirstUnit(re.source) : re.source;
@@ -179,10 +173,6 @@ describe('the Unicode to Zawgyi rows (DESIGN.md §7.9)', () => {
         }
       }
     });
-  });
-
-  it('ruleLabel gives each row its 2.x label', { skip: skipUntilBuilt(() => ruleLabel(ROWS[0])) }, () => {
-    ROWS.forEach((row, i) => assert.equal(ruleLabel(row), TWO_X_ROWS[i].rule[0].source, row.id));
   });
 
   it('ship only id, re, to, repeat and the label of a wrapped row (D17)', () => {
@@ -281,7 +271,7 @@ describe('the examples (D17)', () => {
   });
 
   for (const [id, text, zawgyi] of EXAMPLES) {
-    it(id + ' changes its example', { skip: BUILT }, () => {
+    it(id + ' changes its example', () => {
       assert.equal(unicodeToZawgyi(text), zawgyi, codes(text));
       const { trace, result } = traceAsDebugLog(text);
       assert.equal(result, zawgyi);
@@ -298,7 +288,7 @@ describe('the table probes (test/fixtures/tables.json)', () => {
     for (const probeId of TWO_X_PROBE_IDS) assert.ok(probes[probeId], 'no probe ' + probeId);
   });
 
-  it('give 2.x\'s output, and fire the rows 2.x fired, through the 2.x call form', { skip: BUILT }, () => {
+  it('give 2.x\'s output, and fire the rows 2.x fired, through the 2.x call form', () => {
     for (const probeId of TWO_X_PROBE_IDS) {
       const entry = probes[probeId];
       for (const { probe, expect } of [entry].concat(entry.edges || [])) {
@@ -312,7 +302,7 @@ describe('the table probes (test/fixtures/tables.json)', () => {
 });
 
 describe('unicodeToZawgyi and traceUnicodeToZawgyi (DESIGN.md §2.3, §3.9)', () => {
-  it('collapse a mark typed twice, then apply the rows', { skip: BUILT }, () => {
+  it('collapse a mark typed twice, then apply the rows', () => {
     const text = '\u1000\u103C\u103C\u102F\u102F';
     assert.equal(unicodeToZawgyi(text), '\u107E\u1000\u1033');
     const trace = createTrace();
@@ -320,7 +310,7 @@ describe('unicodeToZawgyi and traceUnicodeToZawgyi (DESIGN.md §2.3, §3.9)', ()
     assert.equal(trace.start, '\u1000\u103C\u102F', 'the trace starts at the collapsed text');
   });
 
-  it('give text with nothing to convert back unchanged', { skip: BUILT }, () => {
+  it('give text with nothing to convert back unchanged', () => {
     for (const text of ['', 'abc', '\u1000\u102C', '\u1041\u1042']) {
       assert.equal(unicodeToZawgyi(text), text);
       const { trace } = traceAsDebugLog(text);
@@ -328,7 +318,7 @@ describe('unicodeToZawgyi and traceUnicodeToZawgyi (DESIGN.md §2.3, §3.9)', ()
     }
   });
 
-  it('record each row that changed the text, with its id, its 2.x label and the text after it', { skip: BUILT }, () => {
+  it('record each row that changed the text, with its id, its 2.x label and the text after it', () => {
     const trace = createTrace();
     traceUnicodeToZawgyi('\u1000\u103C\u102C', trace);
     assert.deepEqual(trace.records, [
@@ -342,19 +332,19 @@ describe('unicodeToZawgyi and traceUnicodeToZawgyi (DESIGN.md §2.3, §3.9)', ()
     ]);
   });
 
-  it('record a wrapped row under its 2.x label', { skip: BUILT }, () => {
+  it('record a wrapped row under its 2.x label', () => {
     const trace = createTrace();
     traceUnicodeToZawgyi('\u100D\u1039\u100E', trace);
     assert.deepEqual(trace.records.map((r) => [r.id, r.label]), [['uz.glyphs.16', '\\u100d\\u1039\\u100e']]);
   });
 
-  it('record a repeat row once, however many places it changed', { skip: BUILT }, () => {
+  it('record a repeat row once, however many places it changed', () => {
     const trace = createTrace();
     traceUnicodeToZawgyi('\u1000\u103C\u102C \u1000\u103C\u102C', trace);
     assert.equal(trace.records.filter((record) => record.id === 'uz.medial-ra.1').length, 1);
   });
 
-  it('empty a trace that is used again', { skip: BUILT }, () => {
+  it('empty a trace that is used again', () => {
     const trace = createTrace();
     traceUnicodeToZawgyi('\u1000\u103C\u102C', trace);
     traceUnicodeToZawgyi('\u1014\u1031', trace);
@@ -362,7 +352,7 @@ describe('unicodeToZawgyi and traceUnicodeToZawgyi (DESIGN.md §2.3, §3.9)', ()
     assert.deepEqual(trace.records.map((record) => record.id), ['uz.order.3']);
   });
 
-  it('read back as 2.x\'s debug log on every example', { skip: BUILT }, () => {
+  it('read back as 2.x\'s debug log on every example', () => {
     for (const [id, text] of EXAMPLES) assert.deepEqual(traceAsDebugLog(text).log, twoXDebugLog(text), id);
   });
 });

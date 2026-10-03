@@ -8,21 +8,18 @@
 //    generated set, the README and ARCHITECTURE strings and the table probes among them, the seeded fuzz sets, and
 //    every cached corpus. A corpus missing from the corpus cache is left out, never downloaded; npm run compare
 //    fills the cache.
-// Every output must be the same. The tests skip until core/rules.js (W1) and segment.js (W3) are built.
+// Every output must be the same.
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import fc from 'fast-check';
-import { unicodeToZawgyi, traceUnicodeToZawgyi } from '../../src/unicodeToZawgyi.js';
-import { createTrace } from '../../src/core/rules.js';
-import { arb, fuzz, skipUntilBuilt } from './helpers.mjs';
+import { unicodeToZawgyi } from '../../src/unicodeToZawgyi.js';
+import { arb, fuzz } from './helpers.mjs';
 import {
   TWO_X_ROWS, twoXUnicodeToZawgyi, twoXDebugLog, traceAsDebugLog, asFontConvert
 } from './unicodeToZawgyi.oracle.mjs';
 import { generatedSets, fuzzSets, corpusSets, DEFAULT_SEED } from '../../scripts/eval/lib/inputs.mjs';
 import { checkCache, CORPORA } from '../../scripts/eval/datasets.mjs';
-
-const BUILT = skipUntilBuilt(() => traceUnicodeToZawgyi('\u1000', createTrace()));
 
 // Strings per property: on a pull request, and the most a nightly run uses (D23).
 const COUNT = { convert: [200000, 1000000], trace: [50000, 300000] };
@@ -127,12 +124,12 @@ function cachedCorpora() {
 }
 
 describe('unicodeToZawgyi against 2.x (DESIGN.md §7.9)', () => {
-  it('converts fuzzed strings as 2.x does', { skip: BUILT }, () => {
+  it('converts fuzzed strings as 2.x does', () => {
     fuzz.check(fc.property(text, (x) => same(unicodeToZawgyi(x), twoXUnicodeToZawgyi(x), x)),
       COUNT.convert[0], REGRESSIONS, COUNT.convert[1]);
   });
 
-  it('traces fuzzed strings as 2.x\'s debug log', { skip: BUILT }, () => {
+  it('traces fuzzed strings as 2.x\'s debug log', () => {
     fuzz.check(fc.property(text, (x) => {
       const { log, result } = traceAsDebugLog(x);
       assert.deepStrictEqual(log, twoXDebugLog(x), 'input ' + codes(x));
@@ -140,9 +137,7 @@ describe('unicodeToZawgyi against 2.x (DESIGN.md §7.9)', () => {
     }), COUNT.trace[0], REGRESSIONS, COUNT.trace[1]);
   });
 
-  it('gives 2.x\'s fontConvert and fontConvert.debugging output on compare\'s generated and fuzz sets', {
-    skip: BUILT
-  }, (t) => {
+  it('gives 2.x\'s fontConvert and fontConvert.debugging output on compare\'s generated and fuzz sets', (t) => {
     const seeds = [...new Set([DEFAULT_SEED, fuzz.SEED])];
     const sets = generatedSets().concat(...seeds.map((seed) => fuzzSets({ seed })));
     const { differences, lines } = compareCallForms(sets);
@@ -151,9 +146,9 @@ describe('unicodeToZawgyi against 2.x (DESIGN.md §7.9)', () => {
     if (t.diagnostic) t.diagnostic(lines + ' lines of ' + what);
   });
 
-  const corpora = BUILT ? [] : cachedCorpora();
+  const corpora = cachedCorpora();
   it('gives 2.x\'s fontConvert and fontConvert.debugging output on every cached corpus', {
-    skip: BUILT || (corpora.length === 0 && 'no corpus is cached (npm run compare fills the cache)')
+    skip: corpora.length === 0 && 'no corpus is cached (npm run compare fills the cache)'
   }, async (t) => {
     const { sets } = await corpusSets({ without: CORPORA.filter((id) => corpora.indexOf(id) === -1) });
     const { differences, lines } = compareCallForms(sets);

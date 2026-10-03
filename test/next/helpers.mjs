@@ -65,18 +65,6 @@ function requireNightlyCount(nightlyCount) {
 // NOT_BUILT stub left, every planned file present) skip, saying why.
 export const AT_ACCEPTANCE_GATE = false;
 
-// false when probe() runs, or a skip reason when it throws ERR_KNAYI_NOT_BUILT: a test of a module that is still
-// a skeleton stub skips, and runs as soon as the module is built (D12). Any other error is thrown.
-export function skipUntilBuilt(probe) {
-  try {
-    probe();
-    return false;
-  } catch (error) {
-    if (error && error.code === 'ERR_KNAYI_NOT_BUILT') return 'not built yet: ' + error.message;
-    throw error;
-  }
-}
-
 // One synthetic probe per table row and per branch of a row, with what the 2.x API returned for it
 // (test/fixtures/tables.json): { '<row name>': { probe, expect } }.
 export function tableProbes() {

@@ -7,8 +7,7 @@
 //   directly (D10), and this keeps the two paths from drifting apart;
 // - whenever the final-NFC gate stays closed, the result is NFC already, so the gate is sound;
 // - traceNormalizeText gives the same text, and records the stages whose 2.x counterparts changed the text.
-// The cached corpora are checked too, when the cache is complete. The tests skip until the pipeline's dependencies
-// are built (W1 and W2).
+// The cached corpora are checked too, when the cache is complete.
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -18,13 +17,8 @@ import fc from 'fast-check';
 import { NORMALIZE_STAGES, normalizeText, traceNormalizeText } from '../../src/engine/normalizeStages.js';
 import { reorderUnicode, SEEN } from '../../src/engine/unicodeReader.js';
 import { runStages, createTrace } from '../../src/core/rules.js';
-import { oracle, arb, fuzz, ROOT, skipUntilBuilt } from './helpers.mjs';
+import { oracle, arb, fuzz, ROOT } from './helpers.mjs';
 
-const skip = skipUntilBuilt(() => {
-  normalizeText('\u1000');
-  traceNormalizeText('\u1000', createTrace());
-  runStages('\u1000', NORMALIZE_STAGES, { openAllGates: false, seen: 0 }, null);
-});
 const hex = (text) => Array.from(text, (ch) => ch.charCodeAt(0).toString(16).toUpperCase()).join(' ');
 
 const REGRESSIONS = [
@@ -99,11 +93,11 @@ async function cachedCorpora() {
 }
 
 describe('normalizeText against 2.x normalize (DESIGN.md §7.7)', () => {
-  it('fast-check strings, after the regressions of test/fuzz.test.js', { skip }, () => {
+  it('fast-check strings, after the regressions of test/fuzz.test.js', () => {
     fuzz.check(fc.property(strings, (text) => assertSameAs2x(text)), 100000, REGRESSIONS, 1000000);
   });
 
-  it('every line of the cached corpora', { skip }, async (t) => {
+  it('every line of the cached corpora', async (t) => {
     const corpora = await cachedCorpora();
     if (corpora.skip) {
       t.skip(corpora.skip);
