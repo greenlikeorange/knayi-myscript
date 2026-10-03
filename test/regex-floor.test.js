@@ -48,8 +48,10 @@ global.RegExp = new Proxy(NativeRegExp, {
 });
 
 // match, search and matchAll turn a string argument into a RegExp inside the engine.
+const nativeStringMethods = {};
 for (const name of ['match', 'search', 'matchAll']) {
   const original = String.prototype[name];
+  nativeStringMethods[name] = original;
   Object.defineProperty(String.prototype, name, {
     configurable: true,
     writable: true,
@@ -62,11 +64,31 @@ for (const name of ['match', 'search', 'matchAll']) {
   });
 }
 
+// `bun test` runs every test file in one process with one module cache, so another file may have loaded the
+// library before the hooks went in. This file loads its own copy, and puts the cached modules back afterwards.
+const cached = {};
+for (const id of Object.keys(require.cache)) {
+  if (id === MAIN || id.startsWith(LIBRARY)) {
+    cached[id] = require.cache[id];
+    delete require.cache[id];
+  }
+}
 const knayi = require('../main');
 const floor = require('../scripts/browser/floor');
 const examples = require('../scripts/browser/examples');
 
 examples.runCalls(knayi, examples.allCalls());
+
+// The records are complete, so the hooks come out again: under `bun test` they would also see the test files
+// that run after this one.
+global.RegExp = NativeRegExp;
+for (const name of Object.keys(nativeStringMethods)) {
+  Object.defineProperty(String.prototype, name, { configurable: true, writable: true, value: nativeStringMethods[name] });
+}
+for (const id of Object.keys(require.cache)) {
+  if (id === MAIN || id.startsWith(LIBRARY)) delete require.cache[id];
+}
+Object.assign(require.cache, cached);
 
 // Every `new RegExp(...)` and `RegExp(...)` in library/ and main.js, as 'file:line'.
 function constructorSites() {
