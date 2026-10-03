@@ -8,8 +8,11 @@ const fixture = require('./fixtures/tables.json');
 // to Zawgyi rule, detector signature, break rule, spellingFix collapse rule and normalize typo rule. Each case
 // is a synthetic probe that exercises its row (the glyph is read, the rule changes the text at its turn inside
 // the public call, the signature decides the detection), and the output the public API gave for it when the
-// case was written. A refactor must keep every output; a pull request that changes output on purpose rewrites
-// the cases with `node scripts/testing/table-cases.js --write` and shows the diff.
+// case was written. A row with a pattern also has edge probes, one for each branch of the pattern that its
+// main probe does not take: the ends of each class range and the code points just outside them, each class
+// member and each alternative (scripts/testing/branches.js). A refactor must keep every output; a pull request
+// that changes output on purpose rewrites the cases with `node scripts/testing/table-cases.js --write` and
+// shows the diff.
 
 const rows = buildRows(knayi);
 const cases = fixture.cases;
@@ -34,6 +37,10 @@ describe('table rows', () => {
               (entry.reach === 'call' ? 'inside the public call' : 'by pattern only') + ' for its probe');
           }
           assert.deepEqual(row.run(entry.probe), entry.expect);
+          for (const edge of entry.edges || []) {
+            assert.deepEqual(row.run(edge.probe), edge.expect, 'edge probe ' + JSON.stringify(edge.probe) + ' (' +
+              edge.branches.join('; ') + ')');
+          }
         });
       }
     });
@@ -53,8 +60,13 @@ describe('table rows', () => {
       const pinned = inTable.filter((row) => cases[row.id] && row.exercises(cases[row.id].probe));
       const measured = inTable.filter((row) => row.reach);
       const inCall = pinned.filter((row) => row.reach && row.reach(cases[row.id].probe) === 'call');
+      const entries = inTable.map((row) => cases[row.id] || {});
+      const count = (key) => entries.reduce((n, e) => n + (e[key] || []).length, 0);
+      const branches = count('covers') + entries.reduce((n, e) => n + (e.edges || []).reduce((m, x) => m + x.branches.length, 0), 0);
       t.diagnostic(table + ': ' + pinned.length + '/' + inTable.length + ' rows pinned' +
-        (measured.length ? ', ' + inCall.length + ' fire inside the public call' : ''));
+        (measured.length ? ', ' + inCall.length + ' fire inside the public call' : '') +
+        (branches || count('unreached') ? '; ' + branches + ' pattern branches pinned by ' + count('edges') +
+          ' edge probes and the main ones, ' + count('unreached') + ' unreached' : ''));
       assert.equal(pinned.length, inTable.length);
     }
   });

@@ -13,12 +13,24 @@
 // string found that makes the row fire inside the public call (reach "call"); for a rule that never fires
 // there, because the rules before it always change its input first, the shortest string its pattern matches
 // (reach "pattern").
+//
+// One probe takes one path through a pattern, so a pattern row also gets edge probes, one for each branch of
+// its pattern (scripts/testing/branches.js): each end of each character class range, the code point just
+// outside it, each member of a class and each alternative. An edge probe is a string on which the rule, at its
+// turn, gives a different result when that branch moves; it is looked for first among the main probe with the
+// branch's code point (or ka, a digit, a space or a Latin letter) put in place of each character or between
+// them, then among strings that take the branch, then among strings the changed pattern or the pattern itself
+// matches, each alone and next to ka and a space. `covers` lists the branches the main probe already
+// separates, `edges` the other probes with the branches each separates and the output they gave, and
+// `unreached` the branches for which no probe was found (the rules before this one never let such a string
+// reach it, or the change cannot show at its turn).
 
 const fs = require('fs');
 const path = require('path');
 const fc = require('fast-check');
 const knayi = require('../../main');
 const { buildRows } = require('./rows');
+const { neighbours } = require('./branches');
 
 const FIXTURE = path.join(__dirname, '..', '..', 'test', 'fixtures', 'tables.json');
 const RANDOM_TRIES = 4000;
@@ -46,6 +58,9 @@ const GLYPH_TEMPLATES = {
 
 // Letters added around a sampled match, and mixed into random probes.
 const CONTEXT = ['', '\u1000', ' ', '\u1000 '];
+// Characters tried in and around a main probe for an edge probe, besides the branch's own code point: ka, the
+// digit one, a space and a Latin letter (a Win key).
+const EDGE_CONTEXT = [0x1000, 0x1041, 0x20, 0x61].map((code) => String.fromCharCode(code));
 const BASE_ALPHABET = ['\u1000', '\u1004', '\u1010', '\u101B', '\u1031', '\u103A', '\u1039', '\u102C', '\u102D', '\u103C', ' '];
 
 // A seed per row (FNV-1a of its id), so a row's probe does not depend on the rows before it.
@@ -146,6 +161,57 @@ function findProbe(row) {
   return best;
 }
 
+// The main probe with each character in `chars` put in place of each of its characters, then between them.
+function edgeCandidates(probe, chars) {
+  const out = [probe];
+  const seen = new Set(out);
+  const add = (s) => {
+    if (!seen.has(s)) {
+      seen.add(s);
+      out.push(s);
+    }
+  };
+  for (const c of chars) for (let i = 0; i < probe.length; i++) add(probe.slice(0, i) + c + probe.slice(i + 1));
+  for (const c of chars) for (let i = 0; i <= probe.length; i++) add(probe.slice(0, i) + c + probe.slice(i));
+  return out;
+}
+
+// { covers, edges: Map(probe -> branch labels), unreached } for a pattern row whose main probe is `probe`.
+function edgesFor(row, probe) {
+  const covers = [];
+  const edges = new Map();
+  const unreached = [];
+  for (const branch of row.branches) {
+    for (const near of neighbours(branch.re)) {
+      const other = new RegExp(near.source, branch.re.flags);
+      const separates = (candidate) => {
+        const text = branch.turn(candidate);
+        return text !== null && branch.apply(branch.re, text) !== branch.apply(other, text);
+      };
+      const chars = near.chars.map((code) => String.fromCharCode(code)).concat(EDGE_CONTEXT);
+      let pick = edgeCandidates(probe, chars).find(separates);
+      for (const re of [new RegExp(near.forced, branch.re.flags), other, branch.re]) {
+        if (pick) break;
+        for (const s of sample(re, row.id + ' ' + near.label, 60)) {
+          for (const before of CONTEXT) {
+            for (const after of CONTEXT) {
+              const candidate = before + s + after;
+              if (separates(candidate) && (!pick || candidate.length < pick.length)) pick = candidate;
+            }
+          }
+        }
+      }
+      if (!pick) unreached.push(near.label);
+      else if (pick === probe) covers.push(near.label);
+      else {
+        if (!edges.has(pick)) edges.set(pick, []);
+        edges.get(pick).push(near.label);
+      }
+    }
+  }
+  return { covers, edges, unreached };
+}
+
 // JSON with every character outside printable ASCII written as a \u escape, so code points show in a review.
 function stringify(value) {
   return JSON.stringify(value, null, 2).replace(/[^\x20-\x7e\n]/g, (c) => '\\u' + ('000' + c.charCodeAt(0).toString(16)).slice(-4)) + '\n';
@@ -158,6 +224,7 @@ function main() {
   const cases = {};
   const missing = [];
   let kept = 0, found = 0, changed = 0;
+  let edgeProbes = 0, pinnedBranches = 0, unreachedBranches = 0, edgesChanged = 0;
   for (const row of rows) {
     const previous = old[row.id];
     let pick = null;
@@ -184,11 +251,29 @@ function main() {
       changed++;
       console.log('changed  ' + row.id + '\n  was ' + JSON.stringify(previous.expect) + '\n  now ' + JSON.stringify(entry.expect));
     }
+    if (row.branches) {
+      const branches = edgesFor(row, pick.probe);
+      if (branches.covers.length) entry.covers = branches.covers;
+      if (branches.edges.size) {
+        entry.edges = Array.from(branches.edges, ([probe, labels]) => ({ probe: probe, branches: labels, expect: row.run(probe) }));
+      }
+      if (branches.unreached.length) entry.unreached = branches.unreached;
+      edgeProbes += (entry.edges || []).length;
+      pinnedBranches += (entry.covers || []).length + (entry.edges || []).reduce((n, e) => n + e.branches.length, 0);
+      unreachedBranches += (entry.unreached || []).length;
+      const was = previous ? JSON.stringify([previous.covers, previous.edges, previous.unreached]) : null;
+      if (was !== null && was !== JSON.stringify([entry.covers, entry.edges, entry.unreached])) {
+        edgesChanged++;
+        console.log('edges    ' + row.id + ': the edge probes or what they give changed');
+      }
+    }
     cases[row.id] = entry;
   }
   const stale = Object.keys(old).filter((id) => !cases[id]);
   console.log(rows.length + ' rows: ' + kept + ' probes kept, ' + found + ' found, ' + missing.length + ' without a probe, ' +
     changed + ' with a changed output, ' + stale.length + ' stale cases');
+  console.log('pattern branches: ' + pinnedBranches + ' pinned (' + edgeProbes + ' edge probes besides the main ones), ' +
+    unreachedBranches + ' unreached; ' + edgesChanged + ' rows with changed edges');
   missing.forEach((m) => console.log('no probe  ' + m));
   stale.forEach((id) => console.log('stale     ' + id));
   const tables = {};
@@ -206,13 +291,14 @@ function main() {
   }
   if (write) {
     fs.writeFileSync(FIXTURE, stringify({
-      about: 'One synthetic probe per table row, and what the public API returned for it. Written by ' +
-        'node scripts/testing/table-cases.js --write; checked by test/tables.test.js.',
+      about: 'One synthetic probe per table row, and for a pattern row one more per branch of its pattern, with ' +
+        'what the public API returned for each. Written by node scripts/testing/table-cases.js --write; checked by ' +
+        'test/tables.test.js.',
       cases: cases
     }));
     console.log('wrote ' + path.relative(process.cwd(), FIXTURE));
   }
-  if (missing.length || (!write && (found || changed || stale.length))) process.exitCode = 1;
+  if (missing.length || (!write && (found || changed || edgesChanged || stale.length))) process.exitCode = 1;
 }
 
 main();
