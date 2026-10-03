@@ -98,12 +98,17 @@ function isMyanmarLetter(code) {
   return (code >= 0x1000 && code <= 0x102A) || code === 0x103F || (code >= 0x104C && code <= 0x104F);
 }
 
-// A space typed between a syllable and its next mark only moved the mark. Zero-width spaces and joiners
-// mark word breaks, so they stay, but after the syllable they were typed in.
+// A space typed between a syllable and its next mark only moved the mark.
 function isSpace(code) {
   return code === 0x20 || code === 0xA0;
 }
 
+// The zero-width characters. They are not all word breaks: the zero-width space (U+200B) is one, the non-joiner
+// and joiner (U+200C, U+200D) change how letters join, and the word joiner (U+2060) and the zero-width no-break
+// space (U+FEFF) forbid a break. The readers keep them all. arrange holds each one after an open syllable as it
+// holds spaces: if the syllable goes on, the spaces are dropped and the zero-width characters are written after
+// it. One typed between an e or medial ra and its base is written before that syllable. arrangeUnicode holds
+// U+200B, U+2060 and U+FEFF the same way, but U+200C and U+200D stay where typed, and end the syllable.
 function isZeroWidth(code) {
   return code === 0x200B || code === 0x200C || code === 0x200D || code === 0x2060 || code === 0xFEFF;
 }
@@ -427,8 +432,8 @@ function arrangeUnicode(content) {
 
   for (var i = 0; i < content.length; i++) {
     var code = content.charCodeAt(i);
-    // Zero-width spaces move out of a syllable as in arrange, but joiners and non-joiners stay where they
-    // are: in Unicode text they can be there on purpose, to shape the syllable.
+    // U+200B, U+2060 and U+FEFF move out of a syllable as in arrange, but the non-joiner and joiner stay where
+    // they are: in Unicode text they can be there on purpose, to shape the syllable.
     var zeroWidth = isZeroWidth(code) && code !== 0x200C && code !== 0x200D;
     var place = isTypedFirst(code) ? placeTypedFirst(i) : HERE;
     if (syllable && (zeroWidth || isSpace(code))) {

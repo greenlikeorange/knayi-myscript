@@ -53,8 +53,8 @@ What 2.9 got wrong:
 
 **Spaces and joiners.**
 - **Space before a mark:** dropped, as in Zawgyi conversion (`သုံ း` becomes သုံး), but not after a digit. 781 lines of the test text have one, most of them in Okell's corpus.
-- **Zero-width spaces:** kept, and moved out of a syllable.
-- **Joiners and non-joiners:** stay exactly where they are, since in Unicode text they can shape the syllable on purpose.
+- **Zero-width spaces, word joiners (U+2060) and zero-width no-break spaces (U+FEFF):** kept, and moved out of a syllable, as in Zawgyi conversion.
+- **Zero-width joiners and non-joiners (U+200D, U+200C):** stay exactly where they are, since in Unicode text they can shape the syllable on purpose. A mark after one stays after it. Zawgyi and Win conversion move these two out of a syllable too.
 
 **Look-alikes** change only in clear cases. The rest of 2.9's guesses are gone.
 - **ဝ and ရ as digits:** only inside a number (၄ဝဝ, ၂၉,ဝ၂၈, ၂၀၁ရ). Not when glued to the word before the number, and ရ not when glued to the word after it (၂ရတယ်).
