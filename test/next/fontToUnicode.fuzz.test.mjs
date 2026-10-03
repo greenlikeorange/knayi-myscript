@@ -14,7 +14,12 @@ import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import fc from 'fast-check';
 import { fontToUnicode, traceFontToUnicode } from '../../src/stages/fonts.js';
-import { createTrace } from '../../src/core/rules.js';
+import { createTrace, applyRuleRows } from '../../src/core/rules.js';
+import { toNfc } from '../../src/core/nfc.js';
+import { compileFont, readFontNoting } from '../../src/engine/fontReader.js';
+import { zeroAsWa, fixLookAlikes, fixTypos } from '../../src/rules/typingFixes.js';
+import { ZAWGYI_FONT } from '../../src/fonts/zawgyi.js';
+import { WIN_FONT } from '../../src/fonts/win.js';
 import { fuzzSets } from '../../scripts/eval/lib/inputs.mjs';
 import { arb, fuzz } from './helpers.mjs';
 
@@ -67,6 +72,26 @@ describe('fontToUnicode against 2.x toUnicode (DESIGN.md §6.1)', () => {
     const regressions = REGRESSIONS.zawgyi.map((text) => [['zawgyi', text]])
       .concat(REGRESSIONS.win.map((text) => [['win', text]]));
     fuzz.check(fc.property(input, ([font, text]) => sameTraceAs2x(font, text)), 50000, regressions, 300000);
+  });
+
+  it('the final-NFC gate stays closed only where NFC changes nothing (DESIGN.md §3.10, gate 4)', () => {
+    const compiled = { zawgyi: compileFont(ZAWGYI_FONT), win: compileFont(WIN_FONT) };
+    const closed = { zawgyi: 0, win: 0 };
+    const input = fc.oneof(INPUTS.zawgyi.map((text) => ['zawgyi', text]), INPUTS.win.map((text) => ['win', text]));
+    const regressions = REGRESSIONS.zawgyi.map((text) => [['zawgyi', text]])
+      .concat(REGRESSIONS.win.map((text) => [['win', text]]));
+    fuzz.check(fc.property(input, ([font, text]) => {
+      // The stages before 'NFC', run by hand on the font compiled here.
+      const read = readFontNoting(applyRuleRows(text, compiled[font].sequences), compiled[font]);
+      const beforeNfc = fixTypos(fixLookAlikes(zeroAsWa(read.text)));
+      if (!read.nfcMayChange) {
+        closed[font]++;
+        assert.equal(hexOf(toNfc(beforeNfc)), hexOf(beforeNfc), font + ' ' + hexOf(text));
+      }
+      assert.equal(fontToUnicode(text, font), read.nfcMayChange ? toNfc(beforeNfc) : beforeNfc, hexOf(text));
+      assert.equal(fontToUnicode(text, font, { openAllGates: true }), fontToUnicode(text, font), hexOf(text));
+    }), 100000, regressions, 300000);
+    assert.ok(closed.zawgyi > 1000 && closed.win > 1000, 'the gate stayed closed ' + JSON.stringify(closed));
   });
 
   it('the seeded fuzz sets of npm run compare: fuzz.block, fuzz.marks and fuzz.win, with traces', () => {

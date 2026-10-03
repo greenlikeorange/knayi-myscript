@@ -426,6 +426,35 @@ describe('codes.js: isNfcSafe', () => {
   });
 });
 
+describe('codes.js: mayChangeUnderNfc (DESIGN.md §3.10, gate 4)', () => {
+  it('outside U+1000-U+109F, is every unit at or above U+0300 that isNfcSafe leaves out', () => {
+    for (let code = 0; code < UNITS; code++) {
+      if (codes.isMyanmarBlock(code)) continue;
+      assert.equal(codes.mayChangeUnderNfc(code), code >= 0x300 && !codes.isNfcSafe(code), code.toString(16));
+    }
+  });
+
+  // On this runtime's NFC data: a unit of the block that NFC changes alone, next to any unit of the block, or next
+  // to a non-starter, is one of the five, and each of the five is changed so. U+102E is changed only after U+1025,
+  // which is one of them.
+  it('in U+1000-U+109F, is the units NFC moves or composes, on this runtime', () => {
+    const changed = new Set();
+    const probes = (x) => [x, x + '\u0301', '\u0301' + x, x + '\u0334', '\u0334' + x];
+    for (let a = 0x1000; a <= 0x109F; a++) {
+      if (probes(char(a)).some((p) => p.normalize('NFC') !== p)) changed.add(a);
+      for (let b = 0x1000; b <= 0x109F; b++) {
+        const pair = char(a) + char(b);
+        if (pair.normalize('NFC') !== pair) changed.add(a).add(b);
+      }
+    }
+    changed.delete(0x102E);
+    const listed = [];
+    for (let code = 0x1000; code <= 0x109F; code++) if (codes.mayChangeUnderNfc(code)) listed.push(code);
+    assert.deepEqual([...changed].sort((x, y) => x - y), listed);
+    assert.deepEqual(listed, [0x1025, 0x1037, 0x1039, 0x103A, 0x108D]);
+  });
+});
+
 describe('codes.js: unit sets (DESIGN.md §3.10, gate 3)', () => {
   it('hold one bit for each unit of U+1000-U+109F, and leave every other unit out', () => {
     assert.equal(codes.UNIT_SET_WORDS, 5);
@@ -472,7 +501,7 @@ describe('codes.js: the module', () => {
       'UNIT_SET_WORDS', 'ZW', 'addBlockUnit', 'classOf', 'isBurmeseConsonant', 'isBurmeseDigit', 'isBurmeseMark', 'isMyanmarBlock', 'isMyanmarScript',
       'isNfcSafe', 'isOtherScriptLetter', 'isPrebaseMark', 'isScriptConsonant', 'isScriptDigit', 'isScriptMark',
       'isScriptTone', 'isScriptWordChar', 'isSpaceBeforeMark', 'isSyllableBase', 'isVowelSign', 'isZawgyiKinzi',
-      'isZawgyiMedialRa', 'isZawgyiPrebase', 'markBit', 'markRank', 'scriptClassOf', 'zeroWidthBit'
+      'isZawgyiMedialRa', 'isZawgyiPrebase', 'markBit', 'markRank', 'mayChangeUnderNfc', 'scriptClassOf', 'zeroWidthBit'
     ].sort());
   });
 });

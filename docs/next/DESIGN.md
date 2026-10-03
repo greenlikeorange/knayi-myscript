@@ -109,7 +109,7 @@ The recommended option of each decision below is adopted.
 | 16 | normalize keeps NFC on text with no Myanmar | The no-Myanmar fast path returns `toNfc(text)`. |
 | 18 | (b) Raise the floor to engines with full ES2015 | `src/` uses ES2015 syntax and built-ins only (`TypedArray#fill` is allowed). Checked by a test with a listed denylist (§6.2). The 3.0 release notes state the new floor. |
 | 20 | (c) now, (b) in 3.0 | `codes.js` states the Unicode version it matches, and a test checks it against the runtime. Extended-C digits and code-point iteration are a deliberate 3.0 output change, made later. The readers keep reading UTF-16 units and never split a surrogate pair. |
-| 28 | Only the two simple gates | The no-Myanmar fast path and the final-NFC gate (§3.10). No typo or look-alike gates (PR 2.7 is not built). As reviewed (§7.11), Unicode to Zawgyi skips the rows that cannot match (§3.10, gate 3): it couples no rule to another module's trigger bits, since each row names its own `needs`, and it was measured end to end, 2.5-2.7x per word. |
+| 28 | Only the two simple gates | The no-Myanmar fast path and the final-NFC gate (§3.10). No typo or look-alike gates (PR 2.7 is not built). As reviewed (§7.11), Unicode to Zawgyi skips the rows that cannot match (§3.10, gate 3): it couples no rule to another module's trigger bits, since each row names its own `needs`, and it was measured end to end, 2.5-2.7x per word. The font pipeline's final NFC is gated too (gate 4): decision 28 asked for a fused prototype that beats the ungated pipeline on one big string, and this one costs one OR per glyph written whole, reads 0.97 of the ungated pipeline on one string and 0.87-0.89 per line and word. |
 | 29 | Accept the V8 atom wrap, exactly U+1000-U+1010 | It applies to the Unicode to Zawgyi rows, whose `re` may wrap its first unit while the `label` keeps the 2.x source. A lint test enforces the exact range. The detector no longer uses regexes. |
 | 30 | No single-pass GLYPH_MAP alternation for Unicode to Zawgyi | Not built. It is revisited with the 3.0 generated writer. |
 | 31 | ESM-only sources; minimum Node 22.12 for `require(esm)` | `src/package.json` has `"type": "module"`, and `library/` stays CommonJS for the transition. The `engines` field and the exports map come in Phase 6 packaging. |
@@ -324,6 +324,9 @@ export const ROLE: Readonly<{ BASE: 1, BEFORE_BASE: 2, MARK: 3, STACK: 4, KINZI:
 
 // NFC (§3.10).
 export function isNfcSafe(code: number): boolean  // below U+0300, U+2002-U+206F, U+FEFF, Extended-A/B
+// NFC may move or compose it: U+1025, U+1037, U+1039, U+103A, U+108D in the block; elsewhere at or above U+0300
+// and not isNfcSafe (§3.10, gate 4)
+export function mayChangeUnderNfc(code: number): boolean
 
 // Unit sets (§3.10, gate 3): the units of U+1000-U+109F a text may hold, 160 bits in an Int32Array(UNIT_SET_WORDS).
 export const UNIT_SET_WORDS: 5
@@ -517,6 +520,8 @@ export function unicodeReaderScratchUnits(): number   // capacity of this module
 export const FONT_READING: ReaderOptions     // { 31, true, true, false }
 export function compileFont(definition: FontDefinition): CompiledFont           // §3.8; throws ERR.INVALID_FONT_TABLE
 export function readFont(text: string, font: CompiledFont): string             // §3.6
+// readFont, and whether NFC may change its output (§3.10, gate 4)
+export function readFontNoting(text: string, font: CompiledFont): { text: string, nfcMayChange: boolean }
 export function glyphsInTypedOrder(text: string, font: CompiledFont): string   // trace stage 'glyphs' only
 export function fontReaderScratchUnits(): number      // capacity of this module's scratch buffers (§3.11), for tests
 ```
@@ -620,10 +625,11 @@ export function traceNormalizeText(text: string, trace: Trace): string
 #### `src/stages/fonts.js` (L3 stages, W6)
 
 ```ts
-type FontContext = StageContext & { font: CompiledFont }   // openAllGates is always false: no font stage has a gate
+type FontContext = StageContext & { font: CompiledFont, nfcMayChange: boolean }   // a new one per call; 'syllables' sets nfcMayChange
 export const FONT_STAGES: readonly Stage<FontContext>[]
-//   ids and labels  'sequences', 'glyphs' (traceOnly), 'syllables', 'zero as wa', 'look-alikes', 'typos', 'NFC'
-export function fontToUnicode(text: string, fontName: 'zawgyi' | 'win'): string
+//   ids and labels  'sequences', 'glyphs' (traceOnly), 'syllables', 'zero as wa', 'look-alikes', 'typos', 'NFC' (gated, §3.10)
+// engineOptions.openAllGates: tests only, as for normalizeText
+export function fontToUnicode(text: string, fontName: 'zawgyi' | 'win', engineOptions?: { openAllGates?: boolean }): string
 export function traceFontToUnicode(text: string, fontName: 'zawgyi' | 'win', trace: Trace): string
 ```
 
@@ -937,6 +943,8 @@ The output goes into the module's scratch `CodeBuffer`. For each unit `code`:
 
 At the end: close, then `writePending`. Decode the buffer, release it if it is large (§3.11), and return the string.
 
+As reviewed (§7.11), the loop also notes whether NFC may change what it writes, for gate 4 of §3.10: it ORs the compiled font's `nfcRisk` of every glyph written whole (steps 4, 5 and 7) and `mayChangeUnderNfc` of every unit with no glyph. `readFontNoting` returns the text with that flag; `readFont` returns the text alone.
+
 As built (W6), the loop looks the glyph up first, and takes steps 1-3 only for a unit with no glyph. That keeps this order, because compileFont gives no space or zero-width character a glyph (§3.8, check 1), and it spares every other unit the held and zero-width tests: measured before W5 landed, with a stand-in for its buffer, the reader alone went from 0.434 to 0.416 of 2.x `arrange` on Zawgyi lines, and from 0.458 to 0.389 on Win lines.
 
 ### 3.7 CodeBuffer and CopyThroughWriter
@@ -998,6 +1006,7 @@ Every change the Unicode reader makes passes through `endSyllable`. Phase 6's ch
 Built-in rule (2.x `font()`, storageOrder.js:206-209): every syllable base in U+1000-U+104F that the table does not list is a base of itself.
 
 The `CompiledFont` layout is private to `fontReader.js`. It must give `readFont` these things:
+- `nfcRisk`: for each glyph, 1 when NFC may move or compose one of its units (`mayChangeUnderNfc`), for gate 4 of §3.10 (as reviewed);
 - an O(1) glyph lookup by code: a `Uint16Array` index sized to the highest key plus 1, where 0 means no glyph. Win's index runs to U+2039, 8,250 entries.
 - for each glyph: its role, its text units, the units it pushes as marks (text plus attached marks for MARK and BEFORE_BASE; attached marks only for STACK and KINZI), and its "whole" units (text plus attached marks, written when it cannot join);
 - `name` and `sequences` for the stages.
@@ -1042,7 +1051,7 @@ If W5's measurement (§7.7) shows that the runner costs more than 2% on the per-
 
 The syllables stage of `NORMALIZE_STAGES` stores the reader's `seen` in `ctx.seen`. So `stages/normalize.js` owns both the reader call and the gate check, and the contract sits in one place (§3.4 of the plan).
 
-**A gate skips a stage only when the stage provably cannot change the text.** Two gates ship with decision 28, and the review added a third (§7.11):
+**A gate skips a stage only when the stage provably cannot change the text.** Two gates ship with decision 28, and the review added two (§7.11):
 
 1. **The no-Myanmar fast path.** `normalizeText` returns `toNfc(text)` at once when `text` has no unit in the three Myanmar blocks (`hasMyanmarScriptChar`).
    - Proof: with no Myanmar unit, the reader writes every unit through unchanged, the typing fixes match nothing, and NFC cannot create Myanmar units (`SCR/verify-cleanup/p5`).
@@ -1057,11 +1066,18 @@ The syllables stage of `NORMALIZE_STAGES` stores the reader's `seen` in `ctx.see
    - Checked: `test/next/unicodeToZawgyi.test.mjs` runs the examples, the table probes and 20,000 seeded strings through the rows one by one, and requires every match of each row, on the text that row is given, to hold one of its `needs` (every row matches at least once there), one replace of a repeat row to leave no match, and the result and trace to equal `applyRuleRows` and `traceRuleRows` over every row. The fuzz of §6.1 compares with 2.x.
    - Measured, against the ungated rows (`npm run perf`, Node 26.5, 3 rounds): `fontConvert.unicode-zawgyi` 0.81, 0.37, 0.97 and 0.97 per line, word, string and document; Bun 1.4.2: 0.80, 0.40, 0.97 and 0.97. The skip is decided by the units, never by text length: a version that stopped noting units above 1,024 units jumped in cost per unit there, and read 1.5-2.2 on 69 growth cells under Bun.
 
+4. **The final NFC of the font pipeline** (as reviewed, §7.11). The `'NFC'` stage of `FONT_STAGES` runs only when the font reader noted a unit NFC may change (`readFontNoting`, §3.6). Zawgyi and Win text is not NFC on the way in, so the proof differs from gate 2's.
+   - In U+1000-U+109F, NFC changes only U+1037, U+1039, U+103A and U+108D (combining classes 7, 9, 9 and 220) and U+1025, which composes with a U+102E after it into U+1026 (`mayChangeUnderNfc`; `codes.test.mjs` checks this on every runtime). Outside the block it changes only units that `isNfcSafe` leaves out.
+   - The reader notes every unit it writes outside a sorted syllable: the glyphs of bases, of pending e and medial ra and of glyphs that join no syllable, through each glyph's `nfcRisk`, and every unit with no glyph. The marks of a sorted syllable are in canonical order: `MARK_GROUPS` puts dot below before asat, the kinzi and a stack put a starter after their virama, and the two asat placements that move the asat forward, `ON_CONSONANT` and `AFTER_MEDIALS`, never have a dot below.
+   - The typing-fix stages after the reader write and remove only U+102E, U+1030, U+102A, U+104E, U+101D, U+101B, U+1040 and U+1047, starters that NFC leaves alone, and each replaces its match with a starter, so they put no two non-starters side by side. The one composition they can make, U+1025 before U+102E, needs a U+1025, which the reader noted.
+   - Checked: `fontToUnicode.fuzz.test.mjs` runs the stages by hand on 100,000 Zawgyi and Win strings and requires `toNfc(text) === text` wherever the gate stays closed (it does on more than a thousand of each), the result to equal the stages with the gate open, and the gated call to equal `openAllGates`. On perf's FLORES text the gate stays closed on 314 of 400 Zawgyi lines and 3,523 of 3,598 words, and opens on one string.
+   - Measured, against the ungated pipeline (`npm run perf`, 5 rounds): `fontConvert.zawgyi-unicode` 0.89, 0.87, 0.97 and 0.97 per line, word, string and document under Node, 0.96, 0.94, 1.02 and 1.01 under Bun; `fontConvert.win-unicode` 0.89, 0.87, 0.95 and 0.92 under Node.
+
 **Nothing else is gated.**
 - The typo and look-alike gates (PR 2.7) are not built: they would couple the typing-fix rules to the reader's trigger bits.
-- Zawgyi and Win stay ungated. Their fused trigger bits were never prototyped, and the separate-scan version was slower on one big string: 62.1 ms against 55.2 ms.
+- The font pipeline's other stages stay ungated. Their fused trigger bits were never prototyped, and the separate-scan version was slower on one big string: 62.1 ms against 55.2 ms.
 
-**The force switch.** `normalizeText(text, { openAllGates: true })` runs every stage and skips the fast path, as if every gate were open. Tests run the fuzz both ways and require the same output. They also check soundness directly: whenever the final-NFC gate stays closed, `toNfc(result) === result`. **The trace runner never gates** (§2.3, `runStages`).
+**The force switch.** `normalizeText(text, { openAllGates: true })` runs every stage and skips the fast path, as if every gate were open; `fontToUnicode(text, fontName, { openAllGates: true })` runs the final NFC. Tests run the fuzz both ways and require the same output. They also check soundness directly: whenever the final-NFC gate stays closed, `toNfc(result) === result`. **The trace runner never gates** (§2.3, `runStages`).
 
 ### 3.11 Scratch buffers and memory
 
@@ -1505,7 +1521,7 @@ The techniques, in order of measured value (§6 of the plan):
 3. One char-code pass instead of N regex passes: the readers, the detector and the break scanners.
 4. No per-syllable allocation: typed arrays, the mask, reused scratch. One small result object per call is fine.
 5. Copy-through output.
-6. Gates that provably cannot change the text, and no others: the two of decision 28, and the rows of Unicode to Zawgyi that cannot match (§3.10).
+6. Gates that provably cannot change the text, and no others: the two of decision 28, the rows of Unicode to Zawgyi that cannot match, and the font pipeline's final NFC (§3.10).
 7. Typed-array decoding in chunks of at most 8,192 units, never `TextDecoder`.
 
 Not worth doing (measured): skipping the first NFC; lazy tables; merging Win's four sequences; exec-loop counting in the detector; esbuild `charset: utf8`.
@@ -1767,7 +1783,7 @@ W8 compat              after all of them; its option, input and legacy files nee
   - **`compileFont`** makes three checks the list of §3.8 did not spell out: no key or alias is a space or zero-width character (check 1), no BASE row has attached marks (check 4), and no alias is a key (check 5). The `CompiledFont` is `{ name, sequences, index, roles, units, textStart, textEnd, marksStart, end }`: a `Uint16Array` index, a `Uint8Array` of roles, every glyph's text and then its attached marks in one `Uint16Array`, and `Uint32Array` offsets into it.
   - **`readFont`** looks the glyph up first (§3.6, as built), and is 32 lines, its steps in named helpers.
   - **Memory.** `fontReaderScratchUnits()` is `SyllableBuffer#capacity()` plus `CodeBuffer#capacity()`, the members W5 added for both readers (§7.7, as built).
-  - **`fontToUnicode` and `traceFontToUnicode`** keep each compiled font and its frozen stage context as module constants, so a call allocates nothing for them. A font name other than `'zawgyi'` or `'win'` throws `ERR.INVALID_ARG_VALUE` (a RangeError) instead of converting with the wrong table.
+  - **`fontToUnicode` and `traceFontToUnicode`** keep each compiled font and its frozen stage context as module constants, so a call allocates nothing for them. (As reviewed, §7.11: the context is a new object per call, since the 'syllables' stage writes what the reader saw into it for gate 4.) A font name other than `'zawgyi'` or `'win'` throws `ERR.INVALID_ARG_VALUE` (a RangeError) instead of converting with the wrong table.
   - **Tests.** `fonts.test.mjs` (the tables, the compiled lookup on all 65,536 units, a broken row for each check); `readers-font.test.mjs` (each step of §3.6, the four differences, every unit alone and every pair of the units each font reads against 2.x `arrange` and `glyphsInTypedOrder`, the memory checks); `fontToUnicode.test.mjs` (the stages, the README and ARCHITECTURE examples, the regressions, the table probes, and every generated set of `scripts/eval/lib/inputs.mjs`, with traces); the two fuzz files of §6.1, the second also running the seeded `fuzzSets` of compare, with traces; and `fonts.timing.mjs`, which adds d170cd8's ten NFC run shapes and has no NFC exemption, since W1 ported the helper. Nightly counts, once (`KNAYI_FUZZ_SCALE=100 KNAYI_FUZZ_SEED=4711`, Node 26.5): `fontToUnicode.fuzz.test.mjs` 8 s, `readers-font.fuzz.test.mjs` 3 s.
   - **Corpora.** `npm run compare -- --base e5f6e24 --head <file>`, where the file is this worktree's `main.js` with `library/zawgyi.js` and `library/win.js` `toUnicode` routed to `fontToUnicode` and `traceFontToUnicode`: 0 differences on 2,771,318 comparisons (all 20 call forms, all 20 input sets, mC4 included), under Node and Bun, and on 3,324,063 more with `--fuzz 200000 --seed 7`.
   - **Speed** (measure early), with W1's, W2's and W5's modules merged locally, on a machine shared with other builds. Interleaved in one process against the 2.x function each replaces, on perf's 400 FLORES lines in Zawgyi and their synthetic Win copy (ratio = new / 2.x, median of 21 runs, Node 26.5):
@@ -1848,6 +1864,7 @@ A review of W0-W8 on `next-compat` (3af8172) found the problems below. Each fix 
 - **Line numbers name a frozen file.** `src/` had 99 citations of the form `file.js:NN` with no path. 32 of them named files with no frozen copy: 31 in 2.x files that the port pull requests rewrite (`converter.js`, `detector.js`, `globalOptions.js`, `truncate.js`, `syllBreak.js`, `spellingCheck.js`, `normalization.js`, `main.js`), whose lines would go stale when §8 merges `main` into `next`, and one in the extracted `scripts/oracle/signatures.js`. Those now name the 2.x function or table instead; the other 67 name files that `scripts/oracle/` keeps frozen at the reference. ARCHITECTURE.md and §1.2 rule 3 state the convention once, and `guards/citations.test.mjs` checks it, reading the list of frozen copies from `test/next/helpers.mjs`, which `guards/oracle.test.mjs` uses for their blob ids.
 - **Unicode to Zawgyi skips the rows that cannot match** (§3.10, gate 3). Every call ran all 57 once rows and the 8 repeat rows, a `String#replace` each, however short its text: in the per-word profile the rule runner held 68.6% of the self time, and per word compat read 0.79 of 2.x under Node (the goal is 0.63) and 1.09 under Bun. Each row now names its `needs`, the collapse notes the text's units in the same pass, and a row with none of its `needs` in the text is skipped; the repeat rows are tested and replaced once, as 2.x's 1584410 does. Against 2.x (`npm run perf`, 5 rounds, on a machine shared with other work): Node 0.48, 0.30, 0.48 and 0.48 per line, word, string and document (W8 read 0.59, 0.79, 0.50 and 0.51); Bun 0.78, 0.41, 0.92 and 0.92 (the review read 1.06, 1.09, 0.94 and 0.92). The growth exponents of the Unicode to Zawgyi and `spellingFix.unicode` forms stay at most 1.23 under Node and 1.18 under Bun.
 - **normalize copies through the syllables typed in order** (§3.4, as typed; §3.6). Every syllable with a mark went through `placeAsat`, `rankMarks`, `sortByRank` and `fixLookAlikeLetters`, a write into a `CodeBuffer` and `equalsText`, though 99.92% of syllables come out unchanged: about 33% of the one-string profile. normalize read 0.32, 0.30, 0.31 and 0.30 of 2.x, missing the one-string and document goals (0.29) and the Phase 2 exit of 3.5x. `writesAsTyped` now decides from the buffer whether `orderSyllable` would write the parts as they came, and the Unicode reader closes such a syllable without writing or comparing. Against 2.x (`npm run perf`, 5 rounds): Node 0.23 on all four workloads, Bun 0.21, 0.20, 0.17 and 0.18; growth at most 1.17 (Node) and 1.06 (Bun).
+- **The font pipeline gates its final NFC** (§3.10, gate 4). The final NFC never skipped: in the per-line profile it held 9.7% of the samples, and Zawgyi to Unicode read 0.40, 0.48, 0.34 and 0.34 of 2.x, per line at the edge of its goal of 0.40. The compiled fonts carry an NFC risk per glyph, the reader ORs it for every glyph written whole and notes every unit with no glyph, and the 'NFC' stage runs only when that flag is set. Against the previous commit (5 rounds): Zawgyi 0.89, 0.87, 0.97 and 0.97 under Node.
 
 ---
 

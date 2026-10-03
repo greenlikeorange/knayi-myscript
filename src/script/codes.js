@@ -373,6 +373,17 @@ export function isNfcSafe(code) {
   return code < 0x300 || (code >= 0x2002 && code <= 0x206F) || code === 0xFEFF || isMyanmarExtendedAOrB(code);
 }
 
+// Whether NFC may move or compose the unit, wherever it stands in text the engine writes. In U+1000-U+109F: dot
+// below, virama and asat (combining classes 7, 9 and 9), U+108D (220), and U+1025, which composes with a U+102E
+// after it into U+1026. Elsewhere: a unit at or above U+0300 for which isNfcSafe does not hold. The font reader
+// notes these for the final-NFC gate of the font pipeline (DESIGN.md §3.10, gate 4); test/next/codes.test.mjs
+// checks the block's part on every runtime the tests run on.
+export function mayChangeUnderNfc(code) {
+  if (code < 0x300) return false;
+  if (!isMyanmarBlock(code)) return !isNfcSafe(code);
+  return code === CP.LETTER_U || code === CP.DOT_BELOW || code === CP.VIRAMA || code === CP.ASAT || code === 0x108D;
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // Unit sets (DESIGN.md §3.10): the units of U+1000-U+109F a text may hold, as 160 bits in an Int32Array of
 // UNIT_SET_WORDS words, bit k of word w for the unit 0x1000 + 32w + k. rules/segment.js fills one while it

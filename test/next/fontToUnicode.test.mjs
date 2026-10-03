@@ -60,9 +60,9 @@ describe('FONT_STAGES (DESIGN.md §2.3, §3.10)', () => {
     assert.deepEqual(FONT_STAGES.map((stage) => stage.label), names);
   });
 
-  it('only \'glyphs\' is trace-only, and no stage has a gate (decision 28)', () => {
+  it('only \'glyphs\' is trace-only, and only \'NFC\' has a gate (§3.10, gate 4)', () => {
     assert.deepEqual(FONT_STAGES.filter((stage) => stage.traceOnly).map((stage) => stage.id), ['glyphs']);
-    assert.deepEqual(FONT_STAGES.filter((stage) => 'gate' in stage), []);
+    assert.deepEqual(FONT_STAGES.filter((stage) => 'gate' in stage).map((stage) => stage.id), ['NFC']);
     assert.ok(Object.isFrozen(FONT_STAGES) && FONT_STAGES.every(Object.isFrozen));
   });
 });

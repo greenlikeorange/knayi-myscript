@@ -11,7 +11,7 @@
 import { deepFreeze } from '../freeze.js';
 import {
   CP, ROLE, KINZI_TEXT, isSyllableBase, isBurmeseConsonant, isBurmeseDigit, isSpaceBeforeMark, zeroWidthBit, markRank,
-  RANK_UNRANKED
+  RANK_UNRANKED, mayChangeUnderNfc
 } from '../script/codes.js';
 import { ERR, libraryError } from '../core/errors.js';
 import { SyllableBuffer, CodeBuffer, closeSyllable, isHeld, marksGoOn } from './syllable.js';
@@ -42,11 +42,12 @@ const MAX_BASE_UNITS = 8;
 // ---------------------------------------------------------------------------------------------------------------
 // compileFont: the checked, flat form of a FontDefinition (§3.8).
 //
-// A CompiledFont is { name, sequences, index, roles, units, textStart, textEnd, marksStart, end }, frozen, and its
-// typed arrays are read-only by contract. Glyph g's units are units[textStart[g], end[g]): its Unicode text up to
-// textEnd[g], then its attached marks. Glyph 0 is "no glyph":
+// A CompiledFont is { name, sequences, index, roles, nfcRisk, units, textStart, textEnd, marksStart, end }, frozen,
+// and its typed arrays are read-only by contract. Glyph g's units are units[textStart[g], end[g]): its Unicode text
+// up to textEnd[g], then its attached marks. Glyph 0 is "no glyph":
 //   index[code]                          the glyph of a code, 0 for none (an index sized to the highest key + 1)
 //   roles[g]                             its ROLE
+//   nfcRisk[g]                           1 when NFC may move or compose a unit of the glyph (mayChangeUnderNfc)
 //   units[textStart[g], textEnd[g])      its text: a BASE's base text, a STACK's virama and consonant
 //   units[marksStart[g], end[g])         what it pushes as marks: text and attached marks for MARK and
 //                                        BEFORE_BASE, the attached marks alone for STACK and KINZI
@@ -192,8 +193,8 @@ function layOutGlyphs(definition, rowsByCode) {
   const count = codes.length + 1;
   const font = {
     name: definition.name, sequences: definition.sequences, index: new Uint16Array(codes[codes.length - 1] + 1),
-    roles: new Uint8Array(count), units: null, textStart: new Uint32Array(count), textEnd: new Uint32Array(count),
-    marksStart: new Uint32Array(count), end: new Uint32Array(count)
+    roles: new Uint8Array(count), nfcRisk: new Uint8Array(count), units: null, textStart: new Uint32Array(count),
+    textEnd: new Uint32Array(count), marksStart: new Uint32Array(count), end: new Uint32Array(count)
   };
   const units = [];
   for (let g = 1; g < count; g++) {
@@ -205,6 +206,7 @@ function layOutGlyphs(definition, rowsByCode) {
     font.textEnd[g] = units.length;
     pushUnits(units, row.length > 2 ? row[2] : '');
     font.end[g] = units.length;
+    font.nfcRisk[g] = hasUnitNfcMayChange(units, font.textStart[g], font.end[g]) ? 1 : 0;
     font.marksStart[g] = row[0] === ROLE.MARK || row[0] === ROLE.BEFORE_BASE ? font.textStart[g] : font.textEnd[g];
   }
   font.units = Uint16Array.from(units);
@@ -215,16 +217,39 @@ function pushUnits(units, text) {
   for (let i = 0; i < text.length; i++) units.push(text.charCodeAt(i));
 }
 
+function hasUnitNfcMayChange(units, start, end) {
+  for (let k = start; k < end; k++) if (mayChangeUnderNfc(units[k])) return true;
+  return false;
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // readFont (§3.6; research/zawgyi-to-unicode.md §2-3, research/win-fonts.md §5).
 
-// Font text in Unicode storage order: the stage 'syllables'. The text has had the font's sequences applied. The
-// numbered steps are those of DESIGN.md §3.6, and their order is part of the behaviour.
+// Font text in Unicode storage order: the stage 'syllables'. The text has had the font's sequences applied.
 export function readFont(text, font) {
+  readGlyphs(text, font);
+  return finishOutput(FONT_OUTPUT);
+}
+
+// readFont, and whether NFC may change its output (DESIGN.md §3.10, gate 4): { text, nfcMayChange }. nfcMayChange
+// is false only when no unit the reader writes outside a sorted syllable may change under NFC. A sorted syllable's
+// marks are in canonical order: MARK_GROUPS puts dot below before asat, and the two asat placements that move the
+// asat forward, ON_CONSONANT and AFTER_MEDIALS, never have a dot below (§3.4).
+export function readFontNoting(text, font) {
+  const nfcMayChange = readGlyphs(text, font) !== 0;
+  return { text: finishOutput(FONT_OUTPUT), nfcMayChange: nfcMayChange };
+}
+
+// Reads the text into the module's scratch, FONT_OUTPUT. Returns the OR of font.nfcRisk over the glyphs written
+// whole (bases, e and medial ra, and glyphs that join no syllable) and of mayChangeUnderNfc over the units with no
+// glyph. The numbered steps are those of DESIGN.md §3.6, and their order is part of the behaviour.
+function readGlyphs(text, font) {
   const buf = FONT_SYLLABLE;
   const sink = FONT_OUTPUT;
   const index = font.index;
   const roles = font.roles;
+  const nfcRisk = font.nfcRisk;
+  let risk = 0;
   buf.reset();
   sink.clear();
   for (let i = 0; i < text.length; i++) {
@@ -234,23 +259,27 @@ export function readFont(text, font) {
     if (glyph === 0) {
       // 1-3. No glyph: a space or zero-width character, held or written, or a unit that ends the syllable.
       readUnitWithNoGlyph(buf, sink, code);
+      if (code >= 0x0300 && mayChangeUnderNfc(code)) risk = 1;
     } else if (role === ROLE.BASE) {
       // 4. A base starts a syllable (research/win-fonts.md §5, "Syllables").
       openSyllable(buf, sink, font, glyph);
+      risk |= nfcRisk[glyph];
     } else if (role === ROLE.BEFORE_BASE) {
       // 5. e and medial ra are drawn before the base they belong to, so they wait for the next one.
       waitForBase(buf, sink, font, glyph);
+      risk |= nfcRisk[glyph];
     } else if (role !== ROLE.PLAIN && buf.isOpen && marksGoOn(buf, FONT_READING)) {
-      // 6. A mark, stacked consonant or kinzi belongs to the open syllable.
+      // 6. A mark, stacked consonant or kinzi belongs to the open syllable, which sorts it.
       addToSyllable(buf, font, glyph, role);
     } else {
       // 7. Plain text, or a mark with no base before it, ends the syllable and is written as it is.
       writeGlyph(buf, sink, font, glyph);
+      risk |= nfcRisk[glyph];
     }
   }
   closeOpenSyllable(buf, sink);
   buf.writePending(sink); // an e or medial ra that found no base stays where it was typed
-  return finishOutput(sink);
+  return risk;
 }
 
 // Writes the open syllable, if any, in storage order, with the characters held after it.
