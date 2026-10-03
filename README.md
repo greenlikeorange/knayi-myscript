@@ -66,7 +66,7 @@ These paths load without an `exports` map:
 | `fontConvert`, `syllBreak`, `spellingFix`, `normalize` | `''`. Warns unless silent. |
 | `truncate` | `''`. Warns unless silent. An empty string `''` returns the omission instead. |
 
-Text with no Myanmar letters (`U+1000`–`U+109F`) is returned unchanged by detect, convert, break, spelling fix, and normalize. `fontDetect` returns the fallback or `'en'`. `truncate` still appends the omission.
+Text with no Myanmar letters (`U+1000`–`U+109F`) is returned unchanged by convert, break, and spelling fix. `fontDetect` returns the fallback or `'en'`. `truncate` still appends the omission. `normalize` returns it in NFC, so `'e\u0301'` becomes `'é'` (`U+00E9`). A Win source is the exception for convert: Win text is ASCII, so `fontConvert` converts it.
 
 Other values, such as numbers and objects, are returned unchanged the same way, and no function throws on them. `truncate` turns them into strings first, like `lodash.truncate`. `String` objects work like the strings they hold.
 
@@ -111,11 +111,15 @@ The rule scorer does not count a consonant, `U+1039`, consonant sequence such as
 
 Returns a string. `targetFontType` is required. When `originalFontType` is omitted, `fontDetect` chooses it.
 
+Name the source font for short text. When the detector's scores tie, it reads the text as Zawgyi (see [fontDetect](#fontdetectcontent-fallbackfonttype-options)), and short Unicode text often ties: a single consonant, or a word such as `ဗုဒ္ဓ` whose only telling sign is a stacked consonant, which Zawgyi reads as an asat. Converting such text from Zawgyi changes it.
+
 The text is trimmed first. Zero-width spaces (`U+200B`) and non-joiners (`U+200C`) are kept, because they mark word breaks. When the two fonts are the same, the trimmed text is returned.
 
 ```javascript
 knayi.fontConvert('မဂၤလာပါ', 'unicode', 'zawgyi') // 'မင်္ဂလာပါ'
 knayi.fontConvert('မဂၤလာပါ', 'unicode') // 'မင်္ဂလာပါ'
+knayi.fontConvert('ဗုဒ္ဓ', 'unicode') // 'ဗုဒ်ဓ'  (a tie, read as Zawgyi)
+knayi.fontConvert('ဗုဒ္ဓ', 'unicode', 'unicode') // 'ဗုဒ္ဓ'
 knayi.fontConvert('မြန်မာ', 'zawgyi', 'unicode') // 'ျမန္မာ'
 knayi.fontConvert('ကျ', 'unicode') // 'ကျ'
 knayi.fontConvert(' ကာာ ', 'unicode', 'unicode') // 'ကာာ'
@@ -211,7 +215,7 @@ knayi.spellingFix('\u1033\u1033', 'zaw') // '\u1033'
 ## normalize(content)
 
 Unicode only, written for Burmese. Puts every syllable in Unicode storage order ([UTN #11](https://www.unicode.org/notes/tn11/)) with the rules of [Zawgyi to Unicode](#zawgyi-to-unicode), makes a few typing fixes, and returns NFC.
-- **What stays the same:** text that is already right, text normalized a second time, and the output of `fontConvert` all come back unchanged.
+- **What stays the same:** text that is already right, and text normalized a second time. The output of `fontConvert` comes back unchanged too, except where the source has an ေ or medial ra with no consonant after it. The converters leave such a mark where it was typed, and `normalize` may attach it to the syllable before: Zawgyi `ကေျ` converts to `ကေြ`, which `normalize` makes `ကြေ`. This changes 31 of the 10,166 mC4 lines that `fontDetect` calls Zawgyi.
 - **What it keeps:** surrounding spaces, zero-width spaces and joiners.
 
 It is not the same operation as `spellingFix`.
@@ -224,6 +228,7 @@ knayi.normalize('လည်းေကာင်း') // 'လည်းကောင�
 knayi.normalize('၂ဝ၁၉') // '၂၀၁၉'
 knayi.normalize('ကိီ') // 'ကီ'
 knayi.normalize('ဝ') // 'ဝ'
+knayi.normalize('e\u0301') // '\u00e9'  (no Myanmar letters: NFC only)
 ```
 
 - **Order:** marks typed in any order are sorted, and a mark typed twice counts once. Asat goes where UTN #11 puts it (ကျွန်ုပ်, ခ်ျ, ရှ်), and the dot below comes before asat, as NFC requires.
@@ -262,3 +267,7 @@ knayi.truncate(null) // ''
 - `dist/knayi-myscript.min.js`
 
 `npm run eval` measures conversion and detection on public Zawgyi and Unicode data, next to a published knayi release, myanmar-tools, and Rabbit. `npm run bench` measures speed on real text and long input. Both download their data on first use. See [scripts/eval/README.md](scripts/eval/README.md). The latest results are published at <https://greenlikeorange.github.io/knayi-myscript/benchmark.html>.
+
+## Contributing
+
+[CONTRIBUTING.md](CONTRIBUTING.md) explains how to report a problem and how to send a change, and [ARCHITECTURE.md](ARCHITECTURE.md) how the code is organized. [CHANGELOG.md](CHANGELOG.md) lists what changed in each version, output changes first. Report security problems privately, as [SECURITY.md](SECURITY.md) describes.
