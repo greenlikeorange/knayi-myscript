@@ -917,6 +917,7 @@ var require_storageOrder = __commonJS({
       var syllable = null;
       var pending = [];
       var runEnd = 0;
+      var seen = 0, hasMedialHa = false, hasAsat = false, hasVowel = false;
       function close() {
         if (!syllable) return;
         out += order(syllable) + syllable.after;
@@ -925,6 +926,8 @@ var require_storageOrder = __commonJS({
       function start(kinzi, base, keepU) {
         close();
         syllable = { kinzi, base, stack: "", marks: pending, after: "", kept: "", keepU };
+        seen = 0;
+        hasMedialHa = hasAsat = hasVowel = false;
         pending = [];
       }
       function write(text) {
@@ -933,7 +936,7 @@ var require_storageOrder = __commonJS({
         pending = [];
       }
       function goesOn(code2) {
-        if (syllable.after === syllable.kept) return true;
+        if (syllable.after.length === syllable.kept.length) return true;
         return !isTypedFirst(code2) && !isDigit(syllable.base.charCodeAt(0));
       }
       function placeTypedFirst(i2) {
@@ -944,12 +947,16 @@ var require_storageOrder = __commonJS({
         }
         var after = content.charCodeAt(runEnd);
         if (!syllable && isOtherMyanmar(content.charCodeAt(i2 - 1))) return ALONE;
-        var finished = !syllable || syllable.after !== syllable.kept;
-        for (var m = 0; !finished && m < syllable.marks.length; m++) {
-          var mark = syllable.marks[m];
-          if (rank(mark) < FIRST_VOWEL) continue;
-          if (mark === ASAT && (code2 === 4156 || syllable.marks.indexOf(MEDIAL_HA) >= 0)) continue;
-          finished = true;
+        var finished = !syllable || syllable.after.length !== syllable.kept.length;
+        if (!finished) {
+          for (var marks = syllable.marks; seen < marks.length; seen++) {
+            var mark = marks[seen];
+            if (mark === MEDIAL_HA) hasMedialHa = true;
+            if (rank(mark) < FIRST_VOWEL) continue;
+            if (mark === ASAT) hasAsat = true;
+            else hasVowel = true;
+          }
+          finished = hasVowel || hasAsat && code2 !== 4156 && !hasMedialHa;
         }
         if (!finished || syllable && (isUnicodeMark(after) || after === 4153)) return HERE;
         return isMyanmarLetter(after) || isDigit(after) ? NEXT : ALONE;

@@ -323,6 +323,9 @@ function arrangeUnicode(content) {
   var syllable = null;
   var pending = []; // e and medial ra typed before their consonant
   var runEnd = 0; // end of the last run of e and medial ra placeTypedFirst looked past, so it reads each once
+  // What placeTypedFirst has learned about the open syllable's marks. Marks are only ever added, so it reads
+  // each one once (marks[0..seen)), and a long run of marks on one consonant stays linear.
+  var seen = 0, hasMedialHa = false, hasAsat = false, hasVowel = false;
 
   function close() {
     if (!syllable) return;
@@ -335,6 +338,8 @@ function arrangeUnicode(content) {
   function start(kinzi, base, keepU) {
     close();
     syllable = { kinzi: kinzi, base: base, stack: '', marks: pending, after: '', kept: '', keepU: keepU };
+    seen = 0;
+    hasMedialHa = hasAsat = hasVowel = false;
     pending = [];
   }
 
@@ -347,7 +352,9 @@ function arrangeUnicode(content) {
 
   // Whether the mark (or virama) at i belongs to the open syllable, past any spaces held after it.
   function goesOn(code) {
-    if (syllable.after === syllable.kept) return true; // nothing but zero-width characters held
+    // Nothing but zero-width characters held. kept is always a subsequence of after, so equal lengths mean
+    // equal strings, and comparing lengths keeps this constant-time.
+    if (syllable.after.length === syllable.kept.length) return true;
     return !isTypedFirst(code) && !isDigit(syllable.base.charCodeAt(0));
   }
 
@@ -364,12 +371,16 @@ function arrangeUnicode(content) {
     }
     var after = content.charCodeAt(runEnd);
     if (!syllable && isOtherMyanmar(content.charCodeAt(i - 1))) return ALONE;
-    var finished = !syllable || syllable.after !== syllable.kept;
-    for (var m = 0; !finished && m < syllable.marks.length; m++) {
-      var mark = syllable.marks[m];
-      if (rank(mark) < FIRST_VOWEL) continue;
-      if (mark === ASAT && (code === 0x103C || syllable.marks.indexOf(MEDIAL_HA) >= 0)) continue;
-      finished = true;
+    var finished = !syllable || syllable.after.length !== syllable.kept.length;
+    if (!finished) {
+      for (var marks = syllable.marks; seen < marks.length; seen++) {
+        var mark = marks[seen];
+        if (mark === MEDIAL_HA) hasMedialHa = true;
+        if (rank(mark) < FIRST_VOWEL) continue;
+        if (mark === ASAT) hasAsat = true;
+        else hasVowel = true;
+      }
+      finished = hasVowel || (hasAsat && code !== 0x103C && !hasMedialHa);
     }
     if (!finished || (syllable && (isUnicodeMark(after) || after === 0x1039))) return HERE;
     return isMyanmarLetter(after) || isDigit(after) ? NEXT : ALONE;
