@@ -4,13 +4,13 @@
 // This is the only file of src/ that may load code (§2.2). It imports no other compat file and writes nothing to
 // the console: fontDetect.js prints the message, silent mode permitting.
 //
-// 2.x fontDetect scores with Google's myanmar-tools when asked to (detector.js:6-58). compat loads it as the 2.x
-// ES module build does (D3): by name, from the working directory, in Node and Bun only, at most once per process,
-// by the first call that needs it. The core takes the model as an argument and never loads it (§4 rule 5).
+// 2.x fontDetect scores with Google's myanmar-tools when asked to (2.x detector.js loadMyanmarTools). compat loads it
+// as the 2.x ES module build does (D3): by name, from the working directory, in Node and Bun only, at most once per
+// process, by the first call that needs it. The core takes the model as an argument and never loads it (§4 rule 5).
 
 import { deepFreeze } from '../freeze.js';
 
-// What a package without the ZawgyiDetector export counts as: a load error with this message (detector.js:37-39).
+// What a package without the ZawgyiDetector export counts as: a load error with this message (2.x loadMyanmarTools).
 const NO_DETECTOR_EXPORT = /* @__PURE__ */ deepFreeze({ message: 'the package has no ZawgyiDetector export' });
 
 // { load(), missingMessage(), warnOnce(write) } over requireFn(id), which returns the package, throws its load
@@ -44,7 +44,7 @@ function loadOnce(state, requireFn) {
   return state.model;
 }
 
-// The warning for a model that did not load (detector.js:47-58).
+// The warning for a model that did not load (2.x detector.js missingMyanmarToolsMessage).
 function missingMessageFor(error) {
   if (!error) return 'myanmar-tools is not available in this environment; fontDetect used the rule scorer.';
   const firstLine = String(error.message).split('\n')[0];

@@ -263,7 +263,8 @@ export function isZawgyiPrebase(code) {
   return code === 0x1031 || isZawgyiMedialRa(code);
 }
 
-// The medial ra glyphs: U+103B and U+107E-U+1084 (syllable.js:227; signatures.js:18-20).
+// The medial ra glyphs: U+103B and U+107E-U+1084 (syllable.js:227; the Zawgyi signatures of
+// scripts/oracle/signatures.js).
 export function isZawgyiMedialRa(code) {
   return code === 0x103B || (code >= 0x107E && code <= 0x1084);
 }

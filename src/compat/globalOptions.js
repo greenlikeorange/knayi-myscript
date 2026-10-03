@@ -22,7 +22,7 @@ export const MESSAGES = /* @__PURE__ */ deepFreeze({
   badThreshold: 'myanmartools_zg_threshold must be [number, number]'
 });
 
-// The store (globalOptions.js:1-7), initialised from the core's defaults (C2).
+// The store (2.x globalOptions.js OPTIONS), initialised from the core's defaults (C2).
 const STORE = /* @__PURE__ */ createOptionStore();
 
 function createOptionStore() {
@@ -35,7 +35,7 @@ function createOptionStore() {
   };
 }
 
-// 2.x setOptions (globalOptions.js:37-45, C3). Each key counts when it is an own enumerable key of options, as
+// 2.x setOptions (globalOptions.js, C3). Each key counts when it is an own enumerable key of options, as
 // Object.keys finds it, so null throws a TypeError, as in 2.x. silent_mode is stored as given, and any truthy value
 // is silent; detector goes through the merge. Returns undefined.
 export function setGlobalOptions(options = {}) {
@@ -62,7 +62,7 @@ export function storedDetectorOptions() {
   return STORE.detector;
 }
 
-// The 2.x detector merge (globalOptions.js:13-35, C4), used by setGlobalOptions and by every fontDetect call:
+// The 2.x detector merge (globalOptions.js detector, C4), used by setGlobalOptions and by every fontDetect call:
 // - a key counts when incoming has it as an own property; a missing key comes from the current store;
 // - the threshold must be an array whose [0] and [1] are of type number (so NaN passes). Otherwise the threshold
 //   message goes to console.error even in silent mode, and the stored threshold stays;

@@ -4,13 +4,16 @@
 //   repository: a kept 2.x bug is cited by its row of DESIGN.md §10, and a measurement by its number and the test
 //   that pins it;
 // - every plan decision the code names (decision 34) is a row of DESIGN.md §1.3, and every quirk (DESIGN.md §10
-//   Q11) a row of §10.
+//   Q11) a row of §10;
+// - a line number (storageOrder.js:101-185) names library/<file> at the reference, e5f6e24, so it must be a file
+//   with a frozen copy in scripts/oracle/ (ARCHITECTURE.md, "The 3.0 core on next"): library/ itself changes when
+//   main is merged into next (DESIGN.md §8). A 2.x file with no frozen copy is cited by its function name.
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { ROOT, srcFiles, srcText } from '../helpers.mjs';
+import { ROOT, ORACLE, ORACLE_REFERENCE_BLOBS, srcFiles, srcText } from '../helpers.mjs';
 
 const DESIGN = fs.readFileSync(path.join(ROOT, 'docs', 'next', 'DESIGN.md'), 'utf8');
 
@@ -60,5 +63,15 @@ describe('the citations of src/ (DESIGN.md §1.2 rule 3)', () => {
     assert.ok(quirks.length > 0, 'the code cites §10');
     const unknown = quirks.filter(({ match }) => !listed.has(match[1]));
     assert.deepEqual(unknown.map(({ at, match }) => at + ': ' + match[0]), []);
+  });
+
+  it('give line numbers only in the 2.x files that scripts/oracle/ keeps frozen at the reference', () => {
+    const frozen = new Set(Object.keys(ORACLE_REFERENCE_BLOBS));
+    const lines = citations(/\b([A-Za-z]+\.js):\d/g);
+    assert.ok(lines.length > 0, 'the code cites 2.x lines');
+    const unfrozen = lines.filter(({ match }) => !frozen.has(match[1]));
+    assert.deepEqual(unfrozen.map(({ at, match }) => at + ': ' + match[0]), [],
+      'cite the 2.x function by name, or add a frozen copy of the file to scripts/oracle/');
+    for (const file of frozen) assert.ok(fs.existsSync(path.join(ORACLE, file)), 'scripts/oracle/' + file);
   });
 });

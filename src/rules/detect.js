@@ -2,11 +2,11 @@
 // Layer L3 rules. Owner: W4 (detect).
 //
 // 2.x matched 29 regexes against the text, one String#match each, and compared the number of matches per side
-// (detector.js:60-100); that was 80% of fontDetect's time. countEvidence reads the text once, by char code, and
-// gives the same two numbers. The signatures are rows of spec/detectorSignatures.js, U01-U12 for Unicode and
+// (2.x detector.js library.detect); that was 80% of fontDetect's time. countEvidence reads the text once, by char code,
+// and gives the same two numbers. The signatures are rows of spec/detectorSignatures.js, U01-U12 for Unicode and
 // Z01-Z17 for Zawgyi, each with why it is evidence; the code below cites their ids. The rows are the oracle:
-// test/next/detect.fuzz.test.mjs compares countEvidence with them on every string of up to 3 units (4 in a long
-// run) over the units they name, on fuzz and on the corpora.
+// test/next/detect.fuzz.test.mjs compares countEvidence with them on every string of up to 3 units (4 in a long run)
+// over the units they name, on fuzz and on the corpora.
 //
 // Every function here takes text the caller has cleaned: trimmed, with no U+200B or U+200C (2.x contentGate.js
 // cleanText). The anchored rows U11, Z04 and Z17 read the start and the end of that cleaned text.
@@ -57,8 +57,8 @@ function bitsOf(code) {
   return code >= 0x1000 && code <= 0x109F ? SIGNATURE_UNIT[code - 0x1000] : 0;
 }
 
-// The whitespace class of Z03 and Z12, [\x20\t\r\n\f] (detector.js:2): space, tab, line feed, carriage return
-// and form feed. Not the line tabulation U+000B, nor U+00A0.
+// The whitespace class of Z03 and Z12, [\x20\t\r\n\f] (2.x detector.js whitespace): space, tab, line feed, carriage
+// return and form feed. Not the line tabulation U+000B, nor U+00A0.
 function isDetectorSpace(code) {
   return code === 0x20 || code === 0x09 || code === 0x0A || code === 0x0D || code === 0x0C;
 }
@@ -205,7 +205,7 @@ export function scoreByZawgyiModel(text, model, thresholds, fallback) {
 }
 
 // options: { fallback = 'zawgyi', zawgyiModel = null, thresholds = DEFAULTS.detector.thresholds }. With no model,
-// the rule evidence decides. The fallback 'zawgyi' is 2.x's (detector.js:137, decision 13). Options are read per
+// the rule evidence decides. The fallback 'zawgyi' is 2.x's (fontDetect, decision 13). Options are read per
 // call and never kept, and options that are not an object (lines.map passes an index) are none.
 export function detectFont(text, options) {
   const settings = optionsObject(options);

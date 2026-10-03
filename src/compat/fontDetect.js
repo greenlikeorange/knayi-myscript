@@ -1,6 +1,6 @@
 // compat: 2.x fontDetect on the core (DESIGN.md §5.1, C13, C14). Layer L4. Owner: W8 (compat).
 //
-// 2.x fontDetect (library/detector.js:126-156) counts the matches of 29 signature regexes per side and calls the
+// 2.x fontDetect (library/detector.js) counts the matches of 29 signature regexes per side and calls the
 // side with more; the core's countEvidence finds the same counts in one pass (rules/detect.js). With myanmar-tools
 // asked for, the model's Zawgyi probability decides instead, against the thresholds.
 
@@ -22,8 +22,8 @@ export function fontDetect(content, fallback, options = {}) {
   return fontDetectCore(input.value, fallback || ON_TIE_ASSUME_ZAWGYI, options);
 }
 
-// The detection itself, on text with a Myanmar-block unit (detector.js:136-155). The adapter is read before the
-// merge, and the merge may print the threshold message. compat never passes loader; tests pass their own (D21).
+// The detection itself, on text with a Myanmar-block unit (2.x fontDetect past its gate). The adapter is read before
+// the merge, and the merge may print the threshold message. compat never passes loader; tests pass their own (D21).
 export function fontDetectCore(text, fallback, options, loader = zawgyiModelLoader) {
   const cleaned = cleanText(text);
   const requested = options.adapter;
@@ -37,7 +37,7 @@ export function fontDetectCore(text, fallback, options, loader = zawgyiModelLoad
   return scoreByZawgyiModel(cleaned, model, merged.myanmartools_zg_threshold, fallback);
 }
 
-// 2.x chooseAdapter (detector.js:112-119): the requested adapter when it is 'rules' or 'myanmartools'; otherwise
+// 2.x chooseAdapter (detector.js): the requested adapter when it is 'rules' or 'myanmartools'; otherwise
 // myanmar-tools when the merged use_myanmartools is truthy, else the rules. So { adapter: 'foo' } falls through.
 function pickAdapter(requested, merged) {
   if (requested === 'rules' || requested === 'myanmartools') return requested;

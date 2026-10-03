@@ -7,10 +7,10 @@
 import { deepFreeze } from '../freeze.js';
 
 // The 2.x defaults, in the 3.0 core's own names:
-// - detector: globalOptions.js:1-7. use_myanmartools is useZawgyiModel, and myanmartools_zg_threshold is
+// - detector: 2.x globalOptions.js OPTIONS. use_myanmartools is useZawgyiModel, and myanmartools_zg_threshold is
 //   thresholds: myanmar-tools' Zawgyi probability below thresholds[0] reads as Unicode, above thresholds[1] as
 //   Zawgyi, and anything between falls back.
-// - truncate: truncate.js:9-10. length counts UTF-16 units, the omission included.
+// - truncate: 2.x truncate's defaults. length counts UTF-16 units, the omission included.
 // - breakSeparator: syllable.js:273, the zero-width space syllBreak writes between syllables.
 export const DEFAULTS = /* @__PURE__ */ deepFreeze({
   detector: { useZawgyiModel: false, thresholds: [0.05, 0.95] },

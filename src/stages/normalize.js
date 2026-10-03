@@ -1,5 +1,5 @@
 // The normalize pipeline: NFC, the Unicode reader, typos, look-alikes, NFC (DESIGN.md §2.3, §3.10; 2.x
-// normalization.js:22-23). Layer L3 stages. Owner: W5 (engine-unicode).
+// normalization.js normalize). Layer L3 stages. Owner: W5 (engine-unicode).
 //
 // NFC comes first as well as last: it can move a dot below in front of an asat or virama, which changes what they
 // attach to, so the syllables are read from NFC text (research/normalize.md §2). Typos run before look-alikes here,

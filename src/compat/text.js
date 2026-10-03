@@ -13,14 +13,14 @@ import { detectForRouting } from './fontDetect.js';
 import { enter, cleanText, chooseFontLegacy } from './input.js';
 import { legacyBreakFont, legacyCollapseFont, NO_RULES, toJoinSeparator } from './legacy.js';
 
-// normalize(content) (normalization.js:9-24, C24): Unicode text in the storage order of UTN #11, with the typing
+// normalize(content) (2.x normalization.js, C24): Unicode text in the storage order of UTN #11, with the typing
 // fixes, as NFC. There is no Myanmar gate: text with no Myanmar still gets NFC (decision 16).
 export function normalize(content) {
   const input = enter('normalize', content);
   return input.kind === 'text' ? normalizeText(input.value) : input.value;
 }
 
-// syllBreak(content, fontType, breakpoint) (syllBreak.js:6-23, C21): the text with the separator between its
+// syllBreak(content, fontType, breakpoint) (2.x syllBreak.js, C21): the text with the separator between its
 // syllables. It cleans the text first and detects a missing font on the cleaned text. The rule table is looked up
 // before the separator is converted, as 2.x's joinParts(breakParts(...)) does (C12, C20).
 export function syllBreak(content, fontType, breakpoint) {
@@ -40,7 +40,7 @@ function breakSeparator(breakpoint) {
   return breakpoint && breakpoint !== DEFAULTS.breakSeparator ? toJoinSeparator(breakpoint) : DEFAULTS.breakSeparator;
 }
 
-// spellingFix(content, fontType) (spellingCheck.js:6-22, C22): each run of one repeated mark as one mark. It
+// spellingFix(content, fontType) (2.x spellingCheck.js, C22): each run of one repeated mark as one mark. It
 // detects a missing font on the text as given, then cleans it, then collapses with the font's set of marks.
 export function spellingFix(content, fontType) {
   const input = enter('spellingFix', content);
@@ -51,7 +51,7 @@ export function spellingFix(content, fontType) {
   return marks === NO_RULES ? text : collapseRepeatedMarks(text, marks);
 }
 
-// truncate(content, options) (truncate.js:6-52, C23): at most `length` units, the omission included, cut at a
+// truncate(content, options) (2.x truncate.js, C23): at most `length` units, the omission included, cut at a
 // syllable break. It reads every option before it looks at the content, and detects a missing font on the content
 // as given (before trim and zero-width removal), then breaks the cleaned text (§5.1). Not always a prefix: a part
 // that does not fit adds the words of it that do (DESIGN.md §10 Q5).
@@ -72,7 +72,7 @@ export function truncate(content, options) {
   return fitParts(parts, budget).trim() + omission;
 }
 
-// 2.x truncate's reduce (truncate.js:34-51): whole parts while they fit in the budget; a part that does not fit
+// 2.x truncate's reduce (truncate.js): whole parts while they fit in the budget; a part that does not fit
 // adds each of its words, split on \s, that still fits, with a space after it. Nothing is added once the budget is
 // used up, or when it is NaN.
 function fitParts(parts, budget) {

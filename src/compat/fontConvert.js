@@ -14,7 +14,7 @@ import { detectForRouting } from './fontDetect.js';
 import { enter, resolveFont } from './input.js';
 import { report, MESSAGES } from './globalOptions.js';
 
-// fontConvert(content, to, from), in 2.x's order of checks (converter.js:11-59, C15):
+// fontConvert(content, to, from), in 2.x's order of checks (converter.js fontConvert, C15):
 // 1. missing content warns and returns ''; a value that is not a string comes back as it is;
 // 2. text with no unit of U+1000-U+109F comes back unchanged, unless the source is Win, whose text is ASCII;
 // 3. no target prints an error and returns the text, untrimmed;
@@ -48,7 +48,7 @@ export const fontConvert = /* @__PURE__ */ withDebugging(function fontConvert(co
   return convertText(text, source, this && this.debug);
 });
 
-// 2.x fontConvert.debugging (converter.js:69-71): the same call with { debug: true } as its receiver.
+// 2.x fontConvert.debugging (converter.js): the same call with { debug: true } as its receiver.
 function withDebugging(convert) {
   convert.debugging = function (content, to, from) {
     return convert.apply({ debug: true }, [content, to, from]);
@@ -63,14 +63,14 @@ function drawsOnAscii(fontName) {
 }
 
 // The conversion itself. Past the checks, a source stored in drawing order has a Unicode target, and a Unicode
-// source a Zawgyi target (converter.js:54-58).
+// source a Zawgyi target (the end of 2.x converter.js fontConvert).
 function convertText(text, source, debug) {
   if (FONTS[source].visualOrder) return debug ? fontDebugLog(text, source) : fontToUnicode(text, source);
   return debug ? zawgyiDebugLog(text) : unicodeToZawgyi(text);
 }
 
-// 2.x's log of a font conversion (converter.js:63-67; storageOrder.js:461-485): the input, then the text after each
-// stage that changed it, with the stage names.
+// 2.x's log of a font conversion (converter.js drawingOrderToUnicode; storageOrder.js:461-485): the input, then the
+// text after each stage that changed it, with the stage names.
 function fontDebugLog(text, source) {
   const trace = createTrace();
   traceFontToUnicode(text, source, trace);

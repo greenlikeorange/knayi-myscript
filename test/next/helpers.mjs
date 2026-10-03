@@ -18,6 +18,18 @@ export const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..'
 export const SRC = path.join(ROOT, 'src');
 export const ORACLE = path.join(ROOT, 'scripts', 'oracle');
 
+// The files of scripts/oracle/ that are byte-for-byte copies of library/ at the reference, e5f6e24, with the blob
+// id of each (git rev-parse e5f6e24fa756f8f9c8d790f9a15ede85b135e8ae:library/<file>). guards/oracle.test.mjs checks
+// the copies against them, and guards/citations.test.mjs lets src/ cite line numbers in these files only.
+export const ORACLE_REFERENCE_BLOBS = Object.freeze({
+  'contentGate.js': '814c5788446495b22daf70de8231a45802de0efb',
+  'storageOrder.js': 'b53e22e200e5296ad582e6c875a5d04a4e8019a2',
+  'syllable.js': '3148df4efdf99317630b89684ed53205dacb2a1e',
+  'typingFixes.js': 'acf4f9e8e923933c2852082a362a1f7113a17ff2',
+  'win.js': '145c84c6d2bb78b25cdb378c37bbbe027797b84a',
+  'zawgyi.js': '3fbf65d78fa10373aee9a92ff4ef47b6ecd2ad7b'
+});
+
 // The 2.10 engine at the reference: storageOrder, typingFixes, signatures, normalize, toUnicode and fontDetect.
 export const oracle = require('../../scripts/oracle/index.js');
 

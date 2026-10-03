@@ -14,10 +14,10 @@ import { ERR, libraryError } from './errors.js';
 // The font registry: one entry per font, with every name a caller may use for it and what a converter needs to
 // know about it. The aliases are 2.x's (contentGate.js:3-9), in its order; FONT_ALIASES is built from them.
 // - visualOrder: the text is stored in drawing order, glyph by glyph, so it reaches Unicode through the font
-//   reader (converter.js:9 DRAWING_ORDER_FONTS; research/zawgyi-to-unicode.md §2).
-// - sourceOnly: knayi converts from it, never to it (converter.js:47-51; research/win-fonts.md, Summary).
+//   reader (2.x converter.js DRAWING_ORDER_FONTS; research/zawgyi-to-unicode.md §2).
+// - sourceOnly: knayi converts from it, never to it (2.x converter.js fontConvert; research/win-fonts.md, Summary).
 // - ascii: it draws Burmese on ASCII and Windows-1252 code points, so its text has no Myanmar-block character and
-//   the Myanmar gate cannot see it: the converter checks the font before the gate (converter.js:23;
+//   the Myanmar gate cannot see it: the converter checks the font before the gate (2.x fontConvert;
 //   research/win-fonts.md §2).
 export const FONTS = /* @__PURE__ */ deepFreeze({
   unicode: { name: 'unicode', aliases: ['unicode', 'uni'], visualOrder: false, sourceOnly: false, ascii: false },

@@ -8,13 +8,13 @@ import { deepFreeze } from '../freeze.js';
 import { FONT_ALIASES, stripZeroWidthBreaks } from '../core/input.js';
 import { report, MESSAGES } from './globalOptions.js';
 
-// The fallback of the 2.x routing detection: a tie means Zawgyi (decision 13; detector.js:137).
+// The fallback of the 2.x routing detection: a tie means Zawgyi (decision 13; 2.x fontDetect's fallback).
 export const ON_TIE_ASSUME_ZAWGYI = 'zawgyi';
 
 // Per public function (C6, C7):
 // - emptyIsMissing: '' counts as missing content, with null, undefined, 0, false and NaN (contentGate.js:11-14).
-//   truncate alone takes '' as text (truncate.js:15);
-// - stringifyOther: a value that is not a string is read as String(value), like lodash.truncate (truncate.js:20-22).
+//   truncate alone takes '' as text (2.x truncate);
+// - stringifyOther: a value that is not a string is read as String(value), like lodash.truncate (2.x truncate).
 //   Every other function returns such a value as it is (fontDetect returns its fallback instead).
 export const INPUT_POLICY = /* @__PURE__ */ deepFreeze({
   fontDetect: { emptyIsMissing: true, stringifyOther: false },
