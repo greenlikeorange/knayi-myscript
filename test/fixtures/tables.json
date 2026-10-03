@@ -3963,7 +3963,33 @@
         "fired": [
           "unicode-to-zawgyi oneTime 5"
         ]
-      }
+      },
+      "edges": [
+        {
+          "probe": "\u1003\u103a\u1039",
+          "branches": [
+            "U+1003 also matches [\\u1004]"
+          ],
+          "expect": {
+            "output": "\u1003\u1039\u1039",
+            "fired": [
+              "unicode-to-zawgyi oneTime 51"
+            ]
+          }
+        },
+        {
+          "probe": "\u1005\u103a\u1039",
+          "branches": [
+            "U+1005 also matches [\\u1004]"
+          ],
+          "expect": {
+            "output": "\u1005\u1039\u1039",
+            "fired": [
+              "unicode-to-zawgyi oneTime 51"
+            ]
+          }
+        }
+      ]
     },
     "unicode-to-zawgyi oneTime 6": {
       "probe": "\u1064\u1000",
@@ -5377,7 +5403,29 @@
         "fired": [
           "unicode-to-zawgyi oneTime 33"
         ]
-      }
+      },
+      "edges": [
+        {
+          "probe": "\u100c\u1039\u100e",
+          "branches": [
+            "U+100C also matches [\\u100d]"
+          ],
+          "expect": {
+            "output": "\u100c\u1039\u100e",
+            "fired": []
+          }
+        },
+        {
+          "probe": "\u100e\u1039\u100e",
+          "branches": [
+            "U+100E also matches [\\u100d]"
+          ],
+          "expect": {
+            "output": "\u100e\u1039\u100e",
+            "fired": []
+          }
+        }
+      ]
     },
     "unicode-to-zawgyi oneTime 34": {
       "probe": "\u100f\u1039\u100d",
@@ -5387,7 +5435,29 @@
         "fired": [
           "unicode-to-zawgyi oneTime 34"
         ]
-      }
+      },
+      "edges": [
+        {
+          "probe": "\u100e\u1039\u100d",
+          "branches": [
+            "U+100E also matches [\\u100f]"
+          ],
+          "expect": {
+            "output": "\u100e\u1039\u100d",
+            "fired": []
+          }
+        },
+        {
+          "probe": "\u1010\u1039\u100d",
+          "branches": [
+            "U+1010 also matches [\\u100f]"
+          ],
+          "expect": {
+            "output": "\u1010\u1039\u100d",
+            "fired": []
+          }
+        }
+      ]
     },
     "unicode-to-zawgyi oneTime 35": {
       "probe": "\u100d\u1039\u100d",
@@ -5397,7 +5467,29 @@
         "fired": [
           "unicode-to-zawgyi oneTime 35"
         ]
-      }
+      },
+      "edges": [
+        {
+          "probe": "\u100c\u1039\u100d",
+          "branches": [
+            "U+100C also matches [\\u100d]"
+          ],
+          "expect": {
+            "output": "\u100c\u1039\u100d",
+            "fired": []
+          }
+        },
+        {
+          "probe": "\u100e\u1039\u100d",
+          "branches": [
+            "U+100E also matches [\\u100d]"
+          ],
+          "expect": {
+            "output": "\u100e\u1039\u100d",
+            "fired": []
+          }
+        }
+      ]
     },
     "unicode-to-zawgyi oneTime 36": {
       "probe": "\u100b\u1039\u100c",
@@ -5407,7 +5499,33 @@
         "fired": [
           "unicode-to-zawgyi oneTime 36"
         ]
-      }
+      },
+      "edges": [
+        {
+          "probe": "\u100a\u1039\u100c",
+          "branches": [
+            "U+100A also matches [\\u100b]"
+          ],
+          "expect": {
+            "output": "\u100a\u106d",
+            "fired": [
+              "unicode-to-zawgyi oneTime 37"
+            ]
+          }
+        },
+        {
+          "probe": "\u100c\u1039\u100c",
+          "branches": [
+            "U+100C also matches [\\u100b]"
+          ],
+          "expect": {
+            "output": "\u100c\u106d",
+            "fired": [
+              "unicode-to-zawgyi oneTime 37"
+            ]
+          }
+        }
+      ]
     },
     "unicode-to-zawgyi oneTime 37": {
       "probe": "\u1039\u100c",
@@ -5427,7 +5545,33 @@
         "fired": [
           "unicode-to-zawgyi oneTime 38"
         ]
-      }
+      },
+      "edges": [
+        {
+          "probe": "\u100a\u1039\u100b",
+          "branches": [
+            "U+100A also matches [\\u100b]"
+          ],
+          "expect": {
+            "output": "\u100a\u106c",
+            "fired": [
+              "unicode-to-zawgyi oneTime 39"
+            ]
+          }
+        },
+        {
+          "probe": "\u100c\u1039\u100b",
+          "branches": [
+            "U+100C also matches [\\u100b]"
+          ],
+          "expect": {
+            "output": "\u100c\u106c",
+            "fired": [
+              "unicode-to-zawgyi oneTime 39"
+            ]
+          }
+        }
+      ]
     },
     "unicode-to-zawgyi oneTime 39": {
       "probe": "\u1039\u100b",
@@ -6818,7 +6962,29 @@
       "expect": {
         "unicode": "unicode",
         "zawgyi": "unicode"
-      }
+      },
+      "edges": [
+        {
+          "probe": "\u1009\u103a",
+          "branches": [
+            "U+1009 also matches [\u100a]"
+          ],
+          "expect": {
+            "unicode": "unicode",
+            "zawgyi": "zawgyi"
+          }
+        },
+        {
+          "probe": "\u100b\u103a",
+          "branches": [
+            "U+100B also matches [\u100a]"
+          ],
+          "expect": {
+            "unicode": "unicode",
+            "zawgyi": "zawgyi"
+          }
+        }
+      ]
     },
     "detector unicode 3": {
       "probe": "\u1014\u103a",
@@ -6832,7 +6998,29 @@
       "expect": {
         "unicode": "unicode",
         "zawgyi": "unicode"
-      }
+      },
+      "edges": [
+        {
+          "probe": "\u1003\u103a",
+          "branches": [
+            "U+1003 also matches [\u1004]"
+          ],
+          "expect": {
+            "unicode": "unicode",
+            "zawgyi": "zawgyi"
+          }
+        },
+        {
+          "probe": "\u1005\u103a",
+          "branches": [
+            "U+1005 also matches [\u1004]"
+          ],
+          "expect": {
+            "unicode": "unicode",
+            "zawgyi": "zawgyi"
+          }
+        }
+      ]
     },
     "detector unicode 5": {
       "probe": "\u1031\u1038",
