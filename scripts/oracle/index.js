@@ -6,12 +6,14 @@
 // changed. signatures.js holds the 29 detector signatures and the rule scorer of library/detector.js. Do not
 // edit these files to make a test pass: a difference from the library is what the fuzz test is for.
 //
-// syllable.js and contentGate.js are byte-for-byte copies of library/ at e5f6e24, the 2.x reference of
-// docs/next/DESIGN.md (D18, D19); neither requires another file. The module tests of test/next reach their
-// private code through test/next/helpers.mjs `internals`, which reads them here rather than in library/, so a
-// later 2.x change to library/ cannot quietly change what those tests compare with. The other four copies are
-// identical to library/ at e5f6e24 too, and test/next/guards/oracle.test.mjs checks all six against the blob ids
-// of the reference.
+// The other files make this directory the whole 2.x library at e5f6e24, the 2.x reference of docs/next/DESIGN.md
+// (D18, D19): syllable.js, contentGate.js, converter.js, detector.js, globalOptions.js, normalization.js,
+// spellingCheck.js, syllBreak.js and truncate.js are byte-for-byte copies of library/ there, and main.js is the
+// reference's main.js with its requires pointed at the copies next to it. The module tests of test/next reach
+// their private code through test/next/helpers.mjs `internals`, and compat's tests compare with main.js
+// (test/next/compat-helpers.mjs), so a later 2.x change cannot quietly change what those tests compare with. The
+// four copies above are identical to library/ at e5f6e24 too, and test/next/guards/oracle.test.mjs checks all
+// thirteen, and main.js, against the blob ids of the reference.
 //
 // The functions below add the public preamble of 2.10 (library/contentGate.js, converter.js, detector.js and
 // normalization.js) for string input, so the fuzz test can compare them with the public API directly.
