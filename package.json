@@ -20,7 +20,7 @@
   ],
   "scripts": {
     "build": "node scripts/build.js",
-    "test": "node --test \"test/**/*.test.js\" && node --test \"test/**/*.timing.js\" && tsc -p typecheck/tsconfig.json --noEmit && tsc -p typecheck/tsconfig.no-interop.json --noEmit",
+    "test": "node --test \"test/**/*.test.js\" \"test/**/*.test.mjs\" && node --test \"test/**/*.timing.js\" && tsc -p typecheck/tsconfig.json --noEmit && tsc -p typecheck/tsconfig.no-interop.json --noEmit",
     "posttest": "node scripts/check-size.js",
     "test:bun": "bun scripts/bun-contract.js && bun scripts/bun-esm.mjs && bun scripts/bun-matrix.js && bun test ./test && bun test ./test/growth.timing.js",
     "test:pack": "node scripts/check-packed.mjs",
