@@ -37,6 +37,8 @@ Where this spec departs from the plan, §1.4 says so and gives the reason.
 9. [Not in this build](#9-not-in-this-build)
 10. [Known 2.x quirks kept on purpose](#10-known-2x-quirks-kept-on-purpose)
 11. [The 3.0 API](#11-the-30-api)
+12. [Streaming](#12-streaming)
+13. [The command line](#13-the-command-line)
 - [Appendix A: names, 2.x to next](#appendix-a-names-2x-to-next)
 
 ---
@@ -54,7 +56,7 @@ Where this spec departs from the plan, §1.4 says so and gives the reason.
   - a detached `fontConvert` call never reads a global `debug`;
   - myanmar-tools is looked up from the working directory, not from `library/`.
 - **Not here, at first:**
-  - the 3.0 public API: `toUnicode`, `toZawgyi`, `detectEncoding`, streaming, lossless segmentation, change reports and the CLI. Two cores of it are built here: lossless segmentation in `rules/segment.js` (§7.5), and the core's `detectEncoding` in `rules/detect.js`, which computes that function's result (§7.6, as built). The public functions, which check and clean their text and take their options, are 3.0's, and are built now, all but the CLI (§11), streaming included (§12);
+  - the 3.0 public API: `toUnicode`, `toZawgyi`, `detectEncoding`, streaming, lossless segmentation, change reports and the CLI. Two cores of it are built here: lossless segmentation in `rules/segment.js` (§7.5), and the core's `detectEncoding` in `rules/detect.js`, which computes that function's result (§7.6, as built). The public functions, which check and clean their text and take their options, are 3.0's, and are built now (§11), streaming included (§12), and so is the CLI on them (§13);
   - the package `exports` map and the 3.0 builds;
   - any output change.
 
@@ -116,7 +118,7 @@ The recommended option of each decision below is adopted.
 | 29 | Accept the V8 atom wrap, exactly U+1000-U+1010 | It applies to the Unicode to Zawgyi rows, whose `re` may wrap its first unit while the `label` keeps the 2.x source. A lint test enforces the exact range. The detector no longer uses regexes. |
 | 30 | No single-pass GLYPH_MAP alternation for Unicode to Zawgyi | The alternation is not built: it changes the output of a stack on a stack. The generated writer of Phase 6 #5 (§3.9, §7.12) writes GLYPHS in one pass from left to right only where that equals the rows in order, and runs the rows one by one on a text with a stack on a stack, so the output and the debug log stay 2.x's. |
 | 31 | ESM-only sources; minimum Node 22.12 for `require(esm)` | `src/package.json` has `"type": "module"`, and `library/` stays CommonJS for the transition. The `engines` field and the exports map come in Phase 6 packaging. |
-| 32 | (b) A CLI | Later. The core never reads the working directory or loads code (§4), so a CLI on it is safe (§10.2 of the plan). |
+| 32 | (b) A CLI | `bin/knayi.js` (§13). The core never reads the working directory or loads code (§4), so a CLI on it is safe (§10.2 of the plan); the command loads only myanmar-tools, only when asked, and only from where knayi is installed. |
 | 33 | (b) `OUTPUT_VERSION` | `src/version.js`. It was 1 for the output of 2.10.0 at the reference, which compat keeps, and is 2 since 3.0's normalize settles (§11.2). |
 | 34 | Lossless segmentation tokens | `forEachBreak` reports positions. The 2.x pairwise rule is one named predicate (`legacyBareConsonantPair`), and `BARE_CONSONANTS` names the policies: `PAIRS` (2.x), `CHAINS` and `SEPARATE`. `rules/segment.js` builds the lossless core, `segmentSyllables` and `syllableBoundaries`: the pieces join to the text, ZWNJ is kept and nothing is reordered. The 3.0 API's default is `SEPARATE`, chosen from the counts of §11.6. |
 | 35 | Delete parseUnicode and serializeUnicode | Not ported. |
@@ -1983,11 +1985,10 @@ A 2.x speed win that the core already has, such as the atom wrap or the one-rege
 
 ## 9. Not in this build
 
-These are the rest of Phase 6. The core is shaped so that they need no core change. The 3.0 API itself, with lossless segmentation, a prefix truncate, the change report, `isNormalized`, `explain` and an idempotent normalize, is built: §11. So are its streams, `createNormalizer`, `createConverter`, `lineTransform` and `mapLines`: §12.
+These are the rest of Phase 6. The core is shaped so that they need no core change. The 3.0 API itself, with lossless segmentation, a prefix truncate, the change report, `isNormalized`, `explain` and an idempotent normalize, is built: §11. So are its streams, `createNormalizer`, `createConverter`, `lineTransform` and `mapLines`: §12; and the command line on both: §13.
 
 - **Streaming to Zawgyi,** which waits for the fix of §10 Q10 (§12.2).
 - **Extended-C and code-point iteration** (decision 20b).
-- **The CLI** (decision 32).
 - **Packaging:** the exports map (`'.'` for `src/index.js`, `'./compat'`, `'./stream'` for `src/stream.js`, `'./package.json'`), the `engines` field (Node 22.12 or later), `src/index.d.ts` and `src/stream.d.ts` as the types of `'.'` and `'./stream'`, the 3.0 builds with the dist floor checks and the Playwright smoke run, deleting `library/` and its shims, and the import sizes per entry, which `scripts/next/size.mjs` reports for `src/index.js` already (§11.1).
 
 ---
@@ -2228,6 +2229,54 @@ The plan left open whether to cut such a line at a syllable boundary or to raise
 **Speed.** On FLORES, Okell and mC4, each as one document in 64 KB chunks, a stream takes about the time of its function on the whole text: 0.74-1.02 of `normalize`'s, 1.01-1.12 of `toUnicode`'s from Zawgyi and 1.03-1.26 of its detecting each line (median of 5 interleaved rounds, Node 26.5). UTF-8 bytes cost 0.02-0.18 more than strings, the share of decoding; `mapLines` alone reads 0.75-1.10.
 
 **Sizes** (`scripts/next/size.mjs`, as §6.4 measures, gzip level 9): all the streams are 16,082 B, and an import of `createNormalizer` alone 10,315 B: the 9,200 B of `normalize` alone from `src/index.js`, and 1,115 B of the line cutter and the stream. The tree-shaking check of §2.4 runs on that import too: no byte of the fonts, detection, conversion or segmentation. The two error codes of §12.3 and §12.4 add 43 B to compat and to the 3.0 API, which share `ERR`.
+
+---
+
+## 13. The command line
+
+`bin/knayi.js` is the command of decision 32 (b): the 3.0 API over files or standard input, line by line, as plain text or JSON Lines, for shell scripts and pipelines in other languages, Python first. It is the package's `"bin"`, named `knayi`. README.md, "Command line", is its manual, and `knayi --help` its summary; this section records how it is built and why.
+
+It lies outside `src/`: it is Node-only (22.12 or later, decision 31), uses Node's modules and syntax past ES2015, and is in no browser build, so the floor (D14), layer (§2.2) and stateless (§4) guards do not read it. `bin/package.json` makes `bin/` ES modules, as `src/package.json` does `src/`, and `"files"` holds `bin` and `src`, which the command needs once packed.
+
+### 13.1 Files
+
+| File | What it holds |
+|---|---|
+| `bin/knayi.js` | the entry: hands `main` the process's streams and sets `process.exitCode`, never calling `process.exit`, so all output is written first |
+| `bin/cli/main.js` | the steps of a run, and the line handler: a command's output per line, or check's report |
+| `bin/cli/options.js` | the command line: `node:util` `parseArgs`, strict, then each option checked against the command |
+| `bin/cli/commands.js` | each command: its API call, its plain text and JSON Lines output, its `--report` counts |
+| `bin/cli/lines.js` | the inputs in turn, 64 KiB at a time, through `mapLines` (§12.1) |
+| `bin/cli/decoding.js` | strict decoding of UTF-8 or Windows-1252, and the text before bytes that do not decode |
+| `bin/cli/records.js` | a JSON Lines record: its text read, and the result written into the line's own text |
+| `bin/cli/output.js` | standard output, waiting while the pipe is full, and stopping quietly when its reader goes (EPIPE) |
+| `bin/cli/detector.js` | `--detector myanmar-tools`, the one place the command loads code |
+| `bin/cli/summary.js`, `usage.js`, `errors.js` | `--report`; `--help` and `--version`; the exit statuses |
+
+`bin/cli/` imports only Node's built-ins, its own files, `src/index.js` and `src/stream.js`: never `src/compat/`, whose myanmar-tools loader reads the working directory (§5.4, D3), nor a module inside `src/`.
+
+### 13.2 What it decides
+
+- **One API call per line, through the public entries only.** Each line of plain text, or the `--field` of each record, goes once through the 3.0 function of its command, with the options of the command line; the API checks nothing the command has not checked already. A run holds one 64 KiB chunk and the line in hand, so memory stays flat: 367 MB of mixed Zawgyi and Unicode piped through `to-unicode` takes 4.0 s with a peak RSS of 147 MB, against 91 MB for 18 MB, and `test/next/cli/streaming.test.mjs` converts 24 MB through a 24 MB heap, where a reader of the whole input dies of heap exhaustion.
+- **Lines are cut by the streams' `mapLines`** (§12.1): the same ends of line as `createNormalizer`, a `\r` before `\n` kept with the ending, and the same error, not a cut, for a line too long (§12.4). The command's `--max-line-length` defaults to 16 Mi units, 16 times the streams' default, since a JSON Lines record holds a whole document and its other fields, and Python's `json.dumps` writes each Burmese character as an escape of 6 units. So `normalize` and `to-unicode` give the API's output on the whole input (§12.2), whatever the chunks. `to-zawgyi` converts each line alone, as a stream would if it could: an e or medial ra at the start of a line stays on its line, where `toZawgyi` on the whole text moves it to the line above (§10 Q10). A JSON Lines field of several lines converts a line at a time too, so both formats agree. `check`'s plain text is a report, with no line for a clean line, so its line function collects the issue lines and returns `''`, and the endings `mapLines` puts after each `''` are dropped.
+- **Decoding is strict.** `mapLines` reads bytes as `TextDecoder` and `Buffer#toString` do, with U+FFFD for bad bytes (§12.3); the command decodes the bytes itself, with `fatal: true`, and gives `mapLines` strings, so that no character of a corpus becomes U+FFFD unseen. Bytes that do not decode stop the run with the line they are on, after the text before them has gone through. `--encoding windows-1252` reads Win font text saved by Windows; the output is always UTF-8. A byte order mark at the start of an input marks its encoding and is dropped, where a stream keeps U+FEFF as text.
+- **A JSON Lines record is never serialized again.** `records.js` finds the member's value in the line's own text, in one pass, and writes the result there, or adds the member before the closing brace with the spacing of the first member. Every other byte stays: key order (`JSON.parse` would move `"0"` before `"a"`), white space, escapes, `1.50`, and a 20-digit id that a JavaScript number would round. A record the command leaves as it was comes out byte for byte.
+- **Offsets count code points.** `check`'s columns, and the `start` and `end` of its JSON Lines issues, count characters as a Python `str` does; `explain` counts UTF-16 units. They differ only after a character above U+FFFF.
+- **Strict options.** Each option has one spelling, and a value one name, exactly as written, as in §11.1; an option the command would ignore is a usage error, raised before any input is read.
+- **Exit statuses:** 0 done; 1 `check` found an issue; 2 a usage error; 3 an input error, naming the file and the line; 4 anything else. One line on standard error, `knayi: ...`, for an error; `--report` writes one JSON line there, with `VERSION`, `OUTPUT_VERSION` (decision 33) and the command's counts, only when the run has read all of its input. A closed output pipe ends the run with 0, as `yes | knayi normalize | head` expects.
+- **No code from the working directory** (§10.2 of the plan). The command loads myanmar-tools only for `--detector myanmar-tools`, with `import('myanmar-tools')` from `bin/cli/detector.js`: Node looks only in the `node_modules` folders above the installed package, and an ES module import reads neither `NODE_PATH` nor the global folders. Nothing else is loaded: no configuration file, no plugin.
+
+### 13.3 Verification
+
+`test/next/cli/` runs the command, in a process of its own or through `main` with chunks chosen by the test, on the hand-written fixtures of `test/next/cli/fixtures/` (listed in its `SOURCES`):
+- `commands.test.mjs`: each command and option on the fixtures, line endings, several inputs, the byte order mark, JSON Lines, `--report`, `--help` and `--version`;
+- `errors.test.mjs`: every usage error (2) and input error (3), each one line on standard error;
+- `streaming.test.mjs`: fuzzed input in chunks of 1 to 9 bytes gives the API on each line, and for `normalize` and `to-unicode` the API on the whole input; bad bytes named on the same line for every chunk size; JSON Lines records with random keys and values, compact or spaced as `json.dumps` writes them, come out the same but for the field; the 24 MB heap; a closed output pipe;
+- `records.test.mjs`: `withField` on nested values, escaped names, repeated names, every kind of JSON white space;
+- `loading.test.mjs`: the command run in a folder whose `node_modules` holds a myanmar-tools that marks a file when loaded, with `NODE_PATH` pointing there too, never loads it; the sources of `bin/` load code in one place, import only what 13.1 lists, and keep every function to 40 lines (§1.2 rule 3). With a loader that reads the working directory, three of its six tests fail;
+- `readme.test.mjs`: every example of README.md, "Command line", run, with its output exact.
+
+The files pass under Node 26.5 and Bun 1.4.2 (`bun test ./test/next/cli`, which runs the command under Bun). compat is unchanged: compare reports 0 differences on 2,771,318 comparisons against `e5f6e24`, and the contract matrix all 3,523 cells.
 
 ---
 
