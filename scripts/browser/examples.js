@@ -141,6 +141,11 @@ function describeCall(call) {
   return 'knayi.' + call[0] + '(' + call.slice(1).map((a) => JSON.stringify(a)).join(', ') + ')';
 }
 
+// JSON with every non-ASCII character escaped, so that NFC and NFD, or a moved mark, look different.
+function escaped(value) {
+  return JSON.stringify(value).replace(/[^\x20-\x7e]/g, (c) => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'));
+}
+
 // The first `limit` calls whose results differ, as text. `same(i, a, b)` may accept known differences.
 function differences(calls, actual, expected, options) {
   const opts = options || {};
@@ -151,7 +156,9 @@ function differences(calls, actual, expected, options) {
   for (let i = 0; i < Math.min(actual.length, expected.length) && out.length < limit; i++) {
     const a = JSON.stringify(actual[i]);
     const b = JSON.stringify(expected[i]);
-    if (a !== b && !same(i, actual[i], expected[i])) out.push(describeCall(calls[i]) + '\n    got      ' + a + '\n    expected ' + b);
+    if (a !== b && !same(i, actual[i], expected[i])) {
+      out.push(describeCall(calls[i]) + '\n    got      ' + escaped(actual[i]) + '\n    expected ' + escaped(expected[i]));
+    }
   }
   return out;
 }
