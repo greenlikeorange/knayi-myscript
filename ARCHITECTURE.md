@@ -29,7 +29,7 @@ How knayi-myscript is built today: version 2.10.0, including the Shan look-alike
 | `dist/knayi-myscript.js` | IIFE | Sets the global `knayi`, also when a bundler imports the file. |
 | `dist/knayi-myscript.min.js` | IIFE, minified | The file the README, unpkg and jsDelivr serve. |
 
-The committed `dist/` is the build of the last release: jsDelivr serves `main`'s `dist/` to `@master` links, so it changes only in a release commit (`scripts/check-dist.js`). Everything else builds into a temporary directory: `builtDist()` in `scripts/build.js` builds once per process and removes the directory on exit, or returns `KNAYI_DIST` when that is set.
+The committed `dist/` is the build of the last release, or of the release being prepared: jsDelivr serves `main`'s `dist/` to `@master` links, so it changes only in a release commit (`scripts/check-dist.js`). 2.10.0 is not tagged or published yet, and its `dist/` was rebuilt by #70 to #74 after the commit that set the version (7619008); its tag goes on the commit that holds the final build. Everything else builds into a temporary directory: `builtDist()` in `scripts/build.js` builds once per process and removes the directory on exit, or returns `KNAYI_DIST` when that is set.
 
 `main.js` and `dist/knayi-myscript.es.js` are two copies of the library with their own module state. Silent mode and detector options set on one are not seen by the other (README, "Runtime").
 
