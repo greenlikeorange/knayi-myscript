@@ -37,7 +37,7 @@ import knayi from 'knayi-myscript'
 import knayi from 'knayi-myscript'
 ```
 
-TypeScript types are `index.d.ts`. Named imports such as `import { fontConvert } from 'knayi-myscript'` work in Node and in bundlers, next to the default import. The default import compiles with or without `esModuleInterop`. The option types (`DetectorOptions`, `GlobalOptions`, `TruncateOptions`) are exported.
+TypeScript types are `index.d.ts`, with documentation for every export that editors show. Named imports such as `import { fontConvert } from 'knayi-myscript'` work in Node and in bundlers, next to the default import. The default import compiles with or without `esModuleInterop`. The option types (`DetectorOptions`, `GlobalDetectorOptions`, `GlobalOptions`, `TruncateOptions`), `ConvertDebug` and `FontName` are exported. A font parameter takes any string, and editors suggest the names in `FontName`. `fontDetect`'s result type is `'unicode' | 'zawgyi' | 'en'`, with the fallback's type in place of `'en'` when you pass a fallback.
 
 In Node, `require` and `import` both load `main.js` and share `setGlobalOptions`. A bundler that follows the `module` field loads `dist/knayi-myscript.es.js` instead. That file is a second copy. If one part of an app uses `main.js` and another uses `dist/knayi-myscript.es.js`, silent mode and detector settings do not cross between them.
 
@@ -51,6 +51,8 @@ These paths load without an `exports` map:
 - `knayi-myscript/library/converter`
 - `knayi-myscript/dist/knayi-myscript.min.js`
 - `knayi-myscript/dist/knayi-myscript.es.js`
+
+`knayi-myscript/library/converter` is `fontConvert`, typed by `library/converter.d.ts`. Load it with `require`, or with a default import where `esModuleInterop` is on. An ES module in Node names the file with its extension: `knayi-myscript/library/converter.js`.
 
 ## Font names
 

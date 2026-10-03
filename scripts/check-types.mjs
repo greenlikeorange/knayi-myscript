@@ -1,6 +1,7 @@
-// Checks index.d.ts the way users get it: from the packed tarball, under every module resolution.
+// Checks index.d.ts and library/converter.d.ts the way users get them: from the packed tarball, under every module
+// resolution.
 //
-// npm test type-checks typecheck/*.ts against index.d.ts through a `paths` mapping with node10 resolution.
+// npm test type-checks typecheck/*.ts against them through a `paths` mapping with node10 resolution.
 // This script packs the package instead, with a fresh build in dist/ (scripts/pack-fresh.mjs), unpacks the
 // tarball into the node_modules of a scratch project (it has no dependencies, so that is all npm install would
 // do), and:
@@ -31,13 +32,10 @@ const ENTRYPOINTS = ['.', './library/converter', './dist/knayi-myscript.min.js',
 // Problems attw reports today. Each is a gap in what the package ships (index.d.ts, file names, package.json),
 // left for the PRs that may change those files.
 const KNOWN_PROBLEMS = {
-  // README documents this deep path, but it has no declaration file (PR 1.7 adds library/converter.d.ts), and
-  // without an exports map Node's ESM resolver needs the '.js' extension, so the bare path does not resolve
-  // from an ES module.
-  'UntypedResolution ./library/converter node10': 'no library/converter.d.ts',
-  'UntypedResolution ./library/converter node16-cjs': 'no library/converter.d.ts',
+  // README documents this deep path, which library/converter.d.ts types, but without an exports map Node's ESM
+  // resolver needs the '.js' extension, so the bare path does not resolve from an ES module (esm.mts imports
+  // 'knayi-myscript/library/converter.js').
   'NoResolution ./library/converter node16-esm': 'ES modules need library/converter.js, with the extension',
-  'UntypedResolution ./library/converter bundler': 'no library/converter.d.ts',
   // The script build is imported for its side effect, the knayi global, so it needs no types of its own.
   'UntypedResolution ./dist/knayi-myscript.min.js node10': 'script build, imported for the global',
   'UntypedResolution ./dist/knayi-myscript.min.js node16-cjs': 'script build, imported for the global',

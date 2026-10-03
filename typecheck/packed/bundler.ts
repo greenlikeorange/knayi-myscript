@@ -4,6 +4,8 @@
 import knayi from "knayi-myscript";
 import { fontConvert, fontDetect, normalize, setGlobalOptions, syllBreak, version } from "knayi-myscript";
 import type { ConvertDebug, DetectorOptions, Knayi } from "knayi-myscript";
+// The deep path is CommonJS, library/converter.js, bundled apart from dist/knayi-myscript.es.js: a copy of its own.
+import deepConvert from "knayi-myscript/library/converter";
 
 function check(ok: boolean, what: string): void {
   if (!ok) throw new Error("bundler.ts: " + what);
@@ -24,6 +26,7 @@ check(fontDetect(unicode, null, options) === "unicode", "fontDetect");
 check(syllBreak(unicode, "unicode", "|") === "မင်္ဂလာ|ပါ", "syllBreak");
 check(normalize(unicode) === unicode, "normalize");
 check(version === knayi.version, "version");
+check(deepConvert(zawgyi, "unicode", "zawgyi") === unicode, "library/converter");
 
 // The types are the package's own, not any.
 // @ts-expect-error syllBreak returns a string

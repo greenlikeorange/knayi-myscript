@@ -5,13 +5,19 @@ const path = require('path');
 const knayi = require('../main');
 const { readExamples } = require('../scripts/testing/readme-examples');
 
-// Every `knayi.…` example in README.md and ARCHITECTURE.md runs against main.js, and returns the value in its
-// comment. An example whose note says it warns, or that it writes an error, must write a warning or an error to the
-// console.
+// Every `knayi.…` example in README.md and ARCHITECTURE.md, and in the JSDoc of index.d.ts, runs against main.js, and
+// returns the value in its comment. An example whose note says it warns, or that it writes an error, must write a
+// warning or an error to the console.
 //
 // The number of examples in each file is pinned, so an example the reader stops seeing fails here. When you add or
 // remove an example, change its count.
-const FILES = { 'README.md': 60, 'ARCHITECTURE.md': 11 };
+const FILES = { 'README.md': 60, 'ARCHITECTURE.md': 11, 'index.d.ts': 18 };
+
+// A file's text as Markdown. In a declaration file, the JSDoc lines lose their leading ` * `, so the fenced examples
+// in the comments read as README's do; line numbers stay the same.
+function asMarkdown(file, text) {
+  return file.endsWith('.d.ts') ? text.replace(/^[ \t]*\*(?: |$)/gm, '') : text;
+}
 
 // Runs fn with console.warn and console.error recorded instead of printed.
 function capture(fn) {
@@ -30,7 +36,7 @@ function capture(fn) {
 
 for (const [file, count] of Object.entries(FILES)) {
   describe(file + ' examples', () => {
-    const examples = readExamples(fs.readFileSync(path.join(__dirname, '..', file), 'utf8'), file);
+    const examples = readExamples(asMarkdown(file, fs.readFileSync(path.join(__dirname, '..', file), 'utf8')), file);
 
     it('reads every example', (t) => {
       assert.equal(examples.length, count, file + ' has ' + examples.length + ' examples; if you added or removed one, ' +

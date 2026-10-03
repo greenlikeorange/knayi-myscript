@@ -13,6 +13,8 @@ import {
   version
 } from "knayi-myscript";
 import type { ConvertDebug, DetectorOptions, GlobalOptions, Knayi, TruncateOptions } from "knayi-myscript";
+// Without an exports map, an ES module names the deep path's file with its extension.
+import deepConvert from "knayi-myscript/library/converter.js";
 
 function check(ok: boolean, what: string): void {
   if (!ok) throw new Error("esm.mts: " + what);
@@ -44,11 +46,16 @@ check(typeof spellingFix(unicode, "unicode") === "string", "spellingFix");
 check(typeof truncate(unicode, truncateOptions) === "string", "truncate");
 check(normalize(unicode) === unicode, "normalize");
 check(version === knayi.version, "version");
+check(deepConvert === fontConvert, "library/converter is fontConvert");
+const detected: "unicode" | "zawgyi" | "tie" = fontDetect(unicode, "tie");
+check(detected === "unicode", "fontDetect with a fallback");
 
 // The types are the package's own, not any.
 // @ts-expect-error normalize returns a string
 const wrong: number = normalize(unicode);
+// @ts-expect-error fontDetect never returns 'win'
+const notWin: "win" = fontDetect(unicode);
 // @ts-expect-error adapter is a per-call option; setGlobalOptions does not store it
 setGlobalOptions({ detector: { adapter: "rules" } });
 
-export { wrong };
+export { wrong, notWin };
