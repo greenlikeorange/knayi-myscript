@@ -16,7 +16,9 @@
 // consonant (rows U5 and Z5) or at four e and medial ra glyphs (row Z8). A run of tone marks follows one
 // consonant only, so no unit is read more than a few times.
 
-import { CP, isBurmeseConsonant, isZawgyiPrebase, isZawgyiMedialRa, isZawgyiKinzi } from '../script/codes.js';
+import {
+  CP, isBurmeseConsonant, isZawgyiPrebase, isZawgyiMedialRa, isZawgyiKinzi, addBlockUnit
+} from '../script/codes.js';
 import { deepFreeze } from '../freeze.js';
 import { ERR, libraryError } from '../core/errors.js';
 
@@ -354,15 +356,18 @@ function startsBaseWithPrebase(text, i, kinziRuleOn) {
 
 // 2.x collapsed each run of one repeated mark with one regex per mark of the font, in turn. Collapsing a run never
 // makes a run of another mark, so one pass that collapses every run gives the same text. The text itself comes
-// back when there is nothing to collapse.
-export function collapseRepeatedMarks(text, font) {
+// back when there is nothing to collapse. Given a unit set (script/codes.js), the same pass adds to it every unit
+// of U+1000-U+109F the text holds, for rules/unicodeToZawgyi.js; collapsing removes none of them.
+export function collapseRepeatedMarks(text, font, units) {
   requireBreakFont(font);
   const isRepeatable = font === 'zawgyi' ? isRepeatableZawgyiMark : isRepeatableUnicodeMark;
+  const noting = units !== undefined;
   let out = '';
   let copyFrom = 0;
-  let previous = text.charCodeAt(0);
-  for (let i = 1; i < text.length; i++) {
+  let previous = -1;
+  for (let i = 0; i < text.length; i++) {
     const code = text.charCodeAt(i);
+    if (noting) addBlockUnit(units, code);
     if (code === previous && isRepeatable(code)) {
       out += text.slice(copyFrom, i);
       while (text.charCodeAt(i + 1) === code) i++;

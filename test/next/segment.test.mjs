@@ -14,6 +14,7 @@ import {
   looksLikeSgawKaren, collapseRepeatedMarks
 } from '../../src/rules/segment.js';
 import { BREAK_RULES } from '../../src/spec/breakRules.js';
+import { UNIT_SET_WORDS, addBlockUnit } from '../../src/script/codes.js';
 import { tableProbes, fuzz } from './helpers.mjs';
 import {
   FONTS, syllable2x, breakPartsByRows, syllBreak2x, spellingFix2x, syllBreakOnCore, spellingFixOnCore, units,
@@ -326,6 +327,20 @@ describe('collapseRepeatedMarks', () => {
     assert.equal(collapseRepeatedMarks(text, 'unicode'), syllable2x.collapseMarks(text, 'unicode'));
     assert.equal(collapseRepeatedMarks('\u1060\u1060\u1060' + KA, 'zawgyi'), '\u1060' + KA);
     assert.equal(collapseRepeatedMarks('\u1060\u1060', 'unicode'), '\u1060\u1060');
+  });
+
+  it('given a unit set, notes every unit of U+1000-U+109F of the text in the same pass, and gives the same text', () => {
+    const texts = [KA + '\u102D\u102D\u102D\u102F' + KHA + '\u103A\u103A a\u1099 \uAA60', '', '\u109F', 'abc',
+      '\u1031\u1031\u1000\u102C\u102C\u102C\u1037'];
+    for (const font of FONTS) {
+      for (const text of texts) {
+        const noted = new Int32Array(UNIT_SET_WORDS);
+        assert.equal(collapseRepeatedMarks(text, font, noted), collapseRepeatedMarks(text, font), units(text));
+        const expected = new Int32Array(UNIT_SET_WORDS);
+        for (const unit of text) addBlockUnit(expected, unit.charCodeAt(0));
+        assert.deepEqual(noted, expected, font + ' ' + units(text));
+      }
+    }
   });
 
   it('returns the text itself when nothing repeats', () => {

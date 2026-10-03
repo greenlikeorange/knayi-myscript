@@ -109,7 +109,7 @@ The recommended option of each decision below is adopted.
 | 16 | normalize keeps NFC on text with no Myanmar | The no-Myanmar fast path returns `toNfc(text)`. |
 | 18 | (b) Raise the floor to engines with full ES2015 | `src/` uses ES2015 syntax and built-ins only (`TypedArray#fill` is allowed). Checked by a test with a listed denylist (§6.2). The 3.0 release notes state the new floor. |
 | 20 | (c) now, (b) in 3.0 | `codes.js` states the Unicode version it matches, and a test checks it against the runtime. Extended-C digits and code-point iteration are a deliberate 3.0 output change, made later. The readers keep reading UTF-16 units and never split a surrogate pair. |
-| 28 | Only the two simple gates | The no-Myanmar fast path and the final-NFC gate (§3.10). No typo or look-alike gates (PR 2.7 is not built). No Zawgyi or Win gates. |
+| 28 | Only the two simple gates | The no-Myanmar fast path and the final-NFC gate (§3.10). No typo or look-alike gates (PR 2.7 is not built). As reviewed (§7.11), Unicode to Zawgyi skips the rows that cannot match (§3.10, gate 3): it couples no rule to another module's trigger bits, since each row names its own `needs`, and it was measured end to end, 2.5-2.7x per word. |
 | 29 | Accept the V8 atom wrap, exactly U+1000-U+1010 | It applies to the Unicode to Zawgyi rows, whose `re` may wrap its first unit while the `label` keeps the 2.x source. A lint test enforces the exact range. The detector no longer uses regexes. |
 | 30 | No single-pass GLYPH_MAP alternation for Unicode to Zawgyi | Not built. It is revisited with the 3.0 generated writer. |
 | 31 | ESM-only sources; minimum Node 22.12 for `require(esm)` | `src/package.json` has `"type": "module"`, and `library/` stays CommonJS for the transition. The `engines` field and the exports map come in Phase 6 packaging. |
@@ -141,7 +141,7 @@ Decisions 5 and 17 are not adopted. §1.4 says what this spec does instead (D6 a
 | D14 | **The ES2015 floor for `src/`.** Syntax is checked by acorn with `ecmaVersion: 2015, sourceType: 'module'`. Built-ins are checked against the denylist of ES2016+ names listed in §6.2, which accepts some false positives. Classes declare no fields: their state is assigned in the constructor. `import.meta` and `globalThis` are not used anywhere in `src/`. | Decision 18(b). Class fields are ES2022, and acorn at ES2015 rejects them. A name cannot tell `Array#includes` (ES2016) from `String#includes` (ES2015), so the list bans both, and `src/` uses `indexOf`. compat's loader detects Node with `typeof process`, which every engine accepts. |
 | D15 | **One file per owner, and one directory per L3 part:** `engine/` holds the engine (`syllable.js` and `unicodeReader.js`, W5; `fontReader.js`, W6), `rules/` the rules (`typingFixes.js`, W2; `segment.js`, W3; `detect.js`, W4; `unicodeToZawgyi.js`, W7), and `stages/` the stage lists (`normalize.js`, W5; `fonts.js`, W6). The plan's `readers.js` and `stages.js` are each split in two, and its cap of 2-3 files for `engine/` does not apply to `src/`. As built, `engine/` held all six engine-side files and three rules sat at the root of `src/`; the review moved them (§7.11), so a path names its layer and the imports it may make (§2.2). | No file has two owners, so no builder edits another's import block or helpers. The cap protected bundle bytes from CommonJS module wrappers: the clarity split cost +16%. esbuild bundles ES modules into one scope without wrappers, so a split costs nothing by itself. What costs bytes is top-level code that esbuild cannot drop (D16). `scripts/next/size.mjs` checks both, in every PR from W0 on. |
 | D16 | **Top-level code is free of side effects** (§2.4). Data is frozen through one helper, `deepFreeze` (`src/freeze.js`), called with a `/* @__PURE__ */` annotation. So are the compiled fonts, the built tables and the scratch objects. `deepFreeze` freezes plain objects and arrays, and leaves RegExps and typed arrays as they are. | With esbuild 0.25.12 and `"sideEffects": false`, an unused `Object.freeze({...})`, an unannotated call or `new`, and a literal that reads a property (`{a: CP.KA}`) all stay in the bundle, with and without minify. An unannotated top-level `compileFont(TABLE)` keeps the table and `compileFont` in a normalize-only bundle, and a `FONT_STAGES` frozen with a bare `Object.freeze` keeps `readFont` and every stage function with it. Annotated calls whose arguments are identifiers or literals, and plain literals, are dropped. A frozen RegExp has a read-only `lastIndex`, so `replace`, `search`, `match` and `test` throw a TypeError on it (Node 26 and Bun 1.4.2). |
-| D17 | **Rule rows carry no prose at run time.** A row has `id`, `re`, `to`, `repeat`, and `label` only where the 2.x source differs from `re.source`. A row's `why` is a comment above it, its section is the named array it sits in, and its `example` is in the module's test table. The typo rules are documented in `spec/typoRows.js`. | About 75 rows would otherwise ship a sentence and an example each, in compat and in every 3.0 entry, and nobody had measured them against the size targets. The 3.0 trace needs only the `id`. |
+| D17 | **Rule rows carry no prose at run time.** A row has `id`, `re`, `to`, `repeat`, `needs` where its table is run with gate 3 of §3.10 (the Unicode to Zawgyi rows), and `label` only where the 2.x source differs from `re.source`. A row's `why` is a comment above it, its section is the named array it sits in, and its `example` is in the module's test table. The typo rules are documented in `spec/typoRows.js`. | About 75 rows would otherwise ship a sentence and an example each, in compat and in every 3.0 entry, and nobody had measured them against the size targets. The 3.0 trace needs only the `id`. |
 | D18 | **The 2.x reference is the commit `e5f6e24`**, not the branch `safety-net` (§1.1). | A branch can move, and byte identity needs a fixed reference. A bare branch name does not resolve in CI. |
 | D19 | **Module tests reach 2.x private code only through `scripts/oracle/`**, frozen at the reference. W0 adds byte-for-byte copies of `library/syllable.js` and `library/contentGate.js` there, and a `dir` option to `loadWithInternals`. compat's tests compare with the live `library/`. | §8 merges `main` into `next`, and the 2.x speed wins rewrite `library/`'s private code (for example PR 1.4's glyph array and PR 1.6's mark bit set). A module test that read `library/` would then break, or quietly test a different engine. compat follows the 2.x line port by port, so it is compared with the live library, and with the reference only through public functions: compare and the matrix. |
 | D20 | **`core/nfc.js` may keep one memo, `NFC_MEMO`**, of facts about the runtime's Unicode data: which code points start or continue a run of non-starters, their decompositions and their combining classes. The stateless guard exempts it by name. | The 2.x line's linear NFC helper (d170cd8, ported by W1, §7.3) reads combining classes from `String#normalize` with probes, and keeps them, because JavaScript has no table of them. Building the table eagerly would probe every code point at import. The memo is deterministic and bounded (§3.11): it never holds a result of a call, so outputs still depend only on the arguments and the runtime's NFC data (§4 rule 6). |
@@ -325,6 +325,10 @@ export const ROLE: Readonly<{ BASE: 1, BEFORE_BASE: 2, MARK: 3, STACK: 4, KINZI:
 // NFC (§3.10).
 export function isNfcSafe(code: number): boolean  // below U+0300, U+2002-U+206F, U+FEFF, Extended-A/B
 
+// Unit sets (§3.10, gate 3): the units of U+1000-U+109F a text may hold, 160 bits in an Int32Array(UNIT_SET_WORDS).
+export const UNIT_SET_WORDS: 5
+export function addBlockUnit(units: Int32Array, code: number): void   // adds code when it lies in U+1000-U+109F
+
 // Patterns with no g flag, for test() only.
 export const MYANMAR_BLOCK_PATTERN: RegExp    // one code unit in U+1000-U+109F
 export const MYANMAR_SCRIPT_PATTERN: RegExp   // one code unit in the three blocks
@@ -385,6 +389,7 @@ type RuleRow = Readonly<{
   re: RegExp,        // g flag, ES2015 syntax; never frozen (D16)
   to: string,        // the replacement, with $1-style references
   repeat: boolean,   // 2.x asLongAsMatch: apply while it matches, at most REPEAT_LIMIT times
+  needs?: string,    // units of U+1000-U+109F of which every match of re holds one (Unicode to Zawgyi, §3.10 gate 3)
   label?: string     // only where the 2.x source differs from re.source: the six wrapped rows of §3.9
 }>
 type TraceRecord = { id: string, label: string, text: string }
@@ -580,7 +585,9 @@ export function breakString(text: string, font: BreakFont, separator: string): s
 export function segmentSyllables(text: string, font: BreakFont, bareConsonants?: BareConsonants): string[]
 export function syllableBoundaries(text: string, font: BreakFont, bareConsonants?: BareConsonants): number[]  // the breaks
 export function looksLikeSgawKaren(text: string): boolean   // row Z6's switch: /[U+1062 U+1063]U+103A/ tested on the input
-export function collapseRepeatedMarks(text: string, font: BreakFont): string   // 2.x collapseMarks for a known font
+// 2.x collapseMarks for a known font. Given a unit set (codes.js), the same pass adds every unit of U+1000-U+109F
+// the text holds to it, for gate 3 of §3.10.
+export function collapseRepeatedMarks(text: string, font: BreakFont, units?: Int32Array): string
 ```
 
 The precondition for the break functions (`forEachBreak`, `breakParts`, `breakString`) is that `text` has no U+200B or U+200C. 2.x always cleans the text first. `font` is one of the two names. compat resolves every other value (§5.2, C12), and every function of `rules/segment.js` throws `libraryError(ERR.INVALID_ARG_VALUE, …, RangeError)` for any other font, and for a policy outside `BARE_CONSONANTS` (`null` and `'Separate'` included), so that the two fonts never read an unknown value two different ways (as reviewed, §7.11).
@@ -591,7 +598,7 @@ The policies of `BARE_CONSONANTS`: `PAIRS` is 2.x (`legacyBareConsonantPair`: a 
 
 ```ts
 export const UNICODE_TO_ZAWGYI_RULES: readonly RuleRow[]   // 57 once rows, then 8 repeat rows, in 2.x order
-export function unicodeToZawgyi(text: string): string     // collapseRepeatedMarks(text, 'unicode'), then the rows
+export function unicodeToZawgyi(text: string): string     // collapseRepeatedMarks(text, 'unicode'), then the rows that can match (§3.10, gate 3)
 export function traceUnicodeToZawgyi(text: string, trace: Trace): string   // trace.start = the collapsed text
 ```
 
@@ -986,7 +993,7 @@ All of this goes in flat typed arrays, built at load. There are no per-glyph obj
 
 ### 3.9 Rule rows and traces
 
-**Rule rows** (`RuleRow`, §2.3) replace 2.x's bare tuples. A row ships only what the code reads: `id`, `re`, `to`, `repeat`, and `label` on six rows (D17). The row tables are:
+**Rule rows** (`RuleRow`, §2.3) replace 2.x's bare tuples. A row ships only what the code reads: `id`, `re`, `to`, `repeat`, `needs` on the Unicode to Zawgyi rows (§3.10, gate 3), and `label` on six rows (D17). The row tables are:
 - Unicode to Zawgyi: 65 rows in 2.x order. The source holds them in named section arrays, SHAPES_IN_CONTEXT, KINZI, VISUAL_ORDER, SMALL_LETTERS, GLYPHS, NARROW_TA and MEDIAL_RA_SHAPES (PR 3.5 of the plan). They are joined in 2.x order by a `/* @__PURE__ */` builder (§2.4). GLYPHS stays sequential, because order matters inside it. Each row has a `why` comment above it, and each id has an example in `test/next/unicodeToZawgyi.test.mjs`.
 - the font sequences, with their 2.x comments.
 
@@ -1022,7 +1029,7 @@ If W5's measurement (§7.7) shows that the runner costs more than 2% on the per-
 
 The syllables stage of `NORMALIZE_STAGES` stores the reader's `seen` in `ctx.seen`. So `stages/normalize.js` owns both the reader call and the gate check, and the contract sits in one place (§3.4 of the plan).
 
-**A gate skips a stage only when the stage provably cannot change the text.** Only two gates ship (decision 28):
+**A gate skips a stage only when the stage provably cannot change the text.** Two gates ship with decision 28, and the review added a third (§7.11):
 
 1. **The no-Myanmar fast path.** `normalizeText` returns `toNfc(text)` at once when `text` has no unit in the three Myanmar blocks (`hasMyanmarScriptChar`).
    - Proof: with no Myanmar unit, the reader writes every unit through unchanged, the typing fixes match nothing, and NFC cannot create Myanmar units (`SCR/verify-cleanup/p5`).
@@ -1031,9 +1038,15 @@ The syllables stage of `NORMALIZE_STAGES` stores the reader's `seen` in `ctx.see
    - Proof: the reader's input is already NFC. The reader only reorders Burmese marks within a syllable, drops repeated or slipped marks, and turns ca, u and seven into jha, nya and ra. The typing fixes write only U+102E, U+1030, U+102A, U+104E, U+101D, U+101B, U+1040 and U+1047. None of these compose or reorder under NFC, except U+1025 followed by U+102E, which becomes U+1026. That is why `LETTER_U` opens the gate.
    - Every unit outside the blocks that NFC could move or compose sets `NFC_UNSAFE`. The safe set was checked over 943 code points on Node 26's ICU (`SCR/performance/nfc-safe-check2.js`). `test/next/codes.test.mjs` reruns that check on every runtime the tests run on (§10.5 of the plan).
 
+3. **The Unicode to Zawgyi rows that cannot match** (as reviewed, §7.11). Each row names `needs`: units of which every match of its `re` holds at least one, a literal of the pattern that no match can leave out (the rarest, where it has several). While `collapseRepeatedMarks` collapses the text, the same pass notes every unit of U+1000-U+109F it holds in a unit set (`codes.js`), and `unicodeToZawgyi` skips a row whose `needs` share no unit with the set. A row that changes the text adds every unit of its replacement to the set.
+   - Proof: the set holds every unit of U+1000-U+109F the text can hold at each row's turn. The text's own units are noted before the first row, and a replacement writes only its literal units, which are added, and the units its $-references copy, which the text held already. A row is skipped only when the text holds none of its `needs`, and then it has no match, so its replace would return the text.
+   - The repeat rows are tested, then replaced once, as 2.x's 1584410 does: one replace leaves no match of a repeat row. A row is recorded in a trace exactly when it changes the text, which is when 2.x logs it, because a repeat row's match always changes the text (§3.9).
+   - Checked: `test/next/unicodeToZawgyi.test.mjs` runs the examples, the table probes and 20,000 seeded strings through the rows one by one, and requires every match of each row, on the text that row is given, to hold one of its `needs` (every row matches at least once there), one replace of a repeat row to leave no match, and the result and trace to equal `applyRuleRows` and `traceRuleRows` over every row. The fuzz of §6.1 compares with 2.x.
+   - Measured, against the ungated rows (`npm run perf`, Node 26.5, 3 rounds): `fontConvert.unicode-zawgyi` 0.81, 0.37, 0.97 and 0.97 per line, word, string and document; Bun 1.4.2: 0.80, 0.40, 0.97 and 0.97. The skip is decided by the units, never by text length: a version that stopped noting units above 1,024 units jumped in cost per unit there, and read 1.5-2.2 on 69 growth cells under Bun.
+
 **Nothing else is gated.**
 - The typo and look-alike gates (PR 2.7) are not built: they would couple the typing-fix rules to the reader's trigger bits.
-- Zawgyi, Win and Unicode to Zawgyi stay ungated. Their fused trigger bits were never prototyped, and the separate-scan version was slower on one big string: 62.1 ms against 55.2 ms (`SCR/judge-perfarch/zg-endstate.out`).
+- Zawgyi and Win stay ungated. Their fused trigger bits were never prototyped, and the separate-scan version was slower on one big string: 62.1 ms against 55.2 ms.
 
 **The force switch.** `normalizeText(text, { openAllGates: true })` runs every stage and skips the fast path, as if every gate were open. Tests run the fuzz both ways and require the same output. They also check soundness directly: whenever the final-NFC gate stays closed, `toNfc(result) === result`. **The trace runner never gates** (§2.3, `runStages`).
 
@@ -1479,7 +1492,7 @@ The techniques, in order of measured value (§6 of the plan):
 3. One char-code pass instead of N regex passes: the readers, the detector and the break scanners.
 4. No per-syllable allocation: typed arrays, the mask, reused scratch. One small result object per call is fine.
 5. Copy-through output.
-6. The two gates, and no others.
+6. Gates that provably cannot change the text, and no others: the two of decision 28, and the rows of Unicode to Zawgyi that cannot match (§3.10).
 7. Typed-array decoding in chunks of at most 8,192 units, never `TextDecoder`.
 
 Not worth doing (measured): skipping the first NFC; lazy tables; merging Win's four sequences; exec-loop counting in the detector; esbuild `charset: utf8`.
@@ -1820,6 +1833,7 @@ A review of W0-W8 on `next-compat` (3af8172) found the problems below. Each fix 
 - **The stateless guard reads every top-level value** (§4). Its rule 1 flagged only object and array literals, so the module state the core really holds, all made by calls (`NFC_MEMO`, `SCRATCH`, `FONT_SYLLABLE`, `FONT_OUTPUT`) or regex literals (the exec-loop regexes), went unchecked, and its `NFC_MEMO` exemption was never used. It now classifies each initialiser and requires module state to be listed by name; six mutants (a `new Map()` cache, an unfrozen builder result, an `exec`-driven literal, an unlisted typed array, and two exec loops that leave early without their reset) each fail it.
 - **The code cites only what is in the repository.** About 17 comments of `src/` cited the refactor plan's list of 2.x bugs ("refactor plan §7 #11") or its evidence folder (`SCR/verify-engine`), which a contributor cannot open. §10 now restates the kept 2.x bugs, with their counts, and the comments cite `DESIGN.md §10 Q11`; a measurement is cited by its number and the test that pins it. `guards/citations.test.mjs` fails on a citation of the plan or of `SCR/`, and on a decision or quirk that §1.3 or §10 does not list.
 - **Line numbers name a frozen file.** `src/` had 99 citations of the form `file.js:NN` with no path. 32 of them named files with no frozen copy: 31 in 2.x files that the port pull requests rewrite (`converter.js`, `detector.js`, `globalOptions.js`, `truncate.js`, `syllBreak.js`, `spellingCheck.js`, `normalization.js`, `main.js`), whose lines would go stale when §8 merges `main` into `next`, and one in the extracted `scripts/oracle/signatures.js`. Those now name the 2.x function or table instead; the other 67 name files that `scripts/oracle/` keeps frozen at the reference. ARCHITECTURE.md and §1.2 rule 3 state the convention once, and `guards/citations.test.mjs` checks it, reading the list of frozen copies from `test/next/helpers.mjs`, which `guards/oracle.test.mjs` uses for their blob ids.
+- **Unicode to Zawgyi skips the rows that cannot match** (§3.10, gate 3). Every call ran all 57 once rows and the 8 repeat rows, a `String#replace` each, however short its text: in the per-word profile the rule runner held 68.6% of the self time, and per word compat read 0.79 of 2.x under Node (the goal is 0.63) and 1.09 under Bun. Each row now names its `needs`, the collapse notes the text's units in the same pass, and a row with none of its `needs` in the text is skipped; the repeat rows are tested and replaced once, as 2.x's 1584410 does. Against 2.x (`npm run perf`, 5 rounds, on a machine shared with other work): Node 0.48, 0.30, 0.48 and 0.48 per line, word, string and document (W8 read 0.59, 0.79, 0.50 and 0.51); Bun 0.78, 0.41, 0.92 and 0.92 (the review read 1.06, 1.09, 0.94 and 0.92). The growth exponents of the Unicode to Zawgyi and `spellingFix.unicode` forms stay at most 1.23 under Node and 1.18 under Bun.
 
 ---
 

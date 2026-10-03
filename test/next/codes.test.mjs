@@ -417,6 +417,25 @@ describe('codes.js: isNfcSafe', () => {
   });
 });
 
+describe('codes.js: unit sets (DESIGN.md §3.10, gate 3)', () => {
+  it('hold one bit for each unit of U+1000-U+109F, and leave every other unit out', () => {
+    assert.equal(codes.UNIT_SET_WORDS, 5);
+    const all = new Int32Array(codes.UNIT_SET_WORDS);
+    for (let code = 0; code < 0x10000; code++) codes.addBlockUnit(all, code);
+    assert.deepEqual(Array.from(all), [-1, -1, -1, -1, -1], 'the 160 units fill the five words');
+    for (let code = 0x1000; code <= 0x109F; code++) {
+      const one = new Int32Array(codes.UNIT_SET_WORDS);
+      codes.addBlockUnit(one, code);
+      const k = code - 0x1000;
+      assert.equal(one[k >> 5], 1 << (k & 31), code.toString(16));
+      assert.equal(one.reduce((n, word) => n + (word === 0 ? 0 : 1), 0), 1, code.toString(16));
+    }
+    const none = new Int32Array(codes.UNIT_SET_WORDS);
+    for (const code of [0, 0x0FFF, 0x10A0, 0xAA60, 0xFFFF]) codes.addBlockUnit(none, code);
+    assert.deepEqual(Array.from(none), [0, 0, 0, 0, 0]);
+  });
+});
+
 describe('codes.js: the module', () => {
   it('states the Unicode version its tables match', () => {
     assert.match(srcText('script/codes.js'), /^\/\/ The tables match Unicode 15\.1, as library\/ does\./m);
@@ -440,8 +459,8 @@ describe('codes.js: the module', () => {
       'CLASS', 'CLS', 'CP', 'KINZI_TEXT', 'MARK_GROUPS', 'MARK_RANK', 'MASK_ANY_AA', 'MASK_ASAT', 'MASK_DOT_BELOW',
       'MASK_E_OR_AA', 'MASK_LOWER_VOWELS', 'MASK_MEDIALS', 'MASK_MEDIAL_HA', 'MASK_MEDIAL_YA', 'MASK_UPPER_VOWELS',
       'MASK_VISARGA', 'MASK_VOWEL_OR_FINAL', 'MYANMAR_BLOCK_PATTERN', 'MYANMAR_SCRIPT_PATTERN', 'RANK_AI_ANUSVARA',
-      'RANK_E', 'RANK_FIRST_VOWEL', 'RANK_LAST_MEDIAL', 'RANK_LOWER_VOWEL', 'RANK_UNRANKED', 'ROLE', 'SCRIPT', 'ZW',
-      'classOf', 'isBurmeseConsonant', 'isBurmeseDigit', 'isBurmeseMark', 'isMyanmarBlock', 'isMyanmarScript',
+      'RANK_E', 'RANK_FIRST_VOWEL', 'RANK_LAST_MEDIAL', 'RANK_LOWER_VOWEL', 'RANK_UNRANKED', 'ROLE', 'SCRIPT',
+      'UNIT_SET_WORDS', 'ZW', 'addBlockUnit', 'classOf', 'isBurmeseConsonant', 'isBurmeseDigit', 'isBurmeseMark', 'isMyanmarBlock', 'isMyanmarScript',
       'isNfcSafe', 'isOtherScriptLetter', 'isPrebaseMark', 'isScriptConsonant', 'isScriptDigit', 'isScriptMark',
       'isScriptTone', 'isScriptWordChar', 'isSpaceBeforeMark', 'isSyllableBase', 'isVowelSign', 'isZawgyiKinzi',
       'isZawgyiMedialRa', 'isZawgyiPrebase', 'markBit', 'markRank', 'scriptClassOf', 'zeroWidthBit'

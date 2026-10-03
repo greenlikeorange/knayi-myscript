@@ -7,7 +7,11 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import * as acorn from 'acorn';
 import { UNICODE_TO_ZAWGYI_RULES, unicodeToZawgyi, traceUnicodeToZawgyi } from '../../src/rules/unicodeToZawgyi.js';
-import { createTrace, ruleLabel } from '../../src/core/rules.js';
+import fc from 'fast-check';
+import {
+  createTrace, startTrace, ruleLabel, applyRuleRows, traceRuleRows
+} from '../../src/core/rules.js';
+import { collapseRepeatedMarks } from '../../src/rules/segment.js';
 import { srcText, tableProbes } from './helpers.mjs';
 import {
   TWO_X_ROWS, TWO_X_PROBE_IDS, twoXUnicodeToZawgyi, twoXDebugLog, traceAsDebugLog, asFontConvert
@@ -175,9 +179,9 @@ describe('the Unicode to Zawgyi rows (DESIGN.md §7.9)', () => {
     });
   });
 
-  it('ship only id, re, to, repeat and the label of a wrapped row (D17)', () => {
+  it('ship only id, re, to, repeat, needs and the label of a wrapped row (D17)', () => {
     for (const row of ROWS) {
-      const keys = row.label === undefined ? ['id', 're', 'to', 'repeat'] : ['id', 're', 'to', 'repeat', 'label'];
+      const keys = ['id', 're', 'to', 'repeat', 'needs'].concat(row.label === undefined ? [] : ['label']);
       assert.deepEqual(Object.keys(row), keys, row.id);
       assert.equal(typeof row.repeat, 'boolean', row.id);
     }
@@ -261,6 +265,73 @@ describe('the repeat rows (DESIGN.md §3.9)', () => {
   });
 });
 
+describe('the units each row needs (DESIGN.md §3.10)', () => {
+  // Texts that reach every row: the examples, the table probes and their edges, and seeded strings over the units
+  // the rows name.
+  const probes = tableProbes();
+  const units = [...new Set(ROWS.flatMap((row) => row.re.source.match(/\\u[0-9a-f]{4}/g) || []))]
+    .map((escape) => String.fromCharCode(parseInt(escape.slice(2), 16))).concat([' ', '\u200B', 'a']);
+  const seeded = fc.sample(fc.string({ unit: fc.constantFrom(...units), minLength: 1, maxLength: 14 }),
+    { seed: 4711, numRuns: 20000 });
+  const TEXTS = EXAMPLES.map(([, text]) => text)
+    .concat(TWO_X_PROBE_IDS.flatMap((id) => [probes[id]].concat(probes[id].edges || []).map((p) => p.probe)))
+    .concat(seeded);
+
+  // Calls visit(row, text) with each row and the collapsed text it is given, the rows run as 2.x runs them.
+  function eachRowTurn(visit) {
+    for (const input of TEXTS) {
+      let text = collapseRepeatedMarks(input, 'unicode');
+      for (const row of ROWS) {
+        visit(row, text);
+        text = applyRuleRows(text, [row]);
+      }
+    }
+  }
+
+  it('are units of U+1000-U+109F that the pattern writes as literals', () => {
+    for (const row of ROWS) {
+      assert.ok(row.needs.length > 0, row.id);
+      for (const unit of row.needs) {
+        const code = unit.charCodeAt(0);
+        assert.ok(code >= 0x1000 && code <= 0x109F, row.id);
+        assert.ok(row.re.source.indexOf('\\u' + code.toString(16)) !== -1, row.id + ' writes ' + code.toString(16));
+      }
+    }
+  });
+
+  it('are mandatory: every match of a row, on the text it is given, holds one of them', () => {
+    const matched = new Map(ROWS.map((row) => [row.id, 0]));
+    eachRowTurn((row, text) => {
+      for (const match of text.matchAll(new RegExp(row.re.source, 'g'))) {
+        matched.set(row.id, matched.get(row.id) + 1);
+        assert.ok([...row.needs].some((unit) => match[0].indexOf(unit) !== -1),
+          row.id + ' matched ' + codes(match[0]) + ' in ' + codes(text) + ', with none of its needs');
+      }
+    });
+    assert.deepEqual([...matched].filter(([, count]) => count === 0).map(([id]) => id), [], 'rows never matched');
+  });
+
+  it('one replace of a repeat row leaves no match of it, so replacing once is 2.x asLongAsMatch (1584410)', () => {
+    eachRowTurn((row, text) => {
+      if (!row.repeat) return;
+      const once = text.replace(row.re, row.to);
+      assert.equal(once.search(row.re), -1, row.id + ' on ' + codes(text));
+    });
+  });
+
+  it('skipping the rows that cannot match changes no result and no trace', () => {
+    for (const text of TEXTS) {
+      const collapsed = collapseRepeatedMarks(text, 'unicode');
+      assert.equal(unicodeToZawgyi(text), applyRuleRows(collapsed, ROWS), codes(text));
+      const skipping = createTrace();
+      const every = createTrace();
+      traceUnicodeToZawgyi(text, skipping);
+      startTrace(every, collapsed);
+      traceRuleRows(collapsed, ROWS, every);
+      assert.deepEqual(skipping, every, codes(text));
+    }
+  });
+});
 describe('the examples (D17)', () => {
   it('cover every row id once', () => {
     assert.deepEqual(EXAMPLES.map(([id]) => id), ROWS.map((row) => row.id));

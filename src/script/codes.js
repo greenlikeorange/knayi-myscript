@@ -371,6 +371,19 @@ export function isNfcSafe(code) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
+// Unit sets (DESIGN.md §3.10): the units of U+1000-U+109F a text may hold, as 160 bits in an Int32Array of
+// UNIT_SET_WORDS words, bit k of word w for the unit 0x1000 + 32w + k. rules/segment.js fills one while it
+// collapses repeated marks, and rules/unicodeToZawgyi.js skips each row that needs a unit the set does not hold.
+
+export const UNIT_SET_WORDS = 5;
+
+// Adds the unit to the set when it lies in U+1000-U+109F; any other unit is left out.
+export function addBlockUnit(units, code) {
+  const k = code - 0x1000;
+  if (k >= 0 && k < 0xA0) units[k >> 5] |= 1 << (k & 31);
+}
+
+// ---------------------------------------------------------------------------------------------------------------
 // Patterns with no g flag, for test() only, so they keep no lastIndex. Each matches one unit for which its
 // predicate holds.
 
