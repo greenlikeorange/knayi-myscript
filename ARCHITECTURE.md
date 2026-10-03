@@ -108,7 +108,7 @@ Every public function starts the same way, with small differences. `toText` unwr
 5. Zawgyi or Win to Unicode: `zawgyi.toUnicode` or `win.toUnicode`, which both call `storageOrder.toUnicode` with their compiled font.
 6. Unicode to Zawgyi: `syllable.collapseMarks(content, 'unicode')`, then `syllable.convertText`.
 
-`fontConvert.debugging` takes the same steps. Where steps 1 to 4 return text, it returns that text in a report with no `matched_patterns` and one step (`unconverted`), as for a conversion in which nothing matched; a non-string comes back as it is. The report's `to` and `from` are the fonts the call has read, or `''`: for a missing or unknown name, and for a source the call has not detected yet. The report reads a font only as a name (`givenName`), so on the exits of step 1, before `resolveFont` reads `to` and `from` in step 2, a font that is not a string, such as `['unicode']`, is reported as `''`, and its string form, whose conversion can throw, is not read for the report.
+`fontConvert.debugging` takes the same steps. Where steps 1 to 4 return text, it returns that text in a report with an empty `matched_patterns` and one step (`unconverted`), as for a conversion in which nothing matched; a non-string comes back as it is. The report's `to` and `from` are the fonts the call has read, or `''`: for a missing or unknown name, and for a source the call has not detected yet. The report reads a font only as a name (`givenName`), so on the exits of step 1, before `resolveFont` reads `to` and `from` in step 2, a font that is not a string, such as `['unicode']`, is reported as `''`, and its string form, whose conversion can throw, is not read for the report.
 
 ### The font pipeline: storageOrder.toUnicode(content, font, debug)
 

@@ -154,7 +154,7 @@ export declare namespace fontConvert {
   /**
    * Converts like fontConvert, and reports each step (ConvertDebug). The last step is what fontConvert returns.
    *
-   * Where fontConvert returns before converting, the report has no `matched_patterns` and one step, what
+   * Where fontConvert returns before converting, the report has an empty `matched_patterns` and one step, what
    * fontConvert returns: for missing content (`''`), text with no Myanmar letters, a missing or unknown target, the
    * same source and target, and a Win direction knayi does not convert. Content that is not a string, such as a
    * number, comes back unchanged, as from fontConvert.
