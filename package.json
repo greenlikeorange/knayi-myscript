@@ -21,7 +21,7 @@
   "scripts": {
     "test": "node --test \"test/**/*.test.js\" && tsc -p typecheck/tsconfig.json --noEmit && tsc -p typecheck/tsconfig.no-interop.json --noEmit",
     "posttest": "node scripts/check-size.js",
-    "test:bun": "bun scripts/bun-contract.js && bun scripts/bun-esm.mjs && bun scripts/bun-matrix.js",
+    "test:bun": "bun scripts/bun-contract.js && bun scripts/bun-esm.mjs && bun scripts/bun-matrix.js && bun test ./test",
     "test:pack": "node scripts/check-packed.mjs",
     "test:smoke": "node scripts/smoke.js",
     "check:dist": "node scripts/check-dist.js",
