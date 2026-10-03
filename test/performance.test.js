@@ -28,6 +28,21 @@ describe('long input', () => {
     const ms = timed(() => knayi.normalize(text));
     assert.ok(ms < LIMIT_MS, 'normalize took ' + ms.toFixed(0) + 'ms');
   });
+  // 2.10.0 rescanned every mark of the syllable for each e or medial ra, and compared the held text by value:
+  // ka followed by 20,000 e took about 1.5 s, and a million characters took close to a minute.
+  it('normalizes a long run of marks on one consonant in linear time', () => {
+    const N = 100000;
+    const shapes = {
+      'e': '\u1000' + '\u1031'.repeat(N),
+      'medial ra': '\u1000' + '\u103C'.repeat(N),
+      'asat, then medial ra': '\u1000' + '\u103A'.repeat(N / 2) + '\u103C'.repeat(N / 2),
+      'zero-width space and aa': '\u1000' + '\u200B\u102C'.repeat(N / 2)
+    };
+    for (const [name, text] of Object.entries(shapes)) {
+      const ms = timed(() => knayi.normalize(text));
+      assert.ok(ms < LIMIT_MS, 'normalize (' + name + ') took ' + ms.toFixed(0) + 'ms');
+    }
+  });
 
   it('still moves marks behind a stacked consonant and kinzi (2.8.3 output)', () => {
     assert.equal(knayi.fontConvert('ကိၠ', 'unicode', 'zawgyi'), 'က္ကိ');
