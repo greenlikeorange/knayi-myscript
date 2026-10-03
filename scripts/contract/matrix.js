@@ -64,14 +64,16 @@ const CONTENTS = [
   ['mixed', ZAWGYI + '\n' + UNICODE]
 ];
 
+// ['unicode'] is an array whose string form is a font name: syllBreak, spellingFix and truncate detect the font for
+// any value that is not a string, and fontConvert reads it by its string form (ARCHITECTURE.md, quirks).
 const FONTS = [undefined, null, '', 'unicode', 'uni', 'zawgyi', 'zaw', 'win', 'Unicode', 'ZAWGYI', 'foo',
-  'constructor', '__proto__', 'toString', 0, 1];
+  'constructor', '__proto__', 'toString', 0, 1, ['unicode']];
 
 const DETECTOR_OPTIONS = [undefined, null, {}, { adapter: 'rules' }, { adapter: 'foo' },
   { myanmartools_zg_threshold: 'x' }, { myanmartools_zg_threshold: [NaN, NaN] }];
 
 const TRUNCATE_OPTIONS = [undefined, null, 0, {}, { length: 0 }, { omission: '' }, { length: 4, omission: '\u2026' },
-  { fontType: 'win' }, { fontType: 'Unicode' }];
+  { fontType: 'win' }, { fontType: 'Unicode' }, { fontType: 'toString' }, { fontType: ['unicode'] }];
 
 const GLOBAL_OPTIONS = [undefined, null, {}, { silent_mode: false },
   { detector: null }, { detector: { myanmartools_zg_threshold: [1] } }];
@@ -132,18 +134,19 @@ function defineCells() {
     cells.push({ id: id, run: run });
   }
 
-  // 1. Every function with every font name, options object and content probe.
+  // 1. Every function with every font name, options object and content probe. Fonts are copied into the build's
+  // realm like the content, for the array.
   for (const [name, content] of CONTENTS) {
     for (const font of FONTS) {
       const f = show(font);
-      add(`fontDetect(${name}, ${f})`, (k, make) => k.fontDetect(make(content), font));
-      add(`fontConvert(${name}, ${f})`, (k, make) => k.fontConvert(make(content), font));
-      add(`fontConvert(${name}, 'unicode', ${f})`, (k, make) => k.fontConvert(make(content), 'unicode', font));
-      add(`fontConvert(${name}, 'zawgyi', ${f})`, (k, make) => k.fontConvert(make(content), 'zawgyi', font));
+      add(`fontDetect(${name}, ${f})`, (k, make) => k.fontDetect(make(content), make(font)));
+      add(`fontConvert(${name}, ${f})`, (k, make) => k.fontConvert(make(content), make(font)));
+      add(`fontConvert(${name}, 'unicode', ${f})`, (k, make) => k.fontConvert(make(content), 'unicode', make(font)));
+      add(`fontConvert(${name}, 'zawgyi', ${f})`, (k, make) => k.fontConvert(make(content), 'zawgyi', make(font)));
       add(`fontConvert.debugging(${name}, 'unicode', ${f})`,
-        (k, make) => k.fontConvert.debugging(make(content), 'unicode', font));
-      add(`syllBreak(${name}, ${f}, '|')`, (k, make) => k.syllBreak(make(content), font, '|'));
-      add(`spellingFix(${name}, ${f})`, (k, make) => k.spellingFix(make(content), font));
+        (k, make) => k.fontConvert.debugging(make(content), 'unicode', make(font)));
+      add(`syllBreak(${name}, ${f}, '|')`, (k, make) => k.syllBreak(make(content), make(font), '|'));
+      add(`spellingFix(${name}, ${f})`, (k, make) => k.spellingFix(make(content), make(font)));
     }
     for (const options of DETECTOR_OPTIONS) {
       add(`fontDetect(${name}, null, ${show(options)})`, (k, make) => k.fontDetect(make(content), null, make(options)));
