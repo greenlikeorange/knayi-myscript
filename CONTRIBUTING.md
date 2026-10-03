@@ -1,256 +1,181 @@
-# Contributing
+# Contributing to knayi-myscript
 
-## How do I... <a name="toc"></a>
+knayi is a small MIT-licensed library for Burmese and other Myanmar-script text. Issues and pull requests are welcome. This guide covers how to report a problem, set up a checkout, and get a change merged, and the steps the maintainer follows for a release.
 
-* [Use This Guide](#introduction)?
-* Ask or Say Something? 🤔🐛😱
-  * [Request Support](#request-support)
-  * [Report an Error or Bug](#report-an-error-or-bug)
-  * [Request a Feature](#request-a-feature)
-* Make Something? 🤓👩🏽‍💻📜🍳
-  * [Project Setup](#project-setup)
-  * [Contribute Documentation](#contribute-documentation)
-  * [Contribute Code](#contribute-code)
-* Manage Something ✅🙆🏼💃👔
-  * [Provide Support on Issues](#provide-support-on-issues)
-  * [Label Issues](#label-issues)
-  * [Clean Up Issues and PRs](#clean-up-issues-and-prs)
-  * [Review Pull Requests](#review-pull-requests)
-  * [Merge Pull Requests](#merge-pull-requests)
-  * [Tag a Release](#tag-a-release)
-  * [Join the Project Team](#join-the-project-team)
-* Add a Guide Like This One [To My Project](#attribution)? 🤖😻👻
+- [Questions, bugs and feature requests](#questions-bugs-and-feature-requests)
+- [Setup](#setup)
+- [Commit messages](#commit-messages)
+- [Pull requests](#pull-requests)
+- [Changing a rule](#changing-a-rule)
+- [Licences, fonts and test data](#licences-fonts-and-test-data)
+- [Release checklist](#release-checklist)
 
-## Introduction
+[ARCHITECTURE.md](ARCHITECTURE.md) explains how the code is organized. Report security problems privately, as [SECURITY.md](SECURITY.md) describes, not in a public issue.
 
-Thank you so much for your interest in contributing!. All types of contributions are encouraged and valued. See the [table of contents](#toc) for different ways to help and details about how this project handles them!📝
+## Questions, bugs and feature requests
 
-Please make sure to read the relevant section before making your contribution! It will make it a lot easier for us maintainers to make the most of it and smooth out the experience for all involved. 💚
+Open an issue at <https://github.com/greenlikeorange/knayi-myscript/issues>.
 
-The [Project Team](#join-the-project-team) looks forward to your contributions. 🙌🏾✨
+For a bug, include steps someone else can follow to see it:
 
-## Request Support
+- the knayi version, and where it runs (Node, Bun or a browser, with its version);
+- the exact call, its output, and the output you expected;
+- the text as code points (for example `U+1000 U+103B`), not only as rendered text. Unicode and Zawgyi text can look the same and still differ. The [demo](https://greenlikeorange.github.io/knayi-myscript/) shows the code points of any input.
 
-If you have a question about this project, how to use it, or just need clarification about something:
+For a feature request, say what you are trying to do and why the existing functions don't cover it.
 
-* Open an Issue at https://github.com/greenlikeorange/knayi-myscript/issues
-* Provide as much context as you can about what you're running into.
-* Provide project and platform versions (nodejs, npm, etc), depending on what seems relevant. If not, please be ready to provide that information if maintainers ask for it.
+## Setup
 
-Once it's filed:
+You need Node.js 22 or newer to build and test (`.nvmrc` has 24), and [Bun](https://bun.sh) for `npm run test:bun` and `npm run test:pack` (CI uses Bun 1.4.2).
 
-* The project team will [label the issue](#label-issues).
-* Someone will try to have a response soon.
-* If you or the maintainers don't respond to an issue for 30 days, the [issue will be closed](#clean-up-issues-and-prs). If you want to come back to it, reply (once, please), and we'll reopen the existing issue. Please avoid filing new issues as extensions of one you already made.
+```bash
+git clone https://github.com/greenlikeorange/knayi-myscript.git
+cd knayi-myscript
+npm ci
+npm test
+npm run test:bun
+npm run test:pack
+```
 
-## Report an Error or Bug
+- **Run `npm ci` in every clone and every git worktree.** Don't share or symlink `node_modules` between them: a shared one can miss dev dependencies, and then a test such as `test/syntax.test.js`, which needs `acorn`, cannot load.
+- **`npm test` rebuilds `dist/`** before it runs the tests. Don't commit those files: `dist/` changes only in release commits, because jsDelivr serves `main`'s `dist/` to sites that load `@master`. Run `git restore dist` before you commit.
+- **Indentation is two spaces.** `.editorconfig` still says tabs and some older files use them; that is being fixed in one whitespace-only change. Don't reformat lines you don't otherwise change.
+- **Never push a branch named `master`.** The default branch is `main`. GitHub redirects `master` to `main` only while no `master` branch exists, and jsDelivr links to `@master` depend on that redirect.
 
-If you run into an error or bug with the project:
+`npm run eval` and `npm run bench` download their data into `.eval-cache/` on first use; see [scripts/eval/README.md](scripts/eval/README.md).
 
-* Open an Issue at https://github.com/greenlikeorange/knayi-myscript/issues
-* Include *reproduction steps* that someone else can follow to recreate the bug or error on their own.
-* Provide project and platform versions (nodejs, npm, etc), depending on what seems relevant. If not, please be ready to provide that information if maintainers ask for it.
+## Commit messages
 
-Once it's filed:
+Commits follow the [conventional-changelog format](https://github.com/conventional-changelog/conventional-changelog-angular/blob/master/convention.md), all lowercase in the subject:
 
-* The project team will [label the issue](#label-issues).
-* A team member will try to reproduce the issue with your provided steps. If there are no repro steps or no obvious way to reproduce the issue, the team will ask you for those steps and mark the issue as `needs-repro`. Bugs with the `needs-repro` tag will not be addressed until they are reproduced.
-* If the team is able to reproduce the issue, it will be marked `needs-fix`, as well as possibly other tags (such as `critical`), and the issue will be left to be [implemented by someone](#contribute-code).
-* If you or the maintainers don't respond to an issue for 30 days, the [issue will be closed](#clean-up-issues-and-prs). If you want to come back to it, reply (once, please), and we'll reopen the existing issue. Please avoid filing new issues as extensions of one you already made.
-* `critical` issues may be left open, depending on perceived immediacy and severity, even past the 30 day deadline.
+```
+fix(normalize): keep long runs of marks on one consonant linear
 
-## Request a Feature
+2.10.0's normalize took quadratic time on a consonant followed by a long
+run of e or medial ra. ...
+```
 
-If the project doesn't do something you need or want it to do:
+- **Type:** `feat`, `fix`, `perf`, `refactor`, `style` (whitespace and formatting only), `test`, `docs`, `build`, `ci` or `chore`.
+- **Scope:** the part of the project, such as `converter`, `normalize`, `detector`, `syllBreak`, `build`, `eval`, `types`, `site`, `research` or `deps`. Documentation commits use `docs(<scope>)`.
+- **Body:** plain English that says why the change is needed and what it changes for users, with counts where output changes. Reference issues with `Fixes #123` or `Closes #123`.
+- **Dependencies:** add, update or remove a dependency in a commit of its own, with the `deps` scope and each package and version named, for example `fix(deps): myanmar-tools@>=1.1.2 <1.2.0`.
 
-* Open an Issue at https://github.com/greenlikeorange/knayi-myscript/issues
-* Provide as much context as you can about what you're running into.
-* Please try and be clear about why existing features and alternatives would not work for you.
+## Pull requests
 
-Once it's filed:
+Open pull requests against `main`. The [pull request template](.github/pull_request_template.md) asks for the results of the checks below. Code changes come with tests: a test that failed before the change, or new tests for new behaviour.
 
-* The project team will [label the issue](#label-issues).
-* The project team will evaluate the feature request, possibly asking you more questions to understand its purpose and any relevant requirements. If the issue is closed, the team will convey their reasoning and suggest an alternative path forward.
-* If the feature request is accepted, it will be marked for implementation with `feature-accepted`, which can then be done by either by a core team member or by anyone in the community who wants to [contribute code](#contribute-code).
+### One concern per pull request
 
-Note: The team is unlikely to be able to accept every single feature request that is filed. Please understand if they need to say no.
+Structure, speed and behaviour never share a pull request. A refactor changes no output. A speed-up changes no output. A behaviour change changes only the output it is about.
 
-## Project Setup
+### Output stays byte-identical, unless the pull request is DELIBERATE
 
-So you wanna contribute some code! That's great! This project uses GitHub Pull Requests to manage contributions, so [read up on how to fork a GitHub project and file a PR](https://guides.github.com/activities/forking) if you've never done it before.
+Knayi's output is used as data, so an unannounced change to it is a bug even when the new output is better.
 
-If this seems like a lot or you aren't able to do all this setup, you might also be able to [edit the files directly](https://help.github.com/articles/editing-files-in-another-user-s-repository/) without having to do any of this setup. Yes, [even code](#contribute-code).
+- **Show that nothing changed:**
+  - `npm run compare -- --base origin/main` reports 0 differences on every call form, including `fontConvert.debugging`;
+  - the contract matrix (`test/contract/api-matrix.test.js`) shows 0 changed cells;
+  - both hold for `main.js`, the `.mjs` build and `min.js`, under Node and Bun.
+- **The matrix records error messages only for errors knayi throws itself.** For a `TypeError` the engine raises by accident, it records only the class, because those messages differ between runtimes and builds.
+- **A pull request that changes output on purpose** gets the `DELIBERATE` label and:
+  - lists the exact counts it expects, as `--expect form:corpus=n` for compare, and the matrix cells that change;
+  - changes nothing else;
+  - adds a line under "Output changes" in [CHANGELOG.md](CHANGELOG.md);
+  - updates the README, the research note behind the rule, and the demo (`docs/index.html`) in the same pull request.
 
-If you want to go the usual route and run the project locally, though:
+### Speed is measured, not assumed
 
-* [Install Node.js](https://nodejs.org/en/download/) 22 or newer
-* [Fork the project](https://guides.github.com/activities/forking/#fork)
+- Run `npm run perf -- --base origin/main` and paste the ratios from a run on a quiet machine. Quote ratios, never absolute times from another run.
+- A Node row more than 5% slower needs a written reason. A Bun row more than 10% slower needs one too.
+- CI blocks a pull request only when an adversarial input's growth exponent goes above 1.3, or when a Node row is slower by more than the CI threshold (15–20%, set from an A/A run on GitHub's runners). Smaller differences are noise on shared runners.
+- Every input must run in linear time. Super-linear time on any input is treated as a security bug (see [SECURITY.md](SECURITY.md)).
 
-Then in your terminal:
-* `cd path/to/your/clone`
-* `npm install`
-* `npm test`
+### Browser floor
 
-And you should be ready to go!
+The README promises Chrome 49, Edge 14, Firefox 34, Safari 10, Samsung Internet 5 and Opera 36. So the `dist/` builds must:
 
-## Contribute Documentation
+- parse as ES2015 (`test/syntax.test.js`);
+- avoid syntax and built-ins those browsers lack: no `let`, `const`, `for…of` or `class`, and no newer built-in, such as `TypedArray.prototype.fill`, on a path they run;
+- build no regex from a string that uses lookbehind, named groups, `\p{…}` or the `s` flag, since the syntax test cannot see inside strings.
 
-Documentation is a super important, critical part of this project. Docs are how we keep track of what we're doing, how, and why. It's how we stay on the same page about our policies. And it's how we tell others everything they need in order to be able to use this project -- or contribute to it. So thank you in advance.
+### The 2.x API stays stable
 
-Documentation contributions of any size are welcome! Feel free to file a PR even if you're just rewording a sentence to be more clear, or fixing a spelling mistake!
+The exports, `index.d.ts`, the `dist/` file names and the `knayi` global, the option keys, the deep path `library/converter`, the shape of `win.tables`, the debug stage names and their order, and the regex-source labels in `matched_patterns` are 2.x API. [ARCHITECTURE.md](ARCHITECTURE.md#stable-surfaces) lists where each is defined.
 
-To contribute documentation:
+- New exports and options may come in a minor version, with types, matrix rows and tests.
+- A library file that moves leaves a one-line shim at its old path.
+- Don't rewrite a regex literal in `syllable.js` for style: its `.source` is debugging output.
 
-* [Set up the project](#project-setup).
-* Edit or add any relevant documentation.
-* Make sure your changes are formatted correctly and consistently with the rest of the documentation.
-* Re-read what you wrote, and run a spellchecker on it to make sure you didn't miss anything.
-* Write clear, concise commit message(s) using [conventional-changelog format](https://github.com/conventional-changelog/conventional-changelog-angular/blob/master/convention.md). Documentation commits should use `docs(<component>): <message>`.
-* Go to https://github.com/greenlikeorange/knayi-myscript/pulls and open a new pull request with your changes.
-* If your PR is connected to an open issue, add a line in your PR's description that says `Fixes: #123`, where `#123` is the number of the issue you're fixing.
+### Bundle size
 
-Once you've filed the PR:
+Report the size of `dist/knayi-myscript.min.js` after `gzip -9`, before and after. The 2.x refactor may add at most 1 KB in total over the 2.10 baseline of 9,830 bytes.
 
-* One or more maintainers will use GitHub's review feature to review your PR.
-* If the maintainer asks for any changes, edit your changes, push, and ask for another review.
-* If the maintainer decides to pass on your PR, they will thank you for the contribution and explain why they won't be accepting the changes. That's ok! We still really appreciate you taking the time to do it, and we don't take that lightly. 💚
-* If your PR gets accepted, it will be marked as such, and merged into the `latest` branch soon after. Your contribution will be distributed to the masses next time the maintainers [tag a release](#tag-a-release)
+### Readable code
 
-## Contribute Code
+Keep functions short (about 40 lines in the engine), and name helpers for what they do and for which script or font. Update [ARCHITECTURE.md](ARCHITECTURE.md) when a change makes it wrong.
 
-We like code commits a lot! They're super handy, and they keep the project going and doing the work it needs to do to be useful to others.
+### Reviews and labels
 
-Code contributions of just about any size are acceptable!
+- If the pull request fixes an issue, say `Fixes #123` in its description.
+- Reviews use GitHub's review feature, once the checks pass. Ask for small changes, but consider whether they really block the merge: lean towards "approve, with comments".
+- Be kind. People who send a pull request have put time and care into it.
 
-The main difference between code contributions and documentation contributions is that contributing code requires inclusion of relevant tests for the code being added or changed. Contributions without accompanying tests will be held off until a test is added, unless the maintainers consider the specific tests to be either impossible, or way too much of a burden for such a contribution.
+| Label | Use |
+| --- | --- |
+| `DELIBERATE` | The pull request changes output on purpose, with counts (above). |
+| `bug` | The code or the documentation does not do what it is meant to. |
+| `enhancement` | A new feature, or a change to behaviour that works as designed. |
+| `dependencies` | Updates a dependency. |
+| `question` | A question about using knayi. |
+| `duplicate`, `invalid`, `wontfix` | Closed without a change, with a comment saying why. |
+| `help wanted` | The maintainer would welcome a pull request. |
 
-To contribute code:
+## Changing a rule
 
-* [Set up the project](#project-setup).
-* Make any necessary changes to the source code.
-* Include any [additional documentation](#contribute-documentation) the changes might need.
-* Write tests that verify that your contribution works as expected.
-* Write clear, concise commit message(s) using [conventional-changelog format](https://github.com/conventional-changelog/conventional-changelog-angular/blob/master/convention.md).
-* Dependency updates, additions, or removals must be in individual commits, and the message must use the format: `<prefix>(deps): PKG@VERSION`, where `<prefix>` is any of the usual `conventional-changelog` prefixes, at your discretion.
-* Go to https://github.com/greenlikeorange/knayi-myscript/pulls and open a new pull request with your changes.
-* If your PR is connected to an open issue, add a line in your PR's description that says `Fixes: #123`, where `#123` is the number of the issue you're fixing.
+A rule is anything that decides output: a glyph table entry, an ordering rule, a typing fix, a detector signature, a break rule or a Unicode to Zawgyi rule. Rules change only with evidence.
 
-Once you've filed the PR:
+1. **Write down the evidence** in the research note for that area (`research/zawgyi-to-unicode.md`, `research/normalize.md`, `research/win-fonts.md`), or in a new note:
+   - the rule, with examples;
+   - counts on the eval corpora: how many lines change per corpus, whether the counts are distinct lines or all lines, and which version of each corpus;
+   - how many of the changed lines were checked by hand, and how many of those are right;
+   - what Unicode Technical Note #11, myanmar-tools, Rabbit and human-typed text do, where they disagree;
+   - open questions.
+2. **Get the counts from compare.** Run `npm run compare -- --base origin/main` and list its counts with `--expect`. Each count names its corpus.
+3. **Add tests** with synthetic or hand-written strings (see the next section). Don't copy corpus lines into tests.
+4. **Open one pull request per rule**, labelled `DELIBERATE`, with the CHANGELOG line, the README change and the demo change.
 
-* Barring special circumstances, maintainers will not review PRs until all checks pass (Travis, AppVeyor, etc).
-* One or more maintainers will use GitHub's review feature to review your PR.
-* If the maintainer asks for any changes, edit your changes, push, and ask for another review. Additional tags (such as `needs-tests`) will be added depending on the review.
-* If the maintainer decides to pass on your PR, they will thank you for the contribution and explain why they won't be accepting the changes. That's ok! We still really appreciate you taking the time to do it, and we don't take that lightly. 💚
-* If your PR gets accepted, it will be marked as such, and merged into the `latest` branch soon after. Your contribution will be distributed to the masses next time the maintainers [tag a release](#tag-a-release)
+Where Unicode Technical Note #11 and the order people type disagree, knayi has followed UTN #11, for example `ခ်ျ` rather than the more often typed `ချ်`. The research notes record each such choice with its counts.
 
-## Provide Support on Issues
+## Licences, fonts and test data
 
-[Needs Collaborator](#join-the-project-team): none
+knayi is MIT-licensed, and contributions are accepted under the same licence.
 
-Helping out other users with their questions is a really awesome way of contributing to any community. It's not uncommon for most of the issues on an open source projects being support-related questions by users trying to understand something they ran into, or find their way around a known bug.
+- **Never copy another converter's tables, rules or code unless its licence is compatible with MIT.** Converters under LGPL or GPL, with no licence, or with an unclear one, are off limits: for example ThanLwinSoft (LGPL), kanaung/converter (an MIT licence file but a GPL header), and python-myanmar's Win table, which is a copy of ThanLwinSoft's. They may be run as outside references when you evaluate, never copied. [research/win-fonts.md](research/win-fonts.md) lists the converters and their licences. Build rules from the fonts' glyphs, keyboard layouts, Unicode's documents and your own checks, and say so in the research note.
+- **Never commit or ship the Win fonts.** They are freeware with all rights reserved. Check the Win table with your own copy (`node scripts/eval/win-glyphs.mjs path/to/WININNWA.TTF`) and don't publish the page it writes.
+- **Don't add a font to the repository or the site** unless its licence allows redistribution.
+- **Test fixtures are synthetic or hand-written by default.** Short snippets are allowed from sources under CC BY, CC0 or Apache-2.0, listed in a `SOURCES` file next to the fixtures with the source, its licence and where the snippet is used.
+- **Never commit corpus text or digests of it** from other sources. mC4 and other Common Crawl text, and the unlicensed 2018 query log (`queries.tsv`), stay out of the repository and out of CI. The eval scripts keep their downloads in `.eval-cache/`, which git ignores.
+- **Dependencies:** no runtime dependencies in 2.x (myanmar-tools stays an optional peer). Dev dependencies are fine when they are pinned to an exact version and their licence is checked.
 
-Sometimes, the `support` label will be added to things that turn out to actually be other things, like bugs or feature requests. In that case, suss out the details with the person who filed the original issue, add a comment explaining what the bug is, and change the label from `support` to `bug` or `feature`. If you can't do this yourself, @mention a maintainer so they can do it.
+## Release checklist
 
-In order to help other folks out with their questions:
+For the maintainer. A release is the only commit that changes `dist/`.
 
-* Go to the issue tracker and [filter open issues by the `support` label](https://github.com/greenlikeorange/knayi-myscript/issues?q=is%3Aopen+is%3Aissue+label%3Asupport).
-* Read through the list until you find something that you're familiar enough with to give an answer to.
-* Respond to the issue with whatever details are needed to clarify the question, or get more details about what's going on.
-* Once the discussion wraps up and things are clarified, either close the issue, or ask the original issue filer (or a maintainer) to close it for you.
+1. **Check `main`.** CI is green. Every pull request since the last tag that changed output has its line under "Output changes" in the Unreleased section of `CHANGELOG.md`.
+2. **Branch** `release-X.Y.Z` from `main`.
+3. **Bump the version** in `package.json` and `package-lock.json` (`npm version X.Y.Z --no-git-tag-version`), in `main.js` (`const version`), and in the README (the version line and the unpkg URL). `test/package.test.js` checks that `main.js` and `package.json` agree.
+4. **Update `CHANGELOG.md`:** rename Unreleased to `X.Y.Z` with the date, and start a new, empty Unreleased section.
+5. **Rebuild `dist/`** with `npm run build`, and run `npm test`, `npm run test:bun` and `npm run test:pack`. Check the `min.js` size after `gzip -9`.
+6. **Rebuild the benchmark page** with `npm run bench:page`, and commit `docs/benchmark.html` and `docs/benchmark.json`.
+7. **Commit** as `chore(release): X.Y.Z`, open the pull request, and merge it once CI passes.
+8. **Tag** the merge commit on `main`: `git tag -a vX.Y.Z -m X.Y.Z`, then `git push origin vX.Y.Z`.
+9. **Publish to npm with provenance:** `npm publish --provenance` from a GitHub Actions job with `id-token: write`, since npm generates provenance only on a supported CI provider, not on a laptop. A prerelease goes to the `next` dist-tag (`--tag next`). Until a publish workflow exists, publish from a clean checkout of the tag, and say in the release notes that the release has no provenance.
+10. **Pin the demo.** In `docs/index.html`, point the jsDelivr `<script>` at `@X.Y.Z` and set `integrity` to the hash of the published file:
 
-Some notes on picking up support issues:
+    ```bash
+    curl -sL https://cdn.jsdelivr.net/npm/knayi-myscript@X.Y.Z/dist/knayi-myscript.min.js | openssl dgst -sha384 -binary | openssl base64 -A
+    ```
 
-* Avoid responding to issues you don't know you can answer accurately.
-* As much as possible, try to refer to past issues with accepted answers. Link to them from your replies with the `#123` format.
-* Be kind and patient with users -- often, folks who have run into confusing things might be upset or impatient. This is ok. Try to understand where they're coming from, and if you're too uncomfortable with the tone, feel free to stay away or withdraw from the issue. (note: if the user is outright hostile or is violating the CoC, [refer to the Code of Conduct](CODE_OF_CONDUCT.md) to resolve the conflict).
-
-## Label Issues
-
-[Needs Collaborator](#join-the-project-team): Issue Tracker
-
-One of the most important tasks in handling issues is labeling them usefully and accurately. All other tasks involving issues ultimately rely on the issue being classified in such a way that relevant parties looking to do their own tasks can find them quickly and easily.
-
-In order to label issues, [open up the list of unlabeled issues](https://github.com/greenlikeorange/knayi-myscript/issues?q=is%3Aopen+is%3Aissue+no%3Alabel) and, **from newest to oldest**, read through each one and apply issue labels according to the table below. If you're unsure about what label to apply, skip the issue and try the next one: don't feel obligated to label each and every issue yourself!
-
-Label | Apply When | Notes
---- | --- | ---
-`bug` | Cases where the code (or documentation) is behaving in a way it wasn't intended to. | If something is happening that surprises the *user* but does not go against the way the code is designed, it should use the `enhancement` label.
-`critical` | Added to `bug` issues if the problem described makes the code completely unusable in a common situation. |
-`documentation` | Added to issues or pull requests that affect any of the documentation for the project. | Can be combined with other labels, such as `bug` or `enhancement`.
-`duplicate` | Added to issues or PRs that refer to the exact same issue as another one that's been previously labeled. | Duplicate issues should be marked and closed right away, with a message referencing the issue it's a duplicate of (with `#123`)
-`enhancement` | Added to [feature requests](#request-a-feature), PRs, or documentation issues that are purely additive: the code or docs currently work as expected, but a change is being requested or suggested. |
-`help wanted` | Applied by [Committers](#join-the-project-team) to issues and PRs that they would like to get outside help for. Generally, this means it's lower priority for the maintainer team to itself implement, but that the community is encouraged to pick up if they so desire | Never applied on first-pass labeling.
-`in-progress` | Applied by [Committers](#join-the-project-team) to PRs that are pending some work before they're ready for review. | The original PR submitter should @mention the team member that applied the label once the PR is complete.
-`performance` | This issue or PR is directly related to improving performance. |
-`refactor` | Added to issues or PRs that deal with cleaning up or modifying the project for the betterment of it. |
-`starter` | Applied by [Committers](#join-the-project-team) to issues that they consider good introductions to the project for people who have not contributed before. These are not necessarily "easy", but rather focused around how much context is necessary in order to understand what needs to be done for this project in particular. | Existing project members are expected to stay away from these unless they increase in priority.
-`support` | This issue is either asking a question about how to use the project, clarifying the reason for unexpected behavior, or possibly reporting a `bug` but does not have enough detail yet to determine whether it would count as such. | The label should be switched to `bug` if reliable reproduction steps are provided. Issues primarily with unintended configurations of a user's environment are not considered bugs, even if they cause crashes.
-`tests` | This issue or PR either requests or adds primarily tests to the project. | If a PR is pending tests, that will be handled through the [PR review process](#review-pull-requests)
-`wontfix` | Labelers may apply this label to issues that clearly have nothing at all to do with the project or are otherwise entirely outside of its scope/sphere of influence. [Committers](#join-the-project-team) may apply this label and close an issue or PR if they decide to pass on an otherwise relevant issue. | The issue or PR should be closed as soon as the label is applied, and a clear explanation provided of why the label was used. Contributors are free to contest the labeling, but the decision ultimately falls on committers as to whether to accept something or not.
-
-## Clean Up Issues and PRs
-
-[Needs Collaborator](#join-the-project-team): Issue Tracker
-
-Issues and PRs can go stale after a while. Maybe they're abandoned. Maybe the team will just plain not have time to address them any time soon.
-
-In these cases, they should be closed until they're brought up again or the interaction starts over.
-
-To clean up issues and PRs:
-
-* Search the issue tracker for issues or PRs, and add the term `updated:<=YYYY-MM-DD`, where the date is 30 days before today.
-* Go through each issue *from oldest to newest*, and close them if **all of the following are true**:
-  * not opened by a maintainer
-  * not marked as `critical`
-  * not marked as `starter` or `help wanted` (these might stick around for a while, in general, as they're intended to be available)
-  * no explicit messages in the comments asking for it to be left open
-  * does not belong to a milestone
-* Leave a message when closing saying "Cleaning up stale issue. Please reopen or ping us if and when you're ready to resume this. See https://github.com/greenlikeorange/knayi-myscript/blob/latest/CONTRIBUTING.md#clean-up-issues-and-prs for more details."
-
-## Review Pull Requests
-
-[Needs Collaborator](#join-the-project-team): Issue Tracker
-
-While anyone can comment on a PR, add feedback, etc, PRs are only *approved* by team members with Issue Tracker or higher permissions.
-
-PR reviews use [GitHub's own review feature](https://help.github.com/articles/about-pull-request-reviews/), which manages comments, approval, and review iteration.
-
-Some notes:
-
-* You may ask for minor changes ("nitpicks"), but consider whether they are really blockers to merging: try to err on the side of "approve, with comments".
-* *ALL PULL REQUESTS* should be covered by a test: either by a previously-failing test, an existing test that covers the entire functionality of the submitted code, or new tests to verify any new/changed behavior. All tests must also pass and follow established conventions. Test coverage should not drop, unless the specific case is considered reasonable by maintainers.
-* Please make sure you're familiar with the code or documentation being updated, unless it's a minor change (spellchecking, minor formatting, etc). You may @mention another project member who you think is better suited for the review, but still provide a non-approving review of your own.
-* Be extra kind: people who submit code/doc contributions are putting themselves in a pretty vulnerable position, and have put time and care into what they've done (even if that's not obvious to you!) -- always respond with respect, be understanding, but don't feel like you need to sacrifice your standards for their sake, either. Just don't be a jerk about it?
-
-## Merge Pull Requests
-
-[Needs Collaborator](#join-the-project-team): Committer
-
-TBD - need to hash out a bit more of this process.
-
-## Tag A Release
-
-[Needs Collaborator](#join-the-project-team): Committer
-
-TBD - need to hash out a bit more of this process. The most important bit here is probably that all tests must pass, and tags must use [semver](https://semver.org).
-
-## Join the Project Team
-
-### Ways to Join
-
-There are many ways to contribute! Most of them don't require any official status unless otherwise noted. That said, there's a couple of positions that grant special repository abilities, and this section describes how they're granted and what they do.
-
-All of the below positions are granted based on the project team's needs, as well as their consensus opinion about whether they would like to work with the person and think that they would fit well into that position. The process is relatively informal, and it's likely that people who express interest in participating can just be granted the permissions they'd like.
-
-You can spot a collaborator on the repo by looking for the `[Collaborator]` or `[Owner]` tags next to their names.
-
-Permission | Description
---- | ---
-Issue Tracker | Granted to contributors who express a strong interest in spending time on the project's issue tracker. These tasks are mainly [labeling issues](#label-issues), [cleaning up old ones](#clean-up-issues-and-prs), and [reviewing pull requests](#review-pull-requests), as well as all the usual things non-team-member contributors can do. Issue handlers should not merge pull requests, tag releases, or directly commit code themselves: that should still be done through the usual pull request process. Becoming an Issue Handler means the project team trusts you to understand enough of the team's process and context to implement it on the issue tracker.
-Committer | Granted to contributors who want to handle the actual pull request merges, tagging new versions, etc. Committers should have a good level of familiarity with the codebase, and enough context to understand the implications of various changes, as well as a good sense of the will and expectations of the project team.
-Admin/Owner | Granted to people ultimately responsible for the project, its community, etc.
-
-## Attribution
-
-This guide was generated using the WeAllJS `CONTRIBUTING.md` generator. [Make your own](https://npm.im/weallcontribute)!
-
+    It must equal the hash of the local build (`openssl dgst -sha384 -binary dist/knayi-myscript.min.js | openssl base64 -A`). Commit as `docs(site): pin the demo to X.Y.Z`.
+11. **Publish the GitHub release** for the tag, with the CHANGELOG section as its notes, and a "Before you upgrade" list when output changed.
+12. **For a security fix,** say so in the CHANGELOG and the release notes, and publish the GitHub security advisory (see [SECURITY.md](SECURITY.md)).
