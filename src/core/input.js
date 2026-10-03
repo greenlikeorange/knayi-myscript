@@ -1,36 +1,68 @@
 // The fonts knayi knows, text predicates and the text check of the 3.0 API (DESIGN.md §2.3, D1). Layer L1.
 // Owner: W1 (core).
 //
-// Skeleton (W0): the exports have their final names and signatures. The data is frozen and empty, and each
-// function throws ERR.NOT_BUILT until W1 builds it.
+// Only what 3.0 shares lives here. The 2.x preamble (INPUT_POLICY, enter() and its warnings, the 2.x font-name
+// lookup and chooseFontLegacy, which takes the detector as an argument) is compat's (compat/input.js), because the
+// core is silent and stateless (§4), and the 3.0 API validates strictly and throws, which 2.x never does.
+//
+// Every function here takes a string; the callers check that first (§4 rule 4).
 
 import { deepFreeze } from '../freeze.js';
 import { MYANMAR_BLOCK_PATTERN, MYANMAR_SCRIPT_PATTERN } from '../script/codes.js';
 import { ERR, libraryError } from './errors.js';
 
-// { unicode, zawgyi, win }: each a FontInfo { name, aliases, visualOrder, sourceOnly, ascii }.
-export const FONTS = /* @__PURE__ */ deepFreeze({});
+// The font registry: one entry per font, with every name a caller may use for it and what a converter needs to
+// know about it. The aliases are 2.x's (contentGate.js:3-9), in its order; FONT_ALIASES is built from them.
+// - visualOrder: the text is stored in drawing order, glyph by glyph, so it reaches Unicode through the font
+//   reader (converter.js:9 DRAWING_ORDER_FONTS; research/zawgyi-to-unicode.md §2).
+// - sourceOnly: knayi converts from it, never to it (converter.js:47-51; research/win-fonts.md, Summary).
+// - ascii: it draws Burmese on ASCII and Windows-1252 code points, so its text has no Myanmar-block character and
+//   the Myanmar gate cannot see it: the converter checks the font before the gate (converter.js:23;
+//   research/win-fonts.md §2).
+export const FONTS = /* @__PURE__ */ deepFreeze({
+  unicode: { name: 'unicode', aliases: ['unicode', 'uni'], visualOrder: false, sourceOnly: false, ascii: false },
+  zawgyi: { name: 'zawgyi', aliases: ['zawgyi', 'zaw'], visualOrder: true, sourceOnly: false, ascii: false },
+  win: { name: 'win', aliases: ['win'], visualOrder: true, sourceOnly: true, ascii: true }
+});
 
-// Null prototype: unicode, uni -> 'unicode'; zawgyi, zaw -> 'zawgyi'; win -> 'win'.
-export const FONT_ALIASES = /* @__PURE__ */ deepFreeze({});
+// Every alias of FONTS, mapped to its font's name: unicode, uni -> 'unicode'; zawgyi, zaw -> 'zawgyi';
+// win -> 'win'. The object has a null prototype, so a lookup of 'constructor' or '__proto__' finds nothing.
+// Names are case-sensitive, as in 2.x; decision 11's case-insensitive policy is a 2.x port (DESIGN.md §8).
+export const FONT_ALIASES = /* @__PURE__ */ buildFontAliases(FONTS);
 
-// Whether text has a unit in U+1000-U+109F.
+function buildFontAliases(fonts) {
+  const aliases = Object.create(null);
+  const names = Object.keys(fonts);
+  for (let i = 0; i < names.length; i++) {
+    const font = fonts[names[i]];
+    for (let j = 0; j < font.aliases.length; j++) aliases[font.aliases[j]] = font.name;
+  }
+  return deepFreeze(aliases);
+}
+
+// Whether text has a unit in U+1000-U+109F: the gate every 2.x function but normalize checks first
+// (contentGate.js hasMyanmar). It leaves out Extended-A and -B on purpose (DESIGN.md C8).
 export function hasMyanmarBlockChar(text) {
-  throw libraryError(ERR.NOT_BUILT, 'src/core/input.js hasMyanmarBlockChar is not built yet');
+  return MYANMAR_BLOCK_PATTERN.test(text);
 }
 
-// Whether text has a unit in the three Myanmar blocks.
+// Whether text has a unit in the three Myanmar blocks: the no-Myanmar fast path of normalize (DESIGN.md §3.10).
 export function hasMyanmarScriptChar(text) {
-  throw libraryError(ERR.NOT_BUILT, 'src/core/input.js hasMyanmarScriptChar is not built yet');
+  return MYANMAR_SCRIPT_PATTERN.test(text);
 }
+
+// Zero-width space and zero-width non-joiner: the word and syllable breaks 2.x removes before it reads text
+// (contentGate.js cleanText). The other zero-width characters stay.
+const ZERO_WIDTH_BREAKS = /[\u200B\u200C]/g;
 
 // text without U+200B and U+200C.
 export function stripZeroWidthBreaks(text) {
-  throw libraryError(ERR.NOT_BUILT, 'src/core/input.js stripZeroWidthBreaks is not built yet');
+  return text.replace(ZERO_WIDTH_BREAKS, '');
 }
 
-// value when it is a string; else throws libraryError(ERR.INVALID_ARG_TYPE, 'knayi.<api>: text must be a string',
-// TypeError).
+// value when it is a string; else throws a TypeError with the code ERR_KNAYI_INVALID_ARG_TYPE. apiName names the
+// public function, for the message: requireText('normalize', 1) throws 'knayi.normalize: text must be a string'.
 export function requireText(apiName, value) {
-  throw libraryError(ERR.NOT_BUILT, 'src/core/input.js requireText is not built yet');
+  if (typeof value === 'string') return value;
+  throw libraryError(ERR.INVALID_ARG_TYPE, 'knayi.' + apiName + ': text must be a string', TypeError);
 }
