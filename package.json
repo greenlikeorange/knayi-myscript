@@ -23,6 +23,7 @@
     "posttest": "node scripts/check-size.js",
     "test:bun": "bun scripts/bun-contract.js && bun scripts/bun-esm.mjs",
     "test:pack": "node scripts/check-packed.mjs",
+    "test:smoke": "node scripts/smoke.js",
     "check:dist": "node scripts/check-dist.js",
     "check:size": "node scripts/check-size.js --modules",
     "eval": "node scripts/eval/run.mjs",

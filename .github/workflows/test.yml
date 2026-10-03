@@ -58,6 +58,31 @@ jobs:
       - run: npm run test:bun
       - run: npm run test:pack
 
+  # README says knayi runs on Node 16 or newer, but the test suite needs Node 22. Build on Node 22, then run the
+  # plain-Node smoke script on the older versions, against main.js and the fresh build.
+  smoke:
+    name: Smoke on Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [16, 18, 20]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node scripts/build.js "$RUNNER_TEMP/dist"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node }}
+      - run: node scripts/smoke.js "$RUNNER_TEMP/dist"
+
   # jsDelivr serves main's dist/ to @master links, so dist/ changes only in a release commit, which also changes
   # the version in package.json; then dist/ must equal a fresh build. Pull requests compare with their base,
   # pushes with the previous commit of the branch.
