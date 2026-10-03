@@ -10,12 +10,16 @@ const LIBRARIES = {
   compat: require('../src/compat/index.js').default
 };
 
-// Every example in README.md and ARCHITECTURE.md runs against the API it names and returns the value in its comment.
-// An example whose note says it warns must write a warning or an error to the console.
+// Every example in README.md, MIGRATION.md and ARCHITECTURE.md runs against the API it names and returns the value in
+// its comment. An example whose note says it warns must write a warning or an error to the console.
 //
 // The number of examples in each file is pinned, so an example the reader stops seeing fails here. When you add or
 // remove an example, change its count.
-const FILES = { 'README.md': { knayi: 18, compat: 51 }, 'ARCHITECTURE.md': { knayi: 0, compat: 11 } };
+const FILES = {
+  'README.md': { knayi: 57, compat: 1 },
+  'MIGRATION.md': { knayi: 24, compat: 54 },
+  'ARCHITECTURE.md': { knayi: 0, compat: 11 }
+};
 
 // Runs fn with console.warn and console.error recorded instead of printed.
 function capture(fn) {
@@ -63,13 +67,13 @@ for (const [file, counts] of Object.entries(FILES)) {
   });
 }
 
-// README.md also gives examples of the 2.x API in its prose, as "`input` is output" with Myanmar output. Each runs
+// README.md also gives examples of the 3.0 API in its prose, as "`input` is output" with Myanmar output. Each runs
 // through the call of the section it is in; one in another section fails until it gets a call here.
-const compat = LIBRARIES.compat;
+const knayi = LIBRARIES.knayi;
 const PROSE_CALLS = {
-  'Zawgyi to Unicode': (s) => compat.fontConvert(s, 'unicode', 'zawgyi'),
-  'Win fonts': (s) => compat.fontConvert(s, 'unicode', 'win'),
-  'normalize(content)': (s) => compat.normalize(s)
+  'Zawgyi to Unicode': (s) => knayi.toUnicode(s, { from: 'zawgyi' }),
+  'Win fonts': (s) => knayi.toUnicode(s, { from: 'win' }),
+  'normalize(text, options)': (s) => knayi.normalize(s)
 };
 const PROSE_COUNT = 12;
 

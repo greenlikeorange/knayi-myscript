@@ -1,9 +1,9 @@
 // src/stages/normalize.js: NORMALIZE_STAGES, normalizeText and traceNormalizeText (docs/next/DESIGN.md §2.3,
 // §3.10, §7.7). Owner: W5 (engine-unicode).
 //
-// The stage list, the two gates, the trace, the normalize examples of README.md and ARCHITECTURE.md, and the table
-// probes of test/fixtures/tables.json, each against the frozen 2.x oracle (D19). normalize.fuzz.test.mjs compares
-// normalizeText with 2.x on fuzzed strings.
+// The stage list, the two gates, the trace, the 2.x normalize examples of MIGRATION.md and ARCHITECTURE.md, and the
+// table probes of test/fixtures/tables.json, each against the frozen 2.x oracle (D19). normalize.fuzz.test.mjs
+// compares normalizeText with 2.x on fuzzed strings.
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -93,8 +93,8 @@ describe('NORMALIZE_STAGES (DESIGN.md §2.3)', () => {
 });
 
 describe('normalizeText (DESIGN.md §3.10)', () => {
-  it('gives the results README.md and ARCHITECTURE.md show', () => {
-    const examples = normalizeExamples('README.md').concat(normalizeExamples('ARCHITECTURE.md'));
+  it('gives the results MIGRATION.md and ARCHITECTURE.md show', () => {
+    const examples = normalizeExamples('MIGRATION.md').concat(normalizeExamples('ARCHITECTURE.md'));
     assert.ok(examples.length >= 14, examples.length + ' examples');
     for (const [input, expected] of examples) assert.equal(hex(normalized(input)), hex(expected), hex(input));
   });

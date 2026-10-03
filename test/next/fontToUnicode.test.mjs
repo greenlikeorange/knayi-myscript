@@ -4,7 +4,7 @@
 // Both functions are compared with 2.x zawgyi.toUnicode and win.toUnicode, with and without debug, in the frozen
 // copies of scripts/oracle/ (D19): on the regressions of test/fuzz.test.js, the table probes of
 // test/fixtures/tables.json, and every generated input set of scripts/eval/lib/inputs.mjs (every Myanmar-block
-// pair, Extended-A/B/C, the row probes with the README and ARCHITECTURE strings, and the generated Win sets).
+// pair, Extended-A/B/C, the row probes with the strings of the documents' examples, and the generated Win sets).
 // fontToUnicode.fuzz.test.mjs adds random strings; `npm run compare` adds the corpora, mC4 included. The Win
 // results are "Win identity only": there is no hand-checked Win set yet (PR 0.9 of the plan).
 
@@ -68,7 +68,7 @@ describe('FONT_STAGES (DESIGN.md §2.3, §3.10)', () => {
 });
 
 describe('fontToUnicode and traceFontToUnicode (DESIGN.md §2.3, §3.9)', () => {
-  it('converts the examples of README.md and ARCHITECTURE.md', () => {
+  it('converts the examples of README.md, MIGRATION.md and ARCHITECTURE.md', () => {
     const examples = [
       ['\u1019\u1002\u1064\u101C\u102C\u1015\u102B', 'zawgyi', '\u1019\u1004\u103A\u1039\u1002\u101C\u102C\u1015\u102B'],
       ['\u1031\u101A\u102C\u1000\u1039\u103A\u102C\u1038', 'zawgyi', '\u101A\u1031\u102C\u1000\u103A\u103B\u102C\u1038'],

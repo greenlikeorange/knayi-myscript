@@ -3,7 +3,7 @@
 //
 // FONT_STAGES is the one stage list of both paths (D10): fontToUnicode runs it through core/rules.js runStages with
 // no trace, and traceFontToUnicode with one. The stage ids and labels are the 2.x stage names, in the 2.x order
-// (README.md, fontConvert.debugging; decision 8). One stage has a gate: the final NFC runs only when the font
+// (MIGRATION.md, fontConvert.debugging; decision 8). One stage has a gate: the final NFC runs only when the font
 // reader wrote a unit that NFC may change (DESIGN.md §3.10, gate 4). The trace runner never gates, and
 // `openAllGates` opens the gate for the tests.
 

@@ -2,19 +2,29 @@
 // One list of calls for every place that runs a build outside Node's ES module sources: the browsers
 // (scripts/browser/smoke.spec.js), the floor emulation (test/dist-floor.test.js) and the RegExp check
 // (test/regex-floor.test.js). allCalls() calls the 2.x API (compat, and knayi.compat in the script build): the
-// README examples, a few more call forms, and generated inputs over the Myanmar block and Latin-1 (synthetic only,
-// decision 22). apiCalls() calls the 3.0 API on the same generated inputs.
+// examples of README.md and MIGRATION.md, a few more call forms, and generated inputs over the Myanmar block and
+// Latin-1 (synthetic only, decision 22). apiCalls() calls the 3.0 API on the same generated inputs.
 
+const fs = require('fs');
+const path = require('path');
 const { readExamples } = require('../testing/readme-examples');
 
-// The calls in the code blocks of README.md of one API, 'compat' (the 2.x API) or 'knayi' (the 3.0 API), as source
-// text: the examples test/readme.test.js runs, read by the same reader (scripts/testing/readme-examples.js).
-// runCalls evaluates them with both names bound to the library it runs.
+// The documents whose examples run in the builds: README.md, which documents the 3.0 API, and MIGRATION.md, which
+// documents the 2.x API call by call beside its 3.0 equivalent.
+const DOCUMENTS = ['README.md', 'MIGRATION.md'];
+
+// The calls in the code blocks of the documents (or of `text`) of one API, 'compat' (the 2.x API) or 'knayi' (the
+// 3.0 API), as source text: the examples test/readme.test.js runs, read by the same reader
+// (scripts/testing/readme-examples.js). runCalls evaluates them with both names bound to the library it runs.
 function readmeExamples(api, text) {
-  return readExamples(text).filter((example) => example.api === api).map((example) => example.code);
+  const documents = text === undefined
+    ? DOCUMENTS.map((name) => [fs.readFileSync(path.join(__dirname, '..', '..', name), 'utf8'), name])
+    : [[text, 'README.md']];
+  return documents.flatMap(([body, name]) => readExamples(body, name))
+    .filter((example) => example.api === api).map((example) => example.code);
 }
 
-// Call forms the README shows only in prose: the three debugging sources, the rule adapter, options objects,
+// Call forms the documents show only in prose: the three debugging sources, the rule adapter, options objects,
 // non-string input, and font names that throw (decision 9: compared by error class only).
 const EXTRA = [
   'knayi.version',
@@ -81,8 +91,8 @@ function allCalls() {
   return readmeExamples('compat').concat(EXTRA, generatedCalls());
 }
 
-// The README examples of the 3.0 API, then [functionName, ...args] calls of it over generated text, and calls that it
-// refuses (a thrown error is kept by class, as everywhere here). Win text converts only when named.
+// The examples of the 3.0 API in the documents, then [functionName, ...args] calls of it over generated text, and
+// calls that it refuses (a thrown error is kept by class, as everywhere here). Win text converts only when named.
 function apiCalls() {
   const calls = readmeExamples('knayi').concat([['createTrace'], ['normalize', 42], ['toUnicode', 'x', { from: 'Zawgyi' }],
     ['truncate', 'abc', { length: 1 }]]);

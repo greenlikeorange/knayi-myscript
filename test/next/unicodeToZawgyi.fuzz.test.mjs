@@ -5,7 +5,7 @@
 // 2. traceUnicodeToZawgyi, read back as 2.x's debug log (§3.9, D4): 50,000, and 300,000 nightly.
 // 3. 2.x's public call fontConvert(x, 'zawgyi', 'unicode') and its fontConvert.debugging, with the call's preamble
 //    restated on the oracle (asFontConvert), on the inputs of npm run compare (scripts/eval/lib/inputs.mjs): every
-//    generated set, the README and ARCHITECTURE strings and the table probes among them, the seeded fuzz sets, and
+//    generated set, the strings of the documents' examples and the table probes among them, the seeded fuzz sets, and
 //    every cached corpus. A corpus missing from the corpus cache is left out, never downloaded; npm run compare
 //    fills the cache.
 // Every output must be the same.

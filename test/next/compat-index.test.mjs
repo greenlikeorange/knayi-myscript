@@ -1,6 +1,6 @@
-// compat's export object (docs/next/DESIGN.md §5.1, C1), and the README and ARCHITECTURE examples run against
-// compat (the Phase 6 exit of the plan): each returns the value its comment gives, as test/readme.test.js checks
-// for main.js.
+// compat's export object (docs/next/DESIGN.md §5.1, C1), and the examples of the 2.x API in README.md, MIGRATION.md
+// and ARCHITECTURE.md run against compat (the Phase 6 exit of the plan): each returns the value its comment gives, as
+// test/readme.test.js checks for main.js.
 
 import { describe, it, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
@@ -70,9 +70,10 @@ describe('compat: every function as an Array#map callback (C27)', () => {
   }
 });
 
-// The examples of the 2.x API (`compat.…`) in README.md and ARCHITECTURE.md, run against compat as an ES module.
-// test/readme.test.js runs the same examples against compat through require, and pins how many each file has.
-for (const file of ['README.md', 'ARCHITECTURE.md']) {
+// The examples of the 2.x API (`compat.…`) in README.md, MIGRATION.md and ARCHITECTURE.md, run against compat as an
+// ES module. test/readme.test.js runs the same examples against compat through require, and pins how many each file
+// has.
+for (const file of ['README.md', 'MIGRATION.md', 'ARCHITECTURE.md']) {
   describe('compat: the examples of ' + file, () => {
     const all = readExamples(fs.readFileSync(path.join(ROOT, file), 'utf8'), file);
     const examples = all.filter((example) => example.api === 'compat');

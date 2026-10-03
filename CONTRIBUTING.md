@@ -173,7 +173,7 @@ The checks block a merge only when the rules for `main` (Settings, Rules) requir
 
 1. **Check `main`.** CI is green. Every pull request since the last tag that changed output has its line under "Output changes" in the Unreleased section of `CHANGELOG.md`.
 2. **Branch** `release-X.Y.Z` from `main`.
-3. **Bump the version** in `package.json` and `package-lock.json` (`npm version X.Y.Z --no-git-tag-version`), in `src/version.js` (`PACKAGE_VERSION`), and in the README (the version line and the unpkg URL). `test/next/codes.test.mjs` checks that `src/version.js` and `package.json` agree, and `test/package.test.js` that every entry reports that version.
+3. **Bump the version** in `package.json` and `package-lock.json` (`npm version X.Y.Z --no-git-tag-version`), in `src/version.js` (`PACKAGE_VERSION`), and in the README (the version line, the two unpkg URLs and the `--report` example of "Command line"). `test/next/codes.test.mjs` checks that `src/version.js` and `package.json` agree, and `test/package.test.js` that every entry reports that version.
 4. **Update `CHANGELOG.md`:** rename Unreleased to `X.Y.Z` with the date, and start a new, empty Unreleased section.
 5. **Rebuild `dist/`** with `npm run build`, check it with `npm run check:dist -- --fresh`, and run `KNAYI_DIST=dist npm test`, `npm run test:bun` and `npm run test:pack`. Note the sizes from `npm run check:size` and `node scripts/next/size.mjs` in the release notes.
 6. **Commit** the version bump, `CHANGELOG.md` and `dist/` as `chore(release): X.Y.Z`.
