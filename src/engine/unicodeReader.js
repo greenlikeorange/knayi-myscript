@@ -22,7 +22,8 @@ import {
 } from '../script/codes.js';
 import { SyllableBuffer, CopyThroughWriter, closeSyllable, writesAsTyped, isHeld, marksGoOn } from './syllable.js';
 
-// The Unicode reader's side of the four deliberate differences between the readers (§3.5).
+// The Unicode reader's side of the four deliberate differences between the readers (§3.5), as 2.x normalize reads
+// them (compat).
 export const UNICODE_READING = /* @__PURE__ */ deepFreeze({
   // ZW.ZWSP | ZW.WORD_JOINER | ZW.BOM: ZWNJ and ZWJ stay where they were typed, since in Unicode text they can
   // shape the syllable (research/normalize.md §3, "Spaces and joiners").
@@ -32,7 +33,24 @@ export const UNICODE_READING = /* @__PURE__ */ deepFreeze({
   // An e or medial ra looks only at the unit right after its run, so a zero-width unit there makes it stay.
   prebaseCrossesZeroWidth: false,
   // U+1025 right after a vowel sign stays u, as Pa'o writes it (research/normalize.md §3).
-  keepUAfterVowelSign: true
+  keepUAfterVowelSign: true,
+  // 2.x reads U+1025, zero and seven after a virama or under a kinzi as what they are, and none of them is
+  // stacked there (DESIGN.md §10 Q12).
+  stackedLookAlikesAreLetters: false
+});
+
+// The reading of 3.0's normalize, which must read its own output the same way again (decision 36; DESIGN.md
+// §11.2). It is UNICODE_READING with one change. Right after a virama, or under a kinzi, only a consonant can stand
+// (UTN #11), so a unit typed there for the consonant it looks like is that consonant: U+1025 is nya, zero is wa and
+// seven is ra (research/normalize.md §3, "ဥ and ဉ" and "Look-alikes"). 2.x reads them as they are, so the stack
+// closes before them; the syllable they start, or the look-alikes, later make them nya, wa or ra, and a second pass
+// stacks them. A chain of n of them took n passes to settle.
+export const STABLE_UNICODE_READING = /* @__PURE__ */ deepFreeze({
+  heldZeroWidth: 25, // ZW.ZWSP | ZW.WORD_JOINER | ZW.BOM, as UNICODE_READING
+  digitTakesMarksAcrossSpace: false,
+  prebaseCrossesZeroWidth: false,
+  keepUAfterVowelSign: true,
+  stackedLookAlikesAreLetters: true
 });
 
 // What the reader saw, for the final-NFC gate (§3.10).
@@ -55,6 +73,7 @@ function createScratch() {
   return {
     syllable: new SyllableBuffer(),
     writer: new CopyThroughWriter(),
+    reading: UNICODE_READING, // the reading of this call
     runEnd: 0, // the end of the last run of e and medial ra that placePrebaseMark looked past
     pendingStart: 0, // where the pending run starts in the text
     syllableStart: 0, // where the open syllable's source begins: its pending run, else its kinzi or base
@@ -63,16 +82,17 @@ function createScratch() {
 }
 
 // { text, seen }: text in storage order, and the SEEN flags (§3.6). The text is the input string itself when no
-// syllable changed.
+// syllable changed. reading is UNICODE_READING (2.x, the default) or STABLE_UNICODE_READING (3.0). log, an
+// EditLog (core/edits.js) or null, records every syllable written differently from its source.
 //
 // Each unit goes to the first of these steps that takes it, and the order is part of the behaviour:
 //   1. held; 2. kinzi; 3. base; 4. e or medial ra; 5. virama; 6. mark; 7. anything else.
 // The loop dispatches on the unit's class first, which keeps that order, because the classes are disjoint: only a
 // unit outside the Burmese classes can be held (a space or a zero-width character), and only a consonant can start
 // a kinzi. So a Burmese unit pays for no test of a step that cannot take it.
-export function reorderUnicode(text) {
+export function reorderUnicode(text, reading, log) {
   const scratch = SCRATCH;
-  startReading(scratch, text);
+  startReading(scratch, text, reading || UNICODE_READING, log);
   for (let i = 0; i < text.length; i++) {
     const code = text.charCodeAt(i);
     switch (classOf(code)) {
@@ -110,9 +130,10 @@ export function unicodeReaderScratchUnits() {
   return SCRATCH.syllable.capacity() + SCRATCH.writer.syllable.capacity();
 }
 
-function startReading(scratch, text) {
+function startReading(scratch, text, reading, log) {
   scratch.syllable.reset();
-  scratch.writer.begin(text);
+  scratch.writer.begin(text, log);
+  scratch.reading = reading;
   scratch.runEnd = 0;
   scratch.pendingStart = 0;
   scratch.syllableStart = 0;
@@ -158,14 +179,17 @@ function openSyllableAt(scratch, i, kinziLead, keepU) {
 
 // Steps 2 and 3 for a consonant: a kinzi opens a syllable on the consonant it sits on, and reading goes on after
 // that consonant; any other consonant is a base. Returns the index of the last unit read. The units a kinzi
-// skips are Burmese and none is U+1025, so `seen` needs none of them.
+// skips are Burmese, and a U+1025 among them is written as nya, so `seen` needs none of them.
 function readConsonant(scratch, text, i, code) {
-  if (!isKinziAt(text, i)) {
+  if (!isKinziAt(text, i, scratch.reading)) {
     readBase(scratch, text, i, code);
     return i;
   }
   openSyllableAt(scratch, i, code, false);
-  scratch.syllable.setBase(text.charCodeAt(i + 3));
+  const typed = text.charCodeAt(i + 3);
+  const letter = stackedLetterOf(typed, scratch.reading);
+  scratch.syllable.setBase(letter);
+  if (letter !== typed) scratch.syllable.typedInOrder = false; // a look-alike, written as the letter it stands for
   return i + 3;
 }
 
@@ -173,7 +197,7 @@ function readConsonant(scratch, text, i, code) {
 // it: followed by ii, NFC composes it into U+1026 (§3.10).
 function readBase(scratch, text, i, code) {
   if (code === CP.LETTER_U) scratch.seen |= SEEN.LETTER_U;
-  openSyllableAt(scratch, i, 0, keepsLetterU(text, i, code));
+  openSyllableAt(scratch, i, 0, keepsLetterU(text, i, code, scratch.reading));
   scratch.syllable.setBase(code);
 }
 
@@ -183,7 +207,7 @@ function readBase(scratch, text, i, code) {
 // one that NFC could move or compose with its neighbours (§3.10); the units the reader holds are all NFC-safe.
 function readOther(scratch, i, code) {
   const buf = scratch.syllable;
-  if (isHeld(buf, code, UNICODE_READING)) {
+  if (isHeld(buf, code, scratch.reading)) {
     buf.hold(code, zeroWidthBit(code) !== 0);
     return;
   }
@@ -193,17 +217,28 @@ function readOther(scratch, i, code) {
 
 // A kinzi at i: nga, or ra as Sanskrit repha, then asat and virama, before the Burmese consonant it sits on (UTN
 // #11; storageOrder.js isKinziAt).
-function isKinziAt(text, i) {
+function isKinziAt(text, i, reading) {
   const code = text.charCodeAt(i);
   return (code === CP.NGA || code === CP.RA) && text.charCodeAt(i + 1) === CP.ASAT &&
-    text.charCodeAt(i + 2) === CP.VIRAMA && isBurmeseConsonant(text.charCodeAt(i + 3));
+    text.charCodeAt(i + 2) === CP.VIRAMA && stackedLetterOf(text.charCodeAt(i + 3), reading) !== 0;
+}
+
+// The consonant a unit stands for where only a consonant can stand, after a virama or under a kinzi, or 0 for a
+// unit that is none: a Burmese consonant itself, and with STABLE_UNICODE_READING the look-alikes typed for one,
+// U+1025 for nya, zero for wa and seven for ra (stackedLookAlikesAreLetters).
+function stackedLetterOf(code, reading) {
+  if (isBurmeseConsonant(code)) return code;
+  if (!reading.stackedLookAlikesAreLetters) return 0;
+  if (code === CP.LETTER_U) return CP.NYA;
+  if (code === CP.DIGIT_ZERO) return CP.WA;
+  return code === CP.DIGIT_SEVEN ? CP.RA : 0;
 }
 
 // u right after a vowel sign starts a syllable of its own and stays u, as in Pa'o ဥ်း; after a consonant or medial
 // it is typed for nya, and orderSyllable makes it nya (research/normalize.md §3, "ဥ and ဉ";
 // UNICODE_READING.keepUAfterVowelSign).
-function keepsLetterU(text, i, code) {
-  return code === CP.LETTER_U && UNICODE_READING.keepUAfterVowelSign && isVowelSign(text.charCodeAt(i - 1));
+function keepsLetterU(text, i, code, reading) {
+  return code === CP.LETTER_U && reading.keepUAfterVowelSign && isVowelSign(text.charCodeAt(i - 1));
 }
 
 // Step 4: an e or medial ra goes where placePrebaseMark sends it.
@@ -259,22 +294,26 @@ function isFinished(buf, code) {
 // syllable. The e and medial ra between join as marks. Returns the index of the last unit read.
 function readVirama(scratch, text, i) {
   const buf = scratch.syllable;
-  const at = buf.isOpen ? stackedConsonantAt(text, i) : -1;
-  if (at < 0 || !marksGoOn(buf, UNICODE_READING)) {
+  const reading = scratch.reading;
+  const at = buf.isOpen ? stackedConsonantAt(text, i, reading) : -1;
+  if (at < 0 || !marksGoOn(buf, reading)) {
     closeOpenSyllable(scratch, i);
     return i;
   }
   buf.goOn();
   for (let k = i + 1; k < at; k++) buf.pushMark(text.charCodeAt(k));
   buf.pushStack(CP.VIRAMA);
-  buf.pushStack(text.charCodeAt(at));
+  const typed = text.charCodeAt(at);
+  const letter = stackedLetterOf(typed, reading);
+  buf.pushStack(letter);
+  if (letter !== typed) buf.typedInOrder = false; // a look-alike, written as the letter it stands for
   return at;
 }
 
 // The stacked consonant after the virama at i, past any e or medial ra typed before it, or -1.
-function stackedConsonantAt(text, i) {
+function stackedConsonantAt(text, i, reading) {
   const at = endOfPrebaseRun(text, i + 1);
-  return isBurmeseConsonant(text.charCodeAt(at)) ? at : -1;
+  return stackedLetterOf(text.charCodeAt(at), reading) !== 0 ? at : -1;
 }
 
 // Step 6: a mark joins the open syllable unless a space held after it keeps it apart. A space typed before a mark
@@ -282,7 +321,7 @@ function stackedConsonantAt(text, i) {
 // space (research/normalize.md §3, "Spaces and joiners"; §3.5). Otherwise it closes the syllable and stays.
 function readMark(scratch, i, code) {
   const buf = scratch.syllable;
-  if (buf.isOpen && marksGoOn(buf, UNICODE_READING) && !(buf.spaceHeld && isPrebaseMark(code))) {
+  if (buf.isOpen && marksGoOn(buf, scratch.reading) && !(buf.spaceHeld && isPrebaseMark(code))) {
     buf.goOn();
     buf.pushMark(code);
   } else {

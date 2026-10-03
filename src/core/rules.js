@@ -14,6 +14,8 @@
 // A Stage is { id, label, run(text, ctx), traceOnly?, gate?(ctx) }, and a pipeline is a frozen list of them. One
 // runner serves the fast path and the trace, so the order and the names are written once (D10).
 
+import { EditLog, composeEdits } from './edits.js';
+
 // The most passes of a repeat row (2.x asLongAsMatch, syllable.js replaceRepeated).
 export const REPEAT_LIMIT = 40;
 
@@ -61,6 +63,47 @@ function replaceRepeatedly(text, row) {
     text = next;
   }
   return text;
+}
+
+// applyRuleRows, recording in `log`, an EditLog (core/edits.js), the spans the rows replaced (DESIGN.md §11.3). Each
+// replace runs with a function that notes the match and returns the row's own replacement for it, so the result is
+// that of applyRuleRows.
+export function applyRuleRowsLogged(text, rows, log) {
+  let edits = [];
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (!mayMatch(row, text)) continue;
+    for (let pass = 0; pass < (row.repeat ? REPEAT_LIMIT : 1); pass++) {
+      if (row.repeat && !ruleMatches(row, text)) break;
+      const rowLog = new EditLog(log.rule);
+      const next = replaceNoting(text, row, rowLog);
+      if (next === text) break;
+      edits = composeEdits(edits, rowLog.edits);
+      text = next;
+    }
+  }
+  log.addAll(edits);
+  return text;
+}
+
+// text.replace(row.re, row.to), noting each match in rowLog. The replacement is expanded here, as String#replace
+// expands it: $1-$9 are the groups, $& the match and $$ a dollar sign; the rows of src/ use no other.
+function replaceNoting(text, row, rowLog) {
+  let growth = 0; // the output's length minus the input's, for the matches so far
+  return text.replace(row.re, function () {
+    const match = arguments[0];
+    const at = arguments[arguments.length - 2];
+    const groups = Array.prototype.slice.call(arguments, 1, arguments.length - 2);
+    const replacement = row.to.replace(/\$([1-9&$])/g, (all, name) => {
+      if (name === '$') return '$';
+      if (name === '&') return match;
+      const group = groups[Number(name) - 1];
+      return group === undefined ? '' : group;
+    });
+    rowLog.addChange(at, match, at + growth, replacement);
+    growth += replacement.length - match.length;
+    return replacement;
+  });
 }
 
 // applyRuleRows, recording the rows 2.x's debug log names (syllable.js convertText with debug), each with its id,
@@ -118,6 +161,24 @@ function runGatedStages(text, stages, ctx) {
     if (stage.traceOnly || (stage.gate && !ctx.openAllGates && !stage.gate(ctx))) continue;
     text = stage.run(text, ctx);
   }
+  return text;
+}
+
+// runStages with no trace, recording in `log`, an EditLog (core/edits.js), the edits of the whole pipeline: from
+// `text` to the result, each with the ids of the stages that made it (DESIGN.md §11.3). loggedRuns holds, by stage
+// id, a run(text, ctx, stageLog) for each stage that is not trace-only: it gives what the stage's run gives and
+// records its own edits, and the runner composes them. The gates are those of the fast path. The logged runs are a
+// table of their own, not fields of the stages, so that a bundle that never logs (compat) leaves them out.
+export function runStagesLogged(text, stages, loggedRuns, ctx, log) {
+  let edits = [];
+  for (let i = 0; i < stages.length; i++) {
+    const stage = stages[i];
+    if (stage.traceOnly || (stage.gate && !ctx.openAllGates && !stage.gate(ctx))) continue;
+    const stageLog = new EditLog(stage.id);
+    text = loggedRuns[stage.id](text, ctx, stageLog);
+    if (!stageLog.isEmpty()) edits = composeEdits(edits, stageLog.edits);
+  }
+  log.addAll(edits);
   return text;
 }
 

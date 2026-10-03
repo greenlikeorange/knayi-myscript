@@ -10,12 +10,14 @@
 import { deepFreeze } from '../freeze.js';
 import { ERR, libraryError } from '../core/errors.js';
 import { optionsObject } from '../core/options.js';
-import { applyRuleRows, runStages, startTrace } from '../core/rules.js';
-import { toNfc } from '../core/nfc.js';
+import { applyRuleRows, applyRuleRowsLogged, runStages, runStagesLogged, startTrace } from '../core/rules.js';
+import { toNfc, logNfcEdits } from '../core/nfc.js';
 import { ZAWGYI_FONT } from '../fonts/zawgyi.js';
 import { WIN_FONT } from '../fonts/win.js';
-import { compileFont, readFontNoting, glyphsInTypedOrder } from '../engine/fontReader.js';
-import { zeroAsWa, fixLookAlikes, fixTypos } from '../rules/typingFixes.js';
+import { compileFont, readFontNoting, readFontLogged, glyphsInTypedOrder } from '../engine/fontReader.js';
+import {
+  zeroAsWa, zeroAsWaLogged, fixLookAlikes, fixLookAlikesLogged, fixTypos, fixTyposLogged
+} from '../rules/typingFixes.js';
 
 // The compiled fonts (§3.8), checked and built once, at load. A bundle that never converts drops both the calls and
 // the tables (§2.4).
@@ -39,11 +41,26 @@ export const FONT_STAGES = /* @__PURE__ */ deepFreeze([
   { id: 'NFC', label: 'NFC', run: toNfc, gate: finalNfcMayChangeText }
 ]);
 
+// The logged run of each stage that is not trace-only, by id, for fontToUnicodeLogged (core/rules.js
+// runStagesLogged; DESIGN.md §11.3): each gives what the stage's run gives and records its edits in a log.
+const FONT_LOGGED_RUNS = /* @__PURE__ */ deepFreeze({
+  sequences: replaceSequencesLogged,
+  syllables: readSyllablesLogged,
+  'zero as wa': zeroAsWaStageLogged,
+  'look-alikes': fixLookAlikesStageLogged,
+  typos: fixTyposStageLogged,
+  NFC: toNfcLogged
+});
+
 // 'sequences': letters the font types as look-alike sequences become the letter, before any glyph is read: Win's
 // aMomf, Mo, ps and OD (research/win-fonts.md §2, "No glyph of their own"), and Zawgyi's lagaung
 // (research/zawgyi-to-unicode.md §3, "Letters Zawgyi draws alike"). Each row applies once, in order.
 function replaceSequences(text, ctx) {
   return applyRuleRows(text, ctx.font.sequences);
+}
+
+function replaceSequencesLogged(text, ctx, log) {
+  return applyRuleRowsLogged(text, ctx.font.sequences, log);
 }
 
 // 'glyphs', trace only: each glyph as Unicode, still in typed order. Its output is recorded, not passed on.
@@ -57,6 +74,31 @@ function readSyllables(text, ctx) {
   const read = readFontNoting(text, ctx.font);
   ctx.nfcMayChange = read.nfcMayChange;
   return read.text;
+}
+
+function readSyllablesLogged(text, ctx, log) {
+  const read = readFontLogged(text, ctx.font, log);
+  ctx.nfcMayChange = read.nfcMayChange;
+  return read.text;
+}
+
+// The logged runs of the typing fixes and NFC: the functions' logged twins, with the log in third place.
+function zeroAsWaStageLogged(text, ctx, log) {
+  return zeroAsWaLogged(text, log);
+}
+
+function fixLookAlikesStageLogged(text, ctx, log) {
+  return fixLookAlikesLogged(text, log);
+}
+
+function fixTyposStageLogged(text, ctx, log) {
+  return fixTyposLogged(text, log);
+}
+
+function toNfcLogged(text, ctx, log) {
+  const normalized = toNfc(text);
+  if (normalized !== text) logNfcEdits(text, log);
+  return normalized;
 }
 
 // Gate 4, the final NFC of the font pipeline (DESIGN.md §3.10). Zawgyi and Win text is not NFC on the way in, but
@@ -84,6 +126,12 @@ export function traceFontToUnicode(text, fontName, trace) {
   const ctx = fontContext(fontName);
   startTrace(trace, text);
   return runStages(text, FONT_STAGES, ctx, trace);
+}
+
+// fontToUnicode, recording in `log`, an EditLog (core/edits.js), its edits from the input to the result, each with
+// the ids of the stages that made it (DESIGN.md §11.3): what toUnicode's offsets are made from.
+export function fontToUnicodeLogged(text, fontName, log) {
+  return runStagesLogged(text, FONT_STAGES, FONT_LOGGED_RUNS, fontContext(fontName), log);
 }
 
 // A new context for one run of the stages: the compiled font, and what the reader saw (FontContext, §2.3).

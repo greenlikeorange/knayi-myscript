@@ -22,9 +22,9 @@ async function stageLists() {
 }
 
 describe('stage lists of src/stages/ (DESIGN.md §2.3)', () => {
-  it('finds NORMALIZE_STAGES and FONT_STAGES', async () => {
+  it('finds NORMALIZE_STAGES, STABLE_NORMALIZE_STAGES and FONT_STAGES', async () => {
     const names = (await stageLists()).map((list) => list.name.split(' ')[1]).sort();
-    assert.deepEqual(names, ['FONT_STAGES', 'NORMALIZE_STAGES']);
+    assert.deepEqual(names, ['FONT_STAGES', 'NORMALIZE_STAGES', 'STABLE_NORMALIZE_STAGES']);
   });
 
   it('each stage has an id, a label and run, and its optional fields have their types', async () => {

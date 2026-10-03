@@ -14,6 +14,7 @@ import {
   RANK_UNRANKED, mayChangeUnderNfc
 } from '../script/codes.js';
 import { ERR, libraryError } from '../core/errors.js';
+import { sharedEnds } from '../core/edits.js';
 import { SyllableBuffer, CodeBuffer, closeSyllable, isHeld, marksGoOn } from './syllable.js';
 
 // The font reader's side of the four deliberate differences between the readers (§3.5).
@@ -356,6 +357,136 @@ function finishOutput(sink) {
   return out;
 }
 
+// ---------------------------------------------------------------------------------------------------------------
+// readFontLogged (DESIGN.md §11.3): readFontNoting, recording each syllable and each glyph written whole in an
+// EditLog. The reader writes a syllable only when the unit after it arrives, and an e or medial ra typed before its
+// base when the base's syllable closes, so this reader notes where each began, in the text and in the output, and
+// records an edit when it writes them: from where the syllable's source began (its pending e or medial ra, else its
+// base) up to the unit that closed it. That takes in the spaces and zero-width characters held after the syllable,
+// and a zero-width character written at once while an e waited (step 2).
+//
+// It is its own loop, with the steps of readGlyphs in the same order and the same helpers where nothing is to be
+// noted: threading the notes through readGlyphs's helpers made Zawgyi and Win conversion 4-13% slower under Node with
+// no log at all (npm run perf, 5 rounds), and test/next/core-edits.test.mjs checks on fuzz that both give one text.
+
+// { text, nfcMayChange }, as readFontNoting gives, with its edits in `log`.
+export function readFontLogged(text, font, log) {
+  const spans = { text: text, log: log, pendingSource: 0, pendingOutput: 0, syllableSource: 0, syllableOutput: 0 };
+  const nfcMayChange = readGlyphsLogged(text, font, spans) !== 0;
+  return { text: finishOutput(FONT_OUTPUT), nfcMayChange: nfcMayChange };
+}
+
+// readGlyphs, noting the spans. The numbered steps are those of readGlyphs.
+function readGlyphsLogged(text, font, spans) {
+  const buf = FONT_SYLLABLE;
+  const sink = FONT_OUTPUT;
+  let risk = 0;
+  buf.reset();
+  sink.clear();
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    const glyph = code < font.index.length ? font.index[code] : 0;
+    const role = font.roles[glyph];
+    if (glyph === 0) {
+      readUnitWithNoGlyphLogged(buf, sink, code, spans, i); // 1-3
+      if (code >= 0x0300 && mayChangeUnderNfc(code)) risk = 1;
+    } else if (role === ROLE.BASE) {
+      closeSyllableLogged(buf, sink, spans, i); // 4
+      noteSyllableStart(spans, buf, sink, i);
+      openSyllable(buf, sink, font, glyph);
+      risk |= font.nfcRisk[glyph];
+    } else if (role === ROLE.BEFORE_BASE) {
+      closeSyllableLogged(buf, sink, spans, i); // 5
+      if (buf.pendingLength === 0) notePendingStart(spans, sink, i);
+      waitForBase(buf, sink, font, glyph);
+      risk |= font.nfcRisk[glyph];
+    } else if (role !== ROLE.PLAIN && buf.isOpen && marksGoOn(buf, FONT_READING)) {
+      addToSyllable(buf, font, glyph, role); // 6
+    } else {
+      writeGlyphLogged(buf, sink, font, glyph, spans, i); // 7
+      risk |= font.nfcRisk[glyph];
+    }
+  }
+  closeSyllableLogged(buf, sink, spans, text.length);
+  writePendingLogged(buf, sink, spans, text.length);
+  return risk;
+}
+
+// Steps 1-3, noting the syllable and the pending run that a unit with no glyph ends.
+function readUnitWithNoGlyphLogged(buf, sink, code, spans, i) {
+  const zeroWidth = (zeroWidthBit(code) & FONT_READING.heldZeroWidth) !== 0;
+  if (isHeld(buf, code, FONT_READING) || (zeroWidth && FONT_READING.prebaseCrossesZeroWidth)) {
+    readUnitWithNoGlyph(buf, sink, code); // 1 and 2 close nothing: their units fall inside a span noted later
+    return;
+  }
+  closeSyllableLogged(buf, sink, spans, i);
+  writePendingLogged(buf, sink, spans, i);
+  sink.push(code);
+}
+
+// Step 7, noting the syllable and the pending run it ends, and the glyph it writes.
+function writeGlyphLogged(buf, sink, font, glyph, spans, i) {
+  closeSyllableLogged(buf, sink, spans, i);
+  writePendingLogged(buf, sink, spans, i);
+  const output = sink.length;
+  sink.pushCodes(font.units, font.textStart[glyph], font.end[glyph]);
+  addSpan(spans, sink, i, i + 1, output);
+}
+
+// Writes the open syllable, if any, and notes that its source, up to `at`, became what it wrote.
+function closeSyllableLogged(buf, sink, spans, at) {
+  if (!buf.isOpen) return;
+  closeSyllable(buf, sink);
+  addSpan(spans, sink, spans.syllableSource, at, spans.syllableOutput);
+}
+
+// Writes the e and medial ra that found no base, and notes their source, up to `at`.
+function writePendingLogged(buf, sink, spans, at) {
+  if (buf.pendingLength === 0) return;
+  buf.writePending(sink);
+  addSpan(spans, sink, spans.pendingSource, at, spans.pendingOutput);
+}
+
+// The first e or medial ra of a pending run is read at i, after the syllable before it was written.
+function notePendingStart(spans, sink, i) {
+  spans.pendingSource = i;
+  spans.pendingOutput = sink.length;
+}
+
+// A syllable opens on the base at i: its source begins at its pending e or medial ra, if any, else at its base, and
+// its output where that source began to be written.
+function noteSyllableStart(spans, buf, sink, i) {
+  if (buf.pendingLength > 0) {
+    spans.syllableSource = spans.pendingSource;
+    spans.syllableOutput = spans.pendingOutput;
+  } else {
+    spans.syllableSource = i;
+    spans.syllableOutput = sink.length;
+  }
+}
+
+// Records that text[start, end) became the output from `output` to the end of the sink, leaving out the units the
+// two share at either end, as EditLog#addChange does (core/edits.js sharedEnds): a syllable already in storage
+// order, or a glyph whose text is its own unit, records nothing.
+function addSpan(spans, sink, start, end, output) {
+  const text = spans.text;
+  const outEnd = sink.length;
+  if (isWrittenAsTyped(text, start, end, sink, output)) return;
+  const ends = sharedEnds(end - start, outEnd - output, (k) => text.charCodeAt(start + k) === sink.codeAt(output + k),
+    (k) => text.charCodeAt(end - 1 - k) === sink.codeAt(outEnd - 1 - k));
+  spans.log.add(start + ends.head, end - ends.tail, output + ends.head, outEnd - ends.tail);
+}
+
+// Whether the sink from `output` on holds exactly the units of text[start, end).
+function isWrittenAsTyped(text, start, end, sink, output) {
+  if (sink.length - output !== end - start) return false;
+  for (let k = 0; k < end - start; k++) {
+    if (text.charCodeAt(start + k) !== sink.codeAt(output + k)) return false;
+  }
+  return true;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
 // Each glyph as Unicode, still in typed order: the trace-only stage 'glyphs' (2.x glyphsInTypedOrder,
 // storageOrder.js:436-444). A unit with no glyph is written as it is.
 export function glyphsInTypedOrder(text, font) {

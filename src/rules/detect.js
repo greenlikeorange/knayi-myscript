@@ -198,7 +198,12 @@ export function decide(evidence, fallback) {
 // probability < thresholds[0] is 'unicode', > thresholds[1] is 'zawgyi', and anything else, NaN included, is
 // fallback (2.x scoreWithMyanmarTools). The core never loads the model (DESIGN.md §4 rule 5).
 export function scoreByZawgyiModel(text, model, thresholds, fallback) {
-  const probability = model.getZawgyiProbability(text);
+  return decideByProbability(model.getZawgyiProbability(text), thresholds, fallback);
+}
+
+// What a Zawgyi probability says: below thresholds[0] 'unicode', above thresholds[1] 'zawgyi', and anything else,
+// NaN included, fallback (2.x scoreWithMyanmarTools).
+export function decideByProbability(probability, thresholds, fallback) {
   if (probability < thresholds[0]) return 'unicode';
   if (probability > thresholds[1]) return 'zawgyi';
   return fallback;

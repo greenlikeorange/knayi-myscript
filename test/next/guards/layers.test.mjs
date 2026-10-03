@@ -7,6 +7,8 @@
 //   or a package.
 // - There are no import cycles, the two readers do not import each other but both import engine/syllable.js, and
 //   compat's files import each other one way only (§5.1).
+// - The two public APIs stand apart: the 3.0 API (index.js and api/) and compat import neither each other nor the
+//   other's files (§11.1).
 // - No file loads code at run time, except compat/zawgyiModel.js (D3).
 
 import { describe, it } from 'node:test';
@@ -25,6 +27,7 @@ const LAYER_OF = {
   'core/input.js': 'L1 core',
   'core/rules.js': 'L1 core',
   'core/nfc.js': 'L1 core',
+  'core/edits.js': 'L1 core',
   'fonts/zawgyi.js': 'L2 fonts',
   'fonts/win.js': 'L2 fonts',
   'engine/syllable.js': 'L3 engine',
@@ -44,6 +47,13 @@ const LAYER_OF = {
   'compat/fontDetect.js': 'L4 public',
   'compat/fontConvert.js': 'L4 public',
   'compat/text.js': 'L4 public',
+  'index.js': 'L4 public',
+  'api/args.js': 'L4 public',
+  'api/normalize.js': 'L4 public',
+  'api/explain.js': 'L4 public',
+  'api/encoding.js': 'L4 public',
+  'api/convert.js': 'L4 public',
+  'api/segment.js': 'L4 public',
   'spec/detectorSignatures.js': 'spec',
   'spec/breakRules.js': 'spec',
   'spec/typoRows.js': 'spec'
@@ -78,6 +88,9 @@ const COMPAT_IMPORTS = {
   'compat/text.js': ['compat/fontDetect.js', 'compat/input.js', 'compat/legacy.js', 'compat/globalOptions.js'],
   'compat/index.js': ['compat/fontDetect.js', 'compat/fontConvert.js', 'compat/text.js', 'compat/globalOptions.js']
 };
+
+// The files of the 3.0 API: index.js and api/ (§11.1).
+const isApiFile = (file) => file === 'index.js' || file.startsWith('api/');
 
 // The one file that may load code: myanmar-tools, for the 2.x API (D3).
 const LOADER = 'compat/zawgyiModel.js';
@@ -182,6 +195,19 @@ describe('layers of src/ (DESIGN.md §2.2)', () => {
         if (target && target.startsWith('compat/') && !(COMPAT_IMPORTS[file] || []).includes(target)) {
           bad.push(where(file, node) + ' imports ' + target);
         }
+      }
+    }
+    assert.deepEqual(bad, []);
+  });
+
+  it('the 3.0 API and compat do not import each other (§11.1)', () => {
+    const bad = [];
+    for (const [file, edges] of GRAPH) {
+      for (const { node, target } of edges) {
+        if (!target) continue;
+        const fromApi = isApiFile(file) && target.startsWith('compat/');
+        const fromCompat = file.startsWith('compat/') && isApiFile(target);
+        if (fromApi || fromCompat) bad.push(where(file, node) + ' imports ' + target);
       }
     }
     assert.deepEqual(bad, []);
