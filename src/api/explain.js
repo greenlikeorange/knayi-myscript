@@ -89,7 +89,9 @@ function explainLine(line, offset, detector, issues) {
   }
 }
 
-// A line in Zawgyi: the span from its first character to its last that is not white space.
+// A line in Zawgyi: the span from its first character to its last that is not white space. The end comes from trim
+// on the rest of the line, which removes the white space that \s matches: /\s+$/ would try again from every position
+// of a run of white space that does not end the line, in quadratic time (scripts/check-redos.mjs).
 /**
  * @param {string} line
  * @param {number} offset
@@ -97,7 +99,7 @@ function explainLine(line, offset, detector, issues) {
  */
 function zawgyiIssue(line, offset) {
   const start = line.length - line.replace(/^\s+/, '').length;
-  const end = line.replace(/\s+$/, '').length;
+  const end = start + line.slice(start).trim().length;
   const zawgyi = line.slice(start, end);
   return issueOf('encoding.zawgyi', offset + start, offset + end, zawgyi, fontToUnicode(zawgyi, 'zawgyi'));
 }
