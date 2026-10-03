@@ -280,6 +280,19 @@ describe('myanmar-tools adapter', () => {
       assert.deepEqual(messages, [['warn', NOT_AVAILABLE]]);
     });
 
+    // Browsers inside the README floor may have no globalThis (Chrome before 71, Firefox before 65, Safari before
+    // 12.1, Edge before 79). nodeRequire reads process from it only behind a typeof check, so they get the same
+    // warning as a browser that has it.
+    it('says it is not available where there is no globalThis', () => {
+      const messages = [];
+      const context = vm.createContext({ console: { warn: (m) => messages.push(['warn', m]), error: (m) => messages.push(['error', m]) } });
+      vm.runInContext('delete globalThis.globalThis', context);
+      assert.equal(vm.runInContext('typeof globalThis', context), 'undefined');
+      const fontDetect = loadWithInternals('detector.js', [], { context: context });
+      assertRuleScorer(fontDetect);
+      assert.deepEqual(messages, [['warn', NOT_AVAILABLE]]);
+    });
+
     it('tries to load it once, and warns once', () => {
       let loads = 0;
       const requireFrom = Module.createRequire(path.join(root, 'missing', 'app.js'));

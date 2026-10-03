@@ -8,8 +8,11 @@ var myanmartoolZawgyiDetector = null;
 var myanmarToolsLoadAttempted = false;
 var myanmarToolsLoadError = null;
 
+// Browsers inside the README floor may have no globalThis (Chrome before 71, Firefox before 65, Safari before 12.1,
+// Edge before 79), so it is read only behind a typeof check. A bare `process` would make webpack 4 and browserify
+// bundle a shim for it.
 function nodeRequire(id) {
-  var proc = globalThis.process;
+  var proc = typeof globalThis !== 'undefined' && globalThis.process;
   if (!proc || !proc.versions || typeof proc.versions.node !== 'string') return null;
   var req = null;
   try {

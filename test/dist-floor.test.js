@@ -22,22 +22,19 @@ const builds = {
 };
 
 // Known uses below the floor, per build, to fix in Phase 1. The test fails when this list changes either way,
-// so a fix must remove its entry.
+// so a fix must remove its entry. The library code has none: the builds read globalThis only behind a typeof
+// check, which the checker allows, in library/detector.js's nodeRequire and where scripts/build.js sets the
+// global. What is left comes from scripts/build.js's ESM entry, in the module builds only:
 //
-// - globalThis: library/detector.js:12 reads `globalThis.process` with no typeof guard. It runs inside
-//   loadMyanmarTools's try, so a browser without globalThis (Chrome < 71, Firefox < 65, Safari < 12.1,
-//   Edge < 79) still gets the rule scorer, but warns "could not be loaded (globalThis is not defined)" instead of
-//   "not available in this environment" (pinned in the floor emulation below). The guarded use that
-//   scripts/build.js adds for the global (`typeof globalThis !== "undefined" ? globalThis : ...`) is allowed.
 // - let, for-of: esbuild's CommonJS interop helper `__copyProps` (`for (let key of ...)`), pulled into the
 //   module builds by scripts/build.js's ESM entry (`import knayi from './main.js'`). Firefox before 44 rejects
 //   `let` in a classic script, so this breaks there only when a bundler passes the module build through as is.
 // - destructuring: the same entry's `export const { ... } = knayi`, written as `var { version, ... } = ...`.
 const KNOWN = {
-  'knayi-myscript.min.js': { globalThis: 1 },
-  'knayi-myscript.js': { globalThis: 1 },
-  'knayi-myscript.mjs': { globalThis: 1, let: 1, 'for-of': 1, destructuring: 1 },
-  'knayi-myscript.es.js': { globalThis: 1, let: 1, 'for-of': 1, destructuring: 1 }
+  'knayi-myscript.min.js': {},
+  'knayi-myscript.js': {},
+  'knayi-myscript.mjs': { let: 1, 'for-of': 1, destructuring: 1 },
+  'knayi-myscript.es.js': { let: 1, 'for-of': 1, destructuring: 1 }
 };
 
 function tally(uses) {
@@ -216,9 +213,9 @@ describe('floor emulation', () => {
   const expected = JSON.parse(execFileSync(process.execPath, [path.join(__dirname, '..', 'scripts', 'browser', 'node-results.js')],
     { maxBuffer: 1 << 26 }));
 
-  // Node with myanmar-tools hidden says "not installed"; the known globalThis issue says this instead.
-  const KNOWN_ADAPTER_WARNING = 'warn: myanmar-tools could not be loaded (globalThis is not defined); ' +
-    'fontDetect used the rule scorer. Install myanmar-tools@1.1.3.';
+  // Node with myanmar-tools hidden says "not installed". With no require, the adapter examples warn this instead,
+  // as they do in a browser that has globalThis (scripts/browser/smoke.spec.js).
+  const BROWSER_ADAPTER_WARNING = 'warn: myanmar-tools is not available in this environment; fontDetect used the rule scorer.';
 
   for (const file of ['knayi-myscript.min.js', 'knayi-myscript.js']) {
     it(file + ' gives main.js results without the post-floor built-ins', () => {
@@ -237,14 +234,14 @@ describe('floor emulation', () => {
       const adapterWarnings = [];
       const diffs = examples.differences(calls, actual, expected, {
         same(i, a, b) {
-          const known = (a.console || []).map((line) => line === KNOWN_ADAPTER_WARNING ? 'adapter warning' : line);
+          const browser = (a.console || []).map((line) => line === BROWSER_ADAPTER_WARNING ? 'adapter warning' : line);
           const node = (b.console || []).map((line) => /^warn: myanmar-tools is not installed;/.test(line) ? 'adapter warning' : line);
-          if (known.join('\n') !== (a.console || []).join('\n')) adapterWarnings.push(i);
-          return JSON.stringify(Object.assign({}, a, { console: known })) === JSON.stringify(Object.assign({}, b, { console: node }));
+          if (browser.join('\n') !== (a.console || []).join('\n')) adapterWarnings.push(i);
+          return JSON.stringify(Object.assign({}, a, { console: browser })) === JSON.stringify(Object.assign({}, b, { console: node }));
         }
       });
       assert.deepEqual(diffs, [], diffs.join('\n'));
-      assert.equal(adapterWarnings.length, 1, 'the known globalThis warning appears once; if it is gone, update KNOWN');
+      assert.equal(adapterWarnings.length, 1, 'the adapter warning appears once');
     });
   }
 });

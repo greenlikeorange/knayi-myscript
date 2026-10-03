@@ -49,6 +49,10 @@ Counts below are distinct lines of the corpora that `npm run eval` downloads (se
 - Development: `npm test` no longer rewrites `dist/`; it tests a build made in a temporary directory. CI also runs the output comparison, the API contract matrix, table, README, fuzz, property and adapter tests, the browser floor checks and a Playwright run, ReDoS, type, size and `dist/` checks, growth exponents, and a smoke run on Node 16, 18 and 20.
 - README: `normalize` returns text with no Myanmar letters in NFC, and a Win source is converted even though it has no Myanmar letters; name the source font for short text, because a detection tie reads it as Zawgyi; `normalize` can change converted text where an ေ or medial ra has no consonant after it.
 
+### Fixed
+
+- **In browsers without `globalThis`, `fontDetect` with the myanmar-tools adapter gives the right warning** (Chrome before 71, Firefox before 65, Safari before 12.1 and Edge before 79, all inside the README's browser floor). It used the rule scorer there, as in every browser, but warned `myanmar-tools could not be loaded (globalThis is not defined); fontDetect used the rule scorer. Install myanmar-tools@1.1.3.`, because the browser builds read `globalThis` with no check. It now warns `myanmar-tools is not available in this environment; fontDetect used the rule scorer.`, as newer browsers do, and the builds read `globalThis` only behind a `typeof` check. Return values do not change, and nothing changes in Node, Bun or a browser that has `globalThis`: the output comparison found 0 differences in 2,772,858 comparisons (every call form on every corpus, mC4 included, and on the generated and fuzz sets), with no change in the API contract matrix.
+
 ## 2.10.0
 
 Not yet tagged or published to npm. Pull requests #68 to #74.
