@@ -10,5 +10,5 @@
     "checkJs": false
   },
   "files": ["api.ts", "../../src/index.d.ts", "../../src/api/args.js", "../../src/api/normalize.js",
-    "../../src/api/encoding.js"]
+    "../../src/api/explain.js", "../../src/api/encoding.js"]
 }

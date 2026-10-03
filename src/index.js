@@ -23,3 +23,4 @@ export { createTrace };
 
 export { normalize, isNormalized } from './api/normalize.js';
 export { detectEncoding } from './api/encoding.js';
+export { explain } from './api/explain.js';

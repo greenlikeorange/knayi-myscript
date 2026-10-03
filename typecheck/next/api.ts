@@ -45,3 +45,13 @@ const encodings: string[] = lines.map(detectEncoding).map((found) => found.encod
 const probability: number | undefined = byModel.zawgyiProbability;
 // @ts-expect-error: the encodings are named
 const notAnEncoding: EncodingEvidence = { encoding: 'en', unicode: 0, zawgyi: 0 };
+
+// explain
+import { explain } from '../../src/index.js';
+import type { Issue, IssueKind } from '../../src/index.js';
+
+const issues: Issue[] = explain(lines[0], { zawgyiDetector: detector });
+const kinds: IssueKind[] = issues.map((issue) => issue.kind);
+const fixes: string[] = issues.map((issue) => issue.fix);
+// @ts-expect-error: explain takes no report
+explain(lines[0], { report: true });

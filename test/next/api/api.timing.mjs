@@ -8,7 +8,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { growthExponent } from '../../../scripts/eval/lib/timing.mjs';
 import { SHAPES, PUMPS, NFC_RUNS } from '../helpers.mjs';
-import { normalize, isNormalized, detectEncoding } from '../../../src/index.js';
+import { normalize, isNormalized, explain, detectEncoding } from '../../../src/index.js';
 
 const LIMIT = 1.3;
 
@@ -49,6 +49,7 @@ const FUNCTIONS = {
   normalize: (text) => normalize(text),
   'normalize with a report': (text) => normalize(text, { report: true }),
   isNormalized: (text) => isNormalized(text),
+  explain: (text) => explain(text),
   detectEncoding: (text) => detectEncoding(text)
 };
 

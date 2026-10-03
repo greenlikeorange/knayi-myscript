@@ -113,3 +113,45 @@ export interface EncodingEvidence {
 
 /** Whether text is Unicode or Zawgyi, with the evidence. */
 export declare function detectEncoding(text: string, options?: DetectorOptions | number | null): EncodingEvidence;
+
+// ---------------------------------------------------------------------------------------------------------------
+// explain
+
+/** What an issue of explain is about. */
+export type IssueKind = 'zawgyi' | 'order' | 'mark' | 'look-alike' | 'typo' | 'nfc';
+
+/** The rule ids of explain, one for each thing it finds. */
+export type IssueRule =
+  | 'encoding.zawgyi'
+  | 'order.prebase'
+  | 'order.marks'
+  | 'mark.space'
+  | 'mark.repeated'
+  | 'asat.dropped'
+  | 'look-alike.u-as-nya'
+  | 'look-alike.seven-as-ra'
+  | 'look-alike.zero-as-wa'
+  | 'look-alike.ca-as-jha'
+  | 'look-alike.wa-as-zero'
+  | 'look-alike.ra-as-seven'
+  | 'typo.ii'
+  | 'typo.uu'
+  | 'typo.au'
+  | 'typo.lagaung'
+  | 'nfc.order';
+
+/** One issue of a text: text[start, end), which is `text`, has it, and `fix` is what belongs there. */
+export interface Issue {
+  kind: IssueKind;
+  rule: IssueRule;
+  start: number;
+  end: number;
+  text: string;
+  /** What normalize writes there; for a Zawgyi line, the line in Unicode. */
+  fix: string;
+}
+
+/**
+ * The issues of a text, by start: lines that read as Zawgyi, and in the other lines each thing normalize changes.
+ */
+export declare function explain(text: string, options?: DetectorOptions | number | null): Issue[];
