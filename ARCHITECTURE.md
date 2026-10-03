@@ -1,6 +1,6 @@
 # Architecture
 
-How knayi-myscript is built today: version 2.10.0, including the Shan look-alike fix (#73) and the linear-time fix for `normalize` (#74). This is a map of the current code, not a target design. A pull request that changes something described here updates this file in the same PR.
+How knayi-myscript is built today: version 2.10.0, including the Shan look-alike fix (#73) and the fix for `normalize`'s quadratic time on runs of e and medial ra (#74). This is a map of the current code, not a target design. A pull request that changes something described here updates this file in the same PR.
 
 - [Entry points and builds](#entry-points-and-builds)
 - [Module map](#module-map)
@@ -290,6 +290,7 @@ The 2.x code keeps these so that refactors stay byte-identical. Each one changes
 - **`fontConvert.debugging`** returns what `fontConvert` returns, not an object, on every early exit: missing or non-string content, no Myanmar text, a missing or unknown target, the same source and target, or a Win direction knayi does not convert.
 - **The debug flag is read from `this`.** A detached call such as `const f = knayi.fontConvert; f(...)` reads `debug` from the global object in `main.js` and the script builds, which are sloppy-mode code, so a global `debug` variable makes it return the debug object. The ESM builds are strict and do not.
 - **Font names in `syllBreak`, `truncate` and `spellingFix`:** an unknown name, or `'win'`, reaches the rule tables as it is. `syllBreak` and `truncate` throw a `TypeError` from inside `breakParts` for most of them; a few names of `Object.prototype` properties, such as `'toString'`, return the text with no breaks instead. `spellingFix` uses the Unicode marks for an unknown name, but throws on some `Object.prototype` names such as `'constructor'`. `fontConvert` detects the source instead of an unknown source name.
+- **NFC can take quadratic time (known, not kept on purpose).** `normalize` and the conversions to Unicode end with `String.prototype.normalize('NFC')`, which reorders a long run of combining marks of different classes, such as dot below with virama or asat (U+1037 with U+1039 or U+103A), in quadratic time: `'က'` followed by 32,000 such pairs takes about 1 s on Node 26. Putting each run of marks in canonical order before NFC would keep the output and make it linear; until that lands, `test/growth.timing.js` lists the case as known (CHANGELOG.md, 2.10.0, Security).
 - **Only U+1000–U+109F counts as Myanmar** for the input checks (`contentGate.js`). The extended blocks (U+A9E0–U+A9FF, U+AA60–U+AA7F) are read by the typing fixes and by `arrangeUnicode`, but `fontDetect`, `fontConvert`, `syllBreak`, `spellingFix` and `truncate` treat text made only of them as having no Myanmar character. Myanmar Extended-C (U+116D0–U+116E3) is not read anywhere. The ranges are written by hand, not generated from Unicode data.
 
 ## Where the rules are justified

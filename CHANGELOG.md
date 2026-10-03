@@ -58,7 +58,8 @@ Not yet tagged or published to npm. Pull requests #68 to #74.
 
 ### Security
 
-- **`normalize` runs in linear time again** (#74). Before this fix, 2.10's `normalize` took quadratic time on a consonant followed by a long run of ေ or medial ra: `'က'` followed by 20,000 of either took from a few hundred milliseconds to over a second, against about a millisecond in 2.9.1, and a million characters could take close to a minute. A short input could stall a server that normalizes untrusted text. Output is unchanged: 0 differences in 5,079,191 comparisons, measured in #74, and none on the eval corpora.
+- **`normalize` is linear again on runs of ေ and medial ra** (#74). Before this fix, 2.10's `normalize` took quadratic time on a consonant followed by a long run of ေ or medial ra: `'က'` followed by 20,000 of either took from a few hundred milliseconds to over a second, against about a millisecond in 2.9.1, and a million characters could take close to a minute. A short input could stall a server that normalizes untrusted text. Output is unchanged: 0 differences in 5,079,191 comparisons, measured in #74, and none on the eval corpora.
+- **Known, not fixed yet: a long run of dot below with virama or asat is still quadratic.** `normalize` and conversion to Unicode end with `String.prototype.normalize('NFC')`, and the runtime's NFC reorders a long run of combining marks of different classes in quadratic time. `'က'` followed by 32,000 pairs of dot below and virama (U+1037 U+1039) takes about 1 s in `normalize` on Node 26, and 64,000 pairs about 4 s; Zawgyi and Win conversion to Unicode behave the same. 2.9.1 did not apply NFC and takes a few milliseconds. Until knayi puts such runs in order before NFC, limit the length of untrusted input. `test/growth.timing.js` tracks the case.
 
 ### Added
 

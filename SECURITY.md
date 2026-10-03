@@ -11,7 +11,7 @@ Include the knayi version, where it runs (Node, Bun or a browser), and the small
 
 ## What counts as a security problem
 
-- **Super-linear running time.** Every knayi function must run in time linear in the length of its input. An input on which any public function, or any `fontConvert.debugging` call, takes quadratic or worse time is a security bug, even when the output is right: a short input can stall a server that processes untrusted text. The same holds for memory that grows faster than the input.
+- **Super-linear running time.** Every knayi function must run in time linear in the length of its input. An input on which any public function, or any `fontConvert.debugging` call, takes quadratic or worse time is a security bug, even when the output is right: a short input can stall a server that processes untrusted text. The same holds for memory that grows faster than the input. One such case is known and not fixed yet: a long run of dot below with virama or asat, through the final NFC of `normalize` and of conversion to Unicode ([CHANGELOG.md](CHANGELOG.md), 2.10.0, Security).
 - **Loading code it should not.** knayi has no runtime dependencies. The only code it loads is the optional `myanmar-tools` package. A way to make knayi load or run other code is a security bug.
 - **Anything else** that lets input to knayi harm the program that calls it.
 
