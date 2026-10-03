@@ -65,14 +65,20 @@ export interface TruncateOptions {
 
 /** What fontConvert.debugging reports. */
 export interface ConvertDebug {
-  /** The target font: `'unicode'` or `'zawgyi'`. */
+  /**
+   * The target font: `'unicode'` or `'zawgyi'`. Where fontConvert returns before converting, the target as the call
+   * reads it: also `'win'`, or `''` for a missing or unknown target.
+   */
   to: string;
-  /** The source font, as named or detected: `'unicode'`, `'zawgyi'` or `'win'`. */
+  /**
+   * The source font, as named or detected: `'unicode'`, `'zawgyi'` or `'win'`. `''` where fontConvert returns before
+   * converting and the call names no source it knows, or before it detects one.
+   */
   from: string;
   /**
    * From Zawgyi or Win, the stages that changed the text, in this order: `'sequences'`, `'glyphs'`, `'syllables'`,
    * `'zero as wa'`, `'look-alikes'`, `'typos'`, `'NFC'`. From Unicode, the regex source of each rule that matched
-   * (for a rule rewritten for speed, the source it had before).
+   * (for a rule rewritten for speed, the source it had before). Empty where fontConvert returns before converting.
    */
   matched_patterns: string[];
   /** The text before the first entry of `matched_patterns`, then after each entry. The last is fontConvert's result. */
@@ -148,14 +154,17 @@ export declare namespace fontConvert {
   /**
    * Converts like fontConvert, and reports each step (ConvertDebug). The last step is what fontConvert returns.
    *
-   * Where fontConvert returns before converting, this returns the same value, not a ConvertDebug: for missing
-   * content, content that is not a string, text with no Myanmar letters, a missing or unknown target, the same
-   * source and target, and a Win direction knayi does not convert.
+   * Where fontConvert returns before converting, the report has no `matched_patterns` and one step, what
+   * fontConvert returns: for missing content (`''`), text with no Myanmar letters, a missing or unknown target, the
+   * same source and target, and a Win direction knayi does not convert. Content that is not a string, such as a
+   * number, comes back unchanged, as from fontConvert.
    *
    * @example
    * ```js
    * knayi.fontConvert.debugging('ေစ်း', 'unicode', 'zawgyi')
    * // { to: 'unicode', from: 'zawgyi', matched_patterns: ['glyphs', 'syllables'], steps: ['ေစ်း', 'ေစျး', 'ဈေး'] }
+   * knayi.fontConvert.debugging(' ကျ ', 'unicode', 'unicode')
+   * // { to: 'unicode', from: 'unicode', matched_patterns: [], steps: ['ကျ'] }
    * ```
    */
   function debugging(

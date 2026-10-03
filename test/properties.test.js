@@ -79,11 +79,9 @@ describe('debugging ends with the converted text', () => {
       check(fc.property(text, (content) => {
         const debug = knayi.fontConvert.debugging(content, to, from);
         const converted = knayi.fontConvert(content, to, from);
-        if (typeof debug === 'string') {
-          // Early exits (same font, no Myanmar letter) return the text itself (refactor plan, section 7 item 3).
-          assert.equal(debug, converted);
-          return;
-        }
+        // A step before the first pattern, and one after each. Early exits (same font, no Myanmar letter) report no
+        // pattern and one step, as a conversion in which nothing matched does (refactor plan, section 7 item 3).
+        assert.equal(debug.steps.length, debug.matched_patterns.length + 1);
         assert.equal(debug.to, to);
         if (from) assert.equal(debug.from, from);
         assert.ok(Array.isArray(debug.matched_patterns));
@@ -116,8 +114,10 @@ describe('no call form throws', () => {
     forms.push(['fontConvert.debugging(x, ' + to + ', ' + from + ')', (x) => knayi.fontConvert.debugging(x, to, from)]);
   }));
 
+  // fontConvert.debugging returns a ConvertDebug for every string, whatever the fonts.
   function returnsText(name, value) {
-    if (/debugging/.test(name) && value && typeof value === 'object') {
+    if (/debugging/.test(name)) {
+      assert.ok(value && typeof value === 'object' && value.steps.length > 0, name + ' returned ' + typeof value);
       assert.ok(value.steps.every((step) => typeof step === 'string'), name);
     } else {
       assert.equal(typeof value, 'string', name + ' returned ' + typeof value);

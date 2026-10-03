@@ -156,7 +156,14 @@ knayi.fontConvert(null, 'unicode') // ''
 knayi.fontConvert('က') // 'က'  (no target font; warns)
 ```
 
-`fontConvert.debugging(content, targetFontType, originalFontType)` returns `{ to, from, matched_patterns, steps }`. `steps` is an array of strings. The last step equals `fontConvert` for the same arguments. From Unicode, `matched_patterns` holds the regex source of each rule that matched (for a rule rewritten for speed, the source it had before). From Zawgyi or Win, it names each stage that changed the text: `sequences`, `glyphs`, `syllables`, `zero as wa`, `look-alikes`, `typos`, `NFC`. Only `fontConvert.debugging` returns this object. `fontConvert` never does, however it is called: also as a plain function (`const convert = knayi.fontConvert`) in a page or app with a global variable named `debug`.
+`fontConvert.debugging(content, targetFontType, originalFontType)` returns `{ to, from, matched_patterns, steps }`. `steps` is an array of strings. The last step equals `fontConvert` for the same arguments. From Unicode, `matched_patterns` holds the regex source of each rule that matched (for a rule rewritten for speed, the source it had before). From Zawgyi or Win, it names each stage that changed the text: `sequences`, `glyphs`, `syllables`, `zero as wa`, `look-alikes`, `typos`, `NFC`. Where `fontConvert` returns before converting (missing content, no Myanmar letters, a missing or unknown target, the same font, or a Win direction it does not convert), the object has no `matched_patterns` and one step, what `fontConvert` returns. There, `to` or `from` is `''` where the call names no font knayi knows, and `from` is `''` too when the call returns before it detects the source. Content that is not a string, such as a number, comes back unchanged.
+
+```javascript
+knayi.fontConvert.debugging(' ကျ ', 'unicode', 'unicode') // { to: 'unicode', from: 'unicode', matched_patterns: [], steps: ['ကျ'] }
+knayi.fontConvert.debugging('abc', 'unicode') // { to: 'unicode', from: '', matched_patterns: [], steps: ['abc'] }
+```
+
+Only `fontConvert.debugging` returns this object. `fontConvert` never does, however it is called: also as a plain function (`const convert = knayi.fontConvert`) in a page or app with a global variable named `debug`.
 
 ### Zawgyi to Unicode
 

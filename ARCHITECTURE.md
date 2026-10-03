@@ -1,6 +1,6 @@
 # Architecture
 
-How knayi-myscript is built today: version 2.10.0, including the Shan look-alike fix (#73), the fix for `normalize`'s quadratic time on runs of e and medial ra (#74), NFC in linear time (`library/nfc.js`), one policy for font names, in any letter case (`resolveFont`, `breakFont` and `givenName` in `library/contentGate.js`), a `fontDetect` fallback that is a string or none, detector options that may be `null` and are checked (thresholds in order, adapter names), with every message silenced by silent mode, and a `fontConvert` that reads no debug flag from `this`. This is a map of the current code, not a target design. A pull request that changes something described here updates this file in the same PR.
+How knayi-myscript is built today: version 2.10.0, including the Shan look-alike fix (#73), the fix for `normalize`'s quadratic time on runs of e and medial ra (#74), NFC in linear time (`library/nfc.js`), one policy for font names, in any letter case (`resolveFont`, `breakFont` and `givenName` in `library/contentGate.js`), a `fontDetect` fallback that is a string or none, detector options that may be `null` and are checked (thresholds in order, adapter names), with every message silenced by silent mode, a `fontConvert` that reads no debug flag from `this`, and a `fontConvert.debugging` that returns its report on every exit with text, as the types promise. This is a map of the current code, not a target design. A pull request that changes something described here updates this file in the same PR.
 
 - [Entry points and builds](#entry-points-and-builds)
 - [Module map](#module-map)
@@ -42,7 +42,7 @@ All library code is CommonJS in `library/`. Every file there is strict code: it 
 
 | Module | Exports | What it holds |
 | --- | --- | --- |
-| `converter.js` | `fontConvert`, `fontConvert.debugging` | Input checks and font routing for conversion. Both exports call `convert`, which takes the debug flag as an argument: `false` from `fontConvert`, `true` from `debugging`. |
+| `converter.js` | `fontConvert`, `fontConvert.debugging` | Input checks and font routing for conversion. Both exports call `convert`, which takes the debug flag as an argument: `false` from `fontConvert`, `true` from `debugging`. Every exit that returns text before converting goes through `unconverted`, which gives `debugging` its report there. |
 | `detector.js` | `fontDetect` | 29 signature patterns (12 Unicode, 17 Zawgyi) compiled to global regexes at load; the rule scorer; the optional myanmar-tools adapter and its lazy loader. |
 | `normalization.js` | `normalize` | Input checks, then NFC and, for text with a character of the Myanmar blocks, `arrangeUnicode`, typos, look-alikes, NFC. |
 | `syllBreak.js` | `syllBreak` | Input checks, font choice, then `breakText`. |
@@ -101,6 +101,8 @@ Every public function starts the same way, with small differences. `toText` unwr
 4. A Win target, or a Win source with a target other than Unicode: an error, and the text is returned.
 5. Zawgyi or Win to Unicode: `zawgyi.toUnicode` or `win.toUnicode`, which both call `storageOrder.toUnicode` with their compiled font.
 6. Unicode to Zawgyi: `syllable.collapseMarks(content, 'unicode')`, then `syllable.convertText`.
+
+`fontConvert.debugging` takes the same steps. Where steps 1 to 4 return text, it returns that text in a report with no `matched_patterns` and one step (`unconverted`), as for a conversion in which nothing matched; a non-string comes back as it is. The report's `to` and `from` are the fonts the call has read, or `''`: for a missing or unknown name, and for a source the call has not detected yet. The report reads a font only as a name (`givenName`), so on the exits of step 1, before `resolveFont` reads `to` and `from` in step 2, a font that is not a string, such as `['unicode']`, is reported as `''`, and its string form, whose conversion can throw, is not read for the report.
 
 ### The font pipeline: storageOrder.toUnicode(content, font, debug)
 
@@ -311,7 +313,6 @@ The 2.x code keeps these so that refactors stay byte-identical. Each one changes
 - **Three `isConsonant`s:** `storageOrder.js` means Burmese consonants (U+1000–U+1021), `typingFixes.js` the consonants of every language in the Myanmar blocks, and `syllable.js` the Burmese range again, for the test-only parser.
 - **Bases differ between engines:** U+1022 and U+1028 start a syllable in `storageOrder.js` (`isMyanmarLetter`) but not in the Unicode break rules.
 - **The typing-fix order** differs between the pipelines (above).
-- **`fontConvert.debugging`** returns what `fontConvert` returns, not an object, on every early exit: missing or non-string content, no Myanmar text, a missing or unknown target, the same source and target, or a Win direction knayi does not convert.
 - **`fontConvert` reads a font that is not a string by its string form:** `resolveFont` looks the value up as a property name, with no case folding, so `['zawgyi']` is Zawgyi and `['ZAWGYI']` is detected, where `syllBreak`, `spellingFix` and `truncate` detect the font for any value that is not a string. Only an unknown name that is a string warns.
 - **`truncate` throws on an object that `String()` cannot convert,** such as `Object.create(null)` or `{ toString: undefined }`: it turns non-strings into strings with `String(content)` (`truncate.js`), where the other functions return them unchanged. `test/properties.test.js` pins the `TypeError`.
 - **Only U+1000–U+109F counts as Myanmar** for the input checks (`contentGate.js`). The extended blocks (U+A9E0–U+A9FF, U+AA60–U+AA7F) are read by the typing fixes and by `arrangeUnicode`, and count for `normalize`'s shortcut ([above](#normalizecontent)), but `fontDetect`, `fontConvert`, `syllBreak`, `spellingFix` and `truncate` treat text made only of them as having no Myanmar character. Myanmar Extended-C (U+116D0–U+116E3) is not read anywhere. The ranges are written by hand, not generated from Unicode data. They match Unicode 15.1, apart from the classes `test/unicode.test.js` lists, and that test fails when the runtime knows Myanmar code points they miss.

@@ -105,8 +105,12 @@ describe('library against the 2.10 oracle', () => {
     const text = fc.oneof(zawgyi.map((t) => ['zawgyi', t]), win.map((t) => ['win', t]));
     check(fc.property(text, ([font, content]) => {
       const debug = knayi.fontConvert.debugging(content, 'unicode', font);
-      if (typeof debug === 'string') {
-        same(debug, oracle.toUnicode(content, font), content);
+      if (font === 'zawgyi' && !/[\u1000-\u109F]/.test(content)) {
+        // No Myanmar letter: fontConvert returns the text before converting, and debugging reports no stage and
+        // that text as its one step.
+        assert.deepEqual(debug.matched_patterns, [], 'stages for ' + hex(content));
+        assert.equal(debug.steps.length, 1, 'steps for ' + hex(content));
+        same(debug.steps[0], oracle.toUnicode(content, font), content);
         return;
       }
       const frozen = fonts[font].toUnicode(content.trim(), true);

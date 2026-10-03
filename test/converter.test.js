@@ -117,6 +117,43 @@ describe('Converter',()=>{
       var log = debugging('ျမန္မာ', 'unicode', 'zawgyi');
       assert.equal(log.steps[log.steps.length - 1], 'မြန်မာ');
     })
+
+    // index.d.ts promises a ConvertDebug; 2.10 returned the text itself on these exits (refactor plan, section 7
+    // item 3). The one step is what fontConvert returns, trimmed or not.
+    it('reports the exits before converting, with no pattern and one step', () => {
+      var report = (to, from, text) => ({ to: to, from: from, matched_patterns: [], steps: [text] });
+      var cases = [
+        [[null, 'unicode', 'zawgyi'], report('unicode', 'zawgyi', '')],
+        [['', 'zawgyi'], report('zawgyi', '', '')],
+        [[' abc ', 'unicode'], report('unicode', '', ' abc ')],
+        [[' abc ', 'zawgyi', 'Unicode'], report('zawgyi', 'unicode', ' abc ')],
+        [['ကျ'], report('', '', 'ကျ')],
+        [[' ကျ ', 'foo', 'zawgyi'], report('', 'zawgyi', 'ကျ')],
+        [[' ကျ ', 'foo'], report('', '', 'ကျ')],
+        [[' ကျ ', 'unicode', 'unicode'], report('unicode', 'unicode', 'ကျ')],
+        [[' ကျ ', 'unicode'], report('unicode', 'unicode', 'ကျ')],
+        [['ကျ', 'win', 'unicode'], report('win', 'unicode', 'ကျ')],
+        [['jrefrm', 'zawgyi', 'win'], report('zawgyi', 'win', 'jrefrm')],
+        [['abc', ['unicode'], ['zawgyi']], report('', '', 'abc')],
+        [['ကျ', ['unicode'], ['unicode']], report('unicode', 'unicode', 'ကျ')]
+      ];
+      knayi.setGlobalOptions({ silent_mode: true });
+      try {
+        cases.forEach(function ([args, expected]) {
+          var label = JSON.stringify(args);
+          assert.deepEqual(knayi.fontConvert.debugging.apply(null, args), expected, label);
+          assert.equal(knayi.fontConvert.apply(null, args), expected.steps[0], label);
+        });
+        // A font whose string form throws is not read before the call reads its fonts.
+        assert.deepEqual(knayi.fontConvert.debugging('abc', Object.create(null)), report('', '', 'abc'));
+        // A ConvertDebug holds strings, so other content comes back as it is.
+        var object = {};
+        assert.equal(knayi.fontConvert.debugging(object, 'unicode'), object);
+        assert.equal(knayi.fontConvert.debugging(123, 'unicode', 'zawgyi'), 123);
+      } finally {
+        knayi.setGlobalOptions({ silent_mode: false });
+      }
+    })
   })
 
   describe('digit zero from Zawgyi', () => {

@@ -1189,8 +1189,9 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; }
       ? `Steps for the ${plural(state.selection.length, 'selected character', 'selected characters')}.`
       : 'Select part of the input to see its steps alone.'));
     const logs = d.logs;
-    if (!logs || typeof logs !== 'object') {
-      // fontConvert.debugging returns a plain string when no rule runs.
+    // No rule runs for no text, text with no Myanmar letters, or the same source and target. fontConvert.debugging
+    // returns a plain string then in 2.10 and earlier, and in later versions a log with no matched rule.
+    if (!logs || typeof logs !== 'object' || !d.scope || !MYANMAR.test(d.scope) || logs.to === logs.from) {
       let reason = 'Source and target are the same encoding, so no rule runs.';
       if (!d.scope) reason = 'No text.';
       else if (!MYANMAR.test(d.scope)) reason = 'No Myanmar text, so no rule runs.';

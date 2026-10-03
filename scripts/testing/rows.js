@@ -75,10 +75,7 @@ function buildRows(knayi) {
   // Glyph and sequence rows of the drawing-order fonts.
   function fontRows(font, table, sequences, roles) {
     const convert = (probe) => knayi.fontConvert(probe, 'unicode', font);
-    const stages = (probe) => {
-      const debug = knayi.fontConvert.debugging(probe, 'unicode', font);
-      return typeof debug === 'string' ? debug : debug.matched_patterns;
-    };
+    const stages = (probe) => knayi.fontConvert.debugging(probe, 'unicode', font).matched_patterns;
     Object.keys(table).forEach(function (key) {
       rows.push({
         id: font + ' glyph ' + codePoint(key),
@@ -138,10 +135,7 @@ function buildRows(knayi) {
   };
   const idOfLabel = {};
   u2zRules.forEach((r) => { if (!idOfLabel[r.label]) idOfLabel[r.label] = r.id; });
-  const logged = (probe) => {
-    const debug = knayi.fontConvert.debugging(probe, 'zawgyi', 'unicode');
-    return typeof debug === 'string' ? [] : debug.matched_patterns;
-  };
+  const logged = (probe) => knayi.fontConvert.debugging(probe, 'zawgyi', 'unicode').matched_patterns;
   u2zRules.forEach(function (r, index) {
     rows.push({
       id: r.id,
