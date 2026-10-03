@@ -1573,6 +1573,21 @@ Other targets:
 
   The report also lists each module's bytes from the metafile. Before this revision, the sizes left out two things: the prose of about 75 rule rows, now gone (D17), and the NFC helper, now counted above.
 
+  **3.0's budgets** (proposed with 3.0's packaging, **for the maintainer to confirm**). Both targets above were missed: compat grew to 17,624 B and the normalize-only bundle to 6,804 B with the gates of §7.11, the one-pass writer of §7.12 and the edit logs of §11.3 (§7.11 and §7.12 recorded the misses for the maintainer's decision). The packaging replaces them with a budget for each import of each entry of the exports map and for each dist file. Each `measured` is the size when the exports map was added, and each limit about 5% above it, rounded up to 100 B: room for the 2.x ports (§8), the stream entry and Extended-C (decision 20b), but not for a mistake such as a table pulled in twice. They bind in every pull request: `scripts/next/size.mjs` in CI's `checks` job for the imports, `scripts/check-size.js` after `npm test` for the dist files.
+
+  | Bundle | Measured | Limit |
+  |---|---|---|
+  | `import * from 'knayi-myscript'` (api) | 21,109 B | 22,200 B |
+  | `'knayi-myscript/compat'` (compat) | 17,624 B | 18,600 B |
+  | `'knayi-myscript/stream'` | 270 B (it exports nothing yet) | none, until streaming lands |
+  | `import { normalize } from 'knayi-myscript'` | 9,158 B | 9,700 B |
+  | the core's `normalizeText` alone (normalize-only) | 6,804 B | 7,200 B |
+  | `dist/knayi-myscript.min.mjs` (the 3.0 API) | 20,890 B | 22,000 B |
+  | `dist/knayi-myscript-compat.min.mjs` (the 2.x API) | 17,408 B | 18,300 B |
+  | `dist/knayi-myscript.min.js` (both, as the global `knayi`) | 23,782 B | 25,000 B |
+
+  For comparison, 2.10's `min.js` was 9,830 B with a limit of 10,854 B.
+
 The techniques, in order of measured value (§6 of the plan):
 1. No quadratic paths. Every run is read once, and the mask answers "has a vowel" in O(1).
 2. No regex or `indexOf` needle that starts at U+1000-U+1010 (the V8 slow path; lint).
