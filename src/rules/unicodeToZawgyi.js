@@ -20,13 +20,14 @@
 //   MEDIAL_RA_SHAPES   the wide and cut medial ra: the eight repeat rows
 // That is 57 rows applied once, then 8 repeat rows, exactly 2.x's convertRules.unicode.zawgyi (syllable.js).
 //
-// A row is { id, re, to, repeat, needs, label? } (core/rules.js). Its why is the comment above it, and its example
-// is in test/next/unicodeToZawgyi.test.mjs under its id (D17). `needs` names units of which every match of `re`
-// holds at least one, a literal of the pattern that no match can leave out (the rarest, where it has several):
-// a text with none of them cannot match, so the row is skipped (applyRowsThatCanMatch below; DESIGN.md §3.10). Each regex is the 2.x literal byte for byte, because
-// its source is 2.x debug output: fontConvert.debugging lists the source of every rule that fired. On V8, a regex
-// that is a pure literal starting at U+1000-U+1010 takes a slow search path, 10-50 times slower (decision 29), so
-// the six such rows wrap their first unit in a one-character class and keep the 2.x source as their label.
+// A row is { id, re, to, repeat, needs, label? } (core/rules.js). Its why is the comment above it, and its example is
+// in test/next/unicodeToZawgyi.test.mjs under its id (D17). `needs` names units of which every match of `re` holds at
+// least one, a literal of the pattern that no match can leave out (the rarest, where it has several): a text with none
+// of them cannot match, so the row is skipped (applyRowsThatCanMatch below; DESIGN.md §3.10). Each regex is the 2.x
+// literal byte for byte, because its source is 2.x debug output: fontConvert.debugging lists the source of every rule
+// that fired. On V8, a regex that is a pure literal starting at U+1000-U+1010 takes a slow search path, 10-50 times
+// slower (decision 29), so the six such rows wrap their first unit in a one-character class and keep the 2.x source as
+// their label.
 
 import { deepFreeze } from '../freeze.js';
 import { UNIT_SET_WORDS, addBlockUnit } from '../script/codes.js';

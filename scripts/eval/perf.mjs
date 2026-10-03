@@ -120,7 +120,9 @@ async function measure({ base, head, opts }) {
     // same history of calls, which the engine's optimisations depend on.
     perfTexts(flores, B, opts.lines);
     const long = opts.longUnits;
-    const loads = { unicode: workloads(texts.unicode, long), zawgyi: workloads(texts.zawgyi, long), win: workloads(texts.win, long) };
+    const loads = {
+      unicode: workloads(texts.unicode, long), zawgyi: workloads(texts.zawgyi, long), win: workloads(texts.win, long)
+    };
     for (const text of Object.keys(loads)) {
       result.workloads[text] = Object.fromEntries(opts.workloads.map((w) => [w, { calls: loads[text][w].length, chars: chars(loads[text][w]) }]));
     }

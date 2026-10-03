@@ -495,10 +495,11 @@ describe('codes.js: the module', () => {
   it('exports what the spec lists', () => {
     assert.deepEqual(Object.keys(codes).sort(), [
       'CLASS', 'CLS', 'CP', 'KINZI_TEXT', 'MARK_GROUPS', 'MARK_RANK', 'MASK_ANY_AA', 'MASK_ASAT', 'MASK_DOT_BELOW',
-      'MASK_E_OR_AA', 'MASK_E_TO_DOT_BELOW', 'MASK_LOWER_VOWELS', 'MASK_MEDIALS', 'MASK_MEDIAL_HA', 'MASK_MEDIAL_YA', 'MASK_UPPER_VOWELS',
-      'MASK_VISARGA', 'MASK_VOWEL_OR_FINAL', 'MYANMAR_BLOCK_PATTERN', 'MYANMAR_SCRIPT_PATTERN', 'RANK_AI_ANUSVARA',
-      'RANK_E', 'RANK_FIRST_VOWEL', 'RANK_LAST_MEDIAL', 'RANK_LOWER_VOWEL', 'RANK_UNRANKED', 'ROLE', 'SCRIPT',
-      'UNIT_SET_WORDS', 'ZW', 'addBlockUnit', 'classOf', 'isBurmeseConsonant', 'isBurmeseDigit', 'isBurmeseMark', 'isMyanmarBlock', 'isMyanmarScript',
+      'MASK_E_OR_AA', 'MASK_E_TO_DOT_BELOW', 'MASK_LOWER_VOWELS', 'MASK_MEDIALS', 'MASK_MEDIAL_HA', 'MASK_MEDIAL_YA',
+      'MASK_UPPER_VOWELS', 'MASK_VISARGA', 'MASK_VOWEL_OR_FINAL', 'MYANMAR_BLOCK_PATTERN', 'MYANMAR_SCRIPT_PATTERN',
+      'RANK_AI_ANUSVARA', 'RANK_E', 'RANK_FIRST_VOWEL', 'RANK_LAST_MEDIAL', 'RANK_LOWER_VOWEL', 'RANK_UNRANKED', 'ROLE',
+      'SCRIPT', 'UNIT_SET_WORDS', 'ZW', 'addBlockUnit', 'classOf', 'isBurmeseConsonant', 'isBurmeseDigit',
+      'isBurmeseMark', 'isMyanmarBlock', 'isMyanmarScript',
       'isNfcSafe', 'isOtherScriptLetter', 'isPrebaseMark', 'isScriptConsonant', 'isScriptDigit', 'isScriptMark',
       'isScriptTone', 'isScriptWordChar', 'isSpaceBeforeMark', 'isSyllableBase', 'isVowelSign', 'isZawgyiKinzi',
       'isZawgyiMedialRa', 'isZawgyiPrebase', 'markBit', 'markRank', 'mayChangeUnderNfc', 'scriptClassOf', 'zeroWidthBit'
