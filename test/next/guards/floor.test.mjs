@@ -3,7 +3,8 @@
 // - Syntax: acorn parses every file at ecmaVersion 2015 as a module. That rejects `**`, async, object spread,
 //   optional catch binding, `?.`, `??`, class fields, private names and import.meta.
 // - Regexes, literal or built: no lookbehind, named groups or backreferences, \p{} or s flag. A built regex is
-//   built from string literals, or is a copy of another regex (new RegExp(re.source, re.flags)).
+//   built from string literals, or is a copy of another regex (new RegExp(re.source, re.flags)), or is built from
+//   data by a function of BUILT_FROM_DATA, whose patterns another test reads.
 // - Built-ins: the ES2016+ names of the denylist below, as a global identifier or as a property name (x.name or
 //   x['name']). The guard cannot know a receiver's type, so it also bans some ES2015 methods of the same name,
 //   such as String#includes and Array#values: use indexOf and a loop instead.
@@ -38,7 +39,23 @@ const REGEX_ABOVE_2015 = [
 ];
 const ES2015_FLAGS = /^[gimuy]*$/;
 
+// The functions that may build a regex from data, by file, and the test that reads each pattern they build, since
+// this guard cannot. tableRow builds a Unicode to Zawgyi row read from the Zawgyi glyph table: its pattern is the
+// escapes of a table text, which test/next/unicodeToZawgyi.test.mjs compares with the 2.x source of the row.
+const BUILT_FROM_DATA = { 'rules/unicodeToZawgyi.js': 'tableRow' };
+
 const SOURCES = parsedSources();
+
+// The name of the innermost function declaration around node, or null.
+function functionAround(ast, node) {
+  let name = null;
+  walk(ast, (candidate) => {
+    if (candidate.type === 'FunctionDeclaration' && candidate.start <= node.start && node.end <= candidate.end) {
+      name = candidate.id.name;
+    }
+  });
+  return name;
+}
 
 // What is above ES2015 in a regex pattern and its flags, or null.
 function regexAbove2015(pattern, flags) {
@@ -101,15 +118,27 @@ describe('the ES2015 floor of src/ (DESIGN.md D14)', () => {
     const bad = [];
     for (const { file, ast } of SOURCES) {
       for (const { node, pattern, flags } of regexesOf(ast)) {
-        if (pattern === null || flags === '?') {
+        const readElsewhere = pattern === null && file in BUILT_FROM_DATA &&
+          functionAround(ast, node) === BUILT_FROM_DATA[file];
+        if ((pattern === null && !readElsewhere) || flags === '?') {
           bad.push(where(file, node) + ': build it from string literals, so this guard can read it');
           continue;
         }
-        const above = regexAbove2015(pattern, flags);
+        const above = regexAbove2015(readElsewhere ? '' : pattern, flags);
         if (above) bad.push(where(file, node) + ': ' + above);
       }
     }
     assert.deepEqual(bad, []);
+  });
+
+  it('reads every built regex but the one tableRow builds from the glyph table', () => {
+    const fromData = [];
+    for (const { file, ast } of SOURCES) {
+      for (const { node, pattern } of regexesOf(ast)) {
+        if (pattern === null) fromData.push(file + ' ' + functionAround(ast, node));
+      }
+    }
+    assert.deepEqual(fromData, ['rules/unicodeToZawgyi.js tableRow']);
   });
 
   it('no ES2016+ built-in name, as a global or a property name', () => {

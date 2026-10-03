@@ -1,7 +1,8 @@
 // Unit tests of src/rules/unicodeToZawgyi.js (docs/next/DESIGN.md §7.9): the rule rows against 2.x's
 // convertRules.unicode.zawgyi (the frozen scripts/oracle/syllable.js), the sections and the why comment of each
-// row, the six wrapped rows (decision 29), an example for each row id (D17), the table probes, and the trace
-// (§3.9, D4). The differential fuzz is in unicodeToZawgyi.fuzz.test.mjs.
+// row, the six wrapped rows (decision 29), an example for each row id (D17), the rows read from the Zawgyi glyph
+// table and the one pass that writes GLYPHS (§3.9), the table probes, and the trace (§3.9, D4). The differential
+// fuzz is in unicodeToZawgyi.fuzz.test.mjs.
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -12,6 +13,7 @@ import {
   createTrace, startTrace, ruleLabel, applyRuleRows, traceRuleRows
 } from '../../src/core/rules.js';
 import { collapseRepeatedMarks } from '../../src/rules/segment.js';
+import { ZAWGYI_GLYPHS } from '../../src/fonts/zawgyi.js';
 import { srcText, tableProbes } from './helpers.mjs';
 import {
   TWO_X_ROWS, TWO_X_PROBE_IDS, twoXUnicodeToZawgyi, twoXDebugLog, traceAsDebugLog, asFontConvert
@@ -133,6 +135,41 @@ function isSlowAtom(source) {
 // 2.x's source with its first \u escape in a one-character class.
 const wrapFirstUnit = (source) => '[' + source.slice(0, 6) + ']' + source.slice(6);
 
+// The sections of the source, each a list of its entries in order: { node, id, fromTable }. A section is
+// deepFreeze([...rows]), or tableRows('<prefix>', [...entries]), where an entry that is a Unicode text (a string, or
+// a name such as KINZI_TEXT) is a row read from the glyph table, whose id is that of its place in the section.
+// Also returns the line comments of the source.
+function readSections() {
+  const comments = [];
+  const ast = acorn.parse(srcText('rules/unicodeToZawgyi.js'),
+    { ecmaVersion: 'latest', sourceType: 'module', locations: true, onComment: comments });
+  const sections = new Map();
+  for (const statement of ast.body) {
+    const declarator = statement.type === 'VariableDeclaration' ? statement.declarations[0] : null;
+    const section = declarator && SECTIONS.find(([name]) => name === declarator.id.name);
+    if (section) sections.set(section[0], { init: declarator.init, entries: entriesOf(declarator.init, section[1]) });
+  }
+  return { sections, comments };
+}
+
+function entriesOf(init, prefix) {
+  const list = init.callee.name === 'tableRows' ? init.arguments[1] : init.arguments[0];
+  return list.elements.map((node, i) => (node.type === 'ObjectExpression'
+    ? { node, id: node.properties.find((p) => p.key.name === 'id').value.value, fromTable: false }
+    : { node, id: 'uz.' + prefix + '.' + (i + 1), fromTable: true }));
+}
+
+// The ids of the rows the source writes as a Unicode text, read from the glyph table, in row order.
+const READ_FROM_TABLE = [...readSections().sections.values()]
+  .flatMap(({ entries }) => entries.filter((entry) => entry.fromTable).map((entry) => entry.id));
+
+// The rows of GLYPHS, and the text each matches.
+const GLYPH_ROWS = ROWS.filter((row) => row.id.startsWith('uz.glyphs.'));
+const textOf = (source) => String.fromCharCode(...literalUnits(source));
+
+// A virama two units after a virama: a stack on a stack, where the one pass runs the GLYPHS rows one by one.
+const STACK_ON_STACK = /\u1039[\s\S]\u1039/;
+
 describe('the Unicode to Zawgyi rows (DESIGN.md §7.9)', () => {
   it('are 57 rows applied once, then 8 repeat rows, as 2.x has them', () => {
     assert.equal(ROWS.length, 65);
@@ -204,15 +241,7 @@ describe('the Unicode to Zawgyi rows (DESIGN.md §7.9)', () => {
 });
 
 describe('the sections of src/rules/unicodeToZawgyi.js (DESIGN.md §3.9)', () => {
-  const text = srcText('rules/unicodeToZawgyi.js');
-  const comments = [];
-  const ast = acorn.parse(text, { ecmaVersion: 'latest', sourceType: 'module', locations: true, onComment: comments });
-  const sections = new Map();
-  for (const statement of ast.body) {
-    const declarator = statement.type === 'VariableDeclaration' ? statement.declarations[0] : null;
-    const name = declarator && declarator.id.name;
-    if (SECTIONS.some(([section]) => section === name)) sections.set(name, declarator.init);
-  }
+  const { sections, comments } = readSections();
 
   // The line comments that end right above `line`, joined.
   function commentAbove(line) {
@@ -228,27 +257,150 @@ describe('the sections of src/rules/unicodeToZawgyi.js (DESIGN.md §3.9)', () =>
   it('hold every row, in 2.x order, each section a frozen array under its own name', () => {
     assert.deepEqual([...sections.keys()], SECTIONS.map(([name]) => name));
     const ids = [];
-    for (const [name, init] of sections) {
+    for (const [name, { init, entries }] of sections) {
+      const prefix = SECTIONS.find(([section]) => section === name)[1];
       assert.equal(init.type, 'CallExpression', name);
-      assert.equal(init.callee.name, 'deepFreeze', name);
-      for (const element of init.arguments[0].elements) {
-        const id = element.properties.find((p) => p.key.name === 'id');
-        ids.push(id.value.value);
+      if (init.callee.name === 'tableRows') {
+        assert.equal(init.arguments[0].value, prefix, name + ': the id prefix of its table rows');
+      } else {
+        assert.equal(init.callee.name, 'deepFreeze', name);
+        assert.ok(entries.every((entry) => !entry.fromTable), name + ' holds only rows');
       }
+      ids.push(...entries.map((entry) => entry.id));
     }
     assert.deepEqual(ids, ROWS.map((row) => row.id));
   });
 
   it('give each row a why comment that cites UTN #11 or a research note', () => {
     const bad = [];
-    for (const init of sections.values()) {
-      for (const element of init.arguments[0].elements) {
-        const id = element.properties.find((p) => p.key.name === 'id').value.value;
-        const why = commentAbove(element.loc.start.line);
-        if (!/UTN #11|research\/[a-z-]+\.md §\d/.test(why)) bad.push(id + ': ' + (why || 'no comment'));
-      }
+    for (const { entries } of sections.values()) {
+      let why = '';
+      entries.forEach((entry, i) => {
+        // A run of table texts on adjacent lines shares the comment above its first line.
+        const previous = entries[i - 1];
+        const continuesRun = entry.fromTable && previous && previous.fromTable &&
+          entry.node.loc.start.line - previous.node.loc.end.line <= 1;
+        why = commentAbove(entry.node.loc.start.line) || (continuesRun ? why : '');
+        if (!/UTN #11|research\/[a-z-]+\.md §\d/.test(why)) bad.push(entry.id + ': ' + (why || 'no comment'));
+      });
     }
     assert.deepEqual(bad, []);
+  });
+
+  it('say why each row of one fixed text is written by hand', () => {
+    const literal = (entry) => {
+      const index = ROWS.findIndex((row) => row.id === entry.id);
+      return literalUnits(TWO_X_ROWS[index].rule[0].source) !== null && TWO_X_ROWS[index].rule[1].indexOf('$') === -1;
+    };
+    const unexplained = [];
+    for (const { entries } of sections.values()) {
+      for (const entry of entries.filter((e) => !e.fromTable && literal(e))) {
+        if (!/Written by hand: /.test(commentAbove(entry.node.loc.start.line))) unexplained.push(entry.id);
+      }
+    }
+    assert.deepEqual(unexplained, []);
+  });
+});
+
+describe('the rows read from the Zawgyi glyph table (DESIGN.md §3.9)', () => {
+  // The table read backwards, restated: the first glyph whose row is the text, its attached marks included.
+  function tableGlyph(text) {
+    const found = Object.keys(ZAWGYI_GLYPHS).find((glyph) => {
+      const [, unicode, marks] = ZAWGYI_GLYPHS[glyph];
+      return unicode + (marks || '') === text;
+    });
+    return found === undefined ? null : found;
+  }
+
+  // 2.x's rows of one fixed text and one fixed replacement: [id, text, replacement].
+  const LITERAL_ROWS = TWO_X_ROWS.map(({ rule: [re, to] }, i) => [ROWS[i].id, re.source, to])
+    .filter(([, source, to]) => literalUnits(source) !== null && to.indexOf('$') === -1)
+    .map(([id, source, to]) => [id, textOf(source), to]);
+
+  it('are the 2.x rows of one fixed text whose glyph is the table\'s for that text, and only those', () => {
+    const inverse = LITERAL_ROWS.filter(([, text, to]) => tableGlyph(text) === to).map(([id]) => id);
+    assert.equal(LITERAL_ROWS.length, 42);
+    assert.equal(inverse.length, 38);
+    assert.deepEqual(READ_FROM_TABLE, inverse);
+  });
+
+  it('leave by hand only the four rows the table read backwards does not give', () => {
+    const notInverse = LITERAL_ROWS.filter(([, text, to]) => tableGlyph(text) !== to);
+    assert.deepEqual(notInverse.map(([id]) => id), ['uz.order.5', 'uz.small.2', 'uz.glyphs.23', 'uz.medial-ra.8']);
+    // e moves (no glyph), na is short only after medial ra, ca with ya is drawn as jha, and ra on nya is two glyphs.
+    assert.deepEqual(notInverse.map(([, text]) => tableGlyph(text)), [null, null, null, null]);
+    assert.equal(tableGlyph('\u1039\u1008'), '\u1069', 'the table reads U+1069 as stacked jha');
+  });
+});
+
+describe('GLYPHS in one pass (DESIGN.md §3.9)', () => {
+  const texts = GLYPH_ROWS.map((row) => textOf(ruleLabel(row)));
+
+  it('reads rows of one fixed text and one glyph, none of which reads a unit that a row before it writes', () => {
+    GLYPH_ROWS.forEach((row, i) => {
+      assert.notEqual(literalUnits(ruleLabel(row)), null, row.id + ' is a pure literal');
+      assert.equal(row.to.indexOf('$'), -1, row.id + ' writes a fixed glyph');
+      assert.equal(row.to.length, 1, row.id + ' writes one unit, so the pass never writes more than it reads');
+      for (const later of texts.slice(i + 1)) {
+        for (const unit of row.to) assert.equal(later.indexOf(unit), -1, row.id + ' writes a unit a later row reads');
+      }
+    });
+  });
+
+  it('meets no two overlapping rows where the later match comes first, but in a stack on a stack', () => {
+    const outOfOrder = [];
+    texts.forEach((first, x) => texts.forEach((second, y) => {
+      for (let shift = 1; shift < first.length; shift++) {
+        const overlap = first.slice(shift, shift + second.length);
+        if (y >= x || second.slice(0, overlap.length) !== overlap) continue;
+        const union = first.slice(0, shift) + (overlap.length === second.length ? first.slice(shift) : second);
+        assert.match(union, STACK_ON_STACK, GLYPH_ROWS[y].id + ' inside ' + GLYPH_ROWS[x].id);
+        outOfOrder.push(GLYPH_ROWS[x].id + ' then ' + GLYPH_ROWS[y].id);
+      }
+    }));
+    assert.deepEqual(outOfOrder, ['uz.glyphs.17 then uz.glyphs.16', 'uz.glyphs.18 then uz.glyphs.16',
+      'uz.glyphs.21 then uz.glyphs.19', 'uz.glyphs.22 then uz.glyphs.19', 'uz.glyphs.22 then uz.glyphs.21']);
+  });
+
+  // Every string of up to `length` units of `alphabet`.
+  function* stringsOf(alphabet, length) {
+    if (length === 0) return;
+    yield* alphabet;
+    for (const head of stringsOf(alphabet, length - 1)) for (const unit of alphabet) yield head + unit;
+  }
+
+  const meeting = ['\u1039', '\u100B', '\u100C', '\u100D', '\u100E', '\u100F', '\u1005', '\u103B', '\u103D', '\u103E',
+    '\u102F', '\u1030', '\u103A', '\u102B', '\u104E', '\u1004', '\u1038', '\u1000', 'a'];
+  const stacks = ['\u1039', '\u100B', '\u100C', '\u100D', '\u100E', '\u100F', '\u1005', '\u103B', 'a'];
+  const SHORT = [...stringsOf(meeting, 4), ...stringsOf(stacks, 5)];
+  const sameAsRows = (text) => {
+    const expected = applyRuleRows(collapseRepeatedMarks(text, 'unicode'), ROWS);
+    if (unicodeToZawgyi(text) !== expected) assert.fail(codes(text) + ': one pass ' + codes(unicodeToZawgyi(text)));
+  };
+
+  it('gives what the rows give one by one on every short string of the units where rows meet', () => {
+    SHORT.forEach(sameAsRows);
+    assert.equal(SHORT.length, 137560 + 66429);
+  });
+
+  // The pass writes a text of more than 64 units into a buffer, and a shorter one as joined slices.
+  it('gives what the rows give on long text too, written as units rather than slices', () => {
+    // Two spaces between strings, so that no virama stands two units after another across them.
+    const noStackOnStack = SHORT.filter((text) => !STACK_ON_STACK.test(text));
+    const long = [];
+    for (let at = 0; at < noStackOnStack.length; at += 20) long.push(noStackOnStack.slice(at, at + 20).join('  '));
+    const written = long.filter((text) => text.length > 64 && !STACK_ON_STACK.test(text));
+    assert.ok(written.length > long.length * 0.9, written.length + ' of ' + long.length + ' texts are long');
+    written.forEach(sameAsRows);
+    const word = '\u1000\u103B\u1031\u102C\u1004\u103A\u1038 '; // kyaung, school, and a space: 8 units
+    for (const units of [56, 64, 72, 20000]) sameAsRows(word.repeat(units / 8));
+  });
+
+  it('runs the rows one by one on a stack on a stack, where one pass would differ', () => {
+    // ka, stacked tta, stacked ttha: tta with ttha comes before stacked tta, so the first virama stays.
+    const text = '\u1000\u1039\u100B\u1039\u100C';
+    assert.equal(unicodeToZawgyi(text), '\u1000\u1039\u1092');
+    assert.equal(twoXUnicodeToZawgyi(text), '\u1000\u1039\u1092');
   });
 });
 
