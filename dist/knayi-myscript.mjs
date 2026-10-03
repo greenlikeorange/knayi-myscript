@@ -1600,6 +1600,8 @@ var require_converter = __commonJS({
         if (!globalOptions.isSilentMode()) console.warn("Content must be specified on knayi.fontConvert.");
         return "";
       }
+      if (typeof content !== "string")
+        return content;
       if (gate.resolveFont(from) !== "win" && !gate.hasMyanmar(content))
         return content;
       if (!to) {

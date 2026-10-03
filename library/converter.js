@@ -15,6 +15,10 @@ function fontConvert(content, to, from) {
     return '';
   }
 
+  // Numbers, booleans and objects come back unchanged, whatever the fonts.
+  if (typeof content !== 'string')
+    return content;
+
   // Win text is ASCII, so it has no Myanmar letters to find.
   if (gate.resolveFont(from) !== 'win' && !gate.hasMyanmar(content))
     return content;
