@@ -146,8 +146,10 @@ jobs:
   #   the event, so after adding the label or editing the counts, re-run this job.
   # - Every run compares main.js with the min.js and .mjs builds made from it.
   # The corpus cache holds every pinned corpus but mC4 (decision 22) and never queries.tsv. It is keyed on
-  # scripts/eval/datasets.mjs, which holds every pin, and only a push to the default branch fills it. Fork pull
-  # requests and runs with a cold cache compare generated and fuzz inputs only (--offline).
+  # scripts/eval/datasets.mjs, which holds every pin, and only a push to the default branch fills it. Every run
+  # restores it, fork pull requests too: a pull request may read the base branch's caches, and can write only to
+  # its own scope, which nothing here saves to. A run with a cold cache compares generated and fuzz inputs only
+  # (--offline).
   compare:
     name: Compare
     runs-on: ubuntu-latest
@@ -172,7 +174,6 @@ jobs:
       - run: npm ci
       - name: Restore the corpus cache
         id: corpus
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
@@ -275,7 +276,7 @@ jobs:
         run: npm run perf -- --base . --offline
       - name: Restore the corpus cache
         id: corpus
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        if: github.event_name == 'pull_request'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
