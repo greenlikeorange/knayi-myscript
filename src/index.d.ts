@@ -40,7 +40,7 @@ export interface Trace {
   records: TraceRecord[];
 }
 
-/** An empty trace, `{ start: null, records: [] }`, for the `trace` option of normalize. */
+/** An empty trace, `{ start: null, records: [] }`, for the `trace` option of normalize, toUnicode and toZawgyi. */
 export declare function createTrace(): Trace;
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -155,3 +155,38 @@ export interface Issue {
  * The issues of a text, by start: lines that read as Zawgyi, and in the other lines each thing normalize changes.
  */
 export declare function explain(text: string, options?: DetectorOptions | number | null): Issue[];
+
+// ---------------------------------------------------------------------------------------------------------------
+// toUnicode and toZawgyi
+
+/** The fonts toUnicode converts from. */
+export type SourceFont = 'unicode' | 'zawgyi' | 'win';
+
+export interface ToUnicodeOptions extends DetectorOptions {
+  /** The font of the text. Not given: each line is detected; Win text cannot be, and needs from: 'win'. */
+  from?: SourceFont | null;
+  /** How a line whose detection ties is read: 'unicode' (left as it is, the default) or 'zawgyi' (as 2.x did). */
+  tie?: 'unicode' | 'zawgyi' | null;
+  /** A trace from createTrace(), to fill with the text after each stage of the font pipeline that changed it. */
+  trace?: Trace | null;
+  /** true: return `{ text, offsets }`. */
+  offsets?: boolean | null;
+}
+
+export interface ConversionWithOffsets {
+  text: string;
+  /** offsets[i]: the index in the input of the unit output unit i came from; offsets[text.length]: input length. */
+  offsets: number[];
+}
+
+/** Text in Unicode. Never trims. */
+export declare function toUnicode(text: string, options: ToUnicodeOptions & { offsets: true }): ConversionWithOffsets;
+export declare function toUnicode(text: string, options?: ToUnicodeOptions | number | null): string;
+
+export interface ToZawgyiOptions {
+  /** A trace from createTrace(), to fill with the text after the collapse and after each rule that changed it. */
+  trace?: Trace | null;
+}
+
+/** Unicode text in Zawgyi. */
+export declare function toZawgyi(text: string, options?: ToZawgyiOptions | number | null): string;

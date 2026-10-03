@@ -4,7 +4,7 @@
 // The 3.0 API checks its arguments and throws, where 2.x returned its input or printed a warning:
 // - a wrong type is a TypeError with the code ERR_KNAYI_INVALID_ARG_TYPE;
 // - a value of the right type that knayi does not accept is a RangeError with the code ERR_KNAYI_INVALID_ARG_VALUE.
-// The message names the function and the argument: 'knayi.normalize: options.report must be ...'.
+// The message names the function and the argument: 'knayi.toUnicode: options.from must be ...'.
 //
 // Options are per call, in camelCase, and read once; nothing is kept. Every function is map-safe: lines.map(f)
 // passes an index where the options go, and an index is no options (core/options.js optionsObject does the same for
@@ -40,6 +40,32 @@ export function readOptions(api, value) {
   if (value === undefined || value === null || typeof value === 'number') return NO_OPTIONS;
   if (typeof value === 'object' && !Array.isArray(value)) return /** @type {Options} */ (value);
   throw libraryError(ERR.INVALID_ARG_TYPE, wrongType(api, 'options', 'an object', value), TypeError);
+}
+
+// options[name] when it is one of `allowed`, `fallback` when it is undefined or null; else a TypeError for a value
+// that is not a string, a RangeError for a string that is not allowed.
+/**
+ * @template {string} T
+ * @template F
+ * @param {string} api
+ * @param {Options} options
+ * @param {string} name
+ * @param {readonly T[]} allowed
+ * @param {F} fallback
+ * @returns {T | F}
+ */
+export function readChoice(api, options, name, allowed, fallback) {
+  const value = options[name];
+  if (value === undefined || value === null) return fallback;
+  if (typeof value !== 'string') {
+    throw libraryError(ERR.INVALID_ARG_TYPE, wrongType(api, 'options.' + name, 'a string', value), TypeError);
+  }
+  const choice = /** @type {T} */ (value);
+  if (allowed.indexOf(choice) === -1) {
+    const what = 'options.' + name + ' must be ' + listOf(allowed) + ', not ' + JSON.stringify(value);
+    throw libraryError(ERR.INVALID_ARG_VALUE, where(api, what), RangeError);
+  }
+  return choice;
 }
 
 // options[name] as a boolean: undefined and null are false.
@@ -126,6 +152,13 @@ export function where(api, what) {
  */
 function wrongType(api, name, wanted, value) {
   return where(api, name + ' must be ' + wanted + ', not ' + describe(value));
+}
+
+// 'a', 'a or b', 'a, b or c', each quoted.
+/** @param {readonly string[]} values */
+function listOf(values) {
+  const quoted = values.map((value) => '\'' + value + '\'');
+  return quoted.length === 1 ? quoted[0] : quoted.slice(0, -1).join(', ') + ' or ' + quoted[quoted.length - 1];
 }
 
 // What a value is, for a message: 'null', 'undefined', 'an array', 'an object', or 'a' and its type.

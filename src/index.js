@@ -16,11 +16,12 @@ import { createTrace } from './core/rules.js';
 export const VERSION = PACKAGE_VERSION;
 export { OUTPUT_VERSION };
 
-// createTrace(): { start: null, records: [] }, for the trace option of normalize. A call fills it: start is its
-// input, and each record is { id, label, text }, the text after a stage or rule row that changed it, with the
-// stage's stable id.
+// createTrace(): { start: null, records: [] }, for the trace option of normalize, toUnicode and toZawgyi. A call
+// fills it: start is its input, and each record is { id, label, text }, the text after a stage or rule row that
+// changed it, with the stage's stable id.
 export { createTrace };
 
 export { normalize, isNormalized } from './api/normalize.js';
 export { detectEncoding } from './api/encoding.js';
 export { explain } from './api/explain.js';
+export { toUnicode, toZawgyi } from './api/convert.js';

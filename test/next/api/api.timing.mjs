@@ -2,13 +2,13 @@
 // shapes of SHAPES, the runs of NFC_RUNS (helpers.mjs), and the chains normalize settles in more than one pass. The
 // method is that of test/next/normalize.timing.mjs: a quick reading at n, 2n and 4n units, and a reading above 1.3
 // is measured three more times, the lowest kept. PUMPS, the single characters repeated, run through normalize,
-// which settles regions; the core's own timing files run them through the rest.
+// which settles regions, and toUnicode, which detects lines; the core's own timing files run them through the rest.
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { growthExponent } from '../../../scripts/eval/lib/timing.mjs';
 import { SHAPES, PUMPS, NFC_RUNS } from '../helpers.mjs';
-import { normalize, isNormalized, explain, detectEncoding } from '../../../src/index.js';
+import { normalize, isNormalized, explain, detectEncoding, toUnicode, toZawgyi } from '../../../src/index.js';
 
 const LIMIT = 1.3;
 
@@ -50,7 +50,10 @@ const FUNCTIONS = {
   'normalize with a report': (text) => normalize(text, { report: true }),
   isNormalized: (text) => isNormalized(text),
   explain: (text) => explain(text),
-  detectEncoding: (text) => detectEncoding(text)
+  detectEncoding: (text) => detectEncoding(text),
+  'toUnicode, detected': (text) => toUnicode(text),
+  'toUnicode, offsets': (text) => toUnicode(text, { from: 'zawgyi', offsets: true }),
+  toZawgyi: (text) => toZawgyi(text)
 };
 
 describe('growth of the 3.0 API (DESIGN.md §6.2)', () => {
@@ -60,7 +63,8 @@ describe('growth of the 3.0 API (DESIGN.md §6.2)', () => {
     });
   }
 
-  it('normalize is linear on every pump', () => {
+  it('normalize and toUnicode are linear on every pump', () => {
     assert.deepEqual(superLinear(FUNCTIONS.normalize, PUMPS), []);
+    assert.deepEqual(superLinear(FUNCTIONS['toUnicode, detected'], PUMPS), []);
   });
 });

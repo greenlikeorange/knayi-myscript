@@ -4,21 +4,27 @@
 //   first input, they give the last output, they are in order and do not overlap, and no unit they leave out
 //   changed.
 // - The writers: with a log, each function gives exactly what it gives without one, and its edits, applied to its
-//   input, give its output: the Unicode reader, the typing fixes, NFC, and the stable normalize pipeline through
-//   runStagesLogged.
+//   input, give its output: the Unicode reader, the typing fixes, the font reader, the rule rows, NFC, and whole
+//   pipelines through runStagesLogged.
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import fc from 'fast-check';
 import { arb, fuzz, hex } from './helpers.mjs';
 import { EditLog, composeEdits, shiftEdits, outputToInputOffsets } from '../../src/core/edits.js';
-import { runStages, runStagesLogged } from '../../src/core/rules.js';
+import { applyRuleRows, applyRuleRowsLogged, runStages, runStagesLogged } from '../../src/core/rules.js';
 import { toNfc, logNfcEdits } from '../../src/core/nfc.js';
 import { reorderUnicode, UNICODE_READING, STABLE_UNICODE_READING } from '../../src/engine/unicodeReader.js';
+import { compileFont, readFontNoting, readFontLogged } from '../../src/engine/fontReader.js';
+import { ZAWGYI_FONT } from '../../src/fonts/zawgyi.js';
+import { WIN_FONT } from '../../src/fonts/win.js';
 import {
-  settleTypos, settleTyposLogged, fixLookAlikes, fixLookAlikesLogged, readDigitsAsLetters, readLettersAsDigits
+  fixTypos, fixTyposLogged, settleTypos, settleTyposLogged, fixLookAlikes, fixLookAlikesLogged, readDigitsAsLetters,
+  readLettersAsDigits, zeroAsWa, zeroAsWaLogged
 } from '../../src/rules/typingFixes.js';
 import { STABLE_NORMALIZE_STAGES, STABLE_NORMALIZE_LOGGED_RUNS } from '../../src/stages/normalize.js';
+import { FONT_STAGES, fontToUnicode, fontToUnicodeLogged } from '../../src/stages/fonts.js';
+import { UNICODE_TO_ZAWGYI_RULES } from '../../src/rules/unicodeToZawgyi.js';
 
 // Applies edits to text: the units between them are copied, and each edit's input is replaced by `output`'s slice.
 function applyEdits(text, edits, output) {
@@ -115,6 +121,9 @@ function assertLogs(what, text, plain, logged) {
   assertAligns(text, output, log.edits, what + ' on ' + hex(text));
 }
 
+const ZAWGYI = compileFont(ZAWGYI_FONT);
+const WIN = compileFont(WIN_FONT);
+
 describe('the copy-through writers record their edits (DESIGN.md §11.3)', () => {
   const unicodeText = arb.unicodeText(16);
   it('the Unicode reader, both readings', () => {
@@ -129,27 +138,55 @@ describe('the copy-through writers record their edits (DESIGN.md §11.3)', () =>
 
   it('the typing fixes', () => {
     fuzz.check(fc.property(unicodeText, (text) => {
+      assertLogs('fixTypos', text, fixTypos, fixTyposLogged);
       assertLogs('settleTypos', text, settleTypos, settleTyposLogged);
       assertLogs('fixLookAlikes', text, fixLookAlikes, fixLookAlikesLogged);
       assertLogs('readDigitsAsLetters', text, readDigitsAsLetters, readDigitsAsLetters);
       assertLogs('readLettersAsDigits', text, readLettersAsDigits, readLettersAsDigits);
+      assertLogs('zeroAsWa', text, zeroAsWa, zeroAsWaLogged);
     }), 20000, [], 400000);
   });
 
-  it('NFC', () => {
-    fuzz.check(fc.property(unicodeText, (text) => {
+  it('the font reader, Zawgyi and Win', () => {
+    fuzz.check(fc.property(arb.zawgyiText(16), arb.winText(16), (zawgyi, win) => {
+      for (const [text, font] of [[zawgyi, ZAWGYI], [win, WIN]]) {
+        assertLogs('readFont ' + font.name, text, (t) => readFontNoting(t, font).text,
+          (t, log) => readFontLogged(t, font, log).text);
+        // The logged reader is a loop of its own: it notes the same NFC risk as the fast one.
+        assert.equal(readFontLogged(text, font, new EditLog('')).nfcMayChange, readFontNoting(text, font).nfcMayChange);
+      }
+    }), 20000, [], 400000);
+  });
+
+  it('the rule rows, once and repeated, and NFC', () => {
+    fuzz.check(fc.property(unicodeText, arb.zawgyiText(16), (text, zawgyi) => {
+      assertLogs('rows', text, (t) => applyRuleRows(t, UNICODE_TO_ZAWGYI_RULES),
+        (t, log) => applyRuleRowsLogged(t, UNICODE_TO_ZAWGYI_RULES, log));
+      assertLogs('sequences', zawgyi, (t) => applyRuleRows(t, ZAWGYI.sequences),
+        (t, log) => applyRuleRowsLogged(t, ZAWGYI.sequences, log));
       assertLogs('NFC', text + '\u0301\u0323', toNfc, (t, log) => {
         assert.equal(logNfcEdits(t, log), toNfc(t).length);
         return toNfc(t);
       });
-    }), 20000, ['\u1000\u103A\u1037', 'e\u0301\u0323', '\u1025\u102E'].map((t) => [t]), 400000);
+    }), 20000, ['\u1000\u103A\u1037', 'e\u0301\u0323', '\u1025\u102E'].map((t) => [t, '']), 400000);
   });
 
-  it('the stable normalize pipeline, through runStagesLogged', () => {
-    fuzz.check(fc.property(unicodeText, (text) => {
+  it('whole pipelines, through runStagesLogged', () => {
+    fuzz.check(fc.property(unicodeText, arb.zawgyiText(16), arb.winText(16), (text, zawgyi, win) => {
       const ctx = () => ({ openAllGates: false, seen: 0 });
       assertLogs('normalize stages', text, (t) => runStages(t, STABLE_NORMALIZE_STAGES, ctx(), null),
         (t, log) => runStagesLogged(t, STABLE_NORMALIZE_STAGES, STABLE_NORMALIZE_LOGGED_RUNS, ctx(), log));
+      assertLogs('fontToUnicode zawgyi', zawgyi, (t) => fontToUnicode(t, 'zawgyi'),
+        (t, log) => fontToUnicodeLogged(t, 'zawgyi', log));
+      assertLogs('fontToUnicode win', win, (t) => fontToUnicode(t, 'win'),
+        (t, log) => fontToUnicodeLogged(t, 'win', log));
     }), 10000, [], 300000);
+  });
+
+  it('every stage of FONT_STAGES and the normalize lists names its edits by its id', () => {
+    const log = new EditLog('');
+    fontToUnicodeLogged('\u1031\u1000\u102C\u1004\u1039\u1038 \u1040', 'zawgyi', log);
+    const ids = new Set(FONT_STAGES.map((stage) => stage.id));
+    assert.ok(log.edits.length > 0 && log.edits.every((edit) => edit.rules.every((rule) => ids.has(rule))));
   });
 });

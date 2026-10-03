@@ -65,6 +65,47 @@ function replaceRepeatedly(text, row) {
   return text;
 }
 
+// applyRuleRows, recording in `log`, an EditLog (core/edits.js), the spans the rows replaced (DESIGN.md §11.3). Each
+// replace runs with a function that notes the match and returns the row's own replacement for it, so the result is
+// that of applyRuleRows.
+export function applyRuleRowsLogged(text, rows, log) {
+  let edits = [];
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (!mayMatch(row, text)) continue;
+    for (let pass = 0; pass < (row.repeat ? REPEAT_LIMIT : 1); pass++) {
+      if (row.repeat && !ruleMatches(row, text)) break;
+      const rowLog = new EditLog(log.rule);
+      const next = replaceNoting(text, row, rowLog);
+      if (next === text) break;
+      edits = composeEdits(edits, rowLog.edits);
+      text = next;
+    }
+  }
+  log.addAll(edits);
+  return text;
+}
+
+// text.replace(row.re, row.to), noting each match in rowLog. The replacement is expanded here, as String#replace
+// expands it: $1-$9 are the groups, $& the match and $$ a dollar sign; the rows of src/ use no other.
+function replaceNoting(text, row, rowLog) {
+  let growth = 0; // the output's length minus the input's, for the matches so far
+  return text.replace(row.re, function () {
+    const match = arguments[0];
+    const at = arguments[arguments.length - 2];
+    const groups = Array.prototype.slice.call(arguments, 1, arguments.length - 2);
+    const replacement = row.to.replace(/\$([1-9&$])/g, (all, name) => {
+      if (name === '$') return '$';
+      if (name === '&') return match;
+      const group = groups[Number(name) - 1];
+      return group === undefined ? '' : group;
+    });
+    rowLog.addChange(at, match, at + growth, replacement);
+    growth += replacement.length - match.length;
+    return replacement;
+  });
+}
+
 // applyRuleRows, recording the rows 2.x's debug log names (syllable.js convertText with debug), each with its id,
 // its label and the text after it:
 // - a once row that changed the text;

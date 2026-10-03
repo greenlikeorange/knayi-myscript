@@ -65,6 +65,11 @@ export function fixTypos(text) {
   return copied === 0 ? text : out + text.slice(copied);
 }
 
+// fixTypos, recording its edits in `log`.
+export function fixTyposLogged(text, log) {
+  return scanTypos(text, false, log);
+}
+
 // The typo rows applied until they change nothing, in one scan: 3.0's normalize (decision 36; DESIGN.md §11.2).
 // typo.ii and typo.uu join two signs of one run of i and ii (or u and uu) into one ii, so a longer run needs one
 // pass per i: fixTypos turns ိိီ into ိီ, and a second pass into ီ. Here each run is read whole: a run that holds
@@ -199,11 +204,22 @@ function isNoSign() {
 // a zero is wa unless it sits in a number: research/zawgyi-to-unicode.md §2, and §1 bug K for a zero after a
 // decimal point. Each decision reads the text as it came in.
 export function zeroAsWa(text) {
+  return replaceZerosAsWa(text, null);
+}
+
+// zeroAsWa, recording its edits in `log`.
+export function zeroAsWaLogged(text, log) {
+  return replaceZerosAsWa(text, log);
+}
+
+function replaceZerosAsWa(text, log) {
   let out = '';
   let copied = 0;
   for (let i = text.indexOf(ZERO_TEXT); i !== -1; i = text.indexOf(ZERO_TEXT, i + 1)) {
     if (isInNumber(text, i, NUMBER_CONTEXT.ZERO_AS_WA)) continue;
-    out += text.slice(copied, i) + WA_TEXT;
+    out += text.slice(copied, i);
+    if (log !== null) log.add(i, i + 1, out.length, out.length + 1);
+    out += WA_TEXT;
     copied = i + 1;
   }
   return copied === 0 ? text : out + text.slice(copied);

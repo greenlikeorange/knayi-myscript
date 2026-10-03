@@ -55,3 +55,19 @@ const kinds: IssueKind[] = issues.map((issue) => issue.kind);
 const fixes: string[] = issues.map((issue) => issue.fix);
 // @ts-expect-error: explain takes no report
 explain(lines[0], { report: true });
+
+// toUnicode: a string, or { text, offsets } with { offsets: true }; toZawgyi
+import { toUnicode, toZawgyi } from '../../src/index.js';
+import type { ConversionWithOffsets } from '../../src/index.js';
+
+const unicode: string = toUnicode(lines[0], { from: 'zawgyi' });
+const detected: string[] = lines.map(toUnicode);
+const tied: string = toUnicode(lines[0], { tie: 'zawgyi', zawgyiDetector: detector });
+const withOffsets: ConversionWithOffsets = toUnicode(lines[0], { offsets: true });
+const firstSource: number | undefined = withOffsets.offsets[0];
+toUnicode(lines[0], { from: 'win', trace });
+// @ts-expect-error: from is a font name
+toUnicode('x', { from: 'Zawgyi' });
+// @ts-expect-error: tie is 'unicode' or 'zawgyi'
+toUnicode('x', { tie: 'win' });
+const zawgyi: string = toZawgyi(unicode, { trace });
