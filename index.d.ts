@@ -77,7 +77,7 @@ export interface ConvertDebug {
   from: string;
   /**
    * From Zawgyi or Win, the stages that changed the text, in this order: `'sequences'`, `'glyphs'`, `'syllables'`,
-   * `'zero as wa'`, `'look-alikes'`, `'typos'`, `'NFC'`. From Unicode, the regex source of each rule that matched
+   * `'zero as wa'`, `'typos'`, `'look-alikes'`, `'NFC'`. From Unicode, the regex source of each rule that matched
    * (for a rule rewritten for speed, the source it had before). Empty where fontConvert returns before converting.
    */
   matched_patterns: string[];

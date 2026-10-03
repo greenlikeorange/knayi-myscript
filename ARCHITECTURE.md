@@ -1,13 +1,13 @@
 # Architecture
 
-How knayi-myscript is built today: version 2.10.0, including the Shan look-alike fix (#73), the fix for `normalize`'s quadratic time on runs of e and medial ra (#74), NFC in linear time (`library/nfc.js`), one policy for font names, in any letter case (`resolveFont`, `breakFont` and `givenName` in `library/contentGate.js`), a `fontDetect` fallback that is a string or none, detector options that may be `null` and are checked (thresholds in order, adapter names), with every message silenced by silent mode, a `fontConvert` that reads no debug flag from `this`, and a `fontConvert.debugging` that returns its report on every exit with text, as the types promise. This is a map of the current code, not a target design. A pull request that changes something described here updates this file in the same PR.
+How knayi-myscript is built today: version 2.10.0, including the Shan look-alike fix (#73), the fix for `normalize`'s quadratic time on runs of e and medial ra (#74), NFC in linear time (`library/nfc.js`), one policy for font names, in any letter case (`resolveFont`, `breakFont` and `givenName` in `library/contentGate.js`), a `fontDetect` fallback that is a string or none, detector options that may be `null` and are checked (thresholds in order, adapter names), with every message silenced by silent mode, a `fontConvert` that reads no debug flag from `this`, a `fontConvert.debugging` that returns its report on every exit with text, as the types promise, and the typing fixes in one order, typos then look-alikes, in conversion and `normalize`. This is a map of the current code, not a target design. A pull request that changes something described here updates this file in the same PR.
 
 - [Entry points and builds](#entry-points-and-builds)
 - [Module map](#module-map)
 - [What each call does](#what-each-call-does)
 - [The syllable engine](#the-syllable-engine-librarystorageorderjs)
 - [NFC in linear time](#nfc-in-linear-time-librarynfcjs)
-- [Typing fixes and their two orders](#typing-fixes-and-their-two-orders)
+- [Typing fixes and their order](#typing-fixes-and-their-order)
 - [Detection, breaks and the Unicode to Zawgyi rules](#detection-breaks-and-the-unicode-to-zawgyi-rules)
 - [Glossary](#glossary)
 - [Stable surfaces](#stable-surfaces)
@@ -112,8 +112,8 @@ Every public function starts the same way, with small differences. `toText` unwr
 | `glyphs` | Debug only: each glyph's Unicode text, still in typed order. |
 | `syllables` | `arrange`: the font reader. |
 | `zero as wa` | `zeroAsWa`: a zero that is not part of a number becomes wa. |
-| `look-alikes` | `typingFixes.lookAlikes`. |
 | `typos` | `typingFixes.typos`. |
+| `look-alikes` | `typingFixes.lookAlikes`. |
 | `NFC` | `nfc.js`: `String.prototype.normalize('NFC')`, with long runs of marks put in order first. |
 
 With `debug`, `toUnicode` returns `{ matched_patterns, steps }`: `matched_patterns` names each stage that changed the text, in order, and `steps` holds the input followed by the text after each of those stages. `converter.js` adds `to` and `from`. The README documents these stage names.
@@ -237,28 +237,28 @@ One more difference follows from the encodings, not from a choice: in the fonts,
 
 `test/nfc.test.js` checks the helper against a probe, with other marks, of every code point the runtime knows, and every ordered pair of its run characters (971 on Node 26, Unicode 17); `test/growth.timing.js` and `test/performance.test.js` time long runs of Myanmar, Latin, Greek, Hebrew, Arabic, Tibetan and astral marks.
 
-## Typing fixes and their two orders
+## Typing fixes and their order
 
 `typingFixes.js` has two functions, used by both pipelines:
 
 - **`lookAlikes`:** zero and seven are typed for wa and ra, and the other way round. A zero or seven that carries a mark, or starts a closed syllable, is a letter; a zero inside a word with no digit next to it is a letter too. A bare wa or ra inside a run of digits is a digit. The marks and consonants here cover every language in the Myanmar blocks, so Shan and Karen text gets the same reading (#43).
 - **`typos`:** four regexes, applied in order: i with ii is ii; u with uu is uu; o with e, aa and asat is au; the digit four before nga, asat and visarga is lagaung.
 
-The two pipelines run them in opposite orders:
+Both pipelines make the typos first, then the look-alikes:
 
 | Pipeline | Order |
 | --- | --- |
-| Zawgyi and Win (`storageOrder.toUnicode`) | `zero as wa` → `look-alikes` → `typos` → `NFC` |
+| Zawgyi and Win (`storageOrder.toUnicode`) | `zero as wa` → `typos` → `look-alikes` → `NFC` |
 | `normalize` (`normalization.js`) | `NFC` → syllables → `typos` → `look-alikes` → `NFC` |
 
-The comment at the top of `typingFixes.js` says the two pipelines agree. On the eval corpora the order makes no difference: the two orders give the same result on every Unicode line read by `arrangeUnicode` (FLORES-200, the Wikipedia sample, Okell, mC4, and the GlotCC Shan, Mon, S'gaw Karen and Pa'o sets) and on every mC4 line converted from Zawgyi. Synthetic input shows the difference, for example a ra before the digit four of a lagaung:
+The order counts where the two read the same characters, as with a ra before the digit four of a lagaung. The typo fix reads a four that follows no digit as lagaung, and then the ra is next to no digit and stays a letter. The other way round, the look-alikes read the ra next to the four as seven, and the four, now after a digit, stays a digit. The font pipeline made the look-alikes first until both pipelines took `normalize`'s order ([CHANGELOG.md](CHANGELOG.md), Output changes), and turned `&4if;` into `၇၄င်း`. Now conversion and `normalize` agree:
 
 ```javascript
-knayi.fontConvert('&4if;', 'unicode', 'win') // '၇၄င်း'
+knayi.fontConvert('&4if;', 'unicode', 'win') // 'ရ၎င်း'
 knayi.normalize('ရ၄င်း') // 'ရ၎င်း'
 ```
 
-The font pipeline reads the ra next to a digit as seven first, so the four no longer follows a non-digit and stays a digit. `normalize` fixes the lagaung first. The debug stage order is part of the 2.x API (see [Stable surfaces](#stable-surfaces)), so changing either order is a deliberate output change.
+On the eval corpora, and on the generated and random Win strings of `npm run compare`, the order changes no converted text. Where both stages change a line, `fontConvert.debugging` names them, and gives the text between them, in the new order: on one mC4 line and one Shan line read as Zawgyi. The debug stage order is part of the 2.x API ([Stable surfaces](#stable-surfaces)), so changing it is a deliberate output change.
 
 The fonts also have a stage `normalize` does not: `zeroAsWa` (in `storageOrder.js`). Its idea of a zero in a number (a Burmese digit or one of `+ - * /` next to it, or a digit across `.` or `,`) differs from `lookAlikes`' (Burmese, Shan or Tai Laing digits, and `.` or `,`, but no arithmetic signs).
 
@@ -300,7 +300,7 @@ These are the 2.x API. Changing them needs a major version.
 | The option keys | `silent_mode`, `detector.use_myanmartools`, `detector.myanmartools_zg_threshold`, the per-call `adapter`, and `truncate`'s `length`, `omission` and `fontType`. |
 | The deep path `knayi-myscript/library/converter` | README ("These paths load"); `test/compat.test.js`; its types, `library/converter.d.ts`, in `typecheck/deep-path.ts` and `typecheck/packed/`. |
 | The shape of `win.tables` | `{ WIN, SEQUENCES, ROLES }`, with the role strings; read by `scripts/eval/win-glyphs.mjs`. |
-| The debug stage names and their order | `sequences`, `glyphs`, `syllables`, `zero as wa`, `look-alikes`, `typos`, `NFC`: README (`fontConvert.debugging`); `test/zawgyi.test.js`, with one input that passes all seven; the stage lists of `test/fixtures/tables.json`; and the comparison with the frozen 2.10 engine in `test/fuzz.test.js`. |
+| The debug stage names and their order | `sequences`, `glyphs`, `syllables`, `zero as wa`, `typos`, `look-alikes`, `NFC`: README (`fontConvert.debugging`); `test/zawgyi.test.js`, with one input that passes all seven; the stage lists of `test/fixtures/tables.json`; and the comparison with the frozen 2.10 engine, with the deliberate changes made since, in `test/fuzz.test.js`. |
 | The regex-source labels in `matched_patterns` | Unicode to Zawgyi debugging logs each rule's label: its third item, the source its pattern had before a rewrite for speed, or else its pattern's `.source` (`syllable.js`, `record`). Rewriting a regex literal, even to an equal pattern, changes this output, unless the rule keeps the old source as its label. |
 | Error codes | The `code` of each error knayi throws on purpose: `ERR_KNAYI_INVALID_FONT` (`contentGate.js`); README ("Font names"); the contract matrix. The code at the start of the threshold error, `[ERR_KNAYI_INVALID_THRESHOLD]` (`globalOptions.js`); README ("fontDetect"). Messages may change; codes may not. |
 
@@ -312,7 +312,6 @@ The 2.x code keeps these so that refactors stay byte-identical. Each one changes
 
 - **Three `isConsonant`s:** `storageOrder.js` means Burmese consonants (U+1000–U+1021), `typingFixes.js` the consonants of every language in the Myanmar blocks, and `syllable.js` the Burmese range again, for the test-only parser.
 - **Bases differ between engines:** U+1022 and U+1028 start a syllable in `storageOrder.js` (`isMyanmarLetter`) but not in the Unicode break rules.
-- **The typing-fix order** differs between the pipelines (above).
 - **`fontConvert` reads a font that is not a string by its string form:** `resolveFont` looks the value up as a property name, with no case folding, so `['zawgyi']` is Zawgyi and `['ZAWGYI']` is detected, where `syllBreak`, `spellingFix` and `truncate` detect the font for any value that is not a string. Only an unknown name that is a string warns.
 - **`truncate` throws on an object that `String()` cannot convert,** such as `Object.create(null)` or `{ toString: undefined }`: it turns non-strings into strings with `String(content)` (`truncate.js`), where the other functions return them unchanged. `test/properties.test.js` pins the `TypeError`.
 - **Only U+1000–U+109F counts as Myanmar** for the input checks (`contentGate.js`). The extended blocks (U+A9E0–U+A9FF, U+AA60–U+AA7F) are read by the typing fixes and by `arrangeUnicode`, and count for `normalize`'s shortcut ([above](#normalizecontent)), but `fontDetect`, `fontConvert`, `syllBreak`, `spellingFix` and `truncate` treat text made only of them as having no Myanmar character. Myanmar Extended-C (U+116D0–U+116E3) is not read anywhere. The ranges are written by hand, not generated from Unicode data. They match Unicode 15.1, apart from the classes `test/unicode.test.js` lists, and that test fails when the runtime knows Myanmar code points they miss.
@@ -337,7 +336,7 @@ Setup is `npm ci` in each clone or worktree; see [CONTRIBUTING.md](CONTRIBUTING.
 | Command | What it runs | CI check |
 | --- | --- | --- |
 | `npm run build` | Writes the four `dist/` files. Only a release commit runs it. | — |
-| `npm test` | `node --test "test/**/*.test.js"`, then the timing test alone (`node --test "test/**/*.timing.js"`), then `tsc` on `typecheck/` with and without `esModuleInterop`, then the size check (`posttest`). The tests read the dist files from a temporary build. Among them: the tests per module; the contract matrix (`test/contract/`); a probe for every table row and one for each branch of a row's pattern (`test/tables.test.js`, probes in `test/fixtures/tables.json`, rewritten by `node scripts/testing/table-cases.js --write`); every example in README.md, this file and the JSDoc of `index.d.ts`, with their number pinned, and README's prose examples (`test/readme.test.js`); differential fuzz against the frozen 2.10 engine in `scripts/oracle/`; property tests; the myanmar-tools adapter; the layering test; the literal-search check (`test/unit/literal-search.test.js`, [above](#detection-breaks-and-the-unicode-to-zawgyi-rules)); the ranks and rank bits of `order` (`test/unit/mark-ranks.test.js`, [above](#ordersyllable)); the `'use strict'` directive of every library file, and none at the top of `main.js` and the script builds (`test/unit/strict.test.js`, [above](#module-map)); the browser floor checks (`test/syntax.test.js`, `test/dist-floor.test.js`, `test/regex-floor.test.js`); the Unicode version check; and the NFC helper against every code point and every pair of combining marks (`test/nfc.test.js`). The timing test, `test/growth.timing.js`, checks that time grows linearly on random structured input, on a run of every single character and on runs of marks that NFC reorders; it runs after the others so that they do not compete with it for the CPU. | Node 22, Node 24, Node 26 |
+| `npm test` | `node --test "test/**/*.test.js"`, then the timing test alone (`node --test "test/**/*.timing.js"`), then `tsc` on `typecheck/` with and without `esModuleInterop`, then the size check (`posttest`). The tests read the dist files from a temporary build. Among them: the tests per module; the contract matrix (`test/contract/`); a probe for every table row and one for each branch of a row's pattern (`test/tables.test.js`, probes in `test/fixtures/tables.json`, rewritten by `node scripts/testing/table-cases.js --write`); every example in README.md, this file and the JSDoc of `index.d.ts`, with their number pinned, and README's prose examples (`test/readme.test.js`); differential fuzz against the frozen 2.10 engine in `scripts/oracle/`, with the deliberate output changes made since (`scripts/oracle/index.js`); property tests; the myanmar-tools adapter; the layering test; the literal-search check (`test/unit/literal-search.test.js`, [above](#detection-breaks-and-the-unicode-to-zawgyi-rules)); the ranks and rank bits of `order` (`test/unit/mark-ranks.test.js`, [above](#ordersyllable)); the `'use strict'` directive of every library file, and none at the top of `main.js` and the script builds (`test/unit/strict.test.js`, [above](#module-map)); the browser floor checks (`test/syntax.test.js`, `test/dist-floor.test.js`, `test/regex-floor.test.js`); the Unicode version check; and the NFC helper against every code point and every pair of combining marks (`test/nfc.test.js`). The timing test, `test/growth.timing.js`, checks that time grows linearly on random structured input, on a run of every single character and on runs of marks that NFC reorders; it runs after the others so that they do not compete with it for the CPU. | Node 22, Node 24, Node 26 |
 | `npm run test:bun` | `scripts/bun-contract.js`, `scripts/bun-esm.mjs` and `scripts/bun-matrix.js` (the contract matrix in a process of its own), then `bun test ./test` and the timing test. | Bun |
 | `npm run test:pack` | Packs the package with a fresh build (`scripts/pack-fresh.mjs`), installs it with Bun in a temporary app, and converts the Zawgyi greeting through `require` and `import`. | Bun |
 | `npm run test:smoke -- [dir]` | README examples on plain Node through `main.js`, `library/converter` and, given a build directory, the script and module builds. It runs on Node 16 and later. | Smoke on Node 16, 18 and 20 |

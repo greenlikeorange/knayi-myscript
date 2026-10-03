@@ -76,6 +76,12 @@ Sharing the typing fixes changes 226 of 9,987 real Zawgyi lines (mC4), all check
 
 Win output is unchanged on the ufc and python-myanmar pairs. normalize still changes 22 converted Zawgyi lines, all with marks that belong to no syllable.
 
+**One order for the typing fixes.** 2.10's conversion made them in the opposite order to `normalize`: look-alikes, then typos. Both now make the typos first, as `normalize` did. The order counts only where a typo fix and a look-alike read the same characters, as with a ရ before the digit ၄ of a lagaung:
+- **Typos first:** the ၄ follows no digit, so it is ၎, and the ရ, next to no digit, stays ရ. Win `&4if;` is ရ၎င်း, as `normalize` makes ရ၄င်း and as Zawgyi `ရ၄င္း` already was, since Zawgyi's own sequence rule reads the ၄ before anything else.
+- **Look-alikes first,** as 2.10's conversion did: the ရ next to the ၄ is ၇, and then the ၄ follows a digit and stays ၄. Win `&4if;` was ၇၄င်း, and so was Zawgyi typed with the visarga before the asat (`ရ၄ငး္`), which the sequence rule does not match.
+
+`normalize`'s order was kept, rather than conversion's, because it reads ၄င်း after a letter as ၎င်း, as the typo rule means, and because it changes no `normalize` output. On every corpus of `npm run compare` (mC4's 14,304 distinct lines included, read as Zawgyi and with a detected font), and on its generated and random Win strings, it changes no converted line. In `fontConvert.debugging`, the two stages and the text between them come in the new order where both change a line: 1 mC4 line and 1 Shan line read as Zawgyi.
+
 On the benchmark page, the Wikipedia round trip (Wikipedia → Rabbit's Zawgyi → knayi) falls from 99.1% to 96.6%. That row counts a line as right only when it comes back exactly as Wikipedia has it, and 120 lines of the Wikipedia text have typing errors that knayi now corrects. 118 have ဝ or ရ typed in a number (၁ဝ ရက်, ၁၂:၃ဝ, ၁၉ရ၂), and 2 have ိ and ီ together.
 
 ## 5. Other languages

@@ -1,7 +1,7 @@
 'use strict';
 // Typing fixes for Unicode text whose syllables are already in storage order (storageOrder.js): letters and
 // digits that look alike and are typed for each other, and a few misspellings. normalize applies them, and so
-// does Zawgyi and Win conversion, so the two agree.
+// does Zawgyi and Win conversion, in the same order, typos and then look-alikes, so the two agree.
 
 const ZERO = '\u1040';
 const SEVEN = '\u1047';

@@ -489,8 +489,9 @@ function zeroAsWa(text) {
 }
 
 // Font text -> Unicode: the font's look-alike sequences, then its glyphs in syllable order, zero as wa, the
-// typing fixes normalize makes (typingFixes.js) and NFC. With debug, returns { matched_patterns, steps } like
-// fontConvert.debugging, where each step is the text after a stage that changed it.
+// typing fixes normalize makes, in its order (typingFixes.js: typos, then look-alikes), and NFC. With debug,
+// returns { matched_patterns, steps } like fontConvert.debugging, where each step is the text after a stage
+// that changed it.
 function toUnicode(content, font, debug) {
   var steps = [content];
   var patterns = [];
@@ -510,8 +511,8 @@ function toUnicode(content, font, debug) {
   if (debug) step('glyphs', glyphsInTypedOrder(text, font.glyphs));
   var result = step('syllables', arrange(text, font.glyphs));
   result = step('zero as wa', zeroAsWa(result));
-  result = step('look-alikes', typingFixes.lookAlikes(result));
   result = step('typos', typingFixes.typos(result));
+  result = step('look-alikes', typingFixes.lookAlikes(result));
   result = step('NFC', nfc(result));
   return debug ? { matched_patterns: patterns, steps: steps } : result;
 }

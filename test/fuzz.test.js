@@ -6,9 +6,10 @@ const oracle = require('../scripts/oracle');
 const arb = require('../scripts/testing/arbitraries');
 const { SEED, check, runs } = require('../scripts/testing/fuzz-settings');
 
-// Differential fuzz: the library against the frozen 2.10 engine in scripts/oracle/, on short strings over the
-// characters each reader decides on (scripts/testing/arbitraries.js). 60,000 strings in all on a pull request;
-// see scripts/testing/fuzz-settings.js for a longer run. Every output must be the same.
+// Differential fuzz: the library against the frozen 2.10 engine in scripts/oracle/, with the deliberate output
+// changes made since (scripts/oracle/index.js), on short strings over the characters each reader decides on
+// (scripts/testing/arbitraries.js). 60,000 strings in all on a pull request; see scripts/testing/fuzz-settings.js
+// for a longer run. Every output must be the same.
 
 function hex(text) {
   return typeof text === 'string' ? text.split('').map((c) => c.charCodeAt(0).toString(16).toUpperCase()).join(' ') : text;
@@ -39,11 +40,20 @@ const ZAWGYI_REGRESSIONS = [
   '\u107F\u1019\u102D\u1033 \u1037', // medial ra, a space before the dot below
   '\u104E\u1004\u1039\u1038', // lagaung typed with the nga, asat and visarga it draws
   '\u1044\u1004\u1039\u1038', // the digit four typed for lagaung
+  '\u101B\u1044\u1004\u1038\u1039', // ra, then the digit four for lagaung, visarga typed first: typos come first
   '\u1031\u101A\u102C\u1000\u1039\u103A\u102C\u1038', // yauk-kya (man): asat on the consonant, before medial ya
   '\u1031' + '\u1000'.repeat(200)
 ].map((text) => [text]);
 
-const WIN_REGRESSIONS = ['ajumifh', 'a,musfm;', 'usGefkyf', 'aMomf', 'ZvGefaps;', '7if;', '0if'].map((text) => [text]);
+const WIN_REGRESSIONS = ['ajumifh', 'a,musfm;', 'usGefkyf', 'aMomf', 'ZvGefaps;', '7if;', '0if', '&4if;']
+  .map((text) => [text]);
+
+// The typing fixes come in normalize's order, typos and then look-alikes: kinzi with ii, then i, seven and ra,
+// where both change the text; and Win ra before the digit four typed for lagaung.
+const DEBUGGING_REGRESSIONS = [
+  ['zawgyi', '\u108C\u102D\u1047\u1090 '],
+  ['win', '&4if;']
+].map((pair) => [pair]);
 
 // Strings per comparison on a pull request: 60,000 in all.
 const COUNT = { normalize: 25000, codeUnits: 10000, zawgyi: 10000, win: 5000, detect: 8000, debugging: 2000 };
@@ -101,7 +111,6 @@ describe('library against the 2.10 oracle', () => {
   });
 
   it('the debugging stages of Zawgyi and Win', () => {
-    const fonts = { zawgyi: require('../scripts/oracle/zawgyi'), win: require('../scripts/oracle/win') };
     const text = fc.oneof(zawgyi.map((t) => ['zawgyi', t]), win.map((t) => ['win', t]));
     check(fc.property(text, ([font, content]) => {
       const debug = knayi.fontConvert.debugging(content, 'unicode', font);
@@ -113,10 +122,10 @@ describe('library against the 2.10 oracle', () => {
         same(debug.steps[0], oracle.toUnicode(content, font), content);
         return;
       }
-      const frozen = fonts[font].toUnicode(content.trim(), true);
+      const frozen = oracle.fonts[font].toUnicode(content.trim(), true);
       assert.deepEqual(debug.matched_patterns, frozen.matched_patterns, 'stages for ' + hex(content));
       assert.deepEqual(debug.steps, frozen.steps, 'steps for ' + hex(content));
-    }), COUNT.debugging);
+    }), COUNT.debugging, DEBUGGING_REGRESSIONS);
   });
 
   // The font reader reads each glyph from an array indexed by character code, which ends at the highest code
@@ -124,8 +133,8 @@ describe('library against the 2.10 oracle', () => {
   // and after ka, through both fonts with the debugging stages, which include each glyph's text.
   it('every code unit through the glyph tables', () => {
     const fonts = {
-      zawgyi: [require('../library/zawgyi'), require('../scripts/oracle/zawgyi')],
-      win: [require('../library/win'), require('../scripts/oracle/win')]
+      zawgyi: [require('../library/zawgyi'), oracle.fonts.zawgyi],
+      win: [require('../library/win'), oracle.fonts.win]
     };
     const KA = String.fromCharCode(0x1000);
     for (const font of Object.keys(fonts)) {
@@ -184,7 +193,7 @@ describe('library against the 2.10 oracle', () => {
     ];
     for (const run of runsOf((MARKS + OTHER).split(''))) {
       for (const start of starts) {
-        same(library.toUnicode(start + run, font), oracle.storageOrder.toUnicode(start + run, frozen), start + run);
+        same(library.toUnicode(start + run, font), oracle.fontToUnicode(start + run, frozen), start + run);
       }
     }
   });
