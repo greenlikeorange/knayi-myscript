@@ -113,11 +113,15 @@ function installedVersion(version) {
   return null;
 }
 
-// Unpacks main.js, library/ and package.json of a commit (and scripts/build.js when it is to be built).
+// What a build needs besides the library: the build script and whatever else scripts/ holds for it.
+const SOURCE = ['main.js', 'library', 'package.json'];
+const BUILD = ['scripts'];
+
+// Unpacks main.js, library/ and package.json of a commit (and scripts/ when it is to be built).
 function unpack(sha, withBuild) {
-  const wanted = ['main.js', 'library', 'package.json'].concat(withBuild ? ['scripts/build.js'] : []);
+  const wanted = SOURCE.concat(withBuild ? BUILD : []);
   const listed = git(['ls-tree', '--name-only', sha, '--', ...wanted]).split('\n').filter(Boolean);
-  for (const p of ['main.js', 'library'].concat(withBuild ? ['scripts/build.js'] : [])) {
+  for (const p of ['main.js', 'library']) {
     if (!listed.includes(p)) throw new Error(sha.slice(0, 7) + ' has no ' + p);
   }
   const dir = tempDir('git-' + sha.slice(0, 7));
@@ -169,10 +173,10 @@ function buildDist(source) {
   if (source.type === 'npm') return path.join(source.dir, 'dist');
   if (builds.has(source.dir)) return builds.get(source.dir);
   let dir = source.dir;
+  if (!fs.existsSync(path.join(dir, 'scripts', 'build.js'))) throw new Error(source.label + ' has no scripts/build.js');
   if (source.type !== 'git') {
-    if (!fs.existsSync(path.join(dir, 'scripts', 'build.js'))) throw new Error(source.label + ' has no scripts/build.js');
     const copy = tempDir('build');
-    for (const p of ['main.js', 'library', 'package.json', 'scripts/build.js']) {
+    for (const p of SOURCE.concat(BUILD)) {
       if (fs.existsSync(path.join(dir, p))) fs.cpSync(path.join(dir, p), path.join(copy, p), { recursive: true });
     }
     dir = copy;
@@ -201,9 +205,12 @@ export function prepareKnayi(spec) {
     return { spec, kind, file, label: path.relative(process.cwd(), file), fileHash: fileHash(file) };
   }
   const source = prepareSource(inner, { withBuild: true });
-  const name = m[1] === 'min' ? 'knayi-myscript.min.js' : 'knayi-myscript.mjs';
-  const file = path.join(buildDist(source), name);
-  if (!fs.existsSync(file)) throw new Error(source.label + ' has no dist/' + name);
+  const dist = buildDist(source);
+  // Releases before 2.9 ship the ES module build only as knayi-myscript.es.js.
+  const names = m[1] === 'min' ? ['knayi-myscript.min.js'] : ['knayi-myscript.mjs', 'knayi-myscript.es.js'];
+  const name = names.find((n) => fs.existsSync(path.join(dist, n)));
+  if (!name) throw new Error(source.label + ' has no dist/' + names.join(' or dist/'));
+  const file = path.join(dist, name);
   const built = source.type === 'npm' ? ' as shipped' : ' built';
   return { spec, kind, file, label: name + ' of ' + source.label + built, ...source.state, fileHash: fileHash(file) };
 }

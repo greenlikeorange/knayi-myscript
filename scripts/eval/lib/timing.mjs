@@ -1,6 +1,6 @@
 // Timing helpers for perf.mjs. Two copies are always timed in one process and interleaved, and only their ratio
 // is reported: absolute times drift between runs on the same machine (12-24% in the refactor plan's measurements),
-// while the interleaved median ratio of two identical copies stayed within about 3%.
+// while the interleaved median ratio of two identical copies stayed within 3% under Node and 6% under Bun.
 
 export const now = () => performance.now();
 

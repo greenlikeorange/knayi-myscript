@@ -129,20 +129,26 @@ async function workerMain() {
   parentPort.postMessage({ ready: true });
 }
 
-async function runJobs(jobs, sets, base, head, opts) {
+// Runs the jobs here with --jobs 1, otherwise on worker threads that each load both copies themselves.
+async function runJobs(jobs, sets, copies, opts) {
   const done = [];
+  const { base, head, A, B } = copies;
   if (opts.jobs === 1) {
-    const A = await instantiate(base);
-    const B = await instantiate(head);
     for (const job of jobs) done.push({ job, results: runJob(job, sets[job.setIndex].lines.slice(job.start, job.end), A, B, opts.examples) });
     return done;
   }
   const queue = jobs.slice();
   const workers = Math.min(opts.jobs, jobs.length);
+  const pool = [];
   await new Promise((resolve, reject) => {
     let running = workers;
+    const fail = (error) => {
+      pool.forEach((w) => w.terminate());
+      reject(error);
+    };
     for (let w = 0; w < workers; w++) {
       const worker = new Worker(new URL(import.meta.url), { workerData: { base, head, examples: opts.examples } });
+      pool.push(worker);
       const inFlight = new Map();
       const next = () => {
         const job = queue.shift();
@@ -160,9 +166,9 @@ async function runJobs(jobs, sets, base, head, opts) {
         }
         next();
       });
-      worker.on('error', reject);
+      worker.on('error', fail);
       worker.on('exit', (code) => {
-        if (code !== 0 && inFlight.size) reject(new Error('a worker stopped with exit code ' + code));
+        if (code !== 0 && inFlight.size) fail(new Error('a worker stopped with exit code ' + code));
         if (--running === 0) resolve();
       });
     }
@@ -215,7 +221,7 @@ async function main(argv) {
   if (skipped.length) console.log('\nskipped (missing in base or head): ' + skipped.map((f) => f.id).join(', '));
 
   const jobs = makeJobs(sets, run);
-  const done = await runJobs(jobs, sets, base, head, opts);
+  const done = await runJobs(jobs, sets, { base, head, A, B }, opts);
 
   // Merge chunk results into one cell per form and set.
   const cells = new Map();
