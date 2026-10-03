@@ -1,0 +1,4019 @@
+{
+  "about": "One synthetic probe per table row, and what the public API returned for it. Written by node scripts/testing/table-cases.js --write; checked by test/tables.test.js.",
+  "cases": {
+    "zawgyi glyph U+106A": {
+      "probe": "\u1031\u106a\u102c",
+      "expect": {
+        "output": "\u1009\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+106B": {
+      "probe": "\u1031\u106b\u102c",
+      "expect": {
+        "output": "\u100a\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+108F": {
+      "probe": "\u1031\u108f\u102c",
+      "expect": {
+        "output": "\u1014\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+1090": {
+      "probe": "\u1031\u1090\u102c",
+      "expect": {
+        "output": "\u101b\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+1086": {
+      "probe": "\u1031\u1086\u102c",
+      "expect": {
+        "output": "\u103f\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+104E": {
+      "probe": "\u1031\u104e\u102c",
+      "expect": {
+        "output": "\u104e\u1004\u103a\u1038\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+106E": {
+      "probe": "\u1031\u106e\u102c",
+      "expect": {
+        "output": "\u100d\u1039\u100d\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+106F": {
+      "probe": "\u1031\u106f\u102c",
+      "expect": {
+        "output": "\u100d\u1039\u100e\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+1091": {
+      "probe": "\u1031\u1091\u102c",
+      "expect": {
+        "output": "\u100f\u1039\u100d\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+1092": {
+      "probe": "\u1031\u1092\u102c",
+      "expect": {
+        "output": "\u100b\u1039\u100c\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+1097": {
+      "probe": "\u1031\u1097\u102c",
+      "expect": {
+        "output": "\u100b\u1039\u100b\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+102B": {
+      "probe": "\u1000\u102b",
+      "expect": {
+        "output": "\u1000\u102b",
+        "stages": []
+      }
+    },
+    "zawgyi glyph U+102C": {
+      "probe": "\u1000\u102c",
+      "expect": {
+        "output": "\u1000\u102c",
+        "stages": []
+      }
+    },
+    "zawgyi glyph U+105A": {
+      "probe": "\u1000\u105a",
+      "expect": {
+        "output": "\u1000\u102b\u103a",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+102D": {
+      "probe": "\u1000\u102d",
+      "expect": {
+        "output": "\u1000\u102d",
+        "stages": []
+      }
+    },
+    "zawgyi glyph U+102E": {
+      "probe": "\u1000\u102e",
+      "expect": {
+        "output": "\u1000\u102e",
+        "stages": []
+      }
+    },
+    "zawgyi glyph U+108E": {
+      "probe": "\u1000\u108e",
+      "expect": {
+        "output": "\u1000\u102d\u1036",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+102F": {
+      "probe": "\u1000\u102f",
+      "expect": {
+        "output": "\u1000\u102f",
+        "stages": []
+      }
+    },
+    "zawgyi glyph U+1033": {
+      "probe": "\u1000\u1033",
+      "expect": {
+        "output": "\u1000\u102f",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1030": {
+      "probe": "\u1000\u1030",
+      "expect": {
+        "output": "\u1000\u1030",
+        "stages": []
+      }
+    },
+    "zawgyi glyph U+1034": {
+      "probe": "\u1000\u1034",
+      "expect": {
+        "output": "\u1000\u1030",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1031": {
+      "probe": "\u1031\u1000",
+      "expect": {
+        "output": "\u1000\u1031",
+        "stages": [
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+1032": {
+      "probe": "\u1000\u1032",
+      "expect": {
+        "output": "\u1000\u1032",
+        "stages": []
+      }
+    },
+    "zawgyi glyph U+1036": {
+      "probe": "\u1000\u1036",
+      "expect": {
+        "output": "\u1000\u1036",
+        "stages": []
+      }
+    },
+    "zawgyi glyph U+1037": {
+      "probe": "\u1000\u1037",
+      "expect": {
+        "output": "\u1000\u1037",
+        "stages": []
+      }
+    },
+    "zawgyi glyph U+1094": {
+      "probe": "\u1000\u1094",
+      "expect": {
+        "output": "\u1000\u1037",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1095": {
+      "probe": "\u1000\u1095",
+      "expect": {
+        "output": "\u1000\u1037",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1038": {
+      "probe": "\u1000\u1038",
+      "expect": {
+        "output": "\u1000\u1038",
+        "stages": []
+      }
+    },
+    "zawgyi glyph U+1039": {
+      "probe": "\u1000\u1039",
+      "expect": {
+        "output": "\u1000\u103a",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1064": {
+      "probe": "\u1000\u1064",
+      "expect": {
+        "output": "\u1004\u103a\u1039\u1000",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+108B": {
+      "probe": "\u1000\u108b",
+      "expect": {
+        "output": "\u1004\u103a\u1039\u1000\u102d",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+108C": {
+      "probe": "\u1000\u108c",
+      "expect": {
+        "output": "\u1004\u103a\u1039\u1000\u102e",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+108D": {
+      "probe": "\u1000\u108d",
+      "expect": {
+        "output": "\u1004\u103a\u1039\u1000\u1036",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+103A": {
+      "probe": "\u1000\u103a",
+      "expect": {
+        "output": "\u1000\u103b",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+107D": {
+      "probe": "\u1000\u107d",
+      "expect": {
+        "output": "\u1000\u103b",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+103C": {
+      "probe": "\u1000\u103c",
+      "expect": {
+        "output": "\u1000\u103d",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+103D": {
+      "probe": "\u1000\u103d",
+      "expect": {
+        "output": "\u1000\u103e",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1087": {
+      "probe": "\u1000\u1087",
+      "expect": {
+        "output": "\u1000\u103e",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+103E": {
+      "probe": "\u1000\u103e",
+      "expect": {
+        "output": "\u1000\u103e",
+        "stages": []
+      }
+    },
+    "zawgyi glyph U+108A": {
+      "probe": "\u1000\u108a",
+      "expect": {
+        "output": "\u1000\u103d\u103e",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1088": {
+      "probe": "\u1000\u1088",
+      "expect": {
+        "output": "\u1000\u103e\u102f",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1089": {
+      "probe": "\u1000\u1089",
+      "expect": {
+        "output": "\u1000\u103e\u1030",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+103B": {
+      "probe": "\u103b\u1000",
+      "expect": {
+        "output": "\u1000\u103c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+107E": {
+      "probe": "\u107e\u1000",
+      "expect": {
+        "output": "\u1000\u103c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+107F": {
+      "probe": "\u107f\u1000",
+      "expect": {
+        "output": "\u1000\u103c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+1080": {
+      "probe": "\u1080\u1000",
+      "expect": {
+        "output": "\u1000\u103c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+1081": {
+      "probe": "\u1081\u1000",
+      "expect": {
+        "output": "\u1000\u103c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+1082": {
+      "probe": "\u1082\u1000",
+      "expect": {
+        "output": "\u1000\u103c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+1083": {
+      "probe": "\u1083\u1000",
+      "expect": {
+        "output": "\u1000\u103c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+1084": {
+      "probe": "\u1084\u1000",
+      "expect": {
+        "output": "\u1000\u103c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+1060": {
+      "probe": "\u1019\u1060",
+      "expect": {
+        "output": "\u1019\u1039\u1000",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1061": {
+      "probe": "\u1019\u1061",
+      "expect": {
+        "output": "\u1019\u1039\u1001",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1062": {
+      "probe": "\u1019\u1062",
+      "expect": {
+        "output": "\u1019\u1039\u1002",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1063": {
+      "probe": "\u1019\u1063",
+      "expect": {
+        "output": "\u1019\u1039\u1003",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1065": {
+      "probe": "\u1019\u1065",
+      "expect": {
+        "output": "\u1019\u1039\u1005",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1066": {
+      "probe": "\u1019\u1066",
+      "expect": {
+        "output": "\u1019\u1039\u1006",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1067": {
+      "probe": "\u1019\u1067",
+      "expect": {
+        "output": "\u1019\u1039\u1006",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1068": {
+      "probe": "\u1019\u1068",
+      "expect": {
+        "output": "\u1019\u1039\u1007",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1069": {
+      "probe": "\u1019\u1069",
+      "expect": {
+        "output": "\u1019\u1039\u1008",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+106C": {
+      "probe": "\u1019\u106c",
+      "expect": {
+        "output": "\u1019\u1039\u100b",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+106D": {
+      "probe": "\u1019\u106d",
+      "expect": {
+        "output": "\u1019\u1039\u100c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1070": {
+      "probe": "\u1019\u1070",
+      "expect": {
+        "output": "\u1019\u1039\u100f",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1071": {
+      "probe": "\u1019\u1071",
+      "expect": {
+        "output": "\u1019\u1039\u1010",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1072": {
+      "probe": "\u1019\u1072",
+      "expect": {
+        "output": "\u1019\u1039\u1010",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1073": {
+      "probe": "\u1019\u1073",
+      "expect": {
+        "output": "\u1019\u1039\u1011",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1074": {
+      "probe": "\u1019\u1074",
+      "expect": {
+        "output": "\u1019\u1039\u1011",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1075": {
+      "probe": "\u1019\u1075",
+      "expect": {
+        "output": "\u1019\u1039\u1012",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1076": {
+      "probe": "\u1019\u1076",
+      "expect": {
+        "output": "\u1019\u1039\u1013",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1077": {
+      "probe": "\u1019\u1077",
+      "expect": {
+        "output": "\u1019\u1039\u1014",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1078": {
+      "probe": "\u1019\u1078",
+      "expect": {
+        "output": "\u1019\u1039\u1015",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1079": {
+      "probe": "\u1019\u1079",
+      "expect": {
+        "output": "\u1019\u1039\u1016",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+107A": {
+      "probe": "\u1019\u107a",
+      "expect": {
+        "output": "\u1019\u1039\u1017",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+107B": {
+      "probe": "\u1019\u107b",
+      "expect": {
+        "output": "\u1019\u1039\u1018",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1093": {
+      "probe": "\u1019\u1093",
+      "expect": {
+        "output": "\u1019\u1039\u1018",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+107C": {
+      "probe": "\u1019\u107c",
+      "expect": {
+        "output": "\u1019\u1039\u1019",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1085": {
+      "probe": "\u1019\u1085",
+      "expect": {
+        "output": "\u1019\u1039\u101c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1096": {
+      "probe": "\u1019\u1096",
+      "expect": {
+        "output": "\u1019\u1039\u1010\u103d",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi glyph U+1040": {
+      "probe": "\u1031\u1040\u102c",
+      "expect": {
+        "output": "\u101d\u1031\u102c",
+        "stages": [
+          "syllables",
+          "zero as wa"
+        ]
+      }
+    },
+    "zawgyi glyph U+1041": {
+      "probe": "\u1031\u1041\u102c",
+      "expect": {
+        "output": "\u1041\u1031\u102c",
+        "stages": [
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+1042": {
+      "probe": "\u1031\u1042\u102c",
+      "expect": {
+        "output": "\u1042\u1031\u102c",
+        "stages": [
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+1043": {
+      "probe": "\u1031\u1043\u102c",
+      "expect": {
+        "output": "\u1043\u1031\u102c",
+        "stages": [
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+1044": {
+      "probe": "\u1031\u1044\u102c",
+      "expect": {
+        "output": "\u1044\u1031\u102c",
+        "stages": [
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+1045": {
+      "probe": "\u1031\u1045\u102c",
+      "expect": {
+        "output": "\u1045\u1031\u102c",
+        "stages": [
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+1046": {
+      "probe": "\u1031\u1046\u102c",
+      "expect": {
+        "output": "\u1046\u1031\u102c",
+        "stages": [
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+1047": {
+      "probe": "\u1031\u1047\u102c",
+      "expect": {
+        "output": "\u101b\u1031\u102c",
+        "stages": [
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+1048": {
+      "probe": "\u1031\u1048\u102c",
+      "expect": {
+        "output": "\u1048\u1031\u102c",
+        "stages": [
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi glyph U+1049": {
+      "probe": "\u1031\u1049\u102c",
+      "expect": {
+        "output": "\u1049\u1031\u102c",
+        "stages": [
+          "syllables"
+        ]
+      }
+    },
+    "zawgyi sequence 0": {
+      "probe": "\u1044\u1004\u1039\u1038",
+      "expect": {
+        "output": "\u104e\u1004\u103a\u1038",
+        "stages": [
+          "sequences",
+          "glyphs"
+        ]
+      }
+    },
+    "zawgyi sequence 1": {
+      "probe": "\u104e\u1004\u1039\u1038",
+      "expect": {
+        "output": "\u104e\u1004\u103a\u1038",
+        "stages": [
+          "sequences",
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0030": {
+      "probe": "a0m",
+      "expect": {
+        "output": "\u101d\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables",
+          "zero as wa"
+        ]
+      }
+    },
+    "win glyph U+0031": {
+      "probe": "a1m",
+      "expect": {
+        "output": "\u1041\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0032": {
+      "probe": "a2m",
+      "expect": {
+        "output": "\u1042\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0033": {
+      "probe": "a3m",
+      "expect": {
+        "output": "\u1043\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0034": {
+      "probe": "a4m",
+      "expect": {
+        "output": "\u1044\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0035": {
+      "probe": "a5m",
+      "expect": {
+        "output": "\u1045\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0036": {
+      "probe": "a6m",
+      "expect": {
+        "output": "\u1046\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0037": {
+      "probe": "a7m",
+      "expect": {
+        "output": "\u101b\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0038": {
+      "probe": "a8m",
+      "expect": {
+        "output": "\u1048\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0039": {
+      "probe": "a9m",
+      "expect": {
+        "output": "\u1049\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0075": {
+      "probe": "aum",
+      "expect": {
+        "output": "\u1000\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0063": {
+      "probe": "acm",
+      "expect": {
+        "output": "\u1001\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+002A": {
+      "probe": "a*m",
+      "expect": {
+        "output": "\u1002\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0043": {
+      "probe": "aCm",
+      "expect": {
+        "output": "\u1003\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0069": {
+      "probe": "aim",
+      "expect": {
+        "output": "\u1004\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0070": {
+      "probe": "apm",
+      "expect": {
+        "output": "\u1005\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0071": {
+      "probe": "aqm",
+      "expect": {
+        "output": "\u1006\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+005A": {
+      "probe": "aZm",
+      "expect": {
+        "output": "\u1007\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+006E": {
+      "probe": "anm",
+      "expect": {
+        "output": "\u100a\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+00F1": {
+      "probe": "a\u00f1m",
+      "expect": {
+        "output": "\u100a\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0023": {
+      "probe": "a#m",
+      "expect": {
+        "output": "\u100b\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0058": {
+      "probe": "aXm",
+      "expect": {
+        "output": "\u100c\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0021": {
+      "probe": "a!m",
+      "expect": {
+        "output": "\u100d\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+00A1": {
+      "probe": "a\u00a1m",
+      "expect": {
+        "output": "\u100e\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0050": {
+      "probe": "aPm",
+      "expect": {
+        "output": "\u100f\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0077": {
+      "probe": "awm",
+      "expect": {
+        "output": "\u1010\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0078": {
+      "probe": "axm",
+      "expect": {
+        "output": "\u1011\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0027": {
+      "probe": "a'm",
+      "expect": {
+        "output": "\u1012\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0022": {
+      "probe": "a\"m",
+      "expect": {
+        "output": "\u1013\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0065": {
+      "probe": "aem",
+      "expect": {
+        "output": "\u1014\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0045": {
+      "probe": "aEm",
+      "expect": {
+        "output": "\u1014\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0079": {
+      "probe": "aym",
+      "expect": {
+        "output": "\u1015\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+007A": {
+      "probe": "azm",
+      "expect": {
+        "output": "\u1016\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0041": {
+      "probe": "aAm",
+      "expect": {
+        "output": "\u1017\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0062": {
+      "probe": "abm",
+      "expect": {
+        "output": "\u1018\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0072": {
+      "probe": "arm",
+      "expect": {
+        "output": "\u1019\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+002C": {
+      "probe": "a,m",
+      "expect": {
+        "output": "\u101a\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0026": {
+      "probe": "a&m",
+      "expect": {
+        "output": "\u101b\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+00BD": {
+      "probe": "a\u00bdm",
+      "expect": {
+        "output": "\u101b\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0076": {
+      "probe": "avm",
+      "expect": {
+        "output": "\u101c\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+006F": {
+      "probe": "aom",
+      "expect": {
+        "output": "\u101e\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+005B": {
+      "probe": "a[m",
+      "expect": {
+        "output": "\u101f\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0056": {
+      "probe": "aVm",
+      "expect": {
+        "output": "\u1020\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0074": {
+      "probe": "atm",
+      "expect": {
+        "output": "\u1021\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+00A3": {
+      "probe": "a\u00a3m",
+      "expect": {
+        "output": "\u1023\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+00FE": {
+      "probe": "a\u00fem",
+      "expect": {
+        "output": "\u1024\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+004F": {
+      "probe": "aOm",
+      "expect": {
+        "output": "\u1009\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+007B": {
+      "probe": "a{m",
+      "expect": {
+        "output": "\u1027\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+00CD": {
+      "probe": "a\u00cdm",
+      "expect": {
+        "output": "\u1009\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+00DA": {
+      "probe": "a\u00dam",
+      "expect": {
+        "output": "\u1009\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+00F3": {
+      "probe": "a\u00f3m",
+      "expect": {
+        "output": "\u103f\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+00D3": {
+      "probe": "a\u00d3m",
+      "expect": {
+        "output": "\u1009\u102c\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0040": {
+      "probe": "a@m",
+      "expect": {
+        "output": "\u100f\u1039\u100d\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+007C": {
+      "probe": "a|m",
+      "expect": {
+        "output": "\u100b\u1039\u100c\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+00A5": {
+      "probe": "a\u00a5m",
+      "expect": {
+        "output": "\u100b\u1039\u100b\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+00D7": {
+      "probe": "a\u00d7m",
+      "expect": {
+        "output": "\u100d\u1039\u100d\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+00B9": {
+      "probe": "a\u00b9m",
+      "expect": {
+        "output": "\u100d\u1039\u100e\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0024": {
+      "probe": "a$m",
+      "expect": {
+        "output": "\u1000\u103b\u1015\u103a\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+006D": {
+      "probe": "um",
+      "expect": {
+        "output": "\u1000\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0067": {
+      "probe": "ug",
+      "expect": {
+        "output": "\u1000\u102b",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+003A": {
+      "probe": "u:",
+      "expect": {
+        "output": "\u1000\u102b\u103a",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0064": {
+      "probe": "ud",
+      "expect": {
+        "output": "\u1000\u102d",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0044": {
+      "probe": "uD",
+      "expect": {
+        "output": "\u1000\u102e",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+006B": {
+      "probe": "uk",
+      "expect": {
+        "output": "\u1000\u102f",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+004B": {
+      "probe": "uK",
+      "expect": {
+        "output": "\u1000\u102f",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+006C": {
+      "probe": "ul",
+      "expect": {
+        "output": "\u1000\u1030",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+004C": {
+      "probe": "uL",
+      "expect": {
+        "output": "\u1000\u1030",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+004A": {
+      "probe": "uJ",
+      "expect": {
+        "output": "\u1000\u1032",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0048": {
+      "probe": "uH",
+      "expect": {
+        "output": "\u1000\u1036",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00F0": {
+      "probe": "u\u00f0",
+      "expect": {
+        "output": "\u1000\u102d\u1036",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0068": {
+      "probe": "uh",
+      "expect": {
+        "output": "\u1000\u1037",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0055": {
+      "probe": "uU",
+      "expect": {
+        "output": "\u1000\u1037",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0059": {
+      "probe": "uY",
+      "expect": {
+        "output": "\u1000\u1037",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+003B": {
+      "probe": "u;",
+      "expect": {
+        "output": "\u1000\u1038",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0066": {
+      "probe": "uf",
+      "expect": {
+        "output": "\u1000\u103a",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0061": {
+      "probe": "au",
+      "expect": {
+        "output": "\u1000\u1031",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0046": {
+      "probe": "uF",
+      "expect": {
+        "output": "\u1004\u103a\u1039\u1000",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+00D8": {
+      "probe": "u\u00d8",
+      "expect": {
+        "output": "\u1004\u103a\u1039\u1000\u102d",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+00D0": {
+      "probe": "u\u00d0",
+      "expect": {
+        "output": "\u1004\u103a\u1039\u1000\u102e",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+00F8": {
+      "probe": "u\u00f8",
+      "expect": {
+        "output": "\u1004\u103a\u1039\u1000\u1036",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0073": {
+      "probe": "us",
+      "expect": {
+        "output": "\u1000\u103b",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00DF": {
+      "probe": "u\u00df",
+      "expect": {
+        "output": "\u1000\u103b",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0047": {
+      "probe": "uG",
+      "expect": {
+        "output": "\u1000\u103d",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0053": {
+      "probe": "uS",
+      "expect": {
+        "output": "\u1000\u103e",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00A7": {
+      "probe": "u\u00a7",
+      "expect": {
+        "output": "\u1000\u103e",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0054": {
+      "probe": "uT",
+      "expect": {
+        "output": "\u1000\u103d\u103e",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0049": {
+      "probe": "uI",
+      "expect": {
+        "output": "\u1000\u103e\u102f",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00AA": {
+      "probe": "u\u00aa",
+      "expect": {
+        "output": "\u1000\u103e\u1030",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0051": {
+      "probe": "uQ",
+      "expect": {
+        "output": "\u1000\u103b\u103e",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0052": {
+      "probe": "uR",
+      "expect": {
+        "output": "\u1000\u103b\u103d",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0057": {
+      "probe": "uW",
+      "expect": {
+        "output": "\u1000\u103b\u103d\u103e",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+006A": {
+      "probe": "ju",
+      "expect": {
+        "output": "\u1000\u103c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+004D": {
+      "probe": "Mu",
+      "expect": {
+        "output": "\u1000\u103c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+004E": {
+      "probe": "Nu",
+      "expect": {
+        "output": "\u1000\u103c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0042": {
+      "probe": "Bu",
+      "expect": {
+        "output": "\u1000\u103c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0060": {
+      "probe": "`u",
+      "expect": {
+        "output": "\u1000\u103c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+007E": {
+      "probe": "~u",
+      "expect": {
+        "output": "\u1000\u103c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+003E": {
+      "probe": ">u",
+      "expect": {
+        "output": "\u1000\u103c\u103d",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+003C": {
+      "probe": "<u",
+      "expect": {
+        "output": "\u1000\u103c\u103d",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+00FB": {
+      "probe": "\u00fbu",
+      "expect": {
+        "output": "\u1000\u103c\u102f",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+00EA": {
+      "probe": "\u00eau",
+      "expect": {
+        "output": "\u1000\u103c\u102f",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+00FA": {
+      "probe": "r\u00fa",
+      "expect": {
+        "output": "\u1019\u1039\u1000",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00A9": {
+      "probe": "r\u00a9",
+      "expect": {
+        "output": "\u1019\u1039\u1001",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00BE": {
+      "probe": "r\u00be",
+      "expect": {
+        "output": "\u1019\u1039\u1002",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00A2": {
+      "probe": "r\u00a2",
+      "expect": {
+        "output": "\u1019\u1039\u1003",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00F6": {
+      "probe": "r\u00f6",
+      "expect": {
+        "output": "\u1019\u1039\u1005",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00E4": {
+      "probe": "r\u00e4",
+      "expect": {
+        "output": "\u1019\u1039\u1006",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00C6": {
+      "probe": "r\u00c6",
+      "expect": {
+        "output": "\u1019\u1039\u1007",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00D1": {
+      "probe": "r\u00d1",
+      "expect": {
+        "output": "\u1019\u1039\u1008",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00B3": {
+      "probe": "r\u00b3",
+      "expect": {
+        "output": "\u1019\u1039\u100b",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00B2": {
+      "probe": "r\u00b2",
+      "expect": {
+        "output": "\u1019\u1039\u100c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00D6": {
+      "probe": "r\u00d6",
+      "expect": {
+        "output": "\u1019\u1039\u100f",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00E5": {
+      "probe": "r\u00e5",
+      "expect": {
+        "output": "\u1019\u1039\u1010",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00C5": {
+      "probe": "r\u00c5",
+      "expect": {
+        "output": "\u1019\u1039\u1010",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00AC": {
+      "probe": "r\u00ac",
+      "expect": {
+        "output": "\u1019\u1039\u1011",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00A6": {
+      "probe": "r\u00a6",
+      "expect": {
+        "output": "\u1019\u1039\u1011",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00B4": {
+      "probe": "r\u00b4",
+      "expect": {
+        "output": "\u1019\u1039\u1012",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00A8": {
+      "probe": "r\u00a8",
+      "expect": {
+        "output": "\u1019\u1039\u1013",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00E9": {
+      "probe": "r\u00e9",
+      "expect": {
+        "output": "\u1019\u1039\u1014",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00DC": {
+      "probe": "r\u00dc",
+      "expect": {
+        "output": "\u1019\u1039\u1015",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00E6": {
+      "probe": "r\u00e6",
+      "expect": {
+        "output": "\u1019\u1039\u1016",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00C1": {
+      "probe": "r\u00c1",
+      "expect": {
+        "output": "\u1019\u1039\u1017",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00C7": {
+      "probe": "r\u00c7",
+      "expect": {
+        "output": "\u1019\u1039\u1018",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00AE": {
+      "probe": "r\u00ae",
+      "expect": {
+        "output": "\u1019\u1039\u1019",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+2019": {
+      "probe": "r\u2019",
+      "expect": {
+        "output": "\u1019\u1039\u101c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00C9": {
+      "probe": "r\u00c9",
+      "expect": {
+        "output": "\u1019\u1039\u1010\u103d",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+003F": {
+      "probe": "u?m",
+      "expect": {
+        "output": "\u1000\u104a\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+002F": {
+      "probe": "u/m",
+      "expect": {
+        "output": "\u1000\u104b\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00FC": {
+      "probe": "a\u00fcm",
+      "expect": {
+        "output": "\u104c\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+00ED": {
+      "probe": "a\u00edm",
+      "expect": {
+        "output": "\u104d\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+00A4": {
+      "probe": "a\u00a4m",
+      "expect": {
+        "output": "\u104e\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+005C": {
+      "probe": "a\\m",
+      "expect": {
+        "output": "\u104f\u1031\u102c",
+        "stages": [
+          "glyphs",
+          "syllables"
+        ]
+      }
+    },
+    "win glyph U+0192": {
+      "probe": "u\u0192m",
+      "expect": {
+        "output": "\u1000\u1041/\u1042\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+201E": {
+      "probe": "u\u201em",
+      "expect": {
+        "output": "\u1000\u1041/\u1043\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+2026": {
+      "probe": "u\u2026m",
+      "expect": {
+        "output": "\u1000\u1042/\u1043\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+2020": {
+      "probe": "u\u2020m",
+      "expect": {
+        "output": "\u1000\u1041/\u1044\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+2021": {
+      "probe": "u\u2021m",
+      "expect": {
+        "output": "\u1000\u1043/\u1044\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+02C6": {
+      "probe": "u\u02c6m",
+      "expect": {
+        "output": "\u1000\u1041/\u1045\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+2030": {
+      "probe": "u\u2030m",
+      "expect": {
+        "output": "\u1000\u1042/\u1045\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0160": {
+      "probe": "u\u0160m",
+      "expect": {
+        "output": "\u1000\u1043/\u1045\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+2039": {
+      "probe": "u\u2039m",
+      "expect": {
+        "output": "\u1000\u1044/\u1045\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+005D": {
+      "probe": "u]m",
+      "expect": {
+        "output": "\u1000\u2018\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+007D": {
+      "probe": "u}m",
+      "expect": {
+        "output": "\u1000\u2019\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+005E": {
+      "probe": "u^m",
+      "expect": {
+        "output": "\u1000/\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+005F": {
+      "probe": "u_m",
+      "expect": {
+        "output": "\u1000\u00d7\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00AB": {
+      "probe": "u\u00abm",
+      "expect": {
+        "output": "\u1000[\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00BB": {
+      "probe": "u\u00bbm",
+      "expect": {
+        "output": "\u1000]\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00B5": {
+      "probe": "u\u00b5m",
+      "expect": {
+        "output": "\u1000!\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+03BC": {
+      "probe": "u\u03bcm",
+      "expect": {
+        "output": "\u1000!\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00BF": {
+      "probe": "u\u00bfm",
+      "expect": {
+        "output": "\u1000?\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00E7": {
+      "probe": "u\u00e7m",
+      "expect": {
+        "output": "\u1000,\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00BC": {
+      "probe": "u\u00bcm",
+      "expect": {
+        "output": "\u1000-\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+2010": {
+      "probe": "u\u2010m",
+      "expect": {
+        "output": "\u1000-\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00E8": {
+      "probe": "u\u00e8m",
+      "expect": {
+        "output": "\u1000_\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00CA": {
+      "probe": "u\u00cam",
+      "expect": {
+        "output": "\u1000 \u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+201A": {
+      "probe": "u\u201am",
+      "expect": {
+        "output": "\u1000\u260e\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00C0": {
+      "probe": "u\u00c0m",
+      "expect": {
+        "output": "\u1000\u2666\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00C2": {
+      "probe": "u\u00c2m",
+      "expect": {
+        "output": "\u1000\u2714\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00C3": {
+      "probe": "u\u00c3m",
+      "expect": {
+        "output": "\u1000\u2663\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00C4": {
+      "probe": "u\u00c4m",
+      "expect": {
+        "output": "\u1000\u2731\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00E0": {
+      "probe": "u\u00e0m",
+      "expect": {
+        "output": "\u1000\u2665\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00E1": {
+      "probe": "u\u00e1m",
+      "expect": {
+        "output": "\u1000\u27a4\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00E2": {
+      "probe": "u\u00e2m",
+      "expect": {
+        "output": "\u1000\u2718\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00E3": {
+      "probe": "u\u00e3m",
+      "expect": {
+        "output": "\u1000\u2660\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00B6": {
+      "probe": "u\u00b6m",
+      "expect": {
+        "output": "\u1000\u25c4\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+00B0": {
+      "probe": "u\u00b0m",
+      "expect": {
+        "output": "\u1000\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0082": {
+      "probe": "u\u0082m",
+      "expect": {
+        "output": "\u1000\u260e\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0083": {
+      "probe": "u\u0083m",
+      "expect": {
+        "output": "\u1000\u1041/\u1042\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0084": {
+      "probe": "u\u0084m",
+      "expect": {
+        "output": "\u1000\u1041/\u1043\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0085": {
+      "probe": "u\u0085m",
+      "expect": {
+        "output": "\u1000\u1042/\u1043\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0086": {
+      "probe": "u\u0086m",
+      "expect": {
+        "output": "\u1000\u1041/\u1044\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0087": {
+      "probe": "u\u0087m",
+      "expect": {
+        "output": "\u1000\u1043/\u1044\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0088": {
+      "probe": "u\u0088m",
+      "expect": {
+        "output": "\u1000\u1041/\u1045\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0089": {
+      "probe": "u\u0089m",
+      "expect": {
+        "output": "\u1000\u1042/\u1045\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+008A": {
+      "probe": "u\u008am",
+      "expect": {
+        "output": "\u1000\u1043/\u1045\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+008B": {
+      "probe": "u\u008bm",
+      "expect": {
+        "output": "\u1000\u1044/\u1045\u102c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win glyph U+0092": {
+      "probe": "r\u0092",
+      "expect": {
+        "output": "\u1019\u1039\u101c",
+        "stages": [
+          "glyphs"
+        ]
+      }
+    },
+    "win sequence 0": {
+      "probe": "aMomf",
+      "expect": {
+        "output": "\u102a",
+        "stages": [
+          "sequences"
+        ]
+      }
+    },
+    "win sequence 1": {
+      "probe": "Mo",
+      "expect": {
+        "output": "\u1029",
+        "stages": [
+          "sequences"
+        ]
+      }
+    },
+    "win sequence 2": {
+      "probe": "ps",
+      "expect": {
+        "output": "\u1008",
+        "stages": [
+          "sequences"
+        ]
+      }
+    },
+    "win sequence 3": {
+      "probe": "OD",
+      "expect": {
+        "output": "\u1026",
+        "stages": [
+          "sequences"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 0": {
+      "probe": "\u1000\u103d\u102f",
+      "reach": "call",
+      "expect": {
+        "output": "\u1000\u103c\u1033",
+        "fired": [
+          "unicode-to-zawgyi oneTime 0",
+          "unicode-to-zawgyi oneTime 54"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 1": {
+      "probe": "\u1001\u103b\u1030",
+      "reach": "call",
+      "expect": {
+        "output": "\u1001\u103a\u1034",
+        "fired": [
+          "unicode-to-zawgyi oneTime 1",
+          "unicode-to-zawgyi oneTime 52"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 2": {
+      "probe": "\u1001\u103b\u1037",
+      "reach": "call",
+      "expect": {
+        "output": "\u1001\u103a\u1094",
+        "fired": [
+          "unicode-to-zawgyi oneTime 2",
+          "unicode-to-zawgyi oneTime 52"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 3": {
+      "probe": "\u1000\u103b\u103d",
+      "reach": "call",
+      "expect": {
+        "output": "\u1000\u107d\u103c",
+        "fired": [
+          "unicode-to-zawgyi oneTime 3",
+          "unicode-to-zawgyi oneTime 54"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 4": {
+      "probe": "\u1033\u1037",
+      "reach": "call",
+      "expect": {
+        "output": "\u1033\u1095",
+        "fired": [
+          "unicode-to-zawgyi oneTime 4"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 5": {
+      "probe": "\u1004\u103a\u1039",
+      "reach": "call",
+      "expect": {
+        "output": "\u1064",
+        "fired": [
+          "unicode-to-zawgyi oneTime 5"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 6": {
+      "probe": "\u1064\u1000",
+      "reach": "call",
+      "expect": {
+        "output": "\u1000\u1064",
+        "fired": [
+          "unicode-to-zawgyi oneTime 6"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 7": {
+      "probe": "\u1064\u102d",
+      "reach": "call",
+      "expect": {
+        "output": "\u108b",
+        "fired": [
+          "unicode-to-zawgyi oneTime 7"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 8": {
+      "probe": "\u1064\u102e",
+      "reach": "call",
+      "expect": {
+        "output": "\u108c",
+        "fired": [
+          "unicode-to-zawgyi oneTime 8"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 9": {
+      "probe": "\u1064\u1036",
+      "reach": "call",
+      "expect": {
+        "output": "\u108d",
+        "fired": [
+          "unicode-to-zawgyi oneTime 9"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 10": {
+      "probe": "\u1000\u103c",
+      "reach": "call",
+      "expect": {
+        "output": "\u107e\u1000",
+        "fired": [
+          "unicode-to-zawgyi oneTime 10",
+          "unicode-to-zawgyi oneTime 53",
+          "unicode-to-zawgyi asLongAsMatch 0"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 11": {
+      "probe": "\u1012\u1039\u1039\u1010\u103c",
+      "reach": "call",
+      "expect": {
+        "output": "\u103b\u1012\u1072",
+        "fired": [
+          "unicode-to-zawgyi oneTime 10",
+          "unicode-to-zawgyi oneTime 11",
+          "unicode-to-zawgyi oneTime 31",
+          "unicode-to-zawgyi oneTime 53",
+          "unicode-to-zawgyi oneTime 56"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 12": {
+      "probe": "\u1000\u1031",
+      "reach": "call",
+      "expect": {
+        "output": "\u1031\u1000",
+        "fired": [
+          "unicode-to-zawgyi oneTime 12"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 13": {
+      "probe": "\u1021\u1039\u1006\u1031",
+      "reach": "call",
+      "expect": {
+        "output": "\u1031\u1021\u1066",
+        "fired": [
+          "unicode-to-zawgyi oneTime 12",
+          "unicode-to-zawgyi oneTime 13",
+          "unicode-to-zawgyi oneTime 42"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 14": {
+      "probe": "\u103c\u1031",
+      "reach": "call",
+      "expect": {
+        "output": "\u1031\u103b",
+        "fired": [
+          "unicode-to-zawgyi oneTime 14",
+          "unicode-to-zawgyi oneTime 53"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 15": {
+      "probe": "\u1014\u102f",
+      "reach": "call",
+      "expect": {
+        "output": "\u108f\u102f",
+        "fired": [
+          "unicode-to-zawgyi oneTime 15"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 16": {
+      "probe": "\u103c\u1014",
+      "reach": "call",
+      "expect": {
+        "output": "\u103b\u108f",
+        "fired": [
+          "unicode-to-zawgyi oneTime 16",
+          "unicode-to-zawgyi oneTime 53"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 17": {
+      "probe": "\u1009\u102f",
+      "reach": "call",
+      "expect": {
+        "output": "\u106a\u102f",
+        "fired": [
+          "unicode-to-zawgyi oneTime 17"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 18": {
+      "probe": "\u104e\u1004\u103a\u1038",
+      "reach": "call",
+      "expect": {
+        "output": "\u104e",
+        "fired": [
+          "unicode-to-zawgyi oneTime 18"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 19": {
+      "probe": "\u102b\u103a",
+      "reach": "call",
+      "expect": {
+        "output": "\u105a",
+        "fired": [
+          "unicode-to-zawgyi oneTime 19"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 20": {
+      "probe": "\u103f",
+      "reach": "call",
+      "expect": {
+        "output": "\u1086",
+        "fired": [
+          "unicode-to-zawgyi oneTime 20"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 21": {
+      "probe": "\u1039\u101c",
+      "reach": "call",
+      "expect": {
+        "output": "\u1085",
+        "fired": [
+          "unicode-to-zawgyi oneTime 21"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 22": {
+      "probe": "\u1039\u1019",
+      "reach": "call",
+      "expect": {
+        "output": "\u107c",
+        "fired": [
+          "unicode-to-zawgyi oneTime 22"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 23": {
+      "probe": "\u1039\u1018",
+      "reach": "call",
+      "expect": {
+        "output": "\u107b",
+        "fired": [
+          "unicode-to-zawgyi oneTime 23"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 24": {
+      "probe": "\u1039\u1017",
+      "reach": "call",
+      "expect": {
+        "output": "\u107a",
+        "fired": [
+          "unicode-to-zawgyi oneTime 24"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 25": {
+      "probe": "\u1039\u1016",
+      "reach": "call",
+      "expect": {
+        "output": "\u1079",
+        "fired": [
+          "unicode-to-zawgyi oneTime 25"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 26": {
+      "probe": "\u1039\u1015",
+      "reach": "call",
+      "expect": {
+        "output": "\u1078",
+        "fired": [
+          "unicode-to-zawgyi oneTime 26"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 27": {
+      "probe": "\u1039\u1014",
+      "reach": "call",
+      "expect": {
+        "output": "\u1077",
+        "fired": [
+          "unicode-to-zawgyi oneTime 27"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 28": {
+      "probe": "\u1039\u1013",
+      "reach": "call",
+      "expect": {
+        "output": "\u1076",
+        "fired": [
+          "unicode-to-zawgyi oneTime 28"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 29": {
+      "probe": "\u1039\u1012",
+      "reach": "call",
+      "expect": {
+        "output": "\u1075",
+        "fired": [
+          "unicode-to-zawgyi oneTime 29"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 30": {
+      "probe": "\u1039\u1011",
+      "reach": "call",
+      "expect": {
+        "output": "\u1073",
+        "fired": [
+          "unicode-to-zawgyi oneTime 30"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 31": {
+      "probe": "\u1039\u1010",
+      "reach": "call",
+      "expect": {
+        "output": "\u1071",
+        "fired": [
+          "unicode-to-zawgyi oneTime 31"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 32": {
+      "probe": "\u1039\u100f",
+      "reach": "call",
+      "expect": {
+        "output": "\u1070",
+        "fired": [
+          "unicode-to-zawgyi oneTime 32"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 33": {
+      "probe": "\u100d\u1039\u100e",
+      "reach": "call",
+      "expect": {
+        "output": "\u106f",
+        "fired": [
+          "unicode-to-zawgyi oneTime 33"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 34": {
+      "probe": "\u100f\u1039\u100d",
+      "reach": "call",
+      "expect": {
+        "output": "\u1091",
+        "fired": [
+          "unicode-to-zawgyi oneTime 34"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 35": {
+      "probe": "\u100d\u1039\u100d",
+      "reach": "call",
+      "expect": {
+        "output": "\u106e",
+        "fired": [
+          "unicode-to-zawgyi oneTime 35"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 36": {
+      "probe": "\u100b\u1039\u100c",
+      "reach": "call",
+      "expect": {
+        "output": "\u1092",
+        "fired": [
+          "unicode-to-zawgyi oneTime 36"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 37": {
+      "probe": "\u1039\u100c",
+      "reach": "call",
+      "expect": {
+        "output": "\u106d",
+        "fired": [
+          "unicode-to-zawgyi oneTime 37"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 38": {
+      "probe": "\u100b\u1039\u100b",
+      "reach": "call",
+      "expect": {
+        "output": "\u1097",
+        "fired": [
+          "unicode-to-zawgyi oneTime 38"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 39": {
+      "probe": "\u1039\u100b",
+      "reach": "call",
+      "expect": {
+        "output": "\u106c",
+        "fired": [
+          "unicode-to-zawgyi oneTime 39"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 40": {
+      "probe": "\u1039\u1005\u103b",
+      "reach": "call",
+      "expect": {
+        "output": "\u1069",
+        "fired": [
+          "unicode-to-zawgyi oneTime 40"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 41": {
+      "probe": "\u1039\u1007",
+      "reach": "call",
+      "expect": {
+        "output": "\u1068",
+        "fired": [
+          "unicode-to-zawgyi oneTime 41"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 42": {
+      "probe": "\u1039\u1006",
+      "reach": "call",
+      "expect": {
+        "output": "\u1066",
+        "fired": [
+          "unicode-to-zawgyi oneTime 42"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 43": {
+      "probe": "\u1039\u1005",
+      "reach": "call",
+      "expect": {
+        "output": "\u1065",
+        "fired": [
+          "unicode-to-zawgyi oneTime 43"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 44": {
+      "probe": "\u1039\u1003",
+      "reach": "call",
+      "expect": {
+        "output": "\u1063",
+        "fired": [
+          "unicode-to-zawgyi oneTime 44"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 45": {
+      "probe": "\u1039\u1002",
+      "reach": "call",
+      "expect": {
+        "output": "\u1062",
+        "fired": [
+          "unicode-to-zawgyi oneTime 45"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 46": {
+      "probe": "\u1039\u1001",
+      "reach": "call",
+      "expect": {
+        "output": "\u1061",
+        "fired": [
+          "unicode-to-zawgyi oneTime 46"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 47": {
+      "probe": "\u103d\u103e",
+      "reach": "call",
+      "expect": {
+        "output": "\u108a",
+        "fired": [
+          "unicode-to-zawgyi oneTime 47"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 48": {
+      "probe": "\u103e\u1030",
+      "reach": "call",
+      "expect": {
+        "output": "\u1089",
+        "fired": [
+          "unicode-to-zawgyi oneTime 48"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 49": {
+      "probe": "\u1039\u1000",
+      "reach": "call",
+      "expect": {
+        "output": "\u1060",
+        "fired": [
+          "unicode-to-zawgyi oneTime 49"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 50": {
+      "probe": "\u103e\u102f",
+      "reach": "call",
+      "expect": {
+        "output": "\u1088",
+        "fired": [
+          "unicode-to-zawgyi oneTime 50"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 51": {
+      "probe": "\u103a",
+      "reach": "call",
+      "expect": {
+        "output": "\u1039",
+        "fired": [
+          "unicode-to-zawgyi oneTime 51"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 52": {
+      "probe": "\u103b",
+      "reach": "call",
+      "expect": {
+        "output": "\u103a",
+        "fired": [
+          "unicode-to-zawgyi oneTime 52"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 53": {
+      "probe": "\u103c",
+      "reach": "call",
+      "expect": {
+        "output": "\u103b",
+        "fired": [
+          "unicode-to-zawgyi oneTime 53"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 54": {
+      "probe": "\u103d",
+      "reach": "call",
+      "expect": {
+        "output": "\u103c",
+        "fired": [
+          "unicode-to-zawgyi oneTime 54"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 55": {
+      "probe": "\u103e",
+      "reach": "call",
+      "expect": {
+        "output": "\u103d",
+        "fired": [
+          "unicode-to-zawgyi oneTime 55"
+        ]
+      }
+    },
+    "unicode-to-zawgyi oneTime 56": {
+      "probe": "!\u1071",
+      "reach": "call",
+      "expect": {
+        "output": "!\u1072",
+        "fired": [
+          "unicode-to-zawgyi oneTime 56"
+        ]
+      }
+    },
+    "unicode-to-zawgyi asLongAsMatch 0": {
+      "probe": "\u1000\u103c",
+      "reach": "call",
+      "expect": {
+        "output": "\u107e\u1000",
+        "fired": [
+          "unicode-to-zawgyi oneTime 10",
+          "unicode-to-zawgyi oneTime 53",
+          "unicode-to-zawgyi asLongAsMatch 0"
+        ]
+      }
+    },
+    "unicode-to-zawgyi asLongAsMatch 1": {
+      "probe": "\u103b\u1001\u103c\u103d\u102d",
+      "reach": "call",
+      "expect": {
+        "output": "\u103a\u1083\u1001\u103c\u102d",
+        "fired": [
+          "unicode-to-zawgyi oneTime 10",
+          "unicode-to-zawgyi oneTime 52",
+          "unicode-to-zawgyi oneTime 53",
+          "unicode-to-zawgyi oneTime 54",
+          "unicode-to-zawgyi asLongAsMatch 1"
+        ]
+      }
+    },
+    "unicode-to-zawgyi asLongAsMatch 2": {
+      "probe": "\u107e\u1000\u108a\u102e",
+      "reach": "call",
+      "expect": {
+        "output": "\u1084\u1000\u108a\u102e",
+        "fired": [
+          "unicode-to-zawgyi asLongAsMatch 2"
+        ]
+      }
+    },
+    "unicode-to-zawgyi asLongAsMatch 3": {
+      "probe": "\u1012\u103c\u102d",
+      "reach": "call",
+      "expect": {
+        "output": "\u107f\u1012\u102d",
+        "fired": [
+          "unicode-to-zawgyi oneTime 10",
+          "unicode-to-zawgyi oneTime 53",
+          "unicode-to-zawgyi asLongAsMatch 3"
+        ]
+      }
+    },
+    "unicode-to-zawgyi asLongAsMatch 4": {
+      "probe": "\u107e\u1000\u102d",
+      "reach": "call",
+      "expect": {
+        "output": "\u1080\u1000\u102d",
+        "fired": [
+          "unicode-to-zawgyi asLongAsMatch 4"
+        ]
+      }
+    },
+    "unicode-to-zawgyi asLongAsMatch 5": {
+      "probe": "\u103c\u1012\u108a",
+      "reach": "call",
+      "expect": {
+        "output": "\u1081\u1012\u108a",
+        "fired": [
+          "unicode-to-zawgyi oneTime 53",
+          "unicode-to-zawgyi asLongAsMatch 5"
+        ]
+      }
+    },
+    "unicode-to-zawgyi asLongAsMatch 6": {
+      "probe": "\u107e\u1000\u108a",
+      "reach": "call",
+      "expect": {
+        "output": "\u1082\u1000\u108a",
+        "fired": [
+          "unicode-to-zawgyi asLongAsMatch 6"
+        ]
+      }
+    },
+    "unicode-to-zawgyi asLongAsMatch 7": {
+      "probe": "\u1009\u103c",
+      "reach": "call",
+      "expect": {
+        "output": "\u1081\u106a",
+        "fired": [
+          "unicode-to-zawgyi oneTime 10",
+          "unicode-to-zawgyi oneTime 53",
+          "unicode-to-zawgyi asLongAsMatch 7"
+        ]
+      }
+    },
+    "detector unicode 0": {
+      "probe": "\u103e",
+      "expect": {
+        "unicode": "unicode",
+        "zawgyi": "unicode"
+      }
+    },
+    "detector unicode 1": {
+      "probe": "\u103f",
+      "expect": {
+        "unicode": "unicode",
+        "zawgyi": "unicode"
+      }
+    },
+    "detector unicode 2": {
+      "probe": "\u100a\u103a",
+      "expect": {
+        "unicode": "unicode",
+        "zawgyi": "unicode"
+      }
+    },
+    "detector unicode 3": {
+      "probe": "\u1014\u103a",
+      "expect": {
+        "unicode": "unicode",
+        "zawgyi": "unicode"
+      }
+    },
+    "detector unicode 4": {
+      "probe": "\u1004\u103a",
+      "expect": {
+        "unicode": "unicode",
+        "zawgyi": "unicode"
+      }
+    },
+    "detector unicode 5": {
+      "probe": "\u1031\u1038",
+      "expect": {
+        "unicode": "unicode",
+        "zawgyi": "unicode"
+      }
+    },
+    "detector unicode 6": {
+      "probe": "\u1031\u102c",
+      "expect": {
+        "unicode": "unicode",
+        "zawgyi": "unicode"
+      }
+    },
+    "detector unicode 7": {
+      "probe": "\u103a\u1038",
+      "expect": {
+        "unicode": "unicode",
+        "zawgyi": "unicode"
+      }
+    },
+    "detector unicode 8": {
+      "probe": "\u1035",
+      "expect": {
+        "unicode": "unicode",
+        "zawgyi": "unicode"
+      }
+    },
+    "detector unicode 9": {
+      "probe": "\u1050",
+      "expect": {
+        "unicode": "unicode",
+        "zawgyi": "unicode"
+      }
+    },
+    "detector unicode 10": {
+      "probe": "\u1000\u1031",
+      "expect": {
+        "unicode": "unicode",
+        "zawgyi": "unicode"
+      }
+    },
+    "detector unicode 11": {
+      "probe": "\u1000\u103b",
+      "expect": {
+        "unicode": "unicode",
+        "zawgyi": "unicode"
+      }
+    },
+    "detector zawgyi 0": {
+      "probe": "\u102c\u1039\"",
+      "expect": {
+        "unicode": "zawgyi",
+        "zawgyi": "zawgyi"
+      }
+    },
+    "detector zawgyi 1": {
+      "probe": "\u103a\u102c",
+      "expect": {
+        "unicode": "zawgyi",
+        "zawgyi": "zawgyi"
+      }
+    },
+    "detector zawgyi 2": {
+      "probe": "!\t\u1031\u1003",
+      "expect": {
+        "unicode": "zawgyi",
+        "zawgyi": "zawgyi"
+      }
+    },
+    "detector zawgyi 3": {
+      "probe": "\u1031\u1000",
+      "expect": {
+        "unicode": "zawgyi",
+        "zawgyi": "zawgyi"
+      }
+    },
+    "detector zawgyi 4": {
+      "probe": "\u1000\u1039R",
+      "expect": {
+        "unicode": "zawgyi",
+        "zawgyi": "zawgyi"
+      }
+    },
+    "detector zawgyi 5": {
+      "probe": "\u1025\u1039!",
+      "expect": {
+        "unicode": "zawgyi",
+        "zawgyi": "zawgyi"
+      }
+    },
+    "detector zawgyi 6": {
+      "probe": "\u1039\u1038",
+      "expect": {
+        "unicode": "zawgyi",
+        "zawgyi": "zawgyi"
+      }
+    },
+    "detector zawgyi 7": {
+      "probe": "\u102b\u103b\u1002",
+      "expect": {
+        "unicode": "zawgyi",
+        "zawgyi": "zawgyi"
+      }
+    },
+    "detector zawgyi 8": {
+      "probe": "\u1036\u102f",
+      "expect": {
+        "unicode": "zawgyi",
+        "zawgyi": "zawgyi"
+      }
+    },
+    "detector zawgyi 9": {
+      "probe": "\u1009\u1039\u1031\u1035",
+      "expect": {
+        "unicode": "zawgyi",
+        "zawgyi": "zawgyi"
+      }
+    },
+    "detector zawgyi 10": {
+      "probe": "\u1064",
+      "expect": {
+        "unicode": "zawgyi",
+        "zawgyi": "zawgyi"
+      }
+    },
+    "detector zawgyi 11": {
+      "probe": "\u1039\t(",
+      "expect": {
+        "unicode": "zawgyi",
+        "zawgyi": "zawgyi"
+      }
+    },
+    "detector zawgyi 12": {
+      "probe": "\u102c\u1031",
+      "expect": {
+        "unicode": "zawgyi",
+        "zawgyi": "zawgyi"
+      }
+    },
+    "detector zawgyi 13": {
+      "probe": "\u102b\u1031\u1001",
+      "expect": {
+        "unicode": "zawgyi",
+        "zawgyi": "zawgyi"
+      }
+    },
+    "detector zawgyi 14": {
+      "probe": "\u1031\u1031",
+      "expect": {
+        "unicode": "zawgyi",
+        "zawgyi": "zawgyi"
+      }
+    },
+    "detector zawgyi 15": {
+      "probe": "\u102f\u102d",
+      "expect": {
+        "unicode": "zawgyi",
+        "zawgyi": "zawgyi"
+      }
+    },
+    "detector zawgyi 16": {
+      "probe": "\u1039",
+      "expect": {
+        "unicode": "zawgyi",
+        "zawgyi": "zawgyi"
+      }
+    },
+    "break zawgyi 0": {
+      "probe": "\u1000",
+      "expect": {
+        "output": "\u1000"
+      }
+    },
+    "break zawgyi 1": {
+      "probe": "\u1031",
+      "expect": {
+        "output": "\u1031"
+      }
+    },
+    "break zawgyi 2": {
+      "probe": "\u1031\u200b\u1001",
+      "expect": {
+        "output": "\u1031\u1001"
+      }
+    },
+    "break zawgyi 3": {
+      "probe": "(\u200b\u1029",
+      "expect": {
+        "output": "(\u1029"
+      }
+    },
+    "break zawgyi 4": {
+      "probe": "\u200b\u1002\u1039",
+      "expect": {
+        "output": "\u1002\u1039"
+      }
+    },
+    "break zawgyi 5": {
+      "probe": "\u200b\u1000\u1064",
+      "expect": {
+        "output": "\u1000\u1064"
+      }
+    },
+    "break zawgyi 5 turned off": {
+      "probe": "\u1062\u103a C\u200b\u1009\u108c",
+      "expect": {
+        "output": "\u1062\u103a C|\u1009\u108c"
+      }
+    },
+    "break zawgyi 6": {
+      "probe": "#\n\u200b\u104c",
+      "expect": {
+        "output": "#\n\u104c"
+      }
+    },
+    "break zawgyi 7": {
+      "probe": "\u1000\u1031\u1002",
+      "expect": {
+        "output": "\u1000\u1031\u1002"
+      }
+    },
+    "break unicode 0": {
+      "probe": "\u103a\u1037",
+      "expect": {
+        "output": "\u1037\u103a"
+      }
+    },
+    "break unicode 1": {
+      "probe": "\u1000",
+      "expect": {
+        "output": "\u1000"
+      }
+    },
+    "break unicode 2": {
+      "probe": "(\u200b\u1000",
+      "expect": {
+        "output": "(\u1000"
+      }
+    },
+    "break unicode 3": {
+      "probe": "\u200b\u1004\u103a\u1039\u1037",
+      "expect": {
+        "output": "\u1004\u103a\u1039\u1037"
+      }
+    },
+    "break unicode 4": {
+      "probe": "\u200b\u1001\u103a",
+      "expect": {
+        "output": "\u1001\u103a"
+      }
+    },
+    "break unicode 5": {
+      "probe": "!\t\u200b\u1025",
+      "expect": {
+        "output": "!\t\u1025"
+      }
+    },
+    "break unicode 6": {
+      "probe": "\u1000\u200b\u1001",
+      "expect": {
+        "output": "\u1000\u1001"
+      }
+    },
+    "collapse unicode U+102B": {
+      "probe": "\u102b\u102b",
+      "expect": {
+        "output": "\u102b"
+      }
+    },
+    "collapse unicode U+102C": {
+      "probe": "\u102c\u102c",
+      "expect": {
+        "output": "\u102c"
+      }
+    },
+    "collapse unicode U+102D": {
+      "probe": "\u102d\u102d",
+      "expect": {
+        "output": "\u102d"
+      }
+    },
+    "collapse unicode U+102E": {
+      "probe": "\u102e\u102e",
+      "expect": {
+        "output": "\u102e"
+      }
+    },
+    "collapse unicode U+102F": {
+      "probe": "\u102f\u102f",
+      "expect": {
+        "output": "\u102f"
+      }
+    },
+    "collapse unicode U+1030": {
+      "probe": "\u1030\u1030",
+      "expect": {
+        "output": "\u1030"
+      }
+    },
+    "collapse unicode U+1031": {
+      "probe": "\u1031\u1031",
+      "expect": {
+        "output": "\u1031"
+      }
+    },
+    "collapse unicode U+1032": {
+      "probe": "\u1032\u1032",
+      "expect": {
+        "output": "\u1032"
+      }
+    },
+    "collapse unicode U+1036": {
+      "probe": "\u1036\u1036",
+      "expect": {
+        "output": "\u1036"
+      }
+    },
+    "collapse unicode U+1037": {
+      "probe": "\u1037\u1037",
+      "expect": {
+        "output": "\u1037"
+      }
+    },
+    "collapse unicode U+1038": {
+      "probe": "\u1038\u1038",
+      "expect": {
+        "output": "\u1038"
+      }
+    },
+    "collapse unicode U+103A": {
+      "probe": "\u103a\u103a",
+      "expect": {
+        "output": "\u103a"
+      }
+    },
+    "collapse unicode U+103B": {
+      "probe": "\u103b\u103b",
+      "expect": {
+        "output": "\u103b"
+      }
+    },
+    "collapse unicode U+103C": {
+      "probe": "\u103c\u103c",
+      "expect": {
+        "output": "\u103c"
+      }
+    },
+    "collapse unicode U+103D": {
+      "probe": "\u103d\u103d",
+      "expect": {
+        "output": "\u103d"
+      }
+    },
+    "collapse unicode U+103E": {
+      "probe": "\u103e\u103e",
+      "expect": {
+        "output": "\u103e"
+      }
+    },
+    "collapse unicode U+1039": {
+      "probe": "\u1039\u1039",
+      "expect": {
+        "output": "\u1039"
+      }
+    },
+    "collapse zawgyi U+102B": {
+      "probe": "\u102b\u102b",
+      "expect": {
+        "output": "\u102b"
+      }
+    },
+    "collapse zawgyi U+102C": {
+      "probe": "\u102c\u102c",
+      "expect": {
+        "output": "\u102c"
+      }
+    },
+    "collapse zawgyi U+102D": {
+      "probe": "\u102d\u102d",
+      "expect": {
+        "output": "\u102d"
+      }
+    },
+    "collapse zawgyi U+102E": {
+      "probe": "\u102e\u102e",
+      "expect": {
+        "output": "\u102e"
+      }
+    },
+    "collapse zawgyi U+102F": {
+      "probe": "\u102f\u102f",
+      "expect": {
+        "output": "\u102f"
+      }
+    },
+    "collapse zawgyi U+1030": {
+      "probe": "\u1030\u1030",
+      "expect": {
+        "output": "\u1030"
+      }
+    },
+    "collapse zawgyi U+1031": {
+      "probe": "\u1031\u1031",
+      "expect": {
+        "output": "\u1031"
+      }
+    },
+    "collapse zawgyi U+1032": {
+      "probe": "\u1032\u1032",
+      "expect": {
+        "output": "\u1032"
+      }
+    },
+    "collapse zawgyi U+1033": {
+      "probe": "\u1033\u1033",
+      "expect": {
+        "output": "\u1033"
+      }
+    },
+    "collapse zawgyi U+1034": {
+      "probe": "\u1034\u1034",
+      "expect": {
+        "output": "\u1034"
+      }
+    },
+    "collapse zawgyi U+1036": {
+      "probe": "\u1036\u1036",
+      "expect": {
+        "output": "\u1036"
+      }
+    },
+    "collapse zawgyi U+1037": {
+      "probe": "\u1037\u1037",
+      "expect": {
+        "output": "\u1037"
+      }
+    },
+    "collapse zawgyi U+1038": {
+      "probe": "\u1038\u1038",
+      "expect": {
+        "output": "\u1038"
+      }
+    },
+    "collapse zawgyi U+1039": {
+      "probe": "\u1039\u1039",
+      "expect": {
+        "output": "\u1039"
+      }
+    },
+    "collapse zawgyi U+103A": {
+      "probe": "\u103a\u103a",
+      "expect": {
+        "output": "\u103a"
+      }
+    },
+    "collapse zawgyi U+103B": {
+      "probe": "\u103b\u103b",
+      "expect": {
+        "output": "\u103b"
+      }
+    },
+    "collapse zawgyi U+103C": {
+      "probe": "\u103c\u103c",
+      "expect": {
+        "output": "\u103c"
+      }
+    },
+    "collapse zawgyi U+103D": {
+      "probe": "\u103d\u103d",
+      "expect": {
+        "output": "\u103d"
+      }
+    },
+    "collapse zawgyi U+105A": {
+      "probe": "\u105a\u105a",
+      "expect": {
+        "output": "\u105a"
+      }
+    },
+    "collapse zawgyi U+1060": {
+      "probe": "\u1060\u1060",
+      "expect": {
+        "output": "\u1060"
+      }
+    },
+    "collapse zawgyi U+1061": {
+      "probe": "\u1061\u1061",
+      "expect": {
+        "output": "\u1061"
+      }
+    },
+    "collapse zawgyi U+1062": {
+      "probe": "\u1062\u1062",
+      "expect": {
+        "output": "\u1062"
+      }
+    },
+    "collapse zawgyi U+1063": {
+      "probe": "\u1063\u1063",
+      "expect": {
+        "output": "\u1063"
+      }
+    },
+    "collapse zawgyi U+1064": {
+      "probe": "\u1064\u1064",
+      "expect": {
+        "output": "\u1064"
+      }
+    },
+    "collapse zawgyi U+1065": {
+      "probe": "\u1065\u1065",
+      "expect": {
+        "output": "\u1065"
+      }
+    },
+    "collapse zawgyi U+1066": {
+      "probe": "\u1066\u1066",
+      "expect": {
+        "output": "\u1066"
+      }
+    },
+    "collapse zawgyi U+1067": {
+      "probe": "\u1067\u1067",
+      "expect": {
+        "output": "\u1067"
+      }
+    },
+    "collapse zawgyi U+1068": {
+      "probe": "\u1068\u1068",
+      "expect": {
+        "output": "\u1068"
+      }
+    },
+    "collapse zawgyi U+1069": {
+      "probe": "\u1069\u1069",
+      "expect": {
+        "output": "\u1069"
+      }
+    },
+    "collapse zawgyi U+106A": {
+      "probe": "\u106a\u106a",
+      "expect": {
+        "output": "\u106a"
+      }
+    },
+    "collapse zawgyi U+106B": {
+      "probe": "\u106b\u106b",
+      "expect": {
+        "output": "\u106b"
+      }
+    },
+    "collapse zawgyi U+106C": {
+      "probe": "\u106c\u106c",
+      "expect": {
+        "output": "\u106c"
+      }
+    },
+    "collapse zawgyi U+106D": {
+      "probe": "\u106d\u106d",
+      "expect": {
+        "output": "\u106d"
+      }
+    },
+    "collapse zawgyi U+1070": {
+      "probe": "\u1070\u1070",
+      "expect": {
+        "output": "\u1070"
+      }
+    },
+    "collapse zawgyi U+1071": {
+      "probe": "\u1071\u1071",
+      "expect": {
+        "output": "\u1071"
+      }
+    },
+    "collapse zawgyi U+1072": {
+      "probe": "\u1072\u1072",
+      "expect": {
+        "output": "\u1072"
+      }
+    },
+    "collapse zawgyi U+1073": {
+      "probe": "\u1073\u1073",
+      "expect": {
+        "output": "\u1073"
+      }
+    },
+    "collapse zawgyi U+1074": {
+      "probe": "\u1074\u1074",
+      "expect": {
+        "output": "\u1074"
+      }
+    },
+    "collapse zawgyi U+1075": {
+      "probe": "\u1075\u1075",
+      "expect": {
+        "output": "\u1075"
+      }
+    },
+    "collapse zawgyi U+1076": {
+      "probe": "\u1076\u1076",
+      "expect": {
+        "output": "\u1076"
+      }
+    },
+    "collapse zawgyi U+1077": {
+      "probe": "\u1077\u1077",
+      "expect": {
+        "output": "\u1077"
+      }
+    },
+    "collapse zawgyi U+1078": {
+      "probe": "\u1078\u1078",
+      "expect": {
+        "output": "\u1078"
+      }
+    },
+    "collapse zawgyi U+1079": {
+      "probe": "\u1079\u1079",
+      "expect": {
+        "output": "\u1079"
+      }
+    },
+    "collapse zawgyi U+107A": {
+      "probe": "\u107a\u107a",
+      "expect": {
+        "output": "\u107a"
+      }
+    },
+    "collapse zawgyi U+107B": {
+      "probe": "\u107b\u107b",
+      "expect": {
+        "output": "\u107b"
+      }
+    },
+    "collapse zawgyi U+107C": {
+      "probe": "\u107c\u107c",
+      "expect": {
+        "output": "\u107c"
+      }
+    },
+    "collapse zawgyi U+107D": {
+      "probe": "\u107d\u107d",
+      "expect": {
+        "output": "\u107d"
+      }
+    },
+    "collapse zawgyi U+107E": {
+      "probe": "\u107e\u107e",
+      "expect": {
+        "output": "\u107e"
+      }
+    },
+    "collapse zawgyi U+107F": {
+      "probe": "\u107f\u107f",
+      "expect": {
+        "output": "\u107f"
+      }
+    },
+    "collapse zawgyi U+1080": {
+      "probe": "\u1080\u1080",
+      "expect": {
+        "output": "\u1080"
+      }
+    },
+    "collapse zawgyi U+1081": {
+      "probe": "\u1081\u1081",
+      "expect": {
+        "output": "\u1081"
+      }
+    },
+    "collapse zawgyi U+1082": {
+      "probe": "\u1082\u1082",
+      "expect": {
+        "output": "\u1082"
+      }
+    },
+    "collapse zawgyi U+1083": {
+      "probe": "\u1083\u1083",
+      "expect": {
+        "output": "\u1083"
+      }
+    },
+    "collapse zawgyi U+1084": {
+      "probe": "\u1084\u1084",
+      "expect": {
+        "output": "\u1084"
+      }
+    },
+    "collapse zawgyi U+1085": {
+      "probe": "\u1085\u1085",
+      "expect": {
+        "output": "\u1085"
+      }
+    },
+    "collapse zawgyi U+1087": {
+      "probe": "\u1087\u1087",
+      "expect": {
+        "output": "\u1087"
+      }
+    },
+    "collapse zawgyi U+1088": {
+      "probe": "\u1088\u1088",
+      "expect": {
+        "output": "\u1088"
+      }
+    },
+    "collapse zawgyi U+1089": {
+      "probe": "\u1089\u1089",
+      "expect": {
+        "output": "\u1089"
+      }
+    },
+    "collapse zawgyi U+108A": {
+      "probe": "\u108a\u108a",
+      "expect": {
+        "output": "\u108a"
+      }
+    },
+    "collapse zawgyi U+108B": {
+      "probe": "\u108b\u108b",
+      "expect": {
+        "output": "\u108b"
+      }
+    },
+    "collapse zawgyi U+108C": {
+      "probe": "\u108c\u108c",
+      "expect": {
+        "output": "\u108c"
+      }
+    },
+    "collapse zawgyi U+108D": {
+      "probe": "\u108d\u108d",
+      "expect": {
+        "output": "\u108d"
+      }
+    },
+    "collapse zawgyi U+108E": {
+      "probe": "\u108e\u108e",
+      "expect": {
+        "output": "\u108e"
+      }
+    },
+    "collapse zawgyi U+1093": {
+      "probe": "\u1093\u1093",
+      "expect": {
+        "output": "\u1093"
+      }
+    },
+    "collapse zawgyi U+1094": {
+      "probe": "\u1094\u1094",
+      "expect": {
+        "output": "\u1094"
+      }
+    },
+    "collapse zawgyi U+1095": {
+      "probe": "\u1095\u1095",
+      "expect": {
+        "output": "\u1095"
+      }
+    },
+    "collapse zawgyi U+1096": {
+      "probe": "\u1096\u1096",
+      "expect": {
+        "output": "\u1096"
+      }
+    },
+    "typo 0": {
+      "probe": "\u102d\u102e",
+      "expect": {
+        "output": "\u102e"
+      }
+    },
+    "typo 1": {
+      "probe": "\u102f\u1030",
+      "expect": {
+        "output": "\u1030"
+      }
+    },
+    "typo 2": {
+      "probe": "\u1029\u1031\u102c\u103a",
+      "expect": {
+        "output": "\u102a"
+      }
+    },
+    "typo 3": {
+      "probe": "\u1044\u1004\u103a\u1038",
+      "expect": {
+        "output": "\u104e\u1004\u103a\u1038"
+      }
+    }
+  }
+}
