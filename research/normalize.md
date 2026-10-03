@@ -59,6 +59,7 @@ What 2.9 got wrong:
 **Look-alikes** change only in clear cases. The rest of 2.9's guesses are gone.
 - **ဝ and ရ as digits:** only inside a number (၄ဝဝ, ၂၉,ဝ၂၈, ၂၀၁ရ). Not when glued to the word before the number, and ရ not when glued to the word after it (၂ရတယ်).
 - **၀ and ၇ as letters:** when they carry a vowel sign or start a closed syllable (၀င်, ဆို၇င်), and ၀ also inside a word with no digit next to it (ဘ၀). A visarga after digits is a colon (၁၇း၂၁).
+- **Shan, Mon and Karen marks** count as marks here too (issue #43): Shan ၀ႆ, ၀ႃ and ၀ႂ်, ၀ before a Shan consonant with asat (၀ၼ်း), and Karen သ၇ၣ် (teacher) and က၇ၢ. Their tone marks alone do not: S'gaw Karen text types the Shan tone-2 after numbers as a comma (၁၄း၁၅ႇ, in 6 lines of the sample). In the GlotCC text this changes only 15 S'gaw Karen lines, all of them ၇ typed for ရ.
 - **A lone ဝ** stays a letter. It is a word (ဝ, fat) and ends words (လုံးဝ).
 
 **ဥ and ဉ.** ဥ that takes asat, aa or a stacked consonant is ဉ, as UTN #11 says (ညဉ့်). The exception is right after a vowel sign, where Pa'o writes ဥ်း as a syllable. In the test text, Okell has ဥ with asat 65 times, all after a consonant (စဥ့်). Pa'o has it 22 times after a vowel sign and once after a consonant. FLORES and Wikipedia have none. Zawgyi conversion keeps converting it everywhere, since Zawgyi text is Burmese (ယာဥ္ is ယာဉ်).
@@ -85,12 +86,12 @@ On the benchmark page, the Wikipedia round trip (Wikipedia → Rabbit's Zawgyi �
 | --- | ---: | ---: | ---: |
 | Shan | 9,923 | 5,750 | 266 |
 | Mon | 2,270 | 715 | 119 |
-| S'gaw Karen | 673 | 376 | 194 |
+| S'gaw Karen | 673 | 376 | 196 |
 | Pa'o | 770 | 142 | 17 |
 
 Letters and marks the Burmese rules do not know end a syllable and stay where they are. What still changes is mostly:
 - NFC, and UTN #11 order;
-- ဝ typed in numbers;
+- ဝ typed in numbers, and ၀ or ၇ typed in words (Karen သရၣ်);
 - the Burmese look-alike fixes: Mon ဝဥ္ဇ becomes ဝဉ္ဇ, and Pa'o စျ becomes ဈ, which may not be right in Pa'o.
 
 ## 6. Speed

@@ -230,7 +230,7 @@ knayi.normalize('ဝ') // 'ဝ'
   - A space typed before a mark is dropped (`သုံ း` is သုံး). A line break stays.
 - **Look-alikes:** only clear cases change.
   - ဝ and ရ inside a number are digits: `၄ဝဝ` is ၄၀၀.
-  - ၀ and ၇ that carry a vowel sign or start a closed syllable are letters, as is ၀ inside a word: `ဘ၀` is ဘဝ, `ဆို၇င်` is ဆိုရင်.
+  - ၀ and ၇ that carry a vowel sign or start a closed syllable are letters, as is ၀ inside a word: `ဘ၀` is ဘဝ, `ဆို၇င်` is ဆိုရင်. Shan and Karen marks count too (`၀ႆ` is ဝႆ, `သ၇ၣ်` is သရၣ်), but a tone mark alone does not, since Karen text types one after a number as a comma.
   - Words such as လုံးဝ, ဘဝ and ထာဝရ, and numbers such as ၁၉၇၇, stay as they are.
 - **Spelling:**
   - စ with medial ya is ဈ.
