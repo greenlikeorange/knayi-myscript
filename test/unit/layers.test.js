@@ -62,7 +62,15 @@ function listFiles(dir) {
   });
 }
 
-// Every require(...) call in a file, found by walking the syntax tree, so comments and strings do not count.
+// Code loaded other than by require('<literal>'), which esbuild cannot bundle either: require used as a value (an
+// alias such as `var load = require`, require.call, require.apply), and the loading APIs module.require,
+// createRequire and process.getBuiltinModule. They are allowed only inside the functions listed here; today one,
+// detector.js's nodeRequire, which loads the optional myanmar-tools in Node.
+const LOADER_SITES = ['library/detector.js nodeRequire'];
+const LOADING_MEMBERS = ['require', 'createRequire', 'getBuiltinModule'];
+
+// Every require(...) call in a file, found by walking the syntax tree, so comments and strings do not count, and
+// every other way of loading code (see LOADER_SITES), with the name of the function it is in.
 function requiresOf(file) {
   const tree = acorn.parse(fs.readFileSync(path.join(root, file), 'utf8'), {
     ecmaVersion: 'latest',
@@ -70,8 +78,10 @@ function requiresOf(file) {
     locations: true
   });
   const found = [];
-  (function walk(node) {
-    if (Array.isArray(node)) return node.forEach(walk);
+  const loaders = [];
+  const functions = [];
+  (function walk(node, parent, key) {
+    if (Array.isArray(node)) return node.forEach((child) => walk(child, parent, key));
     if (!node || typeof node.type !== 'string') return;
     if (node.type === 'CallExpression' && node.callee.type === 'Identifier' && node.callee.name === 'require') {
       const arg = node.arguments[0];
@@ -80,10 +90,24 @@ function requiresOf(file) {
         id: node.arguments.length === 1 && arg.type === 'Literal' && typeof arg.value === 'string' ? arg.value : null
       });
     }
-    for (const key of Object.keys(node)) {
-      if (key !== 'loc' && node[key] && typeof node[key] === 'object') walk(node[key]);
+    const where = () => file + ' ' + (functions.length ? functions[functions.length - 1] : '(top level)');
+    if (node.type === 'Identifier' && node.name === 'require' && !(parent && parent.type === 'CallExpression' && key === 'callee')) {
+      const isName = parent && ((parent.type === 'MemberExpression' && key === 'property' && !parent.computed) ||
+        (parent.type === 'Property' && key === 'key' && !parent.computed));
+      if (!isName) loaders.push({ line: node.loc.start.line, what: 'require used as a value', site: where() });
     }
-  })(tree);
+    if (node.type === 'MemberExpression') {
+      const name = node.computed ? (node.property.type === 'Literal' ? node.property.value : null) : node.property.name;
+      if (LOADING_MEMBERS.indexOf(name) !== -1) loaders.push({ line: node.loc.start.line, what: '.' + name, site: where() });
+    }
+    const named = node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression';
+    if (named) functions.push(node.id ? node.id.name : '(anonymous function)');
+    for (const k of Object.keys(node)) {
+      if (k !== 'loc' && node[k] && typeof node[k] === 'object') walk(node[k], node, k);
+    }
+    if (named) functions.pop();
+  })(tree, null, null);
+  found.loaders = loaders;
   return found;
 }
 
@@ -102,8 +126,11 @@ const files = listFiles('library').concat('main.js').sort();
 
 const edges = [];
 const unresolved = [];
+const loaders = [];
 for (const file of files) {
-  for (const { line, id } of requiresOf(file)) {
+  const requires = requiresOf(file);
+  loaders.push(...requires.loaders);
+  for (const { line, id } of requires) {
     const target = id === null ? null : resolve(file, id);
     if (target === null || !layerOf.has(target)) {
       unresolved.push(file + ':' + line + ' requires ' + (id === null ? 'a computed path' : JSON.stringify(id)));
@@ -125,6 +152,14 @@ describe('layers', () => {
   // (detector.js loads the optional myanmar-tools at run time through module.require, not require().)
   it('requires only library files, by a literal relative path', () => {
     assert.deepEqual(unresolved, []);
+  });
+
+  it('loads other code only in the one adapter loader', () => {
+    const outside = loaders.filter((l) => LOADER_SITES.indexOf(l.site) === -1)
+      .map((l) => l.site.split(' ')[0] + ':' + l.line + ' ' + l.what + ' in ' + l.site.split(' ')[1]);
+    assert.deepEqual(outside, [], 'load library files with require(\'./file\'), and nothing else outside LOADER_SITES');
+    const unused = LOADER_SITES.filter((site) => !loaders.some((l) => l.site === site));
+    assert.deepEqual(unused, [], 'these LOADER_SITES load nothing any more: remove them');
   });
 
   it('has no upward require beyond the known exceptions', () => {
