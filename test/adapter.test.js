@@ -233,7 +233,9 @@ describe('myanmar-tools adapter', () => {
   // The ESM build has no module.require, so it loads myanmar-tools with process.getBuiltinModule from the
   // working directory (refactor plan, section 7 item 15). Run from the package root, it finds the dev
   // dependency. Node before 20.16 and 22.3 has no process.getBuiltinModule: there the ESM build cannot load
-  // the package and uses the rule scorer.
+  // the package and uses the rule scorer. Bun gives ES modules a __filename too, so under Bun the ESM build
+  // resolves the package from its own file instead, and a build outside the package (the temporary build the
+  // tests use) does not find it.
   it('loads it in the ESM build from the working directory', async (t) => {
     if (!fs.existsSync(path.join(process.cwd(), 'node_modules', 'myanmar-tools', 'package.json'))) {
       t.skip('myanmar-tools is not installed in the working directory');
@@ -242,12 +244,24 @@ describe('myanmar-tools adapter', () => {
     const dist = require('../scripts/build').builtDist();
     const esm = await import(pathToFileURL(path.join(dist, 'knayi-myscript.mjs')).href);
     const run = capture(() => esm.fontDetect('က္က', 'unicode', { adapter: 'myanmartools', myanmartools_zg_threshold: [0.05, 0.9] }));
-    if (typeof process.getBuiltinModule === 'function') {
-      assert.equal(run.value, 'zawgyi');
-      assert.deepEqual(run.messages, []);
-    } else {
+    if (typeof process.getBuiltinModule !== 'function') {
       assert.equal(run.value, 'unicode');
       assert.deepEqual(run.messages, [['warn', NOT_AVAILABLE]]);
+    } else if (typeof Bun !== 'undefined' && !resolvableFrom(dist)) {
+      assert.equal(run.value, 'unicode');
+      assert.deepEqual(run.messages, [['warn', NOT_INSTALLED]]);
+    } else {
+      assert.equal(run.value, 'zawgyi');
+      assert.deepEqual(run.messages, []);
     }
   });
 });
+
+function resolvableFrom(dir) {
+  try {
+    require.resolve('myanmar-tools', { paths: [dir] });
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
