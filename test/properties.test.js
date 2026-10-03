@@ -91,6 +91,44 @@ describe('debugging ends with the converted text', () => {
   }
 });
 
+describe('truncate keeps the start of the text', () => {
+  // The longest start of the text within the length, less the omission, that ends at a syllable break or after
+  // whitespace, trimmed, then the omission. The text is read as syllBreak reads it (trimmed, without U+200B and
+  // U+200C), and syllBreak breaks all of it, where truncate breaks only its start.
+  function expected(text, font, length, omission) {
+    const parts = knayi.syllBreak(text, font).split('\u200B');
+    const budget = length - omission.length;
+    let end = 0;
+    let at = 0;
+    for (const part of parts) {
+      for (let i = 0; i < part.length; i++) {
+        if (/\s/.test(part[i]) && at + i + 1 <= budget) end = at + i + 1;
+      }
+      at += part.length;
+      if (at <= budget) end = at;
+    }
+    return parts.join('').slice(0, end).trim() + omission;
+  }
+
+  const myanmar = (text) => /[\u1000-\u109F]/.test(text);
+  const texts = {
+    'Unicode text': arb.unicodeText(40),
+    'Burmese text': arb.burmeseText,
+    'Zawgyi text': arb.zawgyiText(40)
+  };
+  for (const [kind, text] of Object.entries(texts)) {
+    it('on ' + kind, () => {
+      check(fc.property(text.filter(myanmar), fc.constantFrom(undefined, 'unicode', 'zawgyi'), fc.integer({ min: 1, max: 44 }),
+        fc.constantFrom('...', '\u2026', '[more]'), (content, font, length, omission) => {
+          const options = { fontType: font, length: length, omission: omission };
+          assert.equal(hex(knayi.truncate(content, options)), hex(expected(content, font, length, omission)));
+        }), 5000, [
+        ['\u1021\u102c\u101a\u102f\u101d\u100d\u103a \u1007\u101c\u103d\u1014\u103a\u1008\u1031\u1038', 'unicode', 13, '...'],
+        ['\u1015\u102d\u1002\u1064\u101c\u102c \u1000\u1000 \u1062\u103a', 'zawgyi', 3, '\u2026']
+      ]);
+    });
+  }
+});
 describe('no call form throws', () => {
   const FONTS = ['unicode', 'zawgyi', 'win', undefined];
   const forms = [

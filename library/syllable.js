@@ -273,13 +273,14 @@ const BREAK_RULES = {
   ]
 };
 
-// The text with U+200B at each syllable break, and none at the start.
-function markBreaks(content, fontType) {
+// The text with U+200B at each syllable break, and none at the start. `whole` is the whole text when content is
+// only its start (breakStart).
+function markBreaks(content, fontType, whole) {
   var rules = BREAK_RULES[fontType];
   var text = content;
   for (var i = 0; i < rules.length; i++) {
     // A third item is a pattern that turns the rule off for the whole text (see the Zawgyi kinzi rule).
-    if (rules[i][2] && rules[i][2].test(content)) continue;
+    if (rules[i][2] && rules[i][2].test(whole || content)) continue;
     rules[i][0].lastIndex = 0;
     text = text.replace(rules[i][0], rules[i][1]);
   }
@@ -288,6 +289,23 @@ function markBreaks(content, fontType) {
 
 function breakParts(content, fontType) {
   return markBreaks(content, fontType).split(/[\u200B\u200C]/);
+}
+
+// A break rule reads whitespace only as the first character of a match: the rules that keep a syllable with the
+// space or opening punctuation before it start with that character, and no other rule reads whitespace
+// (test/syllable.test.js checks the patterns). So no match runs across the start of a whitespace character, and the
+// rules break the text before one as they break that part of the whole text. No rule breaks before whitespace.
+const WHITESPACE = /\s/g;
+
+// The parts of the start of the text, for truncate, which keeps at most `length` code units of it. For text with no
+// U+200B or U+200C (truncate removes them with cleanText), these are the parts breakParts gives for the whole text,
+// up to the first whitespace character at an index above `length`, where the last part stops short, after the
+// `length` code units truncate reads. With no such whitespace, the parts of the whole text.
+function breakStart(content, fontType, length) {
+  WHITESPACE.lastIndex = length + 1;
+  var space = content.length > length && WHITESPACE.exec(content);
+  if (!space) return breakParts(content, fontType);
+  return markBreaks(content.slice(0, space.index), fontType, content).split(/[\u200B\u200C]/);
 }
 
 // U+200B, the break the rules write, is the default breakpoint, also for a falsy one.
@@ -353,6 +371,7 @@ module.exports = {
   serializeUnicode: serializeUnicode,
   collapseMarks: collapseMarks,
   breakParts: breakParts,
+  breakStart: breakStart,
   joinParts: joinParts,
   breakText: breakText,
   convertText: convertText

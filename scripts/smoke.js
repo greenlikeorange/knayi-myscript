@@ -38,7 +38,7 @@ const checks = [
   ['normalize lines', (k) => k.normalize('မိြုင်မိြုင်\nဆိုင်ဆုိင်'), 'မြိုင်မြိုင်\nဆိုင်ဆိုင်'],
   ['normalize digits', (k) => k.normalize('၂ဝ၁၉'), '၂၀၁၉'],
   ['truncate', (k) => k.truncate('က'), 'က...'],
-  ['truncate long', (k) => k.truncate('အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇလွန်ဈေးဘေးဗာဒံပင်ထက် အဓိဋ္ဌာန်လျက် ဂဃနဏဖတ်ခဲ့သည်။', { length: 30, omission: '...' }), 'အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဈေး...'],
+  ['truncate long', (k) => k.truncate('အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇလွန်ဈေးဘေးဗာဒံပင်ထက် အဓိဋ္ဌာန်လျက် ဂဃနဏဖတ်ခဲ့သည်။', { length: 30, omission: '...' }), 'အာယုဝဍ်ဎနဆေးညွှန်းစာကို...'],
   ['debugging ends with the conversion', (k) => {
     const debug = k.fontConvert.debugging('ေယာက္်ား', 'unicode', 'zawgyi');
     return debug.steps[debug.steps.length - 1];

@@ -11,7 +11,7 @@ const { readExamples } = require('../scripts/testing/readme-examples');
 //
 // The number of examples in each file is pinned, so an example the reader stops seeing fails here. When you add or
 // remove an example, change its count.
-const FILES = { 'README.md': 63, 'ARCHITECTURE.md': 11, 'index.d.ts': 19 };
+const FILES = { 'README.md': 64, 'ARCHITECTURE.md': 11, 'index.d.ts': 20 };
 
 // A file's text as Markdown. In a declaration file, the JSDoc lines lose their leading ` * `, so the fenced examples
 // in the comments read as README's do; line numbers stay the same.

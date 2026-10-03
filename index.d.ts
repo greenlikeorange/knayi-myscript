@@ -222,14 +222,16 @@ export declare function spellingFix(
 ): string;
 
 /**
- * Cuts text on its syllable breaks, then on the spaces inside a syllable that does not fit, and appends the
- * omission, even to text that is shorter than `length`. Text with no Myanmar letters is cut at the length. `''`
- * returns the omission, and missing content `''`. Other values are turned into strings first.
+ * Returns the longest start of the text that fits in `length`, omission included, and ends at a syllable break or
+ * after whitespace, trimmed, and appends the omission, even to text that is shorter than `length`. Text with no
+ * Myanmar letters is cut at the length. `''` returns the omission, and missing content `''`. Other values are
+ * turned into strings first.
  *
  * @param content The text.
  * @param options `length` (default 30), `omission` (default `'...'`) and the font, `fontType`.
  * @example
  * ```js
+ * knayi.truncate('မြန်မာ နိုင်ငံ', { length: 10 }) // 'မြန်မာ...'
  * knayi.truncate('က') // 'က...'
  * knayi.truncate('') // '...'
  * ```

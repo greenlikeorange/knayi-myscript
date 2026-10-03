@@ -5,7 +5,7 @@
       "source": "([\\u1031\\u103b\\u107e-\\u1084]+[\\u1000-\\u1021\\u1025\\u1029\\u106A\\u106B\\u1086\\u108F\\u1090])|([\\u1000-\\u1021])\\u200B([\\u1031\\u103b\\u107e-\\u1084]+[\\u1000-\\u1021\\u1025\\u1029\\u106A\\u106B\\u1086\\u108F\\u1090]|[\\u1000-\\u1021\\u1031\\u103b\\u107e-\\u1084])",
       "flags": "g",
       "status": "vulnerable",
-      "where": "library/syllable.js BREAK_RULES.zawgyi, last rule (applied by markBreaks at library/syllable.js:282)",
+      "where": "library/syllable.js BREAK_RULES.zawgyi, last rule (applied by markBreaks at library/syllable.js:285)",
       "reason": "On its own the rule takes quadratic time on a long run of e or medial ra glyphs with no consonant after them (recheck attack: U+1031 repeated, then U+1031 U+200B U+1031 U+1025). markBreaks never gives it such a run: syllBreak and truncate remove U+200B and U+200C from the text first (contentGate.cleanText), and the second Zawgyi rule puts U+200B before every e and medial ra glyph (an e keeps one medial ra), so no run is longer than two glyphs. Of the rules in between, only the kinzi rule removes a U+200B between two such glyphs, one before each consonant with kinzi, so this rule reads runs of at most four glyphs; the others remove a U+200B before a consonant or after a space or opening punctuation. Measured on 20,000 e: the rule alone 283 ms, syllBreak and truncate 1-2 ms, linear; test/growth.timing.js times both call forms."
     }
   ]
