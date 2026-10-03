@@ -141,8 +141,9 @@ jobs:
 
   # Output identity (CONTRIBUTING.md): every call form on two copies of knayi.
   # - A pull request is compared with its base branch under Node and Bun. With the DELIBERATE label, the
-  #   `--expect form:set=n` lines of its description are the differences it may show (CI skips `all` totals and
-  #   mC4). After adding the label or editing the counts, re-run this job.
+  #   `--expect form:set=n` lines of its description are the differences it may show (CI skips `all` totals and the
+  #   sets it does not read). The label and the description are read from the API when the step runs, not from
+  #   the event, so after adding the label or editing the counts, re-run this job.
   # - Every run compares main.js with the min.js and .mjs builds made from it.
   # The corpus cache holds every pinned corpus but mC4 (decision 22) and never queries.tsv. It is keyed on
   # scripts/eval/datasets.mjs, which holds every pin, and only a push to the default branch fills it. Fork pull
@@ -151,6 +152,10 @@ jobs:
     name: Compare
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # pull-requests: read lets the compare step read the pull request's labels and description.
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -212,9 +217,15 @@ jobs:
         env:
           BASE_REF: ${{ github.base_ref }}
           FLAGS: ${{ steps.inputs.outputs.flags }}
-          DELIBERATE: ${{ contains(github.event.pull_request.labels.*.name, 'DELIBERATE') }}
-          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
         run: |
+          # The labels and the description as they are now: a re-run of this job reuses the event of the first
+          # run, which still holds the labels and description of the last push.
+          pr=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER")
+          DELIBERATE=$(printf '%s' "$pr" | jq -r '[.labels[].name] | index("DELIBERATE") != null')
+          PR_BODY=$(printf '%s' "$pr" | jq -r '.body // ""')
+          echo "DELIBERATE label: $DELIBERATE"
           # --skip-missing-sets: counts for sets this run lacks (mC4, wikipedia-v1, or every corpus when offline)
           # are listed and skipped. `all` totals are dropped, since they add up sets CI does not read.
           args=(--base "origin/$BASE_REF" $FLAGS --skip-missing-sets)
