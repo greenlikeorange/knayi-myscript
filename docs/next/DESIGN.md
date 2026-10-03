@@ -1759,6 +1759,11 @@ W8 compat              after all of them; its option, input and legacy files nee
   - `unicodeToZawgyi` agrees with 2.x `convertText(collapseMarks(x, 'unicode'), 'unicode', 'zawgyi')` on 200k strings (1M nightly), the table probes and the README strings.
   - `traceUnicodeToZawgyi` reproduces 2.x's debug log (§3.9).
   - Growth ≤ 1.3.
+- **As built**, where the build settles what this section leaves open:
+  - Row ids are `uz.<section>.<n>`, numbered from 1 in each section: `shapes`, `kinzi`, `order`, `small`, `glyphs`, `narrow-ta` and `medial-ra`, for SHAPES_IN_CONTEXT to MEDIAL_RA_SHAPES.
+  - Each section is a top-level `/* @__PURE__ */ deepFreeze([...])`, since the stateless guard rejects an unfrozen top-level array, and `joinSections` joins them into `UNICODE_TO_ZAWGYI_RULES`.
+  - W7 also owns `test/next/unicodeToZawgyi.oracle.mjs`, the 2.x side that the unit and fuzz files share: the oracle's rows and debug log, the trace read back as that log (D4), and the preamble of 2.x `fontConvert(x, 'zawgyi', 'unicode')` restated, so that the core converts exactly the text the 2.x call converts. The test globs do not match the file.
+  - Besides the 200k strings, `unicodeToZawgyi.fuzz.test.mjs` runs compare's generated and fuzz sets and every cached corpus through both call forms, the converted text and `fontConvert.debugging`'s log. It reads only the corpora that `checkCache` finds intact, and never downloads one.
 
 ### 7.10 W8: compat
 
