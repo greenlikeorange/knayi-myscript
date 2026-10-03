@@ -32,7 +32,8 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
       - run: npm ci
-      # Builds dist into a temporary directory and tests that build, then type-checks typecheck/.
+      # Builds dist into a temporary directory and tests that build, type-checks typecheck/, then checks the
+      # min.js size budget (posttest).
       - run: npm test
       # test/syntax.test.js is the ES2015 gate for every dist file (one test each); it must run, not be skipped.
       - name: Check the syntax test ran
