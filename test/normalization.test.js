@@ -157,6 +157,21 @@ assert.equal(			knayi.normalize('၂၀ ခံ'), '၂၀ ခံ');
 				assert.equal(knayi.normalize(text), text);
 			}
 		});
+
+		it('reads zero with a Shan or Karen mark as wa, and seven as ra (issue #43)', () => {
+			// Zero before a Shan vowel, medial wa or asat, or before a Shan consonant with asat.
+			for (const text of ['၀ႆ', '၀ၢ', '၀ႃ', '၀်', '၀ႂ', '၀ႂ်', '၀ၼ်း']) {
+				assert.equal(knayi.normalize(text), 'ဝ' + text.slice(1));
+			}
+			assert.equal(knayi.normalize('သ၇ၣ်'), 'သရၣ်');
+			assert.equal(knayi.normalize('က၇ၢ'), 'ကရၢ');
+		});
+
+		it('keeps a number followed by a tone mark typed as a comma', () => {
+			assert.equal(knayi.normalize('၁၄း၁၅ႇ ၁၆'), '၁၄း၁၅ႇ ၁၆');
+			assert.equal(knayi.normalize('၆- ၇ႇ ၂၀ႇ'), '၆- ၇ႇ ၂၀ႇ');
+			assert.equal(knayi.normalize('၂ဝႇ'), '၂၀ႇ');
+		});
 	});});
 
 after(function () {
