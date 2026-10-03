@@ -54,7 +54,7 @@ These paths load without an `exports` map:
 
 ## Font names
 
-`unicode`, `uni`, `zawgyi`, `zaw`, and `win`. `uni` is Unicode. `zaw` is Zawgyi. `win` is the Win Innwa family of legacy fonts, which `fontConvert` converts to Unicode. Names are case-insensitive, so `Unicode`, `ZAWGYI` and `Win` name the same fonts. Any other string is an unknown font. `fontDetect` does not read its fallback as a font name: it returns a string fallback as given, and ignores a fallback that is not a string ([fontDetect](#fontdetectcontent-fallbackfonttype-options)). In `syllBreak`, `spellingFix` and `truncate`, a font that is not a string, such as `null`, an array, or the index `Array#map` passes, and `''` name no font, and `fontDetect` chooses it.
+`unicode`, `uni`, `zawgyi`, `zaw`, and `win`. `uni` is Unicode. `zaw` is Zawgyi. `win` is the Win Innwa family of legacy fonts, which `fontConvert` converts to Unicode. Names are case-insensitive, so `Unicode`, `ZAWGYI` and `Win` name the same fonts. Any other string is an unknown font. `fontDetect` does not read its fallback as a font name: it returns a string fallback as given, and ignores a fallback that is not a string ([fontDetect](#fontdetectcontent-fallbackfonttype-options)). In `syllBreak`, `spellingFix` and `truncate`, a font that is not a string, such as `null`, an array, or the index `Array#map` passes, and `''` name no font, and `fontDetect` chooses it. `Array#map` also passes the array itself, which `syllBreak` takes as its break point, so `lines.map(knayi.syllBreak)` joins each line's syllables with the text of the whole array ([syllBreak](#syllbreakcontent-fonttype-breakpoint)).
 
 | Function | `win` | An unknown font |
 | --- | --- | --- |
@@ -224,6 +224,13 @@ knayi.syllBreak('ၾကပါ', 'zawgyi', '|') // 'ၾက|ပါ'
 ```
 
 When `fontType` is omitted, detection runs first. `win` and unknown font names throw a `TypeError` with the code `'ERR_KNAYI_INVALID_FONT'` (see [Font names](#font-names)).
+
+`Array#map` calls its function with three arguments: the line, its index and the array. So `lines.map(knayi.syllBreak)` passes the index as the font, which names no font, and the whole array as the break point: each line's syllables are joined with the text of the array, and no error tells you. Pass the line alone, as in `lines.map((line) => knayi.syllBreak(line))`:
+
+```javascript
+['မြန်မာ', 'ျမန္မာ'].map((line) => knayi.syllBreak(line, null, '|')) // ['မြန်|မာ', 'ျမန္|မာ']
+['မြန်မာ', 'ျမန္မာ'].map(knayi.syllBreak) // ['မြန်မြန်မာ,ျမန္မာမာ', 'ျမန္မြန်မာ,ျမန္မာမာ']  (the array is the break point)
+```
 
 Zawgyi types ေ and the medial ra before the consonant. A consonant typed after them ends its syllable, as ကြ does in Unicode.
 

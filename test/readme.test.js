@@ -11,7 +11,7 @@ const { readExamples } = require('../scripts/testing/readme-examples');
 //
 // The number of examples in each file is pinned, so an example the reader stops seeing fails here. When you add or
 // remove an example, change its count.
-const FILES = { 'README.md': 58, 'ARCHITECTURE.md': 11 };
+const FILES = { 'README.md': 60, 'ARCHITECTURE.md': 11 };
 
 // Runs fn with console.warn and console.error recorded instead of printed.
 function capture(fn) {
