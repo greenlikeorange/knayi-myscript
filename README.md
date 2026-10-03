@@ -268,6 +268,8 @@ knayi.truncate(null) // ''
 - `dist/knayi-myscript.js`
 - `dist/knayi-myscript.min.js`
 
+`npm run check:dist -- --fresh` checks that `dist/` matches a fresh build.
+
 `npm run eval` measures conversion and detection on public Zawgyi and Unicode data, next to a published knayi release, myanmar-tools, and Rabbit. `npm run bench` measures speed on real text and long input. Both download their data on first use. See [scripts/eval/README.md](scripts/eval/README.md). The latest results are published at <https://greenlikeorange.github.io/knayi-myscript/benchmark.html>.
 
 ## Contributing
