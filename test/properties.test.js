@@ -94,9 +94,12 @@ describe('debugging ends with the converted text', () => {
 describe('truncate keeps the start of the text', () => {
   // The longest start of the text within the length, less the omission, that ends at a syllable break or after
   // whitespace, trimmed, then the omission. The text is read as syllBreak reads it (trimmed, without U+200B and
-  // U+200C), and syllBreak breaks all of it, where truncate breaks only its start.
+  // U+200C), and syllBreak breaks all of it, where truncate breaks only its start. With no font named, the font is
+  // detected on the text as given, before that cleaning, as truncate detects it. syllBreak detects it on the
+  // cleaned text, so the two can choose different fonts where removing a U+200B or U+200C at either end of the
+  // text leaves whitespace there.
   function expected(text, font, length, omission) {
-    const parts = knayi.syllBreak(text, font).split('\u200B');
+    const parts = knayi.syllBreak(text, font || knayi.fontDetect(text)).split('\u200B');
     const budget = length - omission.length;
     let end = 0;
     let at = 0;
@@ -124,7 +127,10 @@ describe('truncate keeps the start of the text', () => {
           assert.equal(hex(knayi.truncate(content, options)), hex(expected(content, font, length, omission)));
         }), 5000, [
         ['\u1021\u102c\u101a\u102f\u101d\u100d\u103a \u1007\u101c\u103d\u1014\u103a\u1008\u1031\u1038', 'unicode', 13, '...'],
-        ['\u1015\u102d\u1002\u1064\u101c\u102c \u1000\u1000 \u1062\u103a', 'zawgyi', 3, '\u2026']
+        ['\u1015\u102d\u1002\u1064\u101c\u102c \u1000\u1000 \u1062\u103a', 'zawgyi', 3, '\u2026'],
+        // Unicode as truncate detects it, with U+FEFF first once U+200B is gone; Zawgyi once the U+FEFF is trimmed too,
+        // as syllBreak detects it.
+        ['\u200B\uFEFF\u1084\u1000\u103F\u1000', undefined, 3, '\u2026']
       ]);
     });
   }
