@@ -1,8 +1,12 @@
 name: test
 
+# Pushes to main, pull requests, and a run by hand on any branch (Actions, "Run workflow"). A push to the branch of
+# an open pull request then runs once, as the pull request, and a tag push does not repeat main's run.
 on:
   push:
+    branches: [main]
   pull_request:
+  workflow_dispatch:
 
 # The jobs only read the repository. Each action is pinned to a full commit SHA, with its version in a comment;
 # Dependabot (.github/dependabot.yml) proposes updates.
