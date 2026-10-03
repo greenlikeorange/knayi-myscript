@@ -347,7 +347,8 @@ export function closeSyllable(buf, sink) {
 
 // ---------------------------------------------------------------------------------------------------------------
 // Syllables typed in storage order (DESIGN.md §3.4, "as typed"). 99.92% of the syllables normalize reads come out
-// unchanged, so the readers ask first whether orderSyllable would write the parts exactly as they came.
+// unchanged, so the Unicode reader asks first whether orderSyllable would write the parts exactly as they came, and
+// then neither writes nor compares the syllable (engine/unicodeReader.js closeOpenSyllable).
 
 // Whether orderSyllable would write the syllable as it was typed: kinzi, base, stack, then the marks in the order
 // they came. That holds when no part came out of its place (typedInOrder: no pending e or medial ra, no mark typed

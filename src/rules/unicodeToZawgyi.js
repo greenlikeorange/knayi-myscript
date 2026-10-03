@@ -412,14 +412,15 @@ export function traceUnicodeToZawgyi(text, trace) {
   return applyRowsThatCanMatch(collapsed, units, trace);
 }
 
-// Every row in order, as core/rules.js applyRuleRows and traceRuleRows run them, but skipping each row that cannot
-// match: one with no unit of its `needs` in `units`, which holds every unit of U+1000-U+109F the text may hold (the
-// collapse noted the text's; a row that changes the text adds what its replacement writes). Every call pays the
-// cost of a String#replace per row, which was most of the time on short text, and most rows need a unit that
-// most words lack (DESIGN.md §3.10).
+// Every row in order, as core/rules.js applyRuleRows and traceRuleRows run them, with two differences that change no
+// result. First, a row that cannot match is skipped by the unit set rather than by a search of the text per row:
+// `units` holds every unit of U+1000-U+109F the text may hold (the collapse noted the text's; a row that changes the
+// text adds what its replacement writes), and a row with none of its `needs` there is skipped. Every call paid a
+// String#replace per row, which was most of the time on short text, and most rows need a unit that most words lack
+// (DESIGN.md §3.10).
 //
-// A repeat row (2.x asLongAsMatch) is tested, then replaced once: its replacement turns the medial ra its pattern
-// starts with into another glyph, and the rest of its pattern matches neither, so one replace finds every match
+// Second, a repeat row (2.x asLongAsMatch) is tested, then replaced once: its replacement turns the medial ra its
+// pattern starts with into another glyph, and the rest of its pattern matches neither, so one replace finds every match
 // and makes no new one (2.x 1584410; test/next/unicodeToZawgyi.test.mjs checks it on fuzz). And a repeat row that
 // matches always changes the text, so a row changed the text exactly when 2.x logs it: that is when it is recorded.
 function applyRowsThatCanMatch(text, units, trace) {
