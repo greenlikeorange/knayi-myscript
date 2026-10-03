@@ -19,7 +19,9 @@
 //   --jobs <n>            worker threads (default: one per CPU, at most 16; 1 runs in this thread)
 //   --examples <n>        examples shown per differing cell (default 3)
 //   --json <file>         also write the full result as JSON
-// Exit status: 0 when every cell matches, 1 when a cell differs from what was expected, 2 on a usage or setup error.
+// A call form that the base lacks (an old release) is skipped; one that the base has and the head lacks fails the run.
+// Exit status: 0 when every cell matches, 1 when a cell differs from what was expected or the head lost a call form,
+// 2 on a usage or setup error.
 import fs from 'node:fs';
 import os from 'node:os';
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
@@ -203,8 +205,11 @@ async function main(argv) {
   const head = prepareKnayi(opts.head);
   const A = await instantiate(base);
   const B = await instantiate(head);
-  const skipped = forms.filter((f) => !available(f, A) || !available(f, B));
-  const run = forms.filter((f) => !skipped.includes(f));
+  // A form the base lacks is skipped (an old release); a form the base has and the head lacks is a lost part of the
+  // API, and fails the run.
+  const skipped = forms.filter((f) => !available(f, A));
+  const lost = forms.filter((f) => available(f, A) && !available(f, B));
+  const run = forms.filter((f) => available(f, A) && available(f, B));
 
   let sets = [...generatedSets(), ...(opts.fuzz ? fuzzSets({ seed: opts.seed, count: opts.fuzz }) : [])];
   if (!opts.offline) sets = (await corpusSets({ without: opts.without })).sets.concat(sets);
@@ -220,7 +225,8 @@ async function main(argv) {
   if (base.libraryHash && base.libraryHash === head.libraryHash) console.log('  (base and head have the same main.js and library/)');
   console.log('\ninput sets (distinct strings)');
   for (const s of sets) console.log('  ' + s.id.padEnd(20) + num(s.lines.length).padStart(8) + '  ' + s.about);
-  if (skipped.length) console.log('\nskipped (missing in base or head): ' + skipped.map((f) => f.id).join(', '));
+  if (skipped.length) console.log('\nskipped (missing in the base): ' + skipped.map((f) => f.id).join(', '));
+  if (lost.length) console.log('\nmissing in the head: ' + lost.map((f) => f.id).join(', '));
 
   const jobs = makeJobs(sets, run);
   const done = await runJobs(jobs, sets, { base, head, A, B }, opts);
@@ -245,7 +251,7 @@ async function main(argv) {
   for (const cell of ordered) cell.examples = cell.examples.sort((a, b) => a.index - b.index).slice(0, opts.examples);
 
   // Check every cell against --expect: listed cells and form totals must match exactly, all others must be 0.
-  const problems = [];
+  const problems = lost.map((f) => 'the head lost the call form ' + f.id + ', which the base has');
   const totals = new Map();
   for (const cell of ordered) {
     totals.set(cell.form, (totals.get(cell.form) || 0) + cell.differ);
@@ -297,7 +303,7 @@ async function main(argv) {
     fs.writeFileSync(opts.json, JSON.stringify({
       base, head, offline: opts.offline, seed: opts.seed, fuzz: opts.fuzz,
       sets: sets.map((s) => ({ id: s.id, kind: s.kind, origin: s.origin, inputs: s.lines.length, total: s.total, about: s.about })),
-      forms: run.map((f) => f.id), skipped: skipped.map((f) => f.id),
+      forms: run.map((f) => f.id), skipped: skipped.map((f) => f.id), lost: lost.map((f) => f.id),
       cells: ordered, comparisons, seconds, ok: problems.length === 0, problems
     }, null, 1) + '\n');
     console.error('wrote ' + opts.json);

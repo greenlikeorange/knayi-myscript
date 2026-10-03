@@ -16,7 +16,8 @@
 //   --max-exponent <x>     fail when a head growth exponent is above x (default 1.3)
 //   --max-slowdown <x>     fail when a Node row's head/base time ratio is above 1 + x (default 0.2)
 //   --json <file>          also write every timing as JSON
-// Exit status: 0 within the limits, 1 when a limit failed, 2 on a usage or setup error.
+// Exit status: 0 within the limits, 1 when a limit failed or the head lacks a call form the base has, 2 on a usage or
+// setup error.
 //
 // Rows: each call form (lib/callForms.mjs) on the same text in four shapes: a call per line, a call per word, one
 // call on the lines joined by spaces (string) and one on the lines joined by line breaks (document). A row's
@@ -96,6 +97,9 @@ async function measure({ base, head, opts }) {
   const version = RUNTIME === 'bun' ? Bun.version : process.versions.node;
   const result = { runtime: RUNTIME, version, workloads: {}, rows: [], growth: [] };
   const forms = selectForms(opts.forms).filter((f) => available(f, A) && available(f, B));
+  // A form the base has and the head lacks is a lost part of the API (report() fails the run); a form the base
+  // lacks is an old release's, and is left out.
+  result.lost = selectForms(opts.forms).filter((f) => available(f, A) && !available(f, B)).map((f) => f.id);
   let last;
 
   if (!opts.offline && opts.workloads.length) {
@@ -202,6 +206,7 @@ function report(results, opts, base, head) {
       console.log('\n' + r.runtime + ': skipped, ' + r.skipped);
       continue;
     }
+    for (const id of r.lost || []) failures.push(r.runtime + ': the head lost the call form ' + id + ', which the base has');
     if (r.rows.length) {
       console.log('\n' + r.runtime + ' ' + r.version + ': head/base time, median of ' + opts.rounds + ' rounds × ' + opts.runs +
         ' interleaved runs (below 1 is faster; the round range in brackets)');
