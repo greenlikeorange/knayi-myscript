@@ -1,7 +1,8 @@
 // Reads the examples in README.md, or in another Markdown file such as ARCHITECTURE.md. An example is any line of
 // a fenced block tagged js, javascript, mjs, cjs, ts or typescript that contains `knayi.` and is not an import or a
-// require. It starts with `knayi.`, after any indentation and an optional `console.log(` around the call; a line
-// with `knayi.` in any other form is an error, "unrecognised example", so no example is skipped for its notation.
+// require. It starts with `knayi.`, or with an array literal mapped through a call, as in
+// `['a', 'b'].map(knayi.normalize)`, after any indentation and an optional `console.log(` around it; a line with
+// `knayi.` in any other form is an error, "unrecognised example", so no example is skipped for its notation.
 //
 // An example is the call (over several lines if its parentheses close later), the expected value from the comment
 // after it (on the line where the call ends, or alone on the next line), and a note in parentheses after the
@@ -63,7 +64,9 @@ function readExamples(text, file) {
     if (/^import\b/.test(code) || /^(const|let|var)\s+[\w{},\s]+=\s*require\(/.test(code)) continue;
     const wrapped = /^console\.log\(/.test(code);
     if (wrapped) code = code.slice('console.log('.length);
-    if (!/^knayi\./.test(code)) throw new Error('unrecognised example at ' + where + ': ' + line.trim());
+    // An array literal with .map( after it is one call, the map, which ends where its parentheses close.
+    const mapped = /^\[[^\]]*\]\.map\(/.test(code);
+    if (!mapped && !/^knayi\./.test(code)) throw new Error('unrecognised example at ' + where + ': ' + line.trim());
 
     // A property such as knayi.version has no call; otherwise the call ends where its parentheses close.
     let last = n;

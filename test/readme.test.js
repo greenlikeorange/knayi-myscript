@@ -122,8 +122,19 @@ describe('example reader', () => {
     assert.deepEqual([example.code, example.expected, example.note], ["knayi.fontConvert('(', 'unicode')", "'('", 'no change; warns']);
   });
 
+  it('reads an array literal mapped through a call as one example', () => {
+    const examples = readExamples(fence('javascript',
+      "['a', 'b'].map(knayi.normalize) // ['a', 'b']\n" +
+      "['(', ')'].map((line) => knayi.syllBreak(line, null, '|'))\n// ['(', ')']"), 'probe.md');
+    assert.deepEqual(examples.map((e) => [e.line, e.code, e.expected]), [
+      [2, "['a', 'b'].map(knayi.normalize)", "['a', 'b']"],
+      [3, "['(', ')'].map((line) => knayi.syllBreak(line, null, '|'))", "['(', ')']"]
+    ]);
+  });
+
   it('rejects a line with knayi. in any other form', () => {
-    for (const body of ["const x = knayi.normalize('a')", "knayi.normalize('a').length", "console.log(knayi.normalize('a')"]) {
+    for (const body of ["const x = knayi.normalize('a')", "knayi.normalize('a').length", "console.log(knayi.normalize('a')",
+      "['a'].forEach(knayi.normalize)", "['a'].map(knayi.normalize).length"]) {
       assert.throws(() => readExamples(fence('javascript', body), 'probe.md'), /unrecognised example at probe\.md:2/, body);
     }
   });
