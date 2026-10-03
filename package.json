@@ -19,7 +19,7 @@
     "dist/knayi-myscript.min.js"
   ],
   "scripts": {
-    "test": "node --test && tsc -p typecheck/tsconfig.json --noEmit && tsc -p typecheck/tsconfig.no-interop.json --noEmit",
+    "test": "node --test \"test/**/*.test.js\" && tsc -p typecheck/tsconfig.json --noEmit && tsc -p typecheck/tsconfig.no-interop.json --noEmit",
     "posttest": "node scripts/check-size.js",
     "test:bun": "bun scripts/bun-contract.js && bun scripts/bun-esm.mjs && bun scripts/bun-matrix.js",
     "test:pack": "node scripts/check-packed.mjs",
