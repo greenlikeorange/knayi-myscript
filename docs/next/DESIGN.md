@@ -165,7 +165,7 @@ src/
   core/rules.js              L1          rule rows and their runner, traces, the stage runner
   core/nfc.js                L1          toNfc() in linear time, the only calls of String#normalize in src/
   fonts/zawgyi.js            L2          Zawgyi glyph table and lagaung sequences (data only)
-  fonts/win.js               L2          Win Innwa glyph table, look-alike sequences, C1 aliases (data only)
+  fonts/win.js               L2          Win Innwa glyph table, look-alike sequences, C1 aliases (data), legacyWinTables()
   engine/syllable.js         L3 engine   SyllableBuffer, orderSyllable and its steps, CodeBuffer, CopyThroughWriter
   engine/unicodeReader.js    L3 engine   UNICODE_READING, SEEN, reorderUnicode
   engine/fontReader.js       L3 engine   FONT_READING, compileFont, readFont, glyphsInTypedOrder
@@ -462,6 +462,10 @@ export const WIN_GLYPHS: Readonly<Record<string, GlyphRow>>
 export const LOOK_ALIKE_SEQUENCES: readonly RuleRow[] // 4 rows: aMomf, Mo, ps, OD
 export const C1_ALIASES: Readonly<Record<string, string>>  // 11 C1 controls -> the Windows-1252 key (win.js:217-221)
 export const WIN_FONT: FontDefinition
+// The 2.x shape of library/win.js `tables` (§1 of the plan: 2.x API, read by scripts/eval/win-glyphs.mjs):
+// { WIN, SEQUENCES, ROLES } with role strings, the C1 controls as keys sharing their key's row, and [RegExp,
+// replacement] pairs. New objects and RegExps at each call. For compat and the Phase 6 shim of library/win.js.
+export function legacyWinTables(): { WIN: object, SEQUENCES: [RegExp, string][], ROLES: object }
 ```
 
 The rows are copied from `library/zawgyi.js` and `library/win.js`, with their comments. Only the role names change. The file headers state the full pipeline, including the typing-fix stages that the 2.x headers leave out (§7 #23).
@@ -913,6 +917,8 @@ The output goes into the module's scratch `CodeBuffer`. For each unit `code`:
 
 At the end: close, then `writePending`. Decode the buffer, release it if it is large (§3.11), and return the string.
 
+As built (W6), the loop looks the glyph up first, and takes steps 1-3 only for a unit with no glyph. That keeps this order, because compileFont gives no space or zero-width character a glyph (§3.8, check 1), and it spares every other unit the held and zero-width tests: measured before W5 landed, with a stand-in for its buffer, the reader alone went from 0.434 to 0.416 of 2.x `arrange` on Zawgyi lines, and from 0.458 to 0.389 on Win lines.
+
 ### 3.7 CodeBuffer and CopyThroughWriter
 
 **`CodeBuffer`** is a growable `Uint16Array`.
@@ -958,16 +964,16 @@ Every change the Unicode reader makes passes through `endSyllable`. Phase 6's ch
 
 `compileFont(definition)` checks the table and builds a `CompiledFont` once, at module load, in `engine/fontStages.js`. Each call is `/* @__PURE__ */` (§2.4), so a bundle that never converts drops both the call and the tables. **The checks run at load and throw `libraryError(ERR.INVALID_FONT_TABLE, …)`** (PR 2.4 of the plan). `test/next/fonts.test.mjs` runs each one on a deliberately broken row, so a bundle that drops them loses no coverage. The checks:
 
-1. Every key is one UTF-16 unit.
+1. Every key is one UTF-16 unit, and no key or alias is a space (U+0020, U+00A0) or a zero-width character: `readFont` holds or writes those before a glyph could be read (§3.6), so a row for one would be dead.
 2. Every role is a known `ROLE`.
 3. For MARK and BEFORE_BASE rows, every unit of the text and of the attached marks has a rank (`markRank < RANK_UNRANKED`). For STACK and KINZI rows, every attached mark does.
 4. The shapes of the texts:
    - BASE text is one unit (a syllable base or a Burmese digit), or a ligature (consonant, U+1039, consonant), or one of the font's declared `wholeBases`. Those are Zawgyi lagaung (U+104E U+1004 U+103A U+1038), and Win kyat and nnya-with-aa. Their inner marks are written as they are, not sorted, which is §7 #19 of the plan, kept on purpose.
    - STACK text is U+1039 plus a Burmese consonant.
    - KINZI text is `KINZI_TEXT`.
-   - BASE texts are at most 8 units.
+   - BASE texts are at most 8 units, and a BASE row has no attached marks (2.x never wrote them for a base).
    - PLAIN text may be any string, empty included (Win's vendor logo at 0xB0 has no text).
-5. Every alias names a key of the table. No `selfBases` code is also a key.
+5. Every alias names a key of the table, and no alias is itself a key, which would hide its row. No `selfBases` code is also a key.
 
 Built-in rule (2.x `font()`, storageOrder.js:206-209): every syllable base in U+1000-U+104F that the table does not list is a base of itself.
 
@@ -1722,6 +1728,24 @@ W8 compat              after all of them; its option, input and legacy files nee
   - The tree-shaking check passes: the normalize-only bundle has no bytes from `fonts/`, `fontReader.js` or `fontStages.js`.
   - Growth ≤ 1.3.
   - The Win results are labelled "Win identity only", because there is no hand-checked Win set yet (PR 0.9 of the plan).
+- **As built**, where the build settles what this section leaves open:
+  - **The tables** are the rows of `library/zawgyi.js` and `library/win.js` at the reference, copied with their comments, only the role names changed. The sequence ids are `zg.lagaung.1-2` and `win.look-alike.1-4`. `fonts/win.js` also exports `legacyWinTables()` (§2.3), the 2.x shape of `win.tables`, which §1 of the plan lists as 2.x API: compat or the Phase 6 shim of `library/win.js` builds it from here. It returns new objects and new RegExps at each call (the rows come from a builder that `LOOK_ALIKE_SEQUENCES` calls once), so no caller can reach the core's own rows.
+  - **`compileFont`** makes three checks the list of §3.8 did not spell out: no key or alias is a space or zero-width character (check 1), no BASE row has attached marks (check 4), and no alias is a key (check 5). The `CompiledFont` is `{ name, sequences, index, roles, units, textStart, textEnd, marksStart, end }`: a `Uint16Array` index, a `Uint8Array` of roles, every glyph's text and then its attached marks in one `Uint16Array`, and `Uint32Array` offsets into it.
+  - **`readFont`** looks the glyph up first (§3.6, as built), and is 32 lines, its steps in named helpers.
+  - **Memory.** `fontReaderScratchUnits()` is `SyllableBuffer#capacity()` plus `CodeBuffer#capacity()`, the members W5 added for both readers (§7.7, as built).
+  - **`fontToUnicode` and `traceFontToUnicode`** keep each compiled font and its frozen stage context as module constants, so a call allocates nothing for them. A font name other than `'zawgyi'` or `'win'` throws `ERR.INVALID_ARG_VALUE` (a RangeError) instead of converting with the wrong table.
+  - **Tests.** `fonts.test.mjs` (the tables, `legacyWinTables` against 2.x `win.tables`, the compiled lookup on all 65,536 units, a broken row for each check); `readers-font.test.mjs` (each step of §3.6, the four differences, every unit alone and every pair of the units each font reads against 2.x `arrange` and `glyphsInTypedOrder`, the memory checks); `fontToUnicode.test.mjs` (the stages, the README and ARCHITECTURE examples, the regressions, the table probes, and every generated set of `scripts/eval/lib/inputs.mjs`, with traces); the two fuzz files of §6.1, the second also running the seeded `fuzzSets` of compare, with traces; and `fonts.timing.mjs`, which adds d170cd8's ten NFC run shapes and has no NFC exemption, since W1 ported the helper. Nightly counts, once (`KNAYI_FUZZ_SCALE=100 KNAYI_FUZZ_SEED=4711`, Node 26.5): `fontToUnicode.fuzz.test.mjs` 8 s, `readers-font.fuzz.test.mjs` 3 s.
+  - **Corpora.** `npm run compare -- --base e5f6e24 --head <file>`, where the file is this worktree's `main.js` with `library/zawgyi.js` and `library/win.js` `toUnicode` routed to `fontToUnicode` and `traceFontToUnicode`: 0 differences on 2,771,318 comparisons (all 20 call forms, all 20 input sets, mC4 included), under Node and Bun, and on 3,324,063 more with `--fuzz 200000 --seed 7`.
+  - **Speed** (measure early), with W1's, W2's and W5's modules merged locally, on a machine shared with other builds. Interleaved in one process against the 2.x function each replaces, on perf's 400 FLORES lines in Zawgyi and their synthetic Win copy (ratio = new / 2.x, median of 21 runs, Node 26.5):
+
+    | | line | word | string | document |
+    |---|---|---|---|---|
+    | `fontToUnicode` / `zawgyi.toUnicode` | 0.41 | 0.45 | 0.36 | 0.36 |
+    | `fontToUnicode` / `win.toUnicode` | 0.41 | 0.45 | 0.37 | 0.36 |
+    | `readFont` / 2.x `arrange`, Zawgyi | 0.39 | 0.43 | | |
+    | `readFont` / 2.x `arrange`, Win | 0.37 | 0.41 | | |
+
+    On the 14,304 mC4 lines, `fontToUnicode` reads 0.42 of `zawgyi.toUnicode`. Through `npm run perf` with the compare head above (5 rounds), `fontConvert.zawgyi-unicode` reads 0.41, 0.48, 0.36 and 0.37 under Node, and 0.40, 0.51, 0.30 and 0.30 under Bun; `fontConvert.win-unicode` 0.40, 0.47, 0.37 and 0.36 under Node; every growth exponent of the three font call forms is at most 1.18 (Node) and 1.05 (Bun). Against the goals of §6.4: the word goal (0.60) holds, the line goal (0.40) sits at its edge, inside perf's noise, and string and document miss 0.29 by 0.07-0.08 under Node. The stage 'syllables' takes 77-84% of the pipeline's time, so what is left is in `readFont` and `orderSyllable`; the reader prototype read 0.27 on one string with its state in closure locals (`SCR/judge-perfarch/zg-endstate.out`).
 
 ### 7.9 W7: unicode-to-zawgyi
 
