@@ -111,8 +111,10 @@ jobs:
       - run: npm run check:size
 
   # The script and module builds in Chromium, Firefox and WebKit against main.js, and axe on the demo and
-  # benchmark pages. The browsers are cached by the lockfile (it pins @playwright/test); the install step then
-  # only adds the system packages they need.
+  # benchmark pages. The browsers are cached by Playwright's version and the runner image: Playwright ships
+  # separate builds for each Ubuntu release under the same directory names, and skips a browser whose directory
+  # is complete, so a cache keyed on the lockfile alone would bring 24.04 builds to a 26.04 runner (and download
+  # 1.1 GB again on every lockfile change). The install step then only adds the system packages they need.
   browser:
     name: Browsers
     runs-on: ubuntu-latest
@@ -126,10 +128,15 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Name the browser cache
+        id: browsers
+        run: |
+          echo "image=$ImageOS" >> "$GITHUB_OUTPUT"
+          echo "playwright=$(node -p "require('playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: playwright-${{ runner.os }}-${{ steps.browsers.outputs.image }}-${{ steps.browsers.outputs.playwright }}
       - run: npx playwright install --with-deps chromium firefox webkit
       - run: npm run test:browser
       - if: failure()
