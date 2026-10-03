@@ -259,3 +259,17 @@ export const SHAPES = [
 // The call forms each shape runs through (the operations of the plan's sweep).
 export const GROWTH_FORMS = ['normalize', 'fontConvert.zawgyi-unicode', 'fontConvert.unicode-zawgyi', 'fontConvert.win-unicode',
   'fontConvert.detected-unicode', 'syllBreak.unicode', 'syllBreak.zawgyi', 'spellingFix.unicode', 'truncate.30', 'fontDetect'];
+
+// Every character test/growth.test.js draws from (scripts/testing/growth-alphabets.js: letters, Burmese, Zawgyi and
+// other marks, medials, Win keys, blanks and punctuation), repeated alone and after ka. A run of one character is
+// where a loop that rescans the current run hides: one that rescanned a run of anusvara for each anusvara took 8 s
+// at 100k characters and passed every shape above, at every size perf.mjs measures. perf.mjs runs each through
+// PUMP_FORMS with a quick first reading, and measures it in full only when that reading is high.
+const { ALL: GROWTH_CHARACTERS } = require('../../testing/growth-alphabets.js');
+const unitName = (ch) => 'U+' + ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0');
+export const PUMPS = GROWTH_CHARACTERS.flatMap((ch) => [
+  { id: unitName(ch) + ' run', make: (n) => rep(ch, n) },
+  { id: 'ka + ' + unitName(ch) + ' run', make: (n) => s(KA) + rep(ch, n) }
+]);
+export const PUMP_FORMS = ['normalize', 'fontConvert.zawgyi-unicode', 'fontConvert.win-unicode', 'fontConvert.detected-unicode',
+  'fontConvert.unicode-zawgyi', 'syllBreak.unicode', 'spellingFix.unicode'];

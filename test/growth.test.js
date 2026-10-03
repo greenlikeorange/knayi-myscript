@@ -37,33 +37,10 @@ const SEED = Number(process.env.KNAYI_GROWTH_SEED) || 20261003;
 
 knayi.setGlobalOptions({ silent_mode: true });
 
-function chars(codes) {
-  return codes.map((code) => String.fromCharCode(code));
-}
-
-function range(first, last) {
-  const codes = [];
-  for (let code = first; code <= last; code++) codes.push(code);
-  return codes;
-}
-
-// Characters by role. A letter starts a syllable; a mark joins the one before it.
-const LETTERS = chars([0x1000, 0x1001, 0x1004, 0x1005, 0x1009, 0x100A, 0x1010, 0x1014, 0x1015, 0x1019, 0x101A,
-  0x101B, 0x101C, 0x101D, 0x101E, 0x1021, 0x1023, 0x1025, 0x1027, 0x1029, 0x103F, 0x104E,
-  0x1040, 0x1041, 0x1044, 0x1047, // digits: zero and seven are typed for wa and ra
-  0x106A, 0x106B, 0x108F, 0x1090, 0x1086, // Zawgyi letter shapes
-  0x1050, 0x105A, 0x1075, 0xA9E0, 0xAA60, // Mon, Shan, Karen and the other languages
-  0x75, 0x63, 0x69, 0x70, 0x65, 0x79, 0x72, 0x77, 0x78, 0x26, 0x76, 0x6F, 0x74, 0x4F]); // Win letter keys
-const BURMESE_MARKS = chars(range(0x102B, 0x1032).concat([0x1036, 0x1037, 0x1038, 0x103A, 0x1039]));
-const MEDIALS = chars(range(0x103B, 0x103E));
-// Zawgyi glyphs, and the marks and tones of the other languages.
-const OTHER_MARKS = chars([0x1033, 0x1034, 0x1035, 0x1056, 0x1058, 0x105E, 0x1060, 0x1062, 0x1063, 0x1064,
-  0x1067, 0x1071, 0x1072, 0x107E, 0x1080, 0x1082, 0x1084, 0x1085, 0x1087, 0x1088, 0x108A, 0x108B, 0x108D,
-  0x1094, 0x1095, 0x1096, 0x109A, 0xA9E5, 0xAA7B]);
-const WIN_MARKS = chars([0x61, 0x6A, 0x64, 0x6B, 0x66, 0x73, 0x44, 0x47, 0x48, 0x68, 0x6D, 0x3B, 0x4D, 0xF1]);
-const BLANKS = chars([0x20, 0xA0, 0x09, 0x0A, 0x200B, 0x200C, 0x200D, 0x2060, 0xFEFF]);
-const PUNCTUATION = chars([0x104A, 0x104B, 0x2E, 0x2C, 0x3A, 0x2B, 0x2D, 0x3E, 0x28, 0x5B, 0x7B, 0x201C, 0x2018,
-  0x2014, 0xA1, 0xD3, 0x201A]);
+// Characters by role (scripts/testing/growth-alphabets.js): letters start a syllable; marks join the one before.
+const {
+  LETTERS, BURMESE_MARKS, MEDIALS, OTHER_MARKS, WIN_MARKS, BLANKS, PUNCTUATION, ALL
+} = require('../scripts/testing/growth-alphabets');
 
 function weighted(groups) {
   return fc.oneof(...groups.map(([weight, list]) => ({ weight, arbitrary: fc.constantFrom(...list) })));
@@ -119,10 +96,10 @@ const EXAMPLES = [
 
 // Every public call form. `nfc` marks the ones whose output goes through String.prototype.normalize.
 const FORMS = [
-  { name: 'normalize', nfc: true, run: (s) => knayi.normalize(s) },
-  { name: 'fontConvert zawgyi to unicode', nfc: true, run: (s) => knayi.fontConvert(s, 'unicode', 'zawgyi') },
-  { name: 'fontConvert win to unicode', nfc: true, run: (s) => knayi.fontConvert(s, 'unicode', 'win') },
-  { name: 'fontConvert detected to unicode', nfc: true, run: (s) => knayi.fontConvert(s, 'unicode') },
+  { name: 'normalize', nfc: true, pumps: true, run: (s) => knayi.normalize(s) },
+  { name: 'fontConvert zawgyi to unicode', nfc: true, pumps: true, run: (s) => knayi.fontConvert(s, 'unicode', 'zawgyi') },
+  { name: 'fontConvert win to unicode', nfc: true, pumps: true, run: (s) => knayi.fontConvert(s, 'unicode', 'win') },
+  { name: 'fontConvert detected to unicode', nfc: true, pumps: true, run: (s) => knayi.fontConvert(s, 'unicode') },
   { name: 'fontConvert unicode to zawgyi', run: (s) => knayi.fontConvert(s, 'zawgyi', 'unicode') },
   { name: 'fontConvert detected to zawgyi', run: (s) => knayi.fontConvert(s, 'zawgyi') },
   {
@@ -227,6 +204,45 @@ describe('time grows linearly on structured random input', () => {
       }), { seed: SEED + index, numRuns: RUNS, examples: EXAMPLES });
     });
   });
+});
+
+// Every character of the alphabets repeated alone, and after ka, through the call forms whose readers walk runs of
+// marks: normalize and conversion to Unicode (`pumps` in FORMS). The random cases rarely draw a unit of one
+// character: a loop that rescanned the current run of anusvara for each anusvara took 8 s at 100k characters and
+// passed them at the pull request setting. Each pump is timed first at 4,096 and 8,192 characters, the faster of
+// two calls each; one that grows faster than LIMIT gets the full measurement of growth().
+const KA = String.fromCharCode(0x1000);
+const PUMPS = ALL.map((ch) => ({ prefix: '', pump: ch, suffix: '' }))
+  .concat(ALL.map((ch) => ({ prefix: KA, pump: ch, suffix: '' })));
+
+function quickRatio(fn, shape) {
+  const small = shape.prefix + shape.pump.repeat(4096);
+  const big = shape.prefix + shape.pump.repeat(8192);
+  fn(small);
+  fn(big);
+  const a = Math.min(time(fn, small), time(fn, small));
+  const b = Math.min(time(fn, big), time(fn, big));
+  return b / Math.max(a, 0.001);
+}
+
+describe('time grows linearly on a run of one character', () => {
+  for (const form of FORMS.filter((f) => f.pumps)) {
+    it(form.name, (t) => {
+      let measured = 0;
+      for (const pump of PUMPS) {
+        if (quickRatio(form.run, pump) <= LIMIT) continue;
+        measured++;
+        const result = growth(form.run, pump);
+        if (result.ok) continue;
+        if (form.nfc && growthWithoutNfc(form.run, pump).ok) {
+          t.diagnostic('NFC, not the library, grows too fast (known): ' + describeCase(pump, result));
+          continue;
+        }
+        assert.fail(form.name + ' grows faster than linear: ' + describeCase(pump, result));
+      }
+      t.diagnostic(PUMPS.length + ' pumps, ' + measured + ' measured in full after a high first reading');
+    });
+  }
 });
 
 const NFC_TODO = 'String.prototype.normalize reorders a long run of combining marks in quadratic time, and the ' +

@@ -27,8 +27,9 @@
 // it too when started with --expose-gc.
 //
 // Growth exponents (lib/timing.mjs): every adversarial shape of lib/inputs.mjs through the forms of GROWTH_FORMS,
-// at n, 2n and 4n units (n = 8,192 under Node, 1,024 under Bun). A reading above --max-exponent is measured twice
-// more, and the run fails only when all three readings are above it.
+// and every single-character run of PUMPS through PUMP_FORMS, at n, 2n and 4n units (n = 8,192 under Node, 1,024
+// under Bun). A quick first reading above --max-exponent is measured in full three times, and the run fails only
+// when all three are above it.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -37,7 +38,7 @@ import { fileURLToPath } from 'node:url';
 import { loadAll } from './datasets.mjs';
 import { prepareKnayi, instantiate, describe } from './lib/knayi.mjs';
 import { selectForms, formById, available } from './lib/callForms.mjs';
-import { perfTexts, workloads, WORKLOADS, SHAPES, GROWTH_FORMS } from './lib/inputs.mjs';
+import { perfTexts, workloads, WORKLOADS, SHAPES, GROWTH_FORMS, PUMPS, PUMP_FORMS } from './lib/inputs.mjs';
 import { alternate, median, timeOnce, growthExponent, collectGarbage } from './lib/timing.mjs';
 
 const RUNTIME = typeof Bun !== 'undefined' ? 'bun' : 'node';
@@ -151,13 +152,15 @@ async function measure({ base, head, opts }) {
 
   if (opts.growth !== 'none') {
     const growthForms = GROWTH_FORMS.map(formById).filter((f) => forms.includes(f));
-    progress(RUNTIME + ': growth exponents, ' + SHAPES.length + ' shapes × ' + growthForms.length + ' call forms');
-    for (const shape of SHAPES) {
-      for (const form of growthForms) {
-        const headGrowth = confirmedGrowth((s) => { last = form.call(B, s); }, shape.make, opts.maxExponent);
-        const baseGrowth = opts.growth === 'both' ? confirmedGrowth((s) => { last = form.call(A, s); }, shape.make, opts.maxExponent) : null;
-        result.growth.push({ shape: shape.id, form: form.id, head: headGrowth, base: baseGrowth });
-      }
+    const pumpForms = PUMP_FORMS.map(formById).filter((f) => forms.includes(f));
+    progress(RUNTIME + ': growth exponents, ' + SHAPES.length + ' shapes × ' + growthForms.length + ' call forms and ' +
+      PUMPS.length + ' single-character runs × ' + pumpForms.length + ' call forms');
+    const cells = SHAPES.flatMap((shape) => growthForms.map((form) => ({ shape, form, kind: 'shape' })))
+      .concat(PUMPS.flatMap((shape) => pumpForms.map((form) => ({ shape, form, kind: 'pump' }))));
+    for (const { shape, form, kind } of cells) {
+      const headGrowth = screenedGrowth((s) => { last = form.call(B, s); }, shape.make, opts.maxExponent);
+      const baseGrowth = opts.growth === 'both' ? screenedGrowth((s) => { last = form.call(A, s); }, shape.make, opts.maxExponent) : null;
+      result.growth.push({ shape: shape.id, form: form.id, kind, head: headGrowth, base: baseGrowth });
     }
   }
   return result;
@@ -174,6 +177,15 @@ function confirmedGrowth(call, make, limit) {
   const value = (g) => (g.exponent == null ? Infinity : g.exponent);
   const kept = tries.slice().sort((x, y) => value(x) - value(y))[0];
   return { ...kept, tries: tries.map((g) => g.exponent) };
+}
+
+// Every cell gets a quick first reading (two samples of 1 ms at each size, after 1 ms of calls), and the full
+// measurement of confirmedGrowth only when that reading is above the limit. Linear code reads low on the quick reading
+// too, and super-linear code high on both, so the 2,264 cells take about 25 s per runtime instead of minutes.
+function screenedGrowth(call, make, limit) {
+  const quick = growthExponent(call, make, { samples: 2, sampleMs: 1, warmMs: 1 });
+  if (quick.exponent != null && quick.exponent <= limit) return quick;
+  return confirmedGrowth(call, make, limit);
 }
 
 // Runs the measurement in another runtime: that runtime runs this file with --child and writes its result to a file.
@@ -243,7 +255,9 @@ function report(results, opts, base, head) {
       const n = cells.length ? cells[0].head.n : 0;
       console.log('\n' + r.runtime + ' ' + r.version + ': growth exponents of the head, per doubling from ' + num(n) + ' to ' +
         num(4 * n) + ' units (1 is linear, 2 quadratic; the lowest of three readings when one is high)');
-      console.log('  ' + cells.length + ' cells (' + SHAPES.length + ' shapes × ' + (cells.length / SHAPES.length) + ' call forms), ' +
+      const shapeCells = cells.filter((g) => g.kind !== 'pump').length;
+      console.log('  ' + cells.length + ' cells (' + SHAPES.length + ' shapes × ' + (shapeCells / SHAPES.length) + ' call forms, ' +
+        PUMPS.length + ' single-character runs × ' + ((cells.length - shapeCells) / PUMPS.length) + '), ' +
         over.length + ' above ' + opts.maxExponent + '; highest:');
       for (const g of highest.slice(0, 5)) {
         console.log('    ' + fixed(g.head.exponent) + '  ' + g.form + ' on ' + g.shape + ' (' + num(g.head.units) + ' units in ' +
