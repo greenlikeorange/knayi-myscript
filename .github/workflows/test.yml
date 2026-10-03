@@ -146,7 +146,8 @@ jobs:
   #   the event, so after adding the label or editing the counts, re-run this job.
   # - Every run compares main.js with the min.js and .mjs builds made from it.
   # The corpus cache holds every pinned corpus but mC4 (decision 22) and never queries.tsv. It is keyed on
-  # scripts/eval/datasets.mjs, which holds every pin, and only a push to the default branch fills it. Every run
+  # scripts/eval/datasets.mjs, which holds every pin, and only a push to the default branch or the nightly fuzz
+  # workflow (.github/workflows/fuzz.yml, which also keeps it from expiring after 7 days unused) fills it. Every run
   # restores it, fork pull requests too: a pull request may read the base branch's caches, and can write only to
   # its own scope, which nothing here saves to. A run with a cold cache compares generated and fuzz inputs only
   # (--offline).
@@ -183,13 +184,15 @@ jobs:
             !.eval-cache/data/flores.gz
           key: corpus-${{ hashFiles('scripts/eval/datasets.mjs') }}
       # Downloads from GitHub, FLORES, Zenodo and Hugging Face, each checked against its pin. A failed download
-      # leaves the cache cold; the run then continues offline.
+      # leaves the cache cold; the run then continues offline. About 40 Hugging Face requests with back-off on
+      # HTTP 429, so it gets its own time limit, below the job's.
       - name: Fill the corpus cache
         id: fill
         if: >-
           steps.corpus.outcome == 'success' && steps.corpus.outputs.cache-hit != 'true' &&
           github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
         continue-on-error: true
+        timeout-minutes: 10
         run: node scripts/eval/datasets.mjs --fetch --without mc4
       - name: Save the corpus cache
         if: steps.fill.outcome == 'success'
@@ -210,7 +213,7 @@ jobs:
             node scripts/eval/datasets.mjs --check
             echo "flags=--without mc4" >> "$GITHUB_OUTPUT"
           else
-            echo "No corpus cache: comparing generated and fuzz inputs only."
+            echo "::warning title=Compare ran offline::No corpus cache: only generated and fuzz inputs were compared. The nightly fuzz workflow refills the cache; run it by hand to refill it now."
             echo "flags=--offline" >> "$GITHUB_OUTPUT"
           fi
       - name: Compare with the base branch under Node

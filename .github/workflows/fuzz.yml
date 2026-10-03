@@ -1,9 +1,11 @@
 name: fuzz
 
-# Long runs of the randomized tests with a new seed each night: the differential fuzz test (test/fuzz.test.js),
-# the property tests (test/properties.test.js) and the growth test (test/growth.timing.js). Pull requests run them
-# in npm test with a fixed seed and fewer cases. A failure keeps its seed in the log and in an artifact: replay it
-# with the command in replay.txt, and add the shrunk counterexample to the regressions of the property.
+# Each night, and by hand: a refresh of the corpus cache that test.yml's Compare and Perf jobs read (the
+# corpus-cache job below), and long runs of the randomized tests with a new seed: the differential fuzz test
+# (test/fuzz.test.js), the property tests (test/properties.test.js) and the growth test (test/growth.timing.js).
+# Pull requests run them in npm test with a fixed seed and fewer cases. A failure keeps its seed in the log and in
+# an artifact: replay it with the command in replay.txt, and add the shrunk counterexample to the regressions of
+# the property.
 
 on:
   schedule:
@@ -67,3 +69,46 @@ jobs:
             replay.txt
             fuzz.log
             growth.log
+
+  # Keeps the corpus cache that test.yml's Compare and Perf jobs read warm and working. GitHub evicts a cache
+  # unused for 7 days, a fill on a push to main can fail, and a change upstream can make every fill fail; in each
+  # case compare would quietly run offline. A scheduled run uses main's cache scope: restoring marks the cache used,
+  # and a miss (an eviction, or new pins in scripts/eval/datasets.mjs) fills and saves it again. A failed fill fails
+  # this job, so the nightly run shows it.
+  corpus-cache:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Restore the corpus cache
+        id: corpus
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .eval-cache/data
+            !.eval-cache/data/mc4.gz
+            !.eval-cache/data/queries.tsv
+            !.eval-cache/data/flores.gz
+          key: corpus-${{ hashFiles('scripts/eval/datasets.mjs') }}
+      - name: Fill the corpus cache
+        id: fill
+        if: steps.corpus.outputs.cache-hit != 'true'
+        timeout-minutes: 10
+        run: node scripts/eval/datasets.mjs --fetch --without mc4
+      - name: Save the corpus cache
+        if: steps.fill.outcome == 'success'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .eval-cache/data
+            !.eval-cache/data/mc4.gz
+            !.eval-cache/data/queries.tsv
+            !.eval-cache/data/flores.gz
+          key: corpus-${{ hashFiles('scripts/eval/datasets.mjs') }}
+      - name: Check the corpus cache
+        run: node scripts/eval/datasets.mjs --check
