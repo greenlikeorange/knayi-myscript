@@ -17,7 +17,7 @@ function option(name) {
 }
 const jsonOut = option('--json');
 const data = await loadAll();
-const E = loadEngines();
+const E = await loadEngines();
 const cp = (n) => String.fromCodePoint(n);
 
 const ms = (fn) => { const start = process.hrtime.bigint(); fn(); return Number(process.hrtime.bigint() - start) / 1e6; };
@@ -30,7 +30,8 @@ function mean(fn, warmups = 3, runs = 10) {
 
 const result = {
   generatedAt: new Date().toISOString(),
-  // The code that produced these timings: commit, uncommitted changes, and a hash of main.js and library/.
+  // The code that produced these timings: commit, uncommitted changes, and a hash of the library code (main.js and
+  // library/ of 2.x, src/ of 3.0).
   code: codeState(REPO),
   machine: (os.cpus()[0] ? os.cpus()[0].model : 'unknown CPU') + ', ' + os.type() + ' ' + os.release(),
   node: process.version,

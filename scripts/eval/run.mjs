@@ -18,7 +18,7 @@ const jsonOut = option('--json');
 const withUnlicensed = args.includes('--with-unlicensed');
 
 const data = await loadAll({ withUnlicensed });
-const E = loadEngines();
+const E = await loadEngines();
 const detectors = ['local', 'baseline', 'tools'];
 const converters = ['local', 'baseline', 'tools', 'rabbit'];
 
@@ -157,7 +157,8 @@ if (jsonOut) {
   const used = new Set(sections.flatMap((s) => s.rows.flatMap((r) => r.sources)));
   const result = {
     generatedAt: new Date().toISOString(),
-    // The code that produced these numbers: commit, uncommitted changes, and a hash of main.js and library/.
+    // The code that produced these numbers: commit, uncommitted changes, and a hash of the library code (main.js and
+    // library/ of 2.x, src/ of 3.0).
     code: codeState(REPO),
     node: process.version,
     platform: os.type() + ' ' + os.release(),
