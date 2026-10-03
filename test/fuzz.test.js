@@ -7,7 +7,7 @@ const arb = require('../scripts/testing/arbitraries');
 const { SEED, check, runs } = require('../scripts/testing/fuzz-settings');
 
 // Differential fuzz: the library against the frozen 2.10 engine in scripts/oracle/, on short strings over the
-// characters each reader decides on (scripts/testing/arbitraries.js). 50,000 strings in all on a pull request;
+// characters each reader decides on (scripts/testing/arbitraries.js). 60,000 strings in all on a pull request;
 // see scripts/testing/fuzz-settings.js for a longer run. Every output must be the same.
 
 function hex(text) {
@@ -45,8 +45,8 @@ const ZAWGYI_REGRESSIONS = [
 
 const WIN_REGRESSIONS = ['ajumifh', 'a,musfm;', 'usGefkyf', 'aMomf', 'ZvGefaps;', '7if;', '0if'].map((text) => [text]);
 
-// Strings per comparison on a pull request: 50,000 in all.
-const COUNT = { normalize: 25000, zawgyi: 10000, win: 5000, detect: 8000, debugging: 2000 };
+// Strings per comparison on a pull request: 60,000 in all.
+const COUNT = { normalize: 25000, codeUnits: 10000, zawgyi: 10000, win: 5000, detect: 8000, debugging: 2000 };
 
 // Inputs: short strings over each reader's characters, Burmese text with typing slips, and that text written
 // in Zawgyi (by the library, which only makes the input here).
@@ -61,6 +61,24 @@ describe('library against the 2.10 oracle', () => {
     check(fc.property(unicode, (text) => {
       same(knayi.normalize(text), oracle.normalize(text), text);
     }), COUNT.normalize, UNICODE_REGRESSIONS);
+  });
+
+  // normalize returns text with no character of the Myanmar blocks in NFC, without its other steps
+  // (library/normalization.js). Every UTF-16 code unit, alone and between e and a combining acute, every code
+  // point of plane 1 (Myanmar Extended-C among them), and random code units, which seldom hold a Myanmar
+  // character, against the oracle, which runs every step.
+  it('normalize on text with no character of the Myanmar blocks', () => {
+    for (let code = 0; code <= 0xFFFF; code++) {
+      const ch = String.fromCharCode(code);
+      for (const text of [ch, 'e' + ch + '\u0301']) same(knayi.normalize(text), oracle.normalize(text), text);
+    }
+    for (let code = 0x10000; code <= 0x1FFFF; code++) {
+      const text = String.fromCodePoint(code);
+      same(knayi.normalize(text), oracle.normalize(text), text);
+    }
+    check(fc.property(arb.codeUnits.filter((text) => text !== ''), (text) => {
+      same(knayi.normalize(text), oracle.normalize(text), text);
+    }), COUNT.codeUnits);
   });
 
   it('Zawgyi to Unicode', () => {
@@ -129,7 +147,7 @@ describe('library against the 2.10 oracle', () => {
     const detected = sample(detectable).map((s) => knayi.fontDetect(s, 'tie', { adapter: 'rules' }));
     const asUnicode = share(detected, (d) => d === 'unicode');
     const asZawgyi = share(detected, (d) => d === 'zawgyi');
-    t.diagnostic('seed ' + SEED + ', ' + runs(50000) + ' strings; changed: normalize ' + normalized.toFixed(2) +
+    t.diagnostic('seed ' + SEED + ', ' + runs(60000) + ' strings; changed: normalize ' + normalized.toFixed(2) +
       ', Zawgyi ' + fromZawgyi.toFixed(2) + ', Win ' + fromWin.toFixed(2) + '; detected Unicode ' +
       asUnicode.toFixed(2) + ', Zawgyi ' + asZawgyi.toFixed(2));
     assert.ok(normalized > 0.15, 'normalize changed ' + normalized);

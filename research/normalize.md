@@ -34,7 +34,7 @@ What 2.9 got wrong:
 
 - **Syllables:** `arrangeUnicode` reads Unicode in its logical order. Kinzi (nga or ra, asat, virama) belongs to the consonant after it, virama plus consonant is a stacked consonant, and ေ and medial ra are marks like the others. Each syllable then goes through the same `order` as Zawgyi and Win: a mark typed twice counts once, asat goes where UTN #11 puts it, and the look-alike letters are fixed.
 - **Typing fixes** (`typingFixes.js`): look-alike digits and letters, and a few misspellings. Zawgyi and Win conversion apply them too, so normalize leaves converted text as it is.
-- **NFC first and last.** NFC can move a dot below in front of an asat or virama, which changes what they attach to, so the syllables are read from NFC text.
+- **NFC first and last.** NFC can move a dot below in front of an asat or virama, which changes what they attach to, so the syllables are read from NFC text. Text with no character of the Myanmar blocks (U+1000–U+109F, U+A9E0–U+A9FF, U+AA60–U+AA7F) is returned after the first NFC, since the other steps would give it back as it is.
 
 ## 3. Decisions
 
@@ -97,6 +97,7 @@ Letters and marks the Burmese rules do not know end a syllable and stay where th
 ## 6. Speed
 
 - **Real text:** 4.6 million characters of Wikipedia and Okell text take about 550 ms (2.9: about 830 ms). Zawgyi conversion with the shared typing fixes is as fast as before them.
+- **Text with no Myanmar character** gets only the first NFC. On 4.5 million characters of English, that takes about a fiftieth of the time all the steps took as one string, and a twelfth a line at a time, under Node.
 - **Worst cases stay linear:** a million marks on one consonant, a million ေ with or without consonants, and a million wa, digits, stacked consonants or kinzi each take about 200 ms or less. So does a run of marks of two classes, such as dot below and virama repeated, which NFC has to put in order: the runtime's `String.prototype.normalize` does that in quadratic time (32,000 pairs took about 1 s, 64,000 about 4 s), so `library/nfc.js` puts a long run in order first, and a million characters of it take about 70 ms.
 
 ## 7. Open questions

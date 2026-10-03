@@ -271,7 +271,8 @@ const BREAK_RULES = {
   ]
 };
 
-function breakParts(content, fontType) {
+// The text with U+200B at each syllable break, and none at the start.
+function markBreaks(content, fontType) {
   var rules = BREAK_RULES[fontType];
   var text = content;
   for (var i = 0; i < rules.length; i++) {
@@ -280,13 +281,28 @@ function breakParts(content, fontType) {
     rules[i][0].lastIndex = 0;
     text = text.replace(rules[i][0], rules[i][1]);
   }
-  text = text.replace(/^\u200B/, "");
-  return text.split(/[\u200B\u200C]/);
+  return text.replace(/^\u200B/, "");
+}
+
+function breakParts(content, fontType) {
+  return markBreaks(content, fontType).split(/[\u200B\u200C]/);
+}
+
+// U+200B, the break the rules write, is the default breakpoint, also for a falsy one.
+function isDefaultBreakpoint(breakpoint) {
+  return !breakpoint || breakpoint === "\u200B";
 }
 
 function joinParts(parts, breakpoint) {
-  var breakChar = breakpoint && breakpoint !== "\u200B" ? breakpoint : "\u200B";
-  return parts.join(breakChar);
+  return parts.join(isDefaultBreakpoint(breakpoint) ? "\u200B" : breakpoint);
+}
+
+// The text with the breakpoint between its syllables, for text with no U+200B or U+200C (syllBreak removes them
+// with cleanText). For the default breakpoint the marked text is the result: the rules write no U+200C, so
+// splitting it into parts and joining them with U+200B would give it back.
+function breakText(content, fontType, breakpoint) {
+  if (isDefaultBreakpoint(breakpoint)) return markBreaks(content, fontType);
+  return joinParts(breakParts(content, fontType), breakpoint);
 }
 
 function ruleMatches(rule, content) {
@@ -336,5 +352,6 @@ module.exports = {
   collapseMarks: collapseMarks,
   breakParts: breakParts,
   joinParts: joinParts,
+  breakText: breakText,
   convertText: convertText
 };

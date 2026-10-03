@@ -44,8 +44,8 @@ All library code is CommonJS in `library/`.
 | --- | --- | --- |
 | `converter.js` | `fontConvert`, `fontConvert.debugging` | Input checks and font routing for conversion. Reads the debug flag from `this`; `debugging` calls `fontConvert.apply({debug: true}, …)`. |
 | `detector.js` | `fontDetect` | 29 signature patterns (12 Unicode, 17 Zawgyi) compiled to global regexes at load; the rule scorer; the optional myanmar-tools adapter and its lazy loader. |
-| `normalization.js` | `normalize` | Input checks, then NFC, `arrangeUnicode`, typos, look-alikes, NFC. |
-| `syllBreak.js` | `syllBreak` | Input checks, font choice, then `breakParts` and `joinParts`. |
+| `normalization.js` | `normalize` | Input checks, then NFC and, for text with a character of the Myanmar blocks, `arrangeUnicode`, typos, look-alikes, NFC. |
+| `syllBreak.js` | `syllBreak` | Input checks, font choice, then `breakText`. |
 | `spellingCheck.js` | `spellingFix` | Input checks, font choice, then `collapseMarks`. The file name differs from the export name. |
 | `truncate.js` | `truncate` | Input checks, font choice, `breakParts`, then a fit loop over the parts. |
 | `contentGate.js` | `isMissing`, `toText`, `hasMyanmar`, `resolveFont`, `givenName`, `breakFont`, `libraryError`, `cleanText` | Shared input helpers; `givenName`, which reads a name argument (a font, `fontDetect`'s fallback or an adapter); the font names and their aliases (`uni`, `zaw`), read in any letter case, and the font-name policy; and `libraryError`, which makes every error knayi throws on purpose. |
@@ -55,7 +55,7 @@ All library code is CommonJS in `library/`.
 | `nfc.js` | `nfc`, and `nfc.reorder` for the tests | `String.prototype.normalize('NFC')` in linear time: long runs of combining marks are put in order first ([below](#nfc-in-linear-time-librarynfcjs)). |
 | `zawgyi.js` | `toUnicode` | The Zawgyi glyph table and its two lagaung sequences. |
 | `win.js` | `toUnicode`, `tables` | The Win Innwa glyph table, its look-alike sequences and the Windows-1252 to C1 aliases. `tables` is `{ WIN, SEQUENCES, ROLES }`, read by `scripts/eval/win-glyphs.mjs`. |
-| `syllable.js` | `parseUnicode`, `serializeUnicode`, `collapseMarks`, `breakParts`, `joinParts`, `convertText` | Four jobs in one file: the Unicode to Zawgyi rules, the mark-collapse rules, the syllable-break rules, and a Unicode syllable parser that only the tests use (`parseUnicode`, `serializeUnicode`). |
+| `syllable.js` | `parseUnicode`, `serializeUnicode`, `collapseMarks`, `breakParts`, `joinParts`, `breakText`, `convertText` | Four jobs in one file: the Unicode to Zawgyi rules, the mark-collapse rules, the syllable-break rules, and a Unicode syllable parser that only the tests use (`parseUnicode`, `serializeUnicode`). |
 
 ### Dependency graph
 
@@ -118,13 +118,15 @@ With `debug`, `toUnicode` returns `{ matched_patterns, steps }`: `matched_patter
 
 ### normalize(content)
 
-After the input checks there is no Myanmar test. Every string goes through:
+After the input checks, every string goes through:
 
 ```
 NFC → arrangeUnicode → typos → lookAlikes → NFC
 ```
 
-So text with no Myanmar characters still comes back in NFC. The first NFC is there because it can move a dot below in front of an asat or virama, which changes what they attach to. Both NFC passes go through `nfc.js`.
+There is no Myanmar test in front, so text with no Myanmar characters still comes back in NFC. The first NFC is there because it can move a dot below in front of an asat or virama, which changes what they attach to. Both NFC passes go through `nfc.js`.
+
+Text with no character of the Myanmar blocks after the first NFC (U+1000–U+109F, U+A9E0–U+A9FF, U+AA60–U+AA7F) skips the other steps, which would give it back as it is: `arrangeUnicode` opens a syllable only at a character of U+1000–U+109F and writes every other character as it is, each typing fix matches only at one of those characters, and NFC leaves NFC text as it is. The shortcut counts the extended blocks too, whose letters and marks those steps read. On English text under Node, it takes about a twelfth of the time all the steps took a line at a time, and a fiftieth on one long string.
 
 ### fontDetect(content, fallback, options)
 
@@ -142,7 +144,7 @@ So text with no Myanmar characters still comes back in NFC. The first NFC is the
 
 All three read the font with `givenName`: a name is a string other than `''`, or a `String` object that holds one. Anything else names no font, and the call uses `fontDetect(content)`. A name goes through `resolveFont`, which lowercases it and resolves the aliases, so `'Unicode'`, `'ZAWGYI'` and `'Zaw'` are fonts too. Only a name's ASCII letters fold to it: no other character lowercases to one of its letters (U+0130, capital I with a dot, lowercases to i and a combining dot; the Kelvin sign U+212A lowercases to k, which no name has). syllBreak and truncate pass the name to `breakFont(name, apiName)`, which returns `'unicode'` or `'zawgyi'`, and throws a `TypeError` with the code `ERR_KNAYI_INVALID_FONT` for `'win'` (in any case) and for any other name, quoting the name as given: the break rules exist for Unicode and Zawgyi only. They call it after the input checks, so missing content and text with no Myanmar character never throw. spellingFix passes any name on, resolved where it names a font, and `collapseMarks` uses the Unicode marks for every name but `'zawgyi'`. `fontDetect` reads its fallback with `givenName` too, so a value that is not a string is no fallback; but the fallback is not a font name, and is returned as given, in its own case.
 
-- **syllBreak:** no Myanmar character returns the text unchanged. Otherwise `cleanText(content, true)`, then `breakParts(content, font)` and `joinParts(parts, breakpoint)`. `breakParts` applies `BREAK_RULES[font]` (7 rules for Unicode, 8 for Zawgyi), which insert and remove U+200B (the first Unicode rule instead puts a dot below in front of an asat typed before it), drops a leading U+200B, and splits on U+200B and U+200C. `joinParts` joins with the breakpoint, U+200B by default and for any falsy one; any other value is joined by its string form (`Array#join`), so `lines.map(knayi.syllBreak)`, which passes the array as the third argument, joins each line's syllables with the array's text.
+- **syllBreak:** no Myanmar character returns the text unchanged. Otherwise `cleanText(content, true)`, then `breakText(content, font, breakpoint)`. Its `markBreaks` applies `BREAK_RULES[font]` (7 rules for Unicode, 8 for Zawgyi), which insert and remove U+200B (the first Unicode rule instead puts a dot below in front of an asat typed before it), and drops a leading U+200B. The breakpoint is U+200B by default and for any falsy one (`isDefaultBreakpoint`), and then that text is the result. For any other breakpoint, `breakParts` splits the text on U+200B and U+200C, and `joinParts` joins the parts with the breakpoint's string form (`Array#join`), so `lines.map(knayi.syllBreak)`, which passes the array as the third argument, joins each line's syllables with the array's text. The two ways agree for U+200B: `cleanText` removed U+200B and U+200C, and the rules write no U+200C, so splitting the text and joining the parts with U+200B would give it back. Without the split and join, `syllBreak` with the default breakpoint takes 8 to 24% less time under Node, and 11 to 22% less under Bun.
 - **spellingFix:** detects the font on the raw text, then cleans it and runs `collapseMarks(content, font)`: one regex, `COLLAPSE[font]`, or `COLLAPSE.unicode` when `COLLAPSE` has no own property of that name (so `'constructor'` finds no `Object.prototype` member), turns each run of one of the font's marks into that mark.
 - **truncate:** `length` defaults to 30 and `omission` to `'...'`, and the budget is `length - omission.length`. Text with no Myanmar character is cut with `substr`. Otherwise the text is broken with `breakParts` and parts are added while they fit; a part that does not fit is split on whitespace and the words that fit are added. The result is trimmed and the omission appended.
 
@@ -311,7 +313,7 @@ The 2.x code keeps these so that refactors stay byte-identical. Each one changes
 - **The debug flag is read from `this`.** A detached call such as `const f = knayi.fontConvert; f(...)` reads `debug` from the global object in `main.js` and the script builds, which are sloppy-mode code, so a global `debug` variable makes it return the debug object. The ESM builds are strict and do not.
 - **`fontConvert` reads a font that is not a string by its string form:** `resolveFont` looks the value up as a property name, with no case folding, so `['zawgyi']` is Zawgyi and `['ZAWGYI']` is detected, where `syllBreak`, `spellingFix` and `truncate` detect the font for any value that is not a string. Only an unknown name that is a string warns.
 - **`truncate` throws on an object that `String()` cannot convert,** such as `Object.create(null)` or `{ toString: undefined }`: it turns non-strings into strings with `String(content)` (`truncate.js`), where the other functions return them unchanged. `test/properties.test.js` pins the `TypeError`.
-- **Only U+1000–U+109F counts as Myanmar** for the input checks (`contentGate.js`). The extended blocks (U+A9E0–U+A9FF, U+AA60–U+AA7F) are read by the typing fixes and by `arrangeUnicode`, but `fontDetect`, `fontConvert`, `syllBreak`, `spellingFix` and `truncate` treat text made only of them as having no Myanmar character. Myanmar Extended-C (U+116D0–U+116E3) is not read anywhere. The ranges are written by hand, not generated from Unicode data. They match Unicode 15.1, apart from the classes `test/unicode.test.js` lists, and that test fails when the runtime knows Myanmar code points they miss.
+- **Only U+1000–U+109F counts as Myanmar** for the input checks (`contentGate.js`). The extended blocks (U+A9E0–U+A9FF, U+AA60–U+AA7F) are read by the typing fixes and by `arrangeUnicode`, and count for `normalize`'s shortcut ([above](#normalizecontent)), but `fontDetect`, `fontConvert`, `syllBreak`, `spellingFix` and `truncate` treat text made only of them as having no Myanmar character. Myanmar Extended-C (U+116D0–U+116E3) is not read anywhere. The ranges are written by hand, not generated from Unicode data. They match Unicode 15.1, apart from the classes `test/unicode.test.js` lists, and that test fails when the runtime knows Myanmar code points they miss.
 
 ## Where the rules are justified
 

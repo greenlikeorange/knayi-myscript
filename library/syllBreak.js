@@ -18,7 +18,7 @@ function syllBreak(content, fontType, breakpoint){
   // 'unicode' or 'zawgyi'; null detects the font. 'win' and unknown names throw a TypeError.
   var font = gate.breakFont(fontType, 'syllBreak') || fontDetect(content);
 
-  return syllable.joinParts(syllable.breakParts(content, font), breakpoint);
+  return syllable.breakText(content, font, breakpoint);
 }
 
 module.exports = syllBreak;
