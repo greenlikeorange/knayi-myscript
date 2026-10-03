@@ -57,8 +57,8 @@ function toUnicodeCommand(settings, zawgyiDetector) {
 //
 // Line by line, an e or a medial ra typed at the start of a line stays on its line, where toZawgyi on a whole text
 // moves it onto the line above: rows uz.order.1 and uz.order.3 of src/rules/unicodeToZawgyi.js move them past
-// anything that is not a consonant, a line break included. A text of several lines (a JSON Lines field) converts a
-// line at a time too, so that both formats give the same output.
+// anything that is not a consonant, a line break included (DESIGN.md §10 Q10). A text of several lines (a JSON Lines
+// field) converts a line at a time too, so that both formats give the same output.
 function toZawgyiCommand(settings) {
   if (settings.from === 'zawgyi') return textCommand((text) => text);
   return textCommand(toZawgyiByLine);

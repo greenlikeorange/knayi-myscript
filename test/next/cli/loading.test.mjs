@@ -90,7 +90,7 @@ describe('the sources of bin/', () => {
   });
 
   it('import only Node built-ins, each other, and the public entries of src/', () => {
-    const allowed = new Set(['src/index.js']);
+    const allowed = new Set(['src/index.js', 'src/stream.js']);
     const bad = [];
     for (const { file, ast } of binSources()) {
       walk(ast, (node) => {

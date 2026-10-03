@@ -13,8 +13,8 @@ export const COMMANDS = Object.freeze(['normalize', 'to-unicode', 'to-zawgyi', '
 
 // The longest line knayi reads by default, and the most --max-line-length may allow, in UTF-16 units. A line is
 // held whole until its line break, so the limit keeps an input with no line break from filling the memory. It is
-// generous, since a JSON Lines record holds a whole document and its other fields, and Python's json.dumps writes
-// each Burmese character as an escape of 6 units.
+// 16 times the 3.0 streams' default (DESIGN.md §12.4), since a JSON Lines record holds a whole document and its
+// other fields, and Python's json.dumps writes each Burmese character as an escape of 6 units.
 export const DEFAULT_MAX_LINE_LENGTH = 16 * 1024 * 1024;
 const MOST_MAX_LINE_LENGTH = 256 * 1024 * 1024;
 

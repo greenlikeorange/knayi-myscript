@@ -84,15 +84,18 @@ describe('knayi output does not depend on where the chunks of its input end', ()
     }
   });
 
-  it('stops at a JSON Lines error after writing the records before it, for chunks of any size', async () => {
-    const input = '{"text":"a"}\n{"text":"b"}\n{"text":\n{"text":"c"}\n';
-    for (let size = 1; size <= input.length; size++) {
-      const run = await runKnayi(['normalize', '--jsonl'], inChunks(input, size));
-      assert.equal(run.status, 3);
-      assert.match(run.stderr, /<stdin>:3: not JSON/);
-      assert.equal(run.stdout, '{"text":"a"}\n{"text":"b"}\n');
-    }
-  });
+  it('stops at a JSON Lines error on the same line, writing whole records before it only, for chunks of any size',
+    async () => {
+      const input = '{"text":"a"}\n{"text":"b"}\n{"text":\n{"text":"c"}\n';
+      const before = ['', '{"text":"a"}\n', '{"text":"a"}\n{"text":"b"}\n'];
+      for (let size = 1; size <= input.length; size++) {
+        const run = await runKnayi(['normalize', '--jsonl'], inChunks(input, size));
+        assert.equal(run.status, 3);
+        assert.match(run.stderr, /<stdin>:3: not JSON/);
+        // mapLines gives the lines of a chunk at once, so those of the chunk with the error may be missing too
+        assert.ok(before.indexOf(run.stdout) !== -1, 'chunks of ' + size + ': ' + JSON.stringify(run.stdout));
+      }
+    });
 });
 
 describe('knayi --jsonl writes one field and passes the rest through', () => {

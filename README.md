@@ -277,7 +277,7 @@ knayi --version
 
 ### Description
 
-`knayi` reads each file in turn, or standard input when no file is given or a file is `-`, and writes to standard output. It reads plain text one line at a time, or with `--jsonl`, JSON Lines: one JSON object per line. Each line or record goes through the 3.0 API on its own, so an input of any size streams through: `knayi` holds one line at a time, and stops with an error at a line longer than `--max-line-length`.
+`knayi` reads each file in turn, or standard input when no file is given or a file is `-`, and writes to standard output. It reads plain text one line at a time, or with `--jsonl`, JSON Lines: one JSON object per line. Each line or record goes through the 3.0 API on its own, so an input of any size streams through: `knayi` holds one line at a time, cut as the 3.0 streams cut lines (`mapLines` of `src/stream.js`), and stops with an error at a line longer than `--max-line-length`.
 
 - **Line breaks:** each line of output ends as its line of input did, `\n` or `\r\n`, and a last line with no line break gets none.
 - **Encodings:** the input is UTF-8, or Windows-1252 with `--encoding windows-1252`, in which Win font text is often saved. Bytes that are not valid in that encoding stop the run, with the line they are on, rather than turn into U+FFFD. A byte order mark at the start of an input is dropped. The output is UTF-8.
@@ -346,7 +346,7 @@ For the three lines of the `detect` example below, `knayi to-unicode --report` w
 | 0 | Done, and `check` found no issue. |
 | 1 | `check` found an issue. |
 | 2 | A usage error: an unknown command or option, a value the command does not take, or a detector that is not installed. Nothing is read. |
-| 3 | An input error: a file that cannot be read, bytes not valid in `--encoding`, a line longer than `--max-line-length`, or a JSON Lines line that is not an object with a string `--field`. The message names the file and the line; the output has every line before it. |
+| 3 | An input error: a file that cannot be read, bytes not valid in `--encoding`, a line longer than `--max-line-length`, or a JSON Lines line that is not an object with a string `--field`. The message names the file and the line. Nothing of that line or after it is written, and lines just before it may be missing too, since the input is read a chunk at a time. |
 | 4 | Any other failure, such as an output that cannot be written. |
 
 An error writes one line to standard error, `knayi: <what is wrong>`. When the reader of the output goes away, as `head` does, `knayi` stops with status 0.

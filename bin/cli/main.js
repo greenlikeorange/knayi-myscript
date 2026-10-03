@@ -37,13 +37,28 @@ async function run(request, io) {
   return summary.counts.issues > 0 ? EXIT.ISSUES : EXIT.OK;
 }
 
-// handleLine(line, ending, where) for lines.js: the command's output for the line, tallied for --report. A command
-// that writes one line for each line ends it as the input line ended; check's report lines end themselves.
+// The handler lines.js gives each line to: map(line, where) is the command's output for the line, tallied for
+// --report, and written(mapped) what to write of what mapLines made of a chunk's lines. A command that writes one
+// line for each line writes that, each line with its ending; check's plain text is a report of whole lines, none for
+// a clean line, so its map collects them and returns '', and the endings mapLines puts after each '' are dropped.
 function lineHandler(command, settings, summary) {
-  return (line, ending, where) => {
+  const map = (line, where) => {
     const done = settings.jsonl ? jsonLine(command, line, where, settings) : plainLine(command, line, where);
     if (done.text !== null) summary.add(done.text, done.result);
-    return settings.jsonl || command.writesLines ? done.output + ending : done.output;
+    return done.output;
+  };
+  if (settings.jsonl || command.writesLines) return { map: map, written: (mapped) => mapped };
+  let report = '';
+  return {
+    map: (line, where) => {
+      report += map(line, where);
+      return '';
+    },
+    written: () => {
+      const lines = report;
+      report = '';
+      return lines;
+    }
   };
 }
 
