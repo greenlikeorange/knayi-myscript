@@ -66,7 +66,7 @@ Where this spec departs from the plan, §1.4 says so and gives the reason.
 - compare and perf resolve a bare ref with `git rev-parse`. In CI, `actions/checkout` with `fetch-depth: 0` creates only `origin/<branch>`, not a local branch, so CI passes the full sha.
 - `scripts/oracle/` holds the reference's engine files, frozen (§6.1).
 
-A parallel effort is changing the 2.x line: a linear NFC helper, the Phase 1c contract fixes, speed wins and deliberate output fixes. Those changes are ported into `next` later, each as a PR of its own (§8). The module builders do not port them.
+A parallel effort is changing the 2.x line: a linear NFC helper, the Phase 1c contract fixes, speed wins and deliberate output fixes. Those changes are ported into `next` later, each as a PR of its own (§8). The module builders do not port them, with one exception: W1 ports the linear NFC helper with `core/nfc.js` (§7.3), which changes no output.
 
 ### 1.2 Ground rules for every module
 
@@ -142,7 +142,7 @@ Decisions 5 and 17 are not adopted. §1.4 says what this spec does instead (D6 a
 | D17 | **Rule rows carry no prose at run time.** A row has `id`, `re`, `to`, `repeat`, and `label` only where the 2.x source differs from `re.source`. A row's `why` is a comment above it, its section is the named array it sits in, and its `example` is in the module's test table. The typo rules are documented in `spec/typoRows.js`. | About 75 rows would otherwise ship a sentence and an example each, in compat and in every 3.0 entry, and nobody had measured them against the size targets. The 3.0 trace needs only the `id`. |
 | D18 | **The 2.x reference is the commit `e5f6e24`**, not the branch `safety-net` (§1.1). | A branch can move, and byte identity needs a fixed reference. A bare branch name does not resolve in CI. |
 | D19 | **Module tests reach 2.x private code only through `scripts/oracle/`**, frozen at the reference. W0 adds byte-for-byte copies of `library/syllable.js` and `library/contentGate.js` there, and a `dir` option to `loadWithInternals`. compat's tests compare with the live `library/`. | §8 merges `main` into `next`, and the 2.x speed wins rewrite `library/`'s private code (for example PR 1.4's glyph array and PR 1.6's mark bit set). A module test that read `library/` would then break, or quietly test a different engine. compat follows the 2.x line port by port, so it is compared with the live library, and with the reference only through public functions: compare and the matrix. |
-| D20 | **`core/nfc.js` may keep one memo, `NFC_MEMO`**, of facts about the runtime's Unicode data: which code points start or continue a run of non-starters, their decompositions and their combining classes. The stateless guard exempts it by name. | The 2.x line's linear NFC helper (d170cd8, ported in §8) reads combining classes from `String#normalize` with probes, and keeps them, because JavaScript has no table of them. Building the table eagerly would probe every code point at import. The memo is deterministic and bounded (§3.11): it never holds a result of a call, so outputs still depend only on the arguments and the runtime's NFC data (§4 rule 6). |
+| D20 | **`core/nfc.js` may keep one memo, `NFC_MEMO`**, of facts about the runtime's Unicode data: which code points start or continue a run of non-starters, their decompositions and their combining classes. The stateless guard exempts it by name. | The 2.x line's linear NFC helper (d170cd8, ported by W1, §7.3) reads combining classes from `String#normalize` with probes, and keeps them, because JavaScript has no table of them. Building the table eagerly would probe every code point at import. The memo is deterministic and bounded (§3.11): it never holds a result of a call, so outputs still depend only on the arguments and the runtime's NFC data (§4 rule 6). |
 | D21 | **The myanmar-tools loader is built by a factory**, `createZawgyiModelLoader(requireFn)`. compat uses one shared instance, which holds the loaded model, the load error and the warned flag. `fontDetectCore` takes the loader as an optional last argument. | An ES module cannot be loaded fresh the way the 2.x adapter tests reload `detector.js`. In Node, `import('x.js?copy=N')` runs only that file again, and its imports stay shared; in Bun 1.4.2 a second `?copy=` import returns the same instance. `bun test ./test` runs every test file in one process, so per-process state would leak between files. Tests build their own loaders with stub requires instead. |
 | D22 | **The binding speed check is: no Node row slower than the reference, and every growth exponent ≤ 1.3** under Node and Bun. The ratios of §6.4 are goals, reported with their margins. Rows marked "estimate" never block. | Several goals sit 1-3% from their evidence, inside perf's A/A noise of about ±2.5%. The evidence was timed on 32k corpus lines, while perf times 400 FLORES lines, and on prototypes that kept their hot state in closure locals rather than in this spec's buffer objects and stage runner. |
 | D23 | **Each fuzz test has an explicit nightly count**, and the nightly counts run on `next`. A long run uses `min(prCount × KNAYI_FUZZ_SCALE, nightlyCount)`. W0 adds a `next` leg to `main`'s nightly fuzz workflow, and the gate runs the nightly counts once by hand (§6.3). | A scheduled workflow runs the default branch's file on the default branch, and `main` has no `test/next`. Scale 100 would turn each 200k PR count into 20M strings, which does not fit the fuzz job's 30 minutes. |
@@ -163,7 +163,7 @@ src/
   core/options.js            L1          frozen DEFAULTS, map-safe option reading
   core/input.js              L1          FONTS registry, text predicates, requireText()
   core/rules.js              L1          rule rows and their runner, traces, the stage runner
-  core/nfc.js                L1          toNfc(), the only call of String#normalize in src/
+  core/nfc.js                L1          toNfc() in linear time, the only calls of String#normalize in src/
   fonts/zawgyi.js            L2          Zawgyi glyph table and lagaung sequences (data only)
   fonts/win.js               L2          Win Innwa glyph table, look-alike sequences, C1 aliases (data only)
   engine/syllable.js         L3 engine   SyllableBuffer, orderSyllable and its steps, CodeBuffer, CopyThroughWriter
@@ -247,7 +247,7 @@ The tables classify only UTF-16 units, so nothing above U+FFFF is ever classifie
 | Runtime set | Classified when | KNOWN today |
 |---|---|---|
 | Script=Myanmar | `classOf(cp) !== CLS.OTHER` | Extended-C |
-| Script=Myanmar | `isMyanmarBlock(cp)` (the 2.x text gate) | Extended-A U+A9E0-U+A9FE, Extended-B U+AA60-U+AA7F, Extended-C |
+| Script=Myanmar | `isMyanmarBlock(cp)` (the 2.x text gate) | Extended-B U+A9E0-U+A9FE, Extended-A U+AA60-U+AA7F, Extended-C |
 | Script=Myanmar | `isMyanmarScript(cp)` (the no-Myanmar fast path) | Extended-C |
 | `\p{L}` | `isSyllableBase(cp) \|\| isScriptConsonant(cp)` | U+1052-U+1055 (Pali vocalic r, rr, l, ll), U+A9E6 (Shan reduplication sign) |
 | `\p{M}` | `isBurmeseMark(cp) \|\| cp === CP.VIRAMA \|\| isScriptMark(cp) \|\| isScriptTone(cp)` | none |
@@ -424,20 +424,22 @@ Semantics, which every caller relies on:
 #### `src/core/nfc.js` (L1)
 
 ```ts
-export function toNfc(text: string): string   // today text.normalize('NFC')
-// After the port of the 2.x linear helper (§8), for the stateless test only:
-export function createNfcMemo(): NfcMemo                      // an empty memo
-export function toNfcWith(text: string, memo: NfcMemo): string // toNfc(text) = toNfcWith(text, NFC_MEMO)
+export function toNfc(text: string): string   // exactly text.normalize('NFC'), in linear time
+// For tests: the stateless test compares a cold memo with the warm one, and core-nfc.test.mjs checks the order
+// orderLongRuns gives every pair of run characters, at longest 1.
+export function createNfcMemo(): NfcMemo                        // an empty memo
+export function toNfcWith(text: string, memo: NfcMemo): string  // toNfc(text) = toNfcWith(text, NFC_MEMO)
+export function orderLongRuns(text: string, longest: number, memo: NfcMemo): string  // 2.x nfc.reorder
 ```
 
-This file holds the only call of `String#normalize` in `src/`, and a guard test checks that. The 2.x line's linear helper (`library/nfc.js`, d170cd8) is ported here (§8). That helper puts each run of non-starters longer than 30 units (the stream-safe limit of UAX #15) in canonical order before NFC. It must not change any output.
+This file holds the only calls of `String#normalize` in `src/`, and `test/next/core-nfc.test.mjs` checks that. It is the 2.x line's linear helper (`library/nfc.js`, d170cd8), ported by W1 (§7.3). The helper puts each run of non-starters longer than 30 units (the stream-safe limit of UAX #15) in canonical order before NFC: it decomposes the run and sorts its code points by combining class with a stable bucket sort, which is what NFC does to the run, so the text keeps its NFC. It changes no output. A text of 30 units or fewer goes to `String#normalize` at once.
 
-**The memo (D20).** The helper reads combining classes from `String#normalize` with short probes and keeps them. After the port, the file holds them in one module constant, `NFC_MEMO`, made by `/* @__PURE__ */ createNfcMemo()` and filled lazily. It holds:
-- a `Uint8Array(0x20000)` of kinds (not seen yet, not a run character, run character) for the code points below U+20000. It is 128 KB, allocated on the first probe.
-- the decomposition of each run character seen;
-- one entry per combining class seen, in canonical order.
+**The memo (D20).** The helper reads combining classes from `String#normalize` with short probes and keeps them. The file holds them in one module constant, `NFC_MEMO`, made by `/* @__PURE__ */ createNfcMemo()` and filled lazily. It holds:
+- `kinds`: a `Uint8Array(0x20000)` of kinds (not seen yet, ends a run, run character) for the code points below U+20000. It is 128 KB, allocated on the first probe.
+- `decompositions`: the decomposition of each run character seen;
+- `classes`: one entry per combining class seen, in canonical order, and `classOfMark`, the entry of each non-starter seen.
 
-It is bounded by the runtime's Unicode data, not by the text. It never holds a result of a call, and it is never reset. Its properties are filled; its binding is never reassigned (there is no `let` or `var`). Until the port, `toNfc` stays quadratic on long runs of non-starters: ka followed by 32,000 pairs of dot below and virama takes about 984 ms on Node 26.
+It is bounded by the runtime's Unicode data, not by the text. It never holds a result of a call, and it is never reset. Its properties are filled; its binding is never reassigned (there is no `let` or `var`). Ka followed by 32,000 pairs of dot below and virama takes about 2.5 ms in `toNfc`, against about 960 ms in `String#normalize` (Node 26.5).
 
 #### `src/fonts/zawgyi.js` and `src/fonts/win.js` (L2, data only)
 
@@ -1020,7 +1022,7 @@ The syllables stage of `NORMALIZE_STAGES` stores the reader's `seen` in `ctx.see
 | `engine/unicodeReader.js` | the Unicode reader's `SyllableBuffer`, its state object and its `CopyThroughWriter` |
 | `engine/fontReader.js` | the font reader's `SyllableBuffer` and its output `CodeBuffer` |
 | `engine/syllable.js` | none: every buffer belongs to a `SyllableBuffer` or `CodeBuffer` instance |
-| `core/nfc.js`, after the NFC port (§8) | not scratch, but the one memo of the core: `NFC_MEMO` (D20). At most 128 KB of kinds, plus one entry per run character and per combining class of the runtime's Unicode data. |
+| `core/nfc.js` | not scratch, but the one memo of the core: `NFC_MEMO` (D20). At most 128 KB of kinds, plus one entry per run character and per combining class of the runtime's Unicode data. |
 
 Rules:
 - Each scratch object is a module constant made by a `/* @__PURE__ */` factory call (§2.4), so a bundle that does not use its reader drops it.
@@ -1060,7 +1062,7 @@ Slices that copy-through returns keep the input string alive. ARCHITECTURE.md do
 `test/next/guards/stateless.test.mjs` checks this. It parses every core file with acorn and checks rules 1 and 2. Its one exemption is listed by name: the constant `NFC_MEMO` in `core/nfc.js`. No other may be added. It runs these configurations interleaved in one process:
 - `detectFont` with two different stub models;
 - `normalizeText` with and without `openAllGates`;
-- after the NFC port, `toNfc` (the warm memo) against `toNfcWith(text, createNfcMemo())` (a cold one), on the fuzz.
+- `toNfc` (the warm memo) against `toNfcWith(text, createNfcMemo())` (a cold one); `core-nfc.fuzz.test.mjs` repeats it on the fuzz.
 
 It requires each call to honour its own arguments, with no carry-over (Phase 6 exit).
 
@@ -1274,8 +1276,10 @@ The 2.x line brings each of these, and they reach compat through §8.
 
 | Fuzz file | Property | PR | Nightly |
 |---|---|---|---|
-| `core-rules.fuzz.test.mjs` | `applyRuleRows` against 2.x, per table | 100k | 1M |
-| | `runStages` traces against `oracle.storageOrder.toUnicode(x, font, true)` | 50k | 300k |
+| `core-rules.fuzz.test.mjs` | `applyRuleRows` against 2.x, per table (`traceRuleRows` too, on the Unicode to Zawgyi rows) | 100k each | 1M each |
+| | `runStages` traces against `oracle.storageOrder.toUnicode(x, font, true)`, Zawgyi and Win | 50k each | 300k each |
+| `core-nfc.fuzz.test.mjs` | `toNfc` and `orderLongRuns` against `String#normalize`, on text with runs of marks | 20k | 400k |
+| | `toNfc`, warm and cold memo, on Myanmar text and any UTF-16 units | 20k | 1M |
 | `typingFixes.fuzz.test.mjs` | `fixTypos`, `fixLookAlikes`, `zeroAsWa`, targeted strings | 200k | 4M (PR 2.6 of the plan) |
 | `segment.fuzz.test.mjs` | `breakParts`, `breakString`, both fonts | 200k | 1M |
 | | `collapseRepeatedMarks`, both fonts | 300k | 1M |
@@ -1301,7 +1305,7 @@ The 2.x line brings each of these, and they reach compat through §8.
 1. **Unit tests** from this spec's rules, the examples in the module's test table, and the `example`s of its `spec/` rows.
 2. **Differential tests** against the 2.x function the module replaces (table below), in the frozen oracle copies (D19). They use fast-check arbitraries and the regression strings of test/fuzz.test.js, which run first. Every output must be identical, error class included.
 3. **Table probes:** one per row and per branch of a row (`test/fixtures/tables.json`), through the module's entry point and the oracle.
-4. **Growth:** every adversarial shape in `SHAPES` and every single-character run in `PUMPS`, through the module's entry point, at n, 2n and 4n units. The growth exponent must be ≤ 1.3, by the screening and confirming method of test/growth.timing.js. Until the NFC port (§8), growth that comes from NFC itself, on long runs of non-starters, is known, and is listed as test/growth.timing.js lists it at the reference. The port removes that exemption and adds the helper's run shapes.
+4. **Growth:** every adversarial shape in `SHAPES` and every single-character run in `PUMPS`, through the module's entry point, at n, 2n and 4n units. The growth exponent must be ≤ 1.3, by the screening and confirming method of test/growth.timing.js. W1 ported the NFC helper, so growth that comes from NFC has no exemption: `toNfc` is linear on long runs of non-starters. `core-nfc.timing.mjs` times the helper's ten run shapes (the runs d170cd8 added to the 2.x growth shapes) through `toNfc`. The other modules' checks time them through `SHAPES` once the merge of `main` brings them there (§8); until then the `normalize` and `fonts` timing files add them themselves.
 5. **Guards**, all green:
    - layers (§2.2);
    - tree-shaking (§2.4): the acorn rules, and the normalize-only metafile check of `scripts/next/size.mjs`;
@@ -1433,6 +1437,8 @@ Other targets:
 - **Bun:** reported, not gated, because the reader prototypes were timed only on Node (§8.2 of the plan). The break scanners should be faster than the base on Bun (measured 4.0-4.7x).
 - **Size** (`scripts/next/size.mjs`, W0; esbuild IIFE at ES2015, minified, Node zlib level 9, as scripts/check-size.js measures). It runs in every PR from W0 on, so each builder sees the sizes from the first commit. The tree-shaking check (§2.4) binds in every PR. The byte targets bind at the gate:
 
+  W1 ported the NFC helper, so the "After it" column binds.
+
   | Bundle | Before the NFC port (§8) | After it |
   |---|---|---|
   | compat | ≤ 10,854 B, the 2.x limit | ≤ 10,854 B, the helper included. 2.x's `min.js` with the helper is 10,422 B (d170cd8). |
@@ -1497,6 +1503,15 @@ W8 compat              after all of them; its option, input and legacy files nee
   - `scripts/next/size.mjs` reports compat and the normalize-only bundle, and its tree-shaking check passes on the skeleton.
   - The oracle copies are byte-identical to `library/` at the reference. A test hashes each copy as git hashes a blob and compares it with the blob id recorded from `git rev-parse e5f6e24:library/<file>`, so it needs no git history in CI.
   - `npm test` and `npm run test:bun` are green.
+- **As built**, where the build settles what this section leaves open:
+  - `AT_ACCEPTANCE_GATE` in `test/next/helpers.mjs` is false, and the gate PR sets it to true. Until then the stub guard (`guards/notBuilt.test.mjs`) and the planned-files check of `guards/layers.test.mjs` skip, and the stub guard says how many stubs are left.
+  - A stub's import list is what its builder is expected to need, plus `ERR` and `libraryError` for the stubs. The builder drops what the module does not use.
+  - `REPEAT_LIMIT` (40) and `ON_TIE_ASSUME_ZAWGYI` (`'zawgyi'`) are complete in the skeleton too, since this spec gives their values.
+  - `spec/` files import nothing (§2.2), so their rows are plain literals, not frozen. Nothing ships them.
+  - Each stub timing file skips while its module throws `NOT_BUILT`, and fails once the module is built, until its owner writes the growth check.
+  - The atom lint reads every regex of the shipped code (`src/` outside `spec/`), not only rule rows, and every `indexOf` needle.
+  - `guards/treeShaking.test.mjs` also runs the normalize-only metafile check of `scripts/next/size.mjs`, so `npm test` covers it. `node scripts/next/size.mjs --gate` makes the byte targets binding.
+  - The KNOWN table of §2.3 had Extended-A and -B the wrong way round. Extended-A is U+AA60-U+AA7F and Extended-B U+A9E0-U+A9FF; the table is corrected.
 
 ### 7.3 W1: core (options, input, rules, nfc, traces)
 
@@ -1510,8 +1525,21 @@ W8 compat              after all of them; its option, input and legacy files nee
   - `traceRuleRows` over rows made from `convertRules` reproduces `convertText(…, true)`, mapped by §3.9, with `ruleLabel` giving the 2.x labels.
   - **`runStages` with a trace reproduces `oracle.storageOrder.toUnicode(x, font, true)`** (matched_patterns and steps) on 50k Zawgyi and Win fuzz strings (300k nightly). It runs a stage list built from the oracle's own stage functions, which proves the runner and the trace rule independently of the new engine.
   - The gates are skipped only when no trace is given and `openAllGates` is false.
-  - `toNfc` agrees with `normalize('NFC')`. It stays `text.normalize('NFC')` until the port of §8.
+  - `toNfc` agrees with `normalize('NFC')`, in linear time: W1 ports the 2.x helper (below).
   - `requireText` throws with its code.
+- **As built**, where the build settles what this section leaves open:
+  - **The NFC helper is ported here**, not in a §8 port PR: the core work item asked for `toNfc` in linear time. `core/nfc.js` is the 2.x helper (d170cd8) with the memo of D20, in named steps (`orderLongRuns`, `isRunCharacterAt`, `decomposeRunCharacter`, `findOrInsertClass`, `canonicalOrder`). It also exports `orderLongRuns`, the 2.x `nfc.reorder`, for the exhaustive tests. `toNfcWith` sends a text of 30 units or fewer to `String#normalize` at once, which saves a call per word.
+  - **The NFC tests** follow the 2.x helper's test, with a cold memo per test (`core-nfc.test.mjs`): every code point the runtime knows, classified with the test's own probe marks (U+0334 and U+0345; 971 run characters and 989 letters with marks on Node 26.5); every ordered pair of run characters (942,841); every letter with marks next to a long run; long runs in seven scripts; the 30-unit boundary; lone surrogates; the bounded memo; and no call of `normalize` in `src/` outside `core/nfc.js`. `core-nfc.fuzz.test.mjs` adds random text and text with long runs, and `core-nfc.timing.mjs` the growth check. 11 of 13 mutants of the helper fail the unit tests; the other two cannot change an output on this runtime (a guard that the run start never passes `done`, and the branch for run characters above U+1FFFF, of which Unicode 17 has none).
+  - **`core/errors.js` stays W0's.** Its four codes are pinned by `codes.test.mjs`. `ERR_KNAYI_INVALID_FONT`, the code of decision 11's font-name policy (PR 4.3 on the 2.x line), arrives with that port (§8), with the compat change that throws it.
+  - **The 2.x preamble stays in compat** (D1): `INPUT_POLICY`, `enter` and `chooseFontLegacy(name, text, detect)`, which takes the detector as an argument, are W8's (`compat/input.js`). `core/input.js` holds `FONTS` and builds `FONT_ALIASES` from the fonts' `aliases`, so each alias is written once.
+  - **The 2.x tables as rows** for the tests are built in `test/next/core-rules.tables.mjs` from `scripts/oracle/`, each row with a copy of its regex: 2.x's `ruleMatches` leaves a matched regex's `lastIndex` past the match. The Zawgyi and Win sequences are checked against the `'sequences'` step of 2.x's own debug log.
+  - **Speed**, interleaved in one process against the 2.x code each function replaces, on perf's 400 FLORES lines (ratio = core / 2.x, median of 5 rounds; Node 26.5, then Bun 1.4.2 over 3 rounds):
+    - `applyRuleRows` over the Unicode to Zawgyi rows against `convertText`: 0.99, 0.99, 1.00, 1.00 (line, word, string, document); Bun 0.97-1.00.
+    - `runStages` over 2.x's own font stages against 2.x `toUnicode` (Zawgyi): 0.98-1.00 with native NFC and 0.99-1.01 with `toNfc`; with a trace against `toUnicode(x, font, true)`: 0.99-1.03. Bun 0.95-1.04. The runner costs nothing measurable on these rows; W5 still measures it on its own slice (D10).
+    - `toNfc` against the 2.x helper: 0.98-1.01 (Bun 0.97-1.01). Against the bare `String#normalize` of the reference: 1.02 per word, 1.08 per line and 1.13-1.14 on one string or document (Bun 1.01-1.06): the price of one probe every 31 units. It does not show in the font pipeline above (0.99-1.01).
+    - `hasMyanmarBlockChar` against 2.x `hasMyanmar`: 0.95-1.05, depending on the call site's state; `stripZeroWidthBreaks(text.trim())` against `cleanText(text, true)`: 0.95-1.03 (Node and Bun).
+  - **Sizes**, each bundled alone (esbuild IIFE, ES2015, minified, gzip level 9): `toNfc` 1,630 B minified (837 B gzip; the 2.x helper is 1,212 B minified); `core/rules.js` 1,313 B (650 B); `core/input.js` 1,564 B (807 B); `core/options.js` 692 B (445 B). What a normalize-only bundle takes from the core (`toNfc`, `runStages`, the trace helpers, `hasMyanmarScriptChar`, `NO_OPTIONS`) is 2,573 B minified, 1,241 B gzip.
+  - **Fuzz times** at the nightly counts, once (`KNAYI_FUZZ_SCALE=100 KNAYI_FUZZ_SEED=4711`, Node 26.5, this machine): `core-rules.fuzz.test.mjs` 41 s, `core-nfc.fuzz.test.mjs` 40 s.
 
 ### 7.4 W2: typing-fixes
 
@@ -1642,16 +1670,13 @@ The 2.x line moves on `main`: the linear NFC helper, Phase 1c, Phase 1 speed win
 
 1. **Merge `main` into `next`.** `library/`, its tests, `test/contract/api-matrix.json` and the tools now hold the new 2.x behaviour.
 2. **Make the same change in the core module and in compat.** For example:
-   - the linear NFC helper goes into `core/nfc.js`, with its memo as `NFC_MEMO` (D20, §2.3), plus `createNfcMemo` and `toNfcWith` for the stateless test;
+   - the linear NFC helper is already in `core/nfc.js` (W1, §7.3), so its port PR only merges `library/nfc.js` and its tests;
    - PR 4.3's font-name policy goes into `compat/input.js` and `compat/legacy.js`, where `legacyTypeError` gives way to `libraryError` with a code;
    - PR 4.2's always-an-object `debugging` goes into `compat/fontConvert.js`.
 3. **Run the gate against the new 2.x reference.** That is the sha of the `main` commit just merged, pinned as in §1.1, never `--base main`. It must show 0 differences. A Phase 4 output change also bumps `OUTPUT_VERSION`.
 4. **Update this spec**: §1.1's reference, §5.2 and §1.3, and the sizes of §6.4 when the port adds code.
 
-**The NFC port** also does these things:
-- It removes the NFC exemption from the module timing files and adds the helper's run shapes (the ten runs that d170cd8 added to `scripts/eval/lib/inputs.mjs`) to the module growth checks of `normalize` and `fonts` (§6.2).
-- It checks the normalize-only and compat sizes against the "after" column of §6.4.
-- It runs the stateless test's warm-against-cold memo check.
+**The NFC port** was done by W1 (§7.3): `core/nfc.js` is linear, the stateless test runs its warm-against-cold memo check, and the "after" column of §6.4 binds. The merge of `main` brings the helper's ten run shapes into `scripts/eval/lib/inputs.mjs`, and with them into `SHAPES`, so every module growth check then times them too.
 
 **Module tests after a port (D19).** The core's module tests read the 2.x engine only in `scripts/oracle/`, so a port that changes `library/`'s private code (PR 1.4's glyph array, PR 1.6's mark bit set) changes nothing for them. compat's tests compare with the live `library/` and follow it. A port that changes output on purpose (a Phase 4 fix, labelled DELIBERATE on `main`) does what `main` did:
 - if `main` updated a file in `scripts/oracle/`, the merge brings the update, and the core module's differential tests follow it;
@@ -1704,7 +1729,8 @@ These are the rest of Phase 6. The core is shaped so that they need no core chan
 | `library.detect`, `scoreWithRules`, `scoreWithMyanmarTools`, `chooseAdapter`, `myanmartoolZawgyiDetector`, `fallback_font_type` | `DETECTOR_SIGNATURES` (spec), `countEvidence` + `decide`, `scoreByZawgyiModel`, `pickAdapter` (compat), `zawgyiModel`, `fallback` |
 | `loadMyanmarTools`, `missingMyanmarToolsMessage`, `warnedMissingMyanmarTools`, `myanmarToolsLoadError` | `createZawgyiModelLoader`, and the shared `zawgyiModelLoader`'s `load`, `missingMessage` and `warnOnce` (compat) |
 | `fontDetect(content)` called by the other functions | `detectForRouting(text)` (compat), passed to `chooseFontLegacy` |
-| `nfc`, `kinds`, `parts`, `classes`, `classOf` (library/nfc.js, d170cd8, not at the reference) | `toNfc`, and `NFC_MEMO`'s fields, after the port (§8) |
+| `nfc`, `reorder`, `LONGEST`, `isRunAt`, `decompose`, `classFor`, `inOrder` (library/nfc.js, d170cd8, not at the reference) | `toNfc`, `orderLongRuns`, `STREAM_SAFE_RUN`, `isRunCharacterAt`, `decomposeRunCharacter`, `combiningClassOf` with `findOrInsertClass`, `canonicalOrder` (core/nfc.js, W1) |
+| `kinds`, `parts`, `classes`, `classOf` | `NFC_MEMO`'s fields `kinds`, `decompositions`, `classes`, `classOfMark` |
 | `globalOptions.detector`, `setOptions` | `mergeDetectorOptions`, `setGlobalOptions` (compat) |
 | `toText`, `isMissing`, `resolveFont`, `cleanText(x, true)` | `unboxString`, `enter`, `resolveFont`, `cleanText` = `stripZeroWidthBreaks(x.trim())` (compat) |
 | `DRAWING_ORDER_FONTS`, `drawingOrderToUnicode` | `FONTS[from].visualOrder`, `fontToUnicode` |
