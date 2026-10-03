@@ -37,7 +37,10 @@ function convert(content, to, from, debug) {
     return unconverted(content, to, from, debug);
   }
 
-  // Zero-width spaces and non-joiners mark word breaks, so they stay.
+  // Trimmed only: conversion keeps U+200B and U+200C, which syllBreak, spellingFix and truncate remove (cleanText),
+  // and the other zero-width characters, apart from a U+FEFF at either end, which trim removes as whitespace.
+  // From Zawgyi and Win, the font reader moves each one out of the syllable it was typed in (see isZeroWidth in
+  // library/storageOrder.js).
   content = content.trim();
   var source = gate.givenName(from);
   to = gate.resolveFont(to);

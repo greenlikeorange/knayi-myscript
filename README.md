@@ -141,7 +141,7 @@ Returns a string. `targetFontType` is required. When `originalFontType` is omitt
 
 Name the source font for short text. When the detector's scores tie, it reads the text as Zawgyi (see [fontDetect](#fontdetectcontent-fallbackfonttype-options)), and short Unicode text often ties: a single consonant, or a word such as `ဗုဒ္ဓ` whose only telling sign is a stacked consonant, which Zawgyi reads as an asat. Converting such text from Zawgyi changes it.
 
-The text is trimmed first. Zero-width spaces (`U+200B`) and non-joiners (`U+200C`) are kept, because they mark word breaks. When the two fonts are the same, the trimmed text is returned.
+The text is trimmed first. Zero-width characters in it are kept, zero-width spaces (`U+200B`) and non-joiners (`U+200C`) included; trimming removes only a zero-width no-break space (`U+FEFF`) at either end, which JavaScript counts as whitespace. When the two fonts are the same, the trimmed text is returned.
 
 ```javascript
 knayi.fontConvert('မဂၤလာပါ', 'unicode', 'zawgyi') // 'မင်္ဂလာပါ'
@@ -192,7 +192,7 @@ knayi.fontConvert('ၿမိဳ ့', 'unicode', 'zawgyi') // 'မြို့'
 - **Zero:** `၀` is also ဝ. A zero stays a digit next to a digit or an arithmetic sign, or across a decimal point from a digit (၁၀၀, ၅.၀).
 - **Typing fixes, as in [normalize](#normalizecontent):** ဝ or ရ typed in a number is a digit (`၂ဝ၁၉` is ၂၀၁၉). ၇ starting a closed syllable is ရ (ဆိုရင်). ိ with ီ is ီ (ဦး), and ု with ူ is ူ.
 - **Spaces:** a space typed before a mark only moved the mark, so it is dropped: `ၿမိဳ ့` is မြို့ and `တစ္ခ ု` is တစ်ခု. A line break stays.
-- **Zero-width characters:** a zero-width space or non-joiner typed inside a syllable moves to the end of the syllable.
+- **Zero-width characters:** a zero-width space, non-joiner, joiner, word joiner or zero-width no-break space (`U+200B`, `U+200C`, `U+200D`, `U+2060`, `U+FEFF`) typed inside a syllable moves to the end of the syllable, and one typed between ေ or medial ra and its consonant moves before the syllable.
 - **NFC:** the result is NFC.
 
 Converting from Unicode collapses a mark typed twice in a row, as `spellingFix` does, then applies knayi's pattern rules. Stacked ဈ, as in မဇ္ဈိမ, and stacked စ with medial ya both become U+1069, Zawgyi's stacked ဈ, which converts back to stacked ဈ.
