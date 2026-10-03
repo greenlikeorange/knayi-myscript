@@ -36,7 +36,16 @@ There is no large public corpus of human-typed Zawgyi with a human-checked Unico
 | [GlotCC-V1](https://huggingface.co/datasets/cis-lmu/GlotCC-V1) Shan, Mon, S'gaw Karen, Pa'o | other languages flagged as Zawgyi | every document (24–648 per language) | CC0 1.0 | Unicode that legitimately uses code points Zawgyi also uses. Text from Common Crawl, whose terms of use apply. |
 | [mC4](https://huggingface.co/datasets/allenai/c4) `c4-my` validation | web text without labels | 14,304 lines | ODC-BY | About two thirds Zawgyi. Agreement with myanmar-tools only. Text from Common Crawl. |
 
-Every download must match a pinned sha256. GitHub files are also pinned to a commit, mC4 to a revision, and Okell to a Zenodo record; the FLORES URL has no version, so its hash is its only pin. Downloads are written to a temporary file first. A file that doesn't match is downloaded once more, and the run stops if it still doesn't match. The Hugging Face rows come from the current revision of each dataset, and a short or empty sample stops the run.
+Every download must match a pinned sha256. GitHub files are also pinned to a commit, mC4 to a revision, and Okell to a Zenodo record; the FLORES URL has no version, so its hash is its only pin, and the two files taken out of its archive are pinned too. Downloads are written to a temporary file first. A file that doesn't match is downloaded once more, and the run stops if it still doesn't match.
+
+The Hugging Face rows come from the current revision of each dataset, so a new download can hold other rows than the published results used. Each sample file in the cache is pinned by its sha256 in `HF_SAMPLES`, and a sample that doesn't match stops the run, as does a short or empty one. To adopt a new sample on purpose:
+
+```bash
+node scripts/eval/datasets.mjs --check                        # compare the cache with the pins; downloads nothing
+node scripts/eval/datasets.mjs --refresh-samples wikipedia    # download a sample again and print its sha256
+```
+
+Then review the change and update the sha256 in `HF_SAMPLES`. Caches made before the Wikipedia sample was redrawn also hold the first sample, `hf-wikipedia.json` (10,732 distinct lines, no article in common with the current one). Nothing downloads it any more; `loadAll({ withLegacy: true })` returns it when it is there and matches its pin.
 
 ## What is measured
 
