@@ -97,6 +97,26 @@ describe('library against the 2.10 oracle', () => {
     }), COUNT.debugging);
   });
 
+  // The font reader reads each glyph from an array indexed by character code, which ends at the highest code
+  // with a glyph (library/storageOrder.js, font); 2.10 kept the glyphs in a Map. Every UTF-16 code unit, alone
+  // and after ka, through both fonts with the debugging stages, which include each glyph's text.
+  it('every code unit through the glyph tables', () => {
+    const fonts = {
+      zawgyi: [require('../library/zawgyi'), require('../scripts/oracle/zawgyi')],
+      win: [require('../library/win'), require('../scripts/oracle/win')]
+    };
+    const KA = String.fromCharCode(0x1000);
+    for (const font of Object.keys(fonts)) {
+      const [library, frozen] = fonts[font];
+      for (let code = 0; code <= 0xFFFF; code++) {
+        const ch = String.fromCharCode(code);
+        for (const text of [ch, KA + ch]) {
+          same(JSON.stringify(library.toUnicode(text, true)), JSON.stringify(frozen.toUnicode(text, true)), text);
+        }
+      }
+    }
+  });
+
   // A generator that stopped reaching the readers would let every comparison above pass. About 28% of the
   // Unicode strings change under normalize, over 90% of the Zawgyi and Win strings convert to something else,
   // and detection gives each font and ties.

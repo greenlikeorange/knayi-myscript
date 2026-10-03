@@ -197,18 +197,29 @@ function glyph(role, text, extra) {
 
 // A font for toUnicode. `table` maps the font's characters to [role, Unicode text, marks that come with it];
 // `sequences` are [pattern, replacement] pairs applied first, for letters the font types as look-alike
-// sequences. The glyphs are keyed by character code, which is faster to look up than a character.
+// sequences. The glyphs are an array indexed by character code, with null where there is no glyph: reading it
+// is faster than a Map's get. It ends at the highest code with a glyph (U+1097 for Zawgyi, U+2039 for Win).
 function font(table, sequences) {
-  var glyphs = new Map();
-  Object.keys(table).forEach(function (ch) {
+  var chars = Object.keys(table);
+  var length = 0x1050; // the Myanmar letters added below
+  chars.forEach(function (ch) {
+    length = Math.max(length, ch.charCodeAt(0) + 1);
+  });
+  var glyphs = new Array(length).fill(null);
+  chars.forEach(function (ch) {
     var entry = table[ch];
-    glyphs.set(ch.charCodeAt(0), glyph(entry[0], entry[1], entry[2] || ''));
+    glyphs[ch.charCodeAt(0)] = glyph(entry[0], entry[1], entry[2] || '');
   });
   // Myanmar letters the table does not list, such as letters the sequences make, are bases as they are.
   for (var code = 0x1000; code <= 0x104F; code++) {
-    if (!glyphs.has(code) && isMyanmarLetter(code)) glyphs.set(code, glyph(BASE, String.fromCharCode(code), ''));
+    if (glyphs[code] === null && isMyanmarLetter(code)) glyphs[code] = glyph(BASE, String.fromCharCode(code), '');
   }
   return { glyphs: glyphs, sequences: sequences };
+}
+
+// The glyph for a character code, or null.
+function glyphAt(glyphs, code) {
+  return code < glyphs.length ? glyphs[code] : null;
 }
 
 // Writes each syllable of `content` in Unicode order.
@@ -244,8 +255,8 @@ function arrange(content, glyphs) {
       continue;
     }
 
-    var g = glyphs.get(code);
-    if (g === undefined) {
+    var g = glyphAt(glyphs, code);
+    if (g === null) {
       write(content.charAt(i));
     } else if (g.role === BASE) {
       close();
@@ -438,8 +449,8 @@ function arrangeUnicode(content) {
 function glyphsInTypedOrder(content, glyphs) {
   var out = '';
   for (var i = 0; i < content.length; i++) {
-    var g = glyphs.get(content.charCodeAt(i));
-    out += g === undefined ? content.charAt(i) : g.text + g.extra;
+    var g = glyphAt(glyphs, content.charCodeAt(i));
+    out += g === null ? content.charAt(i) : g.text + g.extra;
   }
   return out;
 }
