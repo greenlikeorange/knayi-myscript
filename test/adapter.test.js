@@ -230,8 +230,10 @@ describe('myanmar-tools adapter', () => {
     });
   });
 
-  // The ESM build has no module.require, so it loads myanmar-tools from the working directory (refactor plan,
-  // section 7 item 15). Run from the package root, it finds the dev dependency.
+  // The ESM build has no module.require, so it loads myanmar-tools with process.getBuiltinModule from the
+  // working directory (refactor plan, section 7 item 15). Run from the package root, it finds the dev
+  // dependency. Node before 20.16 and 22.3 has no process.getBuiltinModule: there the ESM build cannot load
+  // the package and uses the rule scorer.
   it('loads it in the ESM build from the working directory', async (t) => {
     if (!fs.existsSync(path.join(process.cwd(), 'node_modules', 'myanmar-tools', 'package.json'))) {
       t.skip('myanmar-tools is not installed in the working directory');
@@ -239,7 +241,12 @@ describe('myanmar-tools adapter', () => {
     }
     const esm = await import(pathToFileURL(path.join(__dirname, '..', 'dist', 'knayi-myscript.mjs')).href);
     const run = capture(() => esm.fontDetect('က္က', 'unicode', { adapter: 'myanmartools', myanmartools_zg_threshold: [0.05, 0.9] }));
-    assert.equal(run.value, 'zawgyi');
-    assert.deepEqual(run.messages, []);
+    if (typeof process.getBuiltinModule === 'function') {
+      assert.equal(run.value, 'zawgyi');
+      assert.deepEqual(run.messages, []);
+    } else {
+      assert.equal(run.value, 'unicode');
+      assert.deepEqual(run.messages, [['warn', NOT_AVAILABLE]]);
+    }
   });
 });
