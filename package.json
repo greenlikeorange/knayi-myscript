@@ -54,6 +54,7 @@
   },
   "homepage": "https://github.com/greenlikeorange/knayi-myscript",
   "devDependencies": {
+    "acorn": "^8.18.0",
     "esbuild": "^0.25.0",
     "typescript": "^5.9.3"
   },

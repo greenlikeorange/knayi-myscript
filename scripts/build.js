@@ -8,10 +8,13 @@ const entry = path.join(root, 'main.js');
 
 fs.mkdirSync(dist, { recursive: true });
 
+// Without a target, esbuild writes the newest syntax when it minifies (`??`, `catch {}`), and browsers older than
+// that syntax cannot parse the file at all. test/syntax.test.js keeps every build at ES2015.
 const shared = {
   bundle: true,
   legalComments: 'none',
-  logLevel: 'warning'
+  logLevel: 'warning',
+  target: 'es2015'
 };
 
 // Bundlers follow the `module` field for both `import { fontConvert }` and `require()`,

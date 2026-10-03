@@ -43,6 +43,8 @@ In Node, `require` and `import` both load `main.js` and share `setGlobalOptions`
 
 The script build sets the global `knayi`, both in a `<script>` tag and when a bundler loads it with `import 'knayi-myscript/dist/knayi-myscript.min.js'`.
 
+The `dist/` builds are ES2015. They run in Chrome 49, Edge 14, Firefox 34, Safari 10 (iOS 10), Samsung Internet 5 and Opera 36, or newer. Internet Explorer needs knayi 2.8.3.
+
 These paths load without an `exports` map:
 
 - `knayi-myscript`
