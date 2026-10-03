@@ -1,0 +1,368 @@
+// Unit tests of src/unicodeToZawgyi.js (docs/next/DESIGN.md §7.9): the rule rows against 2.x's
+// convertRules.unicode.zawgyi (the frozen scripts/oracle/syllable.js), the sections and the why comment of each
+// row, the six wrapped rows (decision 29), an example for each row id (D17), the table probes, and the trace
+// (§3.9, D4). The differential fuzz is in unicodeToZawgyi.fuzz.test.mjs.
+//
+// The rows are data and are tested now. The examples, the probes and the trace run through unicodeToZawgyi,
+// which calls core/rules.js (W1) and segment.js's collapseRepeatedMarks (W3): they skip until both are built.
+
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import * as acorn from 'acorn';
+import { UNICODE_TO_ZAWGYI_RULES, unicodeToZawgyi, traceUnicodeToZawgyi } from '../../src/unicodeToZawgyi.js';
+import { createTrace, ruleLabel } from '../../src/core/rules.js';
+import { skipUntilBuilt, srcText, tableProbes } from './helpers.mjs';
+import {
+  TWO_X_ROWS, TWO_X_PROBE_IDS, twoXUnicodeToZawgyi, twoXDebugLog, traceAsDebugLog, asFontConvert
+} from './unicodeToZawgyi.oracle.mjs';
+
+const ROWS = UNICODE_TO_ZAWGYI_RULES;
+const BUILT = skipUntilBuilt(() => traceUnicodeToZawgyi('\u1000', createTrace()));
+
+// The sections in the order they run, with the id prefix and the row count of each (DESIGN.md §3.9).
+const SECTIONS = [
+  ['SHAPES_IN_CONTEXT', 'shapes', 5], ['KINZI', 'kinzi', 5], ['VISUAL_ORDER', 'order', 5],
+  ['SMALL_LETTERS', 'small', 3], ['GLYPHS', 'glyphs', 38], ['NARROW_TA', 'narrow-ta', 1],
+  ['MEDIAL_RA_SHAPES', 'medial-ra', 8]
+];
+
+// One hand-written example per row id: [id, Unicode text, its Zawgyi text]. Each makes its row change the text
+// inside the conversion; the comment says what the text is. Real words where one shows the rule, else synthetic.
+const EXAMPLES = [
+  ['uz.shapes.1', '\u1015\u103C\u102F', '\u103B\u1015\u1033'], // pyu, to make
+  ['uz.shapes.2', '\u1019\u103C\u1030', '\u103B\u1019\u1034'], // myu, mist
+  ['uz.shapes.3', '\u1000\u103B\u1037', '\u1000\u103A\u1094'], // synthetic: ka, medial ya, dot below
+  ['uz.shapes.4', '\u1000\u103B\u103D\u1014\u103A', '\u1000\u107D\u103C\u1014\u1039'], // kyun, servant
+  ['uz.shapes.5', '\u1019\u103C\u102D\u102F\u1037', '\u107F\u1019\u102D\u1033\u1095'], // myo, town
+  ['uz.kinzi.1', '\u101E\u1004\u103A\u1039\u1018\u1031\u102C', '\u101E\u1031\u1018\u1064\u102C'], // thinbaw, ship
+  // ingaleik, English
+  ['uz.kinzi.2', '\u1021\u1004\u103A\u1039\u1002\u101C\u102D\u1015\u103A',
+    '\u1021\u1002\u1064\u101C\u102D\u1015\u1039'],
+  // thingyaing, cemetery
+  ['uz.kinzi.3', '\u101E\u1004\u103A\u1039\u1001\u103B\u102D\u102F\u1004\u103A\u1038',
+    '\u101E\u1001\u108B\u103A\u1033\u1004\u1039\u1038'],
+  ['uz.kinzi.4', '\u1021\u1004\u103A\u1039\u1000\u103B\u102E', '\u1021\u1000\u108C\u103A'], // eingyi, shirt
+  ['uz.kinzi.5', '\u101E\u1004\u103A\u1039\u1000\u1036', '\u101E\u1000\u108D'], // synthetic: kinzi on ka with anusvara
+  ['uz.order.1', '\u1000\u103C\u1000\u103A', '\u107E\u1000\u1000\u1039'], // kyet, chicken
+  ['uz.order.2', '\u1023\u1014\u1039\u1012\u103C\u1031', '\u1023\u1031\u103B\u108F\u1075'], // eindre, composure
+  ['uz.order.3', '\u1014\u1031', '\u1031\u1014'], // ne, sun
+  ['uz.order.4', '\u1015\u1005\u1039\u1005\u1031\u1000', '\u1015\u1031\u1005\u1065\u1000'], // pacceka, Pali
+  ['uz.order.5', '\u1000\u103C\u1031\u102C\u1004\u103A', '\u1031\u107E\u1000\u102C\u1004\u1039'], // kyaung, cat
+  ['uz.small.1', '\u1014\u102F', '\u108F\u102F'], // nu, tender
+  ['uz.small.2', '\u1014\u103C', '\u103B\u108F'], // synthetic: na, medial ra
+  ['uz.small.3', '\u1009\u102F', '\u106A\u102F'], // synthetic: nya, u
+  ['uz.glyphs.1', '\u104E\u1004\u103A\u1038', '\u104E'], // lagaung, it
+  ['uz.glyphs.2', '\u1015\u1031\u102B\u103A', '\u1031\u1015\u105A'], // paw, on
+  ['uz.glyphs.3', '\u1015\u103C\u103F\u1014\u102C', '\u103B\u1015\u1086\u1014\u102C'], // pyatthana, problem
+  ['uz.glyphs.4', '\u1015\u101C\u1039\u101C\u1004\u103A', '\u1015\u101C\u1085\u1004\u1039'], // pallin, throne
+  ['uz.glyphs.5', '\u101E\u1019\u1039\u1019\u1010', '\u101E\u1019\u107C\u1010'], // thammada, president
+  ['uz.glyphs.6', '\u1000\u1019\u1039\u1018\u102C', '\u1000\u1019\u107B\u102C'], // kaba, world
+  ['uz.glyphs.7', '\u101E\u1019\u1039\u1017\u1014\u103A', '\u101E\u1019\u107A\u1014\u1039'], // thamban, sampan
+  ['uz.glyphs.8', '\u1015\u102F\u1015\u1039\u1016', '\u1015\u102F\u1015\u1079'], // synthetic: stacked pha
+  // kumpani, company
+  ['uz.glyphs.9', '\u1000\u102F\u1019\u1039\u1015\u100F\u102E',
+    '\u1000\u102F\u1019\u1078\u100F\u102E'],
+  ['uz.glyphs.10', '\u1012\u102D\u1014\u1039\u1014', '\u1012\u102D\u108F\u1077'], // dinna, given (Pali)
+  ['uz.glyphs.11', '\u1017\u102F\u1012\u1039\u1013', '\u1017\u102F\u1012\u1076'], // Buddha
+  ['uz.glyphs.12', '\u101E\u1012\u1039\u1012\u102B', '\u101E\u1012\u1075\u102B'], // thadda, grammar
+  ['uz.glyphs.13', '\u101D\u1010\u1039\u1011\u102F', '\u101D\u1010\u1073\u1033'], // wuttu, story
+  // myitta (metta), loving kindness
+  ['uz.glyphs.14', '\u1019\u1031\u1010\u1039\u1010\u102C',
+    '\u1031\u1019\u1010\u1071\u102C'],
+  // ponna, brahmin
+  ['uz.glyphs.15', '\u1015\u102F\u100F\u1039\u100F\u102C\u1038',
+    '\u1015\u102F\u100F\u1070\u102C\u1038'],
+  // synthetic: dda with stacked ddha
+  ['uz.glyphs.16', '\u101D\u102F\u100D\u1039\u100E\u102D',
+    '\u101D\u102F\u106F\u102D'],
+  ['uz.glyphs.17', '\u1000\u100F\u1039\u100D', '\u1000\u1091'], // kanda, section
+  ['uz.glyphs.18', '\u101D\u100D\u1039\u100D', '\u101D\u106E'], // synthetic: dda with stacked dda
+  ['uz.glyphs.19', '\u1025\u1000\u1039\u1000\u100B\u1039\u100C', '\u1025\u1000\u1060\u1092'], // oukkahta, chairman
+  // thandan, shape
+  ['uz.glyphs.20', '\u101E\u100F\u1039\u100C\u102C\u1014\u103A',
+    '\u101E\u100F\u106D\u102C\u1014\u1039'],
+  ['uz.glyphs.21', '\u101D\u100B\u1039\u100B', '\u101D\u1097'], // wutta, cycle
+  ['uz.glyphs.22', '\u1000\u100F\u1039\u100B\u1000', '\u1000\u100F\u106C\u1000'], // kandaka, thorn (Pali)
+  // majjhima, typed with ca and medial ya for jha
+  ['uz.glyphs.23', '\u1019\u1007\u1039\u1005\u103B\u102D\u1019',
+    '\u1019\u1007\u1069\u102D\u1019'],
+  ['uz.glyphs.24', '\u101D\u102D\u1007\u1039\u1007\u102C', '\u101D\u102D\u1007\u1068\u102C'], // wizza, science
+  ['uz.glyphs.25', '\u1019\u102D\u1005\u1039\u1006\u102C', '\u1019\u102D\u1005\u1066\u102C'], // meiksa, wrong view
+  // pyissi, thing
+  ['uz.glyphs.26', '\u1015\u1005\u1039\u1005\u100A\u103A\u1038',
+    '\u1015\u1005\u1065\u100A\u1039\u1038'],
+  ['uz.glyphs.27', '\u1021\u1002\u1039\u1003', '\u1021\u1002\u1063'], // aggha, price (Pali)
+  // magazine
+  ['uz.glyphs.28', '\u1019\u1002\u1039\u1002\u1007\u1004\u103A\u1038',
+    '\u1019\u1002\u1062\u1007\u1004\u1039\u1038'],
+  ['uz.glyphs.29', '\u1012\u102F\u1000\u1039\u1001', '\u1012\u102F\u1000\u1061'], // dukkha, suffering
+  ['uz.glyphs.30', '\u1019\u103D\u103E\u1031\u1038', '\u1031\u1019\u108A\u1038'], // hmwe, fragrant
+  ['uz.glyphs.31', '\u1019\u103E\u1030\u1038', '\u1019\u1089\u1038'], // hmu, chief
+  ['uz.glyphs.32', '\u1005\u1000\u1039\u1000\u1030', '\u1005\u1000\u1060\u1034'], // sekku, paper
+  ['uz.glyphs.33', '\u1019\u103E\u102F', '\u1019\u1088'], // hmu, affair
+  ['uz.glyphs.34', '\u1019\u1004\u103A', '\u1019\u1004\u1039'], // min, king
+  ['uz.glyphs.35', '\u1000\u103B\u102C\u1038', '\u1000\u103A\u102C\u1038'], // kya, tiger
+  ['uz.glyphs.36', '\u1015\u103C', '\u103B\u1015'], // pya, to show
+  ['uz.glyphs.37', '\u1000\u103D\u102C', '\u1000\u103C\u102C'], // kwa, to differ
+  ['uz.glyphs.38', '\u1019\u103E\u102C', '\u1019\u103D\u102C'], // hma, at
+  ['uz.narrow-ta.1', '\u101E\u1014\u1039\u1010\u102C', '\u101E\u108F\u1072\u102C'], // thanda, coral
+  ['uz.medial-ra.1', '\u1000\u103C\u102C\u1038', '\u107E\u1000\u102C\u1038'], // kya, to hear
+  ['uz.medial-ra.2', '\u1015\u103C\u103D\u102D', '\u1083\u1015\u103C\u102D'], // synthetic: pa with medial ra, wa and i
+  ['uz.medial-ra.3', '\u1000\u103C\u103D\u102D', '\u1084\u1000\u103C\u102D'], // synthetic: ka with medial ra, wa and i
+  ['uz.medial-ra.4', '\u1015\u103C\u102E\u1038', '\u107F\u1015\u102E\u1038'], // pyi, finished
+  ['uz.medial-ra.5', '\u1000\u103C\u102D\u102F\u1038', '\u1080\u1000\u102D\u1033\u1038'], // kyo, rope
+  ['uz.medial-ra.6', '\u1015\u103C\u103D\u1014\u103A', '\u1081\u1015\u103C\u1014\u1039'], // pyun, tube
+  ['uz.medial-ra.7', '\u1000\u103C\u103D\u1000\u103A', '\u1082\u1000\u103C\u1000\u1039'], // kywet, rat
+  ['uz.medial-ra.8', '\u1009\u103C', '\u1081\u106A'] // synthetic: nya with medial ra
+];
+
+// The 2.x label of a row, restated from DESIGN.md §2.3: core/rules.js ruleLabel gives the same once it is built.
+const labelOf = (row) => (row.label !== undefined ? row.label : row.re.source);
+const codes = (text) => Array.from(text, (c) => c.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')).join(' ');
+
+// The units of a regex source that is a pure literal of \u escapes, or null.
+function literalUnits(source) {
+  if (!/^(\\u[0-9a-fA-F]{4})+$/.test(source)) return null;
+  return source.slice(2).split('\\u').map((h) => parseInt(h, 16));
+}
+
+// Whether 2.x's source is a pure literal starting at U+1000-U+1010, the V8 slow path (decision 29).
+function isSlowAtom(source) {
+  const units = literalUnits(source);
+  return units !== null && units[0] >= 0x1000 && units[0] <= 0x1010;
+}
+
+// 2.x's source with its first \u escape in a one-character class.
+const wrapFirstUnit = (source) => '[' + source.slice(0, 6) + ']' + source.slice(6);
+
+describe('the Unicode to Zawgyi rows (DESIGN.md §7.9)', () => {
+  it('are 57 rows applied once, then 8 repeat rows, as 2.x has them', () => {
+    assert.equal(ROWS.length, 65);
+    assert.equal(TWO_X_ROWS.length, 65);
+    assert.deepEqual(ROWS.map((row) => row.repeat), TWO_X_ROWS.map((two) => two.repeat));
+    assert.equal(ROWS.filter((row) => !row.repeat).length, 57);
+    assert.ok(ROWS.slice(57).every((row) => row.repeat), 'the repeat rows come last');
+  });
+
+  it('each row is its 2.x rule: label, replacement, flags and pattern', () => {
+    ROWS.forEach((row, i) => {
+      const [re, to] = TWO_X_ROWS[i].rule;
+      assert.equal(labelOf(row), re.source, row.id + ' label');
+      assert.equal(row.to, to, row.id + ' replacement');
+      assert.equal(row.re.flags, 'g', row.id + ' flags');
+      const expected = isSlowAtom(re.source) ? wrapFirstUnit(re.source) : re.source;
+      assert.equal(row.re.source, expected, row.id + ' pattern');
+    });
+  });
+
+  it('only the six 2.x pure literals that start at U+1000-U+1010 are wrapped, and only they carry a label', () => {
+    const slow = ROWS.filter((row, i) => isSlowAtom(TWO_X_ROWS[i].rule[0].source)).map((row) => row.id);
+    const labelled = ROWS.filter((row) => row.label !== undefined).map((row) => row.id);
+    assert.deepEqual(slow, ['uz.kinzi.1', 'uz.glyphs.16', 'uz.glyphs.17', 'uz.glyphs.18', 'uz.glyphs.19',
+      'uz.glyphs.21']);
+    assert.deepEqual(labelled, slow);
+    for (const row of ROWS) assert.equal(isSlowAtom(row.re.source), false, row.id + ' is still a slow atom');
+  });
+
+  it('a wrapped row replaces exactly what its 2.x literal replaces', () => {
+    ROWS.forEach((row, i) => {
+      if (row.label === undefined) return;
+      const [re, to] = TWO_X_ROWS[i].rule;
+      const units = literalUnits(re.source).map((code) => String.fromCharCode(code));
+      const alphabet = units.concat(['\u1000', '\u1039', 'a']);
+      for (const a of alphabet) {
+        for (const b of alphabet) {
+          for (const c of alphabet) {
+            const text = a + units.join('') + b + units.slice(0, 2).join('') + c;
+            assert.equal(text.replace(row.re, row.to), text.replace(re, to), row.id + ' on ' + codes(text));
+          }
+        }
+      }
+    });
+  });
+
+  it('ruleLabel gives each row its 2.x label', { skip: skipUntilBuilt(() => ruleLabel(ROWS[0])) }, () => {
+    ROWS.forEach((row, i) => assert.equal(ruleLabel(row), TWO_X_ROWS[i].rule[0].source, row.id));
+  });
+
+  it('ship only id, re, to, repeat and the label of a wrapped row (D17)', () => {
+    for (const row of ROWS) {
+      const keys = row.label === undefined ? ['id', 're', 'to', 'repeat'] : ['id', 're', 'to', 'repeat', 'label'];
+      assert.deepEqual(Object.keys(row), keys, row.id);
+      assert.equal(typeof row.repeat, 'boolean', row.id);
+    }
+  });
+
+  it('have unique ids that name their section and their place in it', () => {
+    const expected = SECTIONS.flatMap(([, prefix, count]) =>
+      Array.from({ length: count }, (_, n) => 'uz.' + prefix + '.' + (n + 1)));
+    assert.deepEqual(ROWS.map((row) => row.id), expected);
+  });
+
+  it('are frozen, and their regexes are left unfrozen with lastIndex 0 (D16)', () => {
+    assert.ok(Object.isFrozen(ROWS));
+    for (const row of ROWS) {
+      assert.ok(Object.isFrozen(row), row.id);
+      assert.ok(!Object.isFrozen(row.re), row.id + ': a frozen RegExp breaks replace');
+      assert.equal(row.re.lastIndex, 0, row.id);
+    }
+  });
+});
+
+describe('the sections of src/unicodeToZawgyi.js (DESIGN.md §3.9)', () => {
+  const text = srcText('unicodeToZawgyi.js');
+  const comments = [];
+  const ast = acorn.parse(text, { ecmaVersion: 'latest', sourceType: 'module', locations: true, onComment: comments });
+  const sections = new Map();
+  for (const statement of ast.body) {
+    const declarator = statement.type === 'VariableDeclaration' ? statement.declarations[0] : null;
+    const name = declarator && declarator.id.name;
+    if (SECTIONS.some(([section]) => section === name)) sections.set(name, declarator.init);
+  }
+
+  // The line comments that end right above `line`, joined.
+  function commentAbove(line) {
+    const lines = [];
+    for (let at = line - 1; ; at--) {
+      const comment = comments.find((c) => c.type === 'Line' && c.loc.start.line === at);
+      if (!comment) break;
+      lines.unshift(comment.value.trim());
+    }
+    return lines.join(' ');
+  }
+
+  it('hold every row, in 2.x order, each section a frozen array under its own name', () => {
+    assert.deepEqual([...sections.keys()], SECTIONS.map(([name]) => name));
+    const ids = [];
+    for (const [name, init] of sections) {
+      assert.equal(init.type, 'CallExpression', name);
+      assert.equal(init.callee.name, 'deepFreeze', name);
+      for (const element of init.arguments[0].elements) {
+        const id = element.properties.find((p) => p.key.name === 'id');
+        ids.push(id.value.value);
+      }
+    }
+    assert.deepEqual(ids, ROWS.map((row) => row.id));
+  });
+
+  it('give each row a why comment that cites UTN #11 or a research note', () => {
+    const bad = [];
+    for (const init of sections.values()) {
+      for (const element of init.arguments[0].elements) {
+        const id = element.properties.find((p) => p.key.name === 'id').value.value;
+        const why = commentAbove(element.loc.start.line);
+        if (!/UTN #11|research\/[a-z-]+\.md §\d/.test(why)) bad.push(id + ': ' + (why || 'no comment'));
+      }
+    }
+    assert.deepEqual(bad, []);
+  });
+});
+
+describe('the repeat rows (DESIGN.md §3.9)', () => {
+  // The trace records a repeat row once if it matched, so a match must always change the text: every match starts
+  // with the row's first unit, a literal, and the replacement starts with another unit.
+  it('start every match with a literal unit, and replace it with a different one', () => {
+    for (const row of ROWS.filter((r) => r.repeat)) {
+      const first = /^\\u([0-9a-fA-F]{4})/.exec(row.re.source);
+      assert.ok(first, row.id + ': the pattern starts with a literal unit');
+      assert.notEqual(row.to[0], '$', row.id + ': the replacement starts with a literal unit');
+      assert.notEqual(row.to.charCodeAt(0), parseInt(first[1], 16), row.id);
+    }
+  });
+});
+
+describe('the examples (D17)', () => {
+  it('cover every row id once', () => {
+    assert.deepEqual(EXAMPLES.map(([id]) => id), ROWS.map((row) => row.id));
+  });
+
+  it('are what 2.x writes', () => {
+    for (const [id, text, zawgyi] of EXAMPLES) assert.equal(twoXUnicodeToZawgyi(text), zawgyi, id);
+  });
+
+  for (const [id, text, zawgyi] of EXAMPLES) {
+    it(id + ' changes its example', { skip: BUILT }, () => {
+      assert.equal(unicodeToZawgyi(text), zawgyi, codes(text));
+      const { trace, result } = traceAsDebugLog(text);
+      assert.equal(result, zawgyi);
+      assert.ok(trace.records.some((record) => record.id === id), id + ' is not in the trace of ' + codes(text));
+    });
+  }
+});
+
+describe('the table probes (test/fixtures/tables.json)', () => {
+  const probes = tableProbes();
+  const idOfProbe = new Map(TWO_X_PROBE_IDS.map((probeId, i) => [probeId, ROWS[i].id]));
+
+  it('cover every row', () => {
+    for (const probeId of TWO_X_PROBE_IDS) assert.ok(probes[probeId], 'no probe ' + probeId);
+  });
+
+  it('give 2.x\'s output, and fire the rows 2.x fired, through the 2.x call form', { skip: BUILT }, () => {
+    for (const probeId of TWO_X_PROBE_IDS) {
+      const entry = probes[probeId];
+      for (const { probe, expect } of [entry].concat(entry.edges || [])) {
+        assert.equal(asFontConvert(probe, unicodeToZawgyi), expect.output, probeId + ' on ' + codes(probe));
+        const fired = asFontConvert(probe, (text) => traceAsDebugLog(text).trace.records.map((r) => r.id));
+        assert.deepEqual(typeof fired === 'string' ? [] : fired, expect.fired.map((f) => idOfProbe.get(f)),
+          probeId + ' on ' + codes(probe));
+      }
+    }
+  });
+});
+
+describe('unicodeToZawgyi and traceUnicodeToZawgyi (DESIGN.md §2.3, §3.9)', () => {
+  it('collapse a mark typed twice, then apply the rows', { skip: BUILT }, () => {
+    const text = '\u1000\u103C\u103C\u102F\u102F';
+    assert.equal(unicodeToZawgyi(text), '\u107E\u1000\u1033');
+    const trace = createTrace();
+    assert.equal(traceUnicodeToZawgyi(text, trace), '\u107E\u1000\u1033');
+    assert.equal(trace.start, '\u1000\u103C\u102F', 'the trace starts at the collapsed text');
+  });
+
+  it('give text with nothing to convert back unchanged', { skip: BUILT }, () => {
+    for (const text of ['', 'abc', '\u1000\u102C', '\u1041\u1042']) {
+      assert.equal(unicodeToZawgyi(text), text);
+      const { trace } = traceAsDebugLog(text);
+      assert.deepEqual(trace.records, []);
+    }
+  });
+
+  it('record each row that changed the text, with its id, its 2.x label and the text after it', { skip: BUILT }, () => {
+    const trace = createTrace();
+    traceUnicodeToZawgyi('\u1000\u103C\u102C', trace);
+    assert.deepEqual(trace.records, [
+      {
+        id: 'uz.order.1', label: '([\\u1000-\\u1021][^\\u1000-\\u1021]*)([\\u103c\\u1082])',
+        text: '\u103C\u1000\u102C'
+      },
+      { id: 'uz.glyphs.36', label: '\\u103c', text: '\u103B\u1000\u102C' },
+      { id: 'uz.medial-ra.1', label: '\\u103b([\\u1000\\u1003\\u1006\\u100f\\u1010\\u1011\\u1018\\u1021\\u101a' +
+        '\\u101c\\u101e\\u101f])', text: '\u107E\u1000\u102C' }
+    ]);
+  });
+
+  it('record a wrapped row under its 2.x label', { skip: BUILT }, () => {
+    const trace = createTrace();
+    traceUnicodeToZawgyi('\u100D\u1039\u100E', trace);
+    assert.deepEqual(trace.records.map((r) => [r.id, r.label]), [['uz.glyphs.16', '\\u100d\\u1039\\u100e']]);
+  });
+
+  it('record a repeat row once, however many places it changed', { skip: BUILT }, () => {
+    const trace = createTrace();
+    traceUnicodeToZawgyi('\u1000\u103C\u102C \u1000\u103C\u102C', trace);
+    assert.equal(trace.records.filter((record) => record.id === 'uz.medial-ra.1').length, 1);
+  });
+
+  it('empty a trace that is used again', { skip: BUILT }, () => {
+    const trace = createTrace();
+    traceUnicodeToZawgyi('\u1000\u103C\u102C', trace);
+    traceUnicodeToZawgyi('\u1014\u1031', trace);
+    assert.equal(trace.start, '\u1014\u1031');
+    assert.deepEqual(trace.records.map((record) => record.id), ['uz.order.3']);
+  });
+
+  it('read back as 2.x\'s debug log on every example', { skip: BUILT }, () => {
+    for (const [id, text] of EXAMPLES) assert.deepEqual(traceAsDebugLog(text).log, twoXDebugLog(text), id);
+  });
+});
