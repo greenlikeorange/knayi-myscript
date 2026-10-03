@@ -1,13 +1,14 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const fc = require('fast-check');
-const knayi = require('../main');
+// The 2.x API: compat, on the 3.0 core.
+const knayi = require('../src/compat/index.js').default;
 const oracle = require('../scripts/oracle');
 const arb = require('../scripts/testing/arbitraries');
 const { SEED, check, runs } = require('../scripts/testing/fuzz-settings');
 
-// Differential fuzz: the library against the frozen 2.10 engine in scripts/oracle/, on short strings over the
-// characters each reader decides on (scripts/testing/arbitraries.js). 50,000 strings in all on a pull request;
+// Differential fuzz: compat, the 2.x API on the 3.0 core, against the frozen 2.10 engine in scripts/oracle/, on
+// short strings over the characters each reader decides on (scripts/testing/arbitraries.js). 50,000 strings in all on a pull request;
 // see scripts/testing/fuzz-settings.js for a longer run. Every output must be the same.
 
 function hex(text) {
@@ -16,7 +17,7 @@ function hex(text) {
 
 function same(actual, expected, input) {
   if (actual !== expected) {
-    assert.fail('input ' + hex(input) + '\n  library ' + hex(actual) + '\n  oracle  ' + hex(expected));
+    assert.fail('input ' + hex(input) + '\n  compat  ' + hex(actual) + '\n  oracle  ' + hex(expected));
   }
 }
 
@@ -49,14 +50,14 @@ const WIN_REGRESSIONS = ['ajumifh', 'a,musfm;', 'usGefkyf', 'aMomf', 'ZvGefaps;'
 const COUNT = { normalize: 25000, zawgyi: 10000, win: 5000, detect: 8000, debugging: 2000 };
 
 // Inputs: short strings over each reader's characters, Burmese text with typing slips, and that text written
-// in Zawgyi (by the library, which only makes the input here).
+// in Zawgyi (by compat, which only makes the input here).
 const unicode = fc.oneof({ weight: 3, arbitrary: arb.unicodeText() }, { weight: 1, arbitrary: arb.burmeseText });
 const zawgyiWords = arb.burmeseText.map((text) => knayi.fontConvert(text, 'zawgyi', 'unicode'));
 const zawgyi = fc.oneof({ weight: 3, arbitrary: arb.zawgyiText() }, { weight: 1, arbitrary: zawgyiWords });
 const win = arb.winText();
 const detectable = fc.oneof(arb.unicodeText(24), arb.zawgyiText(24), arb.burmeseText, zawgyiWords);
 
-describe('library against the 2.10 oracle', () => {
+describe('compat against the 2.10 oracle', () => {
   it('normalize', () => {
     check(fc.property(unicode, (text) => {
       same(knayi.normalize(text), oracle.normalize(text), text);

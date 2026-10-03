@@ -28,7 +28,8 @@
 const fs = require('fs');
 const path = require('path');
 const fc = require('fast-check');
-const knayi = require('../../main');
+// The 2.x API: compat, on the 3.0 core.
+const knayi = require('../../src/compat/index.js').default;
 const { buildRows } = require('./rows');
 const { neighbours } = require('./branches');
 

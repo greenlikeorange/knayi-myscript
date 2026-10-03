@@ -2,11 +2,12 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const knayi = require('../main');
+// The 2.x API: compat, on the 3.0 core.
+const knayi = require('../src/compat/index.js').default;
 const { readExamples } = require('../scripts/testing/readme-examples');
 
-// Every `knayi.…` example in README.md and ARCHITECTURE.md runs against main.js, and returns the value in its
-// comment. An example whose note says it warns must write a warning or an error to the console.
+// Every `knayi.…` example in README.md and ARCHITECTURE.md runs against compat, the 2.x API on the 3.0 core, and
+// returns the value in its comment. An example whose note says it warns must write a warning or an error to the console.
 //
 // The number of examples in each file is pinned, so an example the reader stops seeing fails here. When you add or
 // remove an example, change its count.

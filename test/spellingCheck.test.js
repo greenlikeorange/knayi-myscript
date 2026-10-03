@@ -1,6 +1,7 @@
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
-var knayi = require('../main');
+// The 2.x API: compat, on the 3.0 core.
+var knayi = require('../src/compat/index.js').default;
 describe('spellingFix',()=>{
   describe('spellingFix Unicode',()=>{
     it('should fix for unicode',()=>{
