@@ -68,7 +68,7 @@ These paths load without an `exports` map:
 
 Text with no Myanmar letters (`U+1000`–`U+109F`) is returned unchanged by convert, break, and spelling fix. `fontDetect` returns the fallback or `'en'`. `truncate` still appends the omission. `normalize` returns it in NFC, so `'e\u0301'` becomes `'é'` (`U+00E9`). A Win source is the exception for convert: Win text is ASCII, so `fontConvert` converts it.
 
-Other values, such as numbers and objects, are returned unchanged the same way, and no function throws on them. `truncate` turns them into strings first, like `lodash.truncate`. `String` objects work like the strings they hold.
+Other values, such as numbers and objects, are returned unchanged the same way, and no function throws on them, with one exception: `truncate` turns them into strings first, like `lodash.truncate`, so it throws a `TypeError` on an object that `String()` cannot convert, such as `Object.create(null)`. `String` objects work like the strings they hold.
 
 `setGlobalOptions({ silent_mode: true })` hides those warnings. The option applies to the copy of the library that received the call.
 
