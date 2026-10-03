@@ -1,5 +1,6 @@
-const { describe, it, before, after } = require('node:test');
+const { describe, it, before, after, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
+const { inspect } = require('util');
 var knayi = require('../main');
 var myanmarToolsWarnings = [];
 describe('Detector default mode',()=>{
@@ -106,6 +107,47 @@ describe('zawgyi asat before a consonant', () => {
     assert.equal(knayi.fontDetect('က္က'), 'zawgyi');
     assert.equal(knayi.fontDetect('က္က', 'unicode'), 'unicode');
   })
+})
+
+// The fallback is a string other than '', returned as given; a String object counts as its string. Any other value
+// is no fallback, so the index that Array#map passes as the second argument never comes back as the result.
+describe('detector fallback', () => {
+  const TIE = 'ဗုဒ္ဓ';
+  const NOT_FALLBACKS = [undefined, null, '', 0, 1, 2, -1, NaN, true, false, {}, [], ['unicode'], new String('')];
+
+  afterEach(() => {
+    knayi.setGlobalOptions({
+      silent_mode: false,
+      detector: { use_myanmartools: false, myanmartools_zg_threshold: [0.05, 0.95] }
+    });
+  });
+
+  it('ignores a fallback that is not a string, or is empty', () => {
+    knayi.setGlobalOptions({ silent_mode: true });
+    for (const fallback of NOT_FALLBACKS) {
+      const label = inspect(fallback);
+      assert.equal(knayi.fontDetect(null, fallback), 'en', label);
+      assert.equal(knayi.fontDetect(123, fallback), 'en', label);
+      assert.equal(knayi.fontDetect('abc', fallback), 'en', label);
+      assert.equal(knayi.fontDetect(TIE, fallback), 'zawgyi', label);
+      // myanmar-tools gives က a probability of about 0.48, between the default thresholds.
+      assert.equal(knayi.fontDetect('က', fallback, { adapter: 'myanmartools' }), 'zawgyi', label);
+    }
+  });
+
+  it('gives a font or en for every line of lines.map(fontDetect)', () => {
+    knayi.setGlobalOptions({ silent_mode: true });
+    assert.deepEqual(['မြန်မာ', 'ျမန္မာ', TIE, 'abc', '', 'jrefrm', 'က'].map(knayi.fontDetect),
+      ['unicode', 'zawgyi', 'zawgyi', 'en', 'en', 'en', 'zawgyi']);
+  });
+
+  it('returns a string fallback as given, and a String object as its string', () => {
+    assert.equal(knayi.fontDetect('abc', 'tie'), 'tie');
+    assert.equal(knayi.fontDetect(TIE, 'Unicode'), 'Unicode');
+    assert.equal(knayi.fontDetect('abc', new String('unicode')), 'unicode');
+    assert.equal(knayi.fontDetect(TIE, new String('en')), 'en');
+    assert.equal(knayi.fontDetect('က', new String('unicode'), { adapter: 'myanmartools' }), 'unicode');
+  });
 })
 
 after(function () {

@@ -1,6 +1,6 @@
 # Architecture
 
-How knayi-myscript is built today: version 2.10.0, including the Shan look-alike fix (#73), the fix for `normalize`'s quadratic time on runs of e and medial ra (#74), NFC in linear time (`library/nfc.js`), and one policy for font names, in any letter case (`resolveFont`, `breakFont` and `fontName` in `library/contentGate.js`). This is a map of the current code, not a target design. A pull request that changes something described here updates this file in the same PR.
+How knayi-myscript is built today: version 2.10.0, including the Shan look-alike fix (#73), the fix for `normalize`'s quadratic time on runs of e and medial ra (#74), NFC in linear time (`library/nfc.js`), one policy for font names, in any letter case (`resolveFont`, `breakFont` and `fontName` in `library/contentGate.js`), and a `fontDetect` fallback that is a string or none. This is a map of the current code, not a target design. A pull request that changes something described here updates this file in the same PR.
 
 - [Entry points and builds](#entry-points-and-builds)
 - [Module map](#module-map)
@@ -128,18 +128,19 @@ So text with no Myanmar characters still comes back in NFC. The first NFC is the
 
 ### fontDetect(content, fallback, options)
 
-1. Missing content, or no Myanmar character: the fallback, or `'en'`.
-2. `cleanText(content, true)`: trim, and remove U+200B and U+200C.
-3. The fallback defaults to `'zawgyi'`.
-4. `globalOptions.detector(options)` merges the call's options with the stored ones. An explicit `adapter` (`'rules'` or `'myanmartools'`) wins; otherwise `use_myanmartools` picks myanmar-tools.
-5. **Rules:** each side's score is the total number of matches of its signature patterns (`String#match` with the `g` flag). The higher score wins; a tie returns the fallback.
-6. **myanmar-tools:** loaded on first use through `nodeRequire`, which only works in Node: `module.require`, or `process.getBuiltinModule('module').createRequire(...)` from `__filename` or, where that is missing, from the working directory's `package.json`. A probability below the first threshold is `'unicode'`, above the second `'zawgyi'`, and in between the fallback. If the package cannot be loaded, the call uses the rules and warns once.
+1. The fallback is read with `fontName` ([below](#syllbreak-spellingfix-and-truncate)): a string other than `''`, or a `String` object's string, kept as given. Any other value, such as the index `Array#map` passes, is no fallback.
+2. Missing content, or no Myanmar character: the fallback, or `'en'`.
+3. `cleanText(content, true)`: trim, and remove U+200B and U+200C.
+4. The fallback defaults to `'zawgyi'`.
+5. `globalOptions.detector(options)` merges the call's options with the stored ones. An explicit `adapter` (`'rules'` or `'myanmartools'`) wins; otherwise `use_myanmartools` picks myanmar-tools.
+6. **Rules:** each side's score is the total number of matches of its signature patterns (`String#match` with the `g` flag). The higher score wins; a tie returns the fallback.
+7. **myanmar-tools:** loaded on first use through `nodeRequire`, which only works in Node: `module.require`, or `process.getBuiltinModule('module').createRequire(...)` from `__filename` or, where that is missing, from the working directory's `package.json`. A probability below the first threshold is `'unicode'`, above the second `'zawgyi'`, and in between the fallback. If the package cannot be loaded, the call uses the rules and warns once.
 
 `fontDetect` never returns `'win'`.
 
 ### syllBreak, spellingFix and truncate
 
-All three read the font with `fontName`: a name is a string other than `''`, or a `String` object that holds one. Anything else names no font, and the call uses `fontDetect(content)`. A name goes through `resolveFont`, which lowercases it and resolves the aliases, so `'Unicode'`, `'ZAWGYI'` and `'Zaw'` are fonts too. Only a name's ASCII letters fold to it: no other character lowercases to one of its letters (U+0130, capital I with a dot, lowercases to i and a combining dot; the Kelvin sign U+212A lowercases to k, which no name has). syllBreak and truncate pass the name to `breakFont(name, apiName)`, which returns `'unicode'` or `'zawgyi'`, and throws a `TypeError` with the code `ERR_KNAYI_INVALID_FONT` for `'win'` (in any case) and for any other name, quoting the name as given: the break rules exist for Unicode and Zawgyi only. They call it after the input checks, so missing content and text with no Myanmar character never throw. spellingFix passes any name on, resolved where it names a font, and `collapseMarks` uses the Unicode marks for every name but `'zawgyi'`. `fontDetect`'s fallback is not a name it reads: it is returned as given, in its own case.
+All three read the font with `fontName`: a name is a string other than `''`, or a `String` object that holds one. Anything else names no font, and the call uses `fontDetect(content)`. A name goes through `resolveFont`, which lowercases it and resolves the aliases, so `'Unicode'`, `'ZAWGYI'` and `'Zaw'` are fonts too. Only a name's ASCII letters fold to it: no other character lowercases to one of its letters (U+0130, capital I with a dot, lowercases to i and a combining dot; the Kelvin sign U+212A lowercases to k, which no name has). syllBreak and truncate pass the name to `breakFont(name, apiName)`, which returns `'unicode'` or `'zawgyi'`, and throws a `TypeError` with the code `ERR_KNAYI_INVALID_FONT` for `'win'` (in any case) and for any other name, quoting the name as given: the break rules exist for Unicode and Zawgyi only. They call it after the input checks, so missing content and text with no Myanmar character never throw. spellingFix passes any name on, resolved where it names a font, and `collapseMarks` uses the Unicode marks for every name but `'zawgyi'`. `fontDetect` reads its fallback with `fontName` too, so a value that is not a string is no fallback; but the fallback is not a font name, and is returned as given, in its own case.
 
 - **syllBreak:** no Myanmar character returns the text unchanged. Otherwise `cleanText(content, true)`, then `breakParts(content, font)` and `joinParts(parts, breakpoint)`. `breakParts` applies `BREAK_RULES[font]` (7 rules for Unicode, 8 for Zawgyi), which insert and remove U+200B (the first Unicode rule instead puts a dot below in front of an asat typed before it), drops a leading U+200B, and splits on U+200B and U+200C. `joinParts` joins with the breakpoint, U+200B by default.
 - **spellingFix:** detects the font on the raw text, then cleans it and runs `collapseMarks(content, font)`: one `[mark]{2,}` regex per mark of `COLLAPSE[font]`, or of `COLLAPSE.unicode` when `COLLAPSE` has no own property of that name (so `'constructor'` finds no `Object.prototype` member).

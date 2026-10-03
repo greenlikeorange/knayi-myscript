@@ -54,7 +54,7 @@ These paths load without an `exports` map:
 
 ## Font names
 
-`unicode`, `uni`, `zawgyi`, `zaw`, and `win`. `uni` is Unicode. `zaw` is Zawgyi. `win` is the Win Innwa family of legacy fonts, which `fontConvert` converts to Unicode. Names are case-insensitive, so `Unicode`, `ZAWGYI` and `Win` name the same fonts. Any other string is an unknown font. `fontDetect` does not read its fallback as a font name: it returns it as given. In `syllBreak`, `spellingFix` and `truncate`, a font that is not a string, such as `null` or the index `Array#map` passes, and `''` name no font, and `fontDetect` chooses it.
+`unicode`, `uni`, `zawgyi`, `zaw`, and `win`. `uni` is Unicode. `zaw` is Zawgyi. `win` is the Win Innwa family of legacy fonts, which `fontConvert` converts to Unicode. Names are case-insensitive, so `Unicode`, `ZAWGYI` and `Win` name the same fonts. Any other string is an unknown font. `fontDetect` does not read its fallback as a font name: it returns a string fallback as given, and ignores a fallback that is not a string ([fontDetect](#fontdetectcontent-fallbackfonttype-options)). In `syllBreak`, `spellingFix` and `truncate`, a font that is not a string, such as `null` or the index `Array#map` passes, and `''` name no font, and `fontDetect` chooses it.
 
 | Function | `win` | An unknown font |
 | --- | --- | --- |
@@ -77,7 +77,7 @@ knayi.fontConvert('ျမန္မာ', 'Unicode', 'ZAWGYI') // 'မြန်မ
 
 | Function | Missing content |
 | --- | --- |
-| `fontDetect` | The fallback, or `'en'` when the fallback is omitted. Warns unless silent. |
+| `fontDetect` | The fallback, or `'en'` when there is no fallback. Warns unless silent. |
 | `fontConvert`, `syllBreak`, `spellingFix`, `normalize` | `''`. Warns unless silent. |
 | `truncate` | `''`. Warns unless silent. An empty string `''` returns the omission instead. |
 
@@ -91,7 +91,9 @@ Other values, such as numbers and objects, are returned unchanged the same way, 
 
 Returns `'unicode'`, `'zawgyi'`, or the fallback / `'en'`.
 
-When the rule scores tie, including a single consonant such as `က`, the result is the fallback, or `'zawgyi'` if the fallback is omitted.
+The fallback is a string, returned as given; a `String` object counts as its string. Any other value is no fallback, and neither is `''`. So `lines.map(knayi.fontDetect)`, which passes each line's index as the fallback, gives `'unicode'`, `'zawgyi'` or `'en'` for every line.
+
+When the rule scores tie, including a single consonant such as `က`, the result is the fallback, or `'zawgyi'` if there is no fallback.
 
 ```javascript
 knayi.fontDetect('မဂၤလာပါ') // 'zawgyi'
@@ -99,6 +101,7 @@ knayi.fontDetect('မင်္ဂလာပါ') // 'unicode'
 knayi.fontDetect('ကျ') // 'unicode'
 knayi.fontDetect('က') // 'zawgyi'
 knayi.fontDetect('က', 'unicode') // 'unicode'
+knayi.fontDetect('က', 1) // 'zawgyi'  (a number is no fallback)
 knayi.fontDetect(null) // 'en'
 ```
 

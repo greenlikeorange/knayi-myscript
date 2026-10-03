@@ -46,6 +46,7 @@ function libraryError(code, message, Ctor) {
 
 // The font name a call was given, or null for none. A name is a string other than ''; a String object counts as
 // its string. Anything else (undefined, null, '', or a number such as the index Array#map passes) means "detect".
+// fontDetect reads its fallback the same way, and returns it as given.
 function fontName(fontType) {
   fontType = toText(fontType);
   return typeof fontType === 'string' && fontType !== '' ? fontType : null;

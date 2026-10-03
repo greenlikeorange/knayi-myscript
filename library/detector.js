@@ -124,6 +124,9 @@ function chooseAdapter(options) {
  * @return unicode ? zawgyi
  */
 function fontDetect(content, fallback_font_type, options = {}){
+  // The fallback is a string other than '' (a String object counts as its string), returned as given. Any other
+  // value, such as the index Array#map passes, is no fallback: the call returns 'en' or 'zawgyi', as if omitted.
+  fallback_font_type = gate.fontName(fallback_font_type);
   content = gate.toText(content);
   if (gate.isMissing(content)) {
     if (!globalOptions.isSilentMode()) console.warn('Content must be specified on knayi.fontDetect.');
