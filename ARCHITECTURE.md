@@ -118,15 +118,15 @@ With `debug`, `toUnicode` returns `{ matched_patterns, steps }`: `matched_patter
 
 ### normalize(content)
 
-After the input checks, every string goes through:
+After the input checks, every string goes through NFC first. A string that then has a character of the Myanmar blocks (U+1000–U+109F, U+A9E0–U+A9FF, U+AA60–U+AA7F) goes on through the other steps:
 
 ```
 NFC → arrangeUnicode → typos → lookAlikes → NFC
 ```
 
-There is no Myanmar test in front, so text with no Myanmar characters still comes back in NFC. The first NFC is there because it can move a dot below in front of an asat or virama, which changes what they attach to. Both NFC passes go through `nfc.js`.
+The block test sits after the first NFC, not in front of it, so text with no Myanmar character still comes back in NFC. The first NFC is there because it can move a dot below in front of an asat or virama, which changes what they attach to. Both NFC passes go through `nfc.js`.
 
-Text with no character of the Myanmar blocks after the first NFC (U+1000–U+109F, U+A9E0–U+A9FF, U+AA60–U+AA7F) skips the other steps, which would give it back as it is: `arrangeUnicode` opens a syllable only at a character of U+1000–U+109F and writes every other character as it is, each typing fix matches only at one of those characters, and NFC leaves NFC text as it is. The shortcut counts the extended blocks too, whose letters and marks those steps read. On English text under Node, it takes about a twelfth of the time all the steps took a line at a time, and a fiftieth on one long string.
+Text with no character of those blocks after the first NFC returns there, since the other steps would give it back as it is: `arrangeUnicode` opens a syllable only at a character of U+1000–U+109F and writes every other character as it is, each typing fix matches only at one of those characters, and NFC leaves NFC text as it is. The shortcut counts the extended blocks too, whose letters and marks those steps read. On English text under Node, it takes about a twelfth of the time all the steps took a line at a time, and a fiftieth on one long string.
 
 ### fontDetect(content, fallback, options)
 
