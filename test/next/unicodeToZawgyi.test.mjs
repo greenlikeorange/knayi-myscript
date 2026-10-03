@@ -1,8 +1,8 @@
 // Unit tests of src/rules/unicodeToZawgyi.js (docs/next/DESIGN.md §7.9): the rule rows against 2.x's
 // convertRules.unicode.zawgyi (the frozen scripts/oracle/syllable.js), the sections and the why comment of each
 // row, the six wrapped rows (decision 29), an example for each row id (D17), the rows read from the Zawgyi glyph
-// table (§3.9), the table probes, and the trace (§3.9, D4). The differential fuzz is in
-// unicodeToZawgyi.fuzz.test.mjs.
+// table and the one pass that writes GLYPHS (§3.9), the table probes, and the trace (§3.9, D4). The differential
+// fuzz is in unicodeToZawgyi.fuzz.test.mjs.
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -163,8 +163,12 @@ function entriesOf(init, prefix) {
 const READ_FROM_TABLE = [...readSections().sections.values()]
   .flatMap(({ entries }) => entries.filter((entry) => entry.fromTable).map((entry) => entry.id));
 
-// The text a source of \u escapes names.
+// The rows of GLYPHS, and the text each matches.
+const GLYPH_ROWS = ROWS.filter((row) => row.id.startsWith('uz.glyphs.'));
 const textOf = (source) => String.fromCharCode(...literalUnits(source));
+
+// A virama two units after a virama: a stack on a stack, where the one pass runs the GLYPHS rows one by one.
+const STACK_ON_STACK = /\u1039[\s\S]\u1039/;
 
 describe('the Unicode to Zawgyi rows (DESIGN.md §7.9)', () => {
   it('are 57 rows applied once, then 8 repeat rows, as 2.x has them', () => {
@@ -326,6 +330,77 @@ describe('the rows read from the Zawgyi glyph table (DESIGN.md §3.9)', () => {
     // e moves (no glyph), na is short only after medial ra, ca with ya is drawn as jha, and ra on nya is two glyphs.
     assert.deepEqual(notInverse.map(([, text]) => tableGlyph(text)), [null, null, null, null]);
     assert.equal(tableGlyph('\u1039\u1008'), '\u1069', 'the table reads U+1069 as stacked jha');
+  });
+});
+
+describe('GLYPHS in one pass (DESIGN.md §3.9)', () => {
+  const texts = GLYPH_ROWS.map((row) => textOf(ruleLabel(row)));
+
+  it('reads rows of one fixed text and one glyph, none of which reads a unit that a row before it writes', () => {
+    GLYPH_ROWS.forEach((row, i) => {
+      assert.notEqual(literalUnits(ruleLabel(row)), null, row.id + ' is a pure literal');
+      assert.equal(row.to.indexOf('$'), -1, row.id + ' writes a fixed glyph');
+      assert.equal(row.to.length, 1, row.id + ' writes one unit, so the pass never writes more than it reads');
+      for (const later of texts.slice(i + 1)) {
+        for (const unit of row.to) assert.equal(later.indexOf(unit), -1, row.id + ' writes a unit a later row reads');
+      }
+    });
+  });
+
+  it('meets no two overlapping rows where the later match comes first, but in a stack on a stack', () => {
+    const outOfOrder = [];
+    texts.forEach((first, x) => texts.forEach((second, y) => {
+      for (let shift = 1; shift < first.length; shift++) {
+        const overlap = first.slice(shift, shift + second.length);
+        if (y >= x || second.slice(0, overlap.length) !== overlap) continue;
+        const union = first.slice(0, shift) + (overlap.length === second.length ? first.slice(shift) : second);
+        assert.match(union, STACK_ON_STACK, GLYPH_ROWS[y].id + ' inside ' + GLYPH_ROWS[x].id);
+        outOfOrder.push(GLYPH_ROWS[x].id + ' then ' + GLYPH_ROWS[y].id);
+      }
+    }));
+    assert.deepEqual(outOfOrder, ['uz.glyphs.17 then uz.glyphs.16', 'uz.glyphs.18 then uz.glyphs.16',
+      'uz.glyphs.21 then uz.glyphs.19', 'uz.glyphs.22 then uz.glyphs.19', 'uz.glyphs.22 then uz.glyphs.21']);
+  });
+
+  // Every string of up to `length` units of `alphabet`.
+  function* stringsOf(alphabet, length) {
+    if (length === 0) return;
+    yield* alphabet;
+    for (const head of stringsOf(alphabet, length - 1)) for (const unit of alphabet) yield head + unit;
+  }
+
+  const meeting = ['\u1039', '\u100B', '\u100C', '\u100D', '\u100E', '\u100F', '\u1005', '\u103B', '\u103D', '\u103E',
+    '\u102F', '\u1030', '\u103A', '\u102B', '\u104E', '\u1004', '\u1038', '\u1000', 'a'];
+  const stacks = ['\u1039', '\u100B', '\u100C', '\u100D', '\u100E', '\u100F', '\u1005', '\u103B', 'a'];
+  const SHORT = [...stringsOf(meeting, 4), ...stringsOf(stacks, 5)];
+  const sameAsRows = (text) => {
+    const expected = applyRuleRows(collapseRepeatedMarks(text, 'unicode'), ROWS);
+    if (unicodeToZawgyi(text) !== expected) assert.fail(codes(text) + ': one pass ' + codes(unicodeToZawgyi(text)));
+  };
+
+  it('gives what the rows give one by one on every short string of the units where rows meet', () => {
+    SHORT.forEach(sameAsRows);
+    assert.equal(SHORT.length, 137560 + 66429);
+  });
+
+  // The pass writes a text of more than 64 units into a buffer, and a shorter one as joined slices.
+  it('gives what the rows give on long text too, written as units rather than slices', () => {
+    // Two spaces between strings, so that no virama stands two units after another across them.
+    const noStackOnStack = SHORT.filter((text) => !STACK_ON_STACK.test(text));
+    const long = [];
+    for (let at = 0; at < noStackOnStack.length; at += 20) long.push(noStackOnStack.slice(at, at + 20).join('  '));
+    const written = long.filter((text) => text.length > 64 && !STACK_ON_STACK.test(text));
+    assert.ok(written.length > long.length * 0.9, written.length + ' of ' + long.length + ' texts are long');
+    written.forEach(sameAsRows);
+    const word = '\u1000\u103B\u1031\u102C\u1004\u103A\u1038 '; // kyaung, school, and a space: 8 units
+    for (const units of [56, 64, 72, 20000]) sameAsRows(word.repeat(units / 8));
+  });
+
+  it('runs the rows one by one on a stack on a stack, where one pass would differ', () => {
+    // ka, stacked tta, stacked ttha: tta with ttha comes before stacked tta, so the first virama stays.
+    const text = '\u1000\u1039\u100B\u1039\u100C';
+    assert.equal(unicodeToZawgyi(text), '\u1000\u1039\u1092');
+    assert.equal(twoXUnicodeToZawgyi(text), '\u1000\u1039\u1092');
   });
 });
 
