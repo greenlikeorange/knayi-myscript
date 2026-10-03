@@ -109,6 +109,7 @@ Rows whose labels or expected outputs came from Google's tools favour myanmar-to
 - **Licensed data only.** Every result row names its sources. `report.mjs` refuses any row whose source isn't openly licensed in `datasets.mjs`, and any run made with `--with-unlicensed`.
 - **Aggregate numbers only.** It publishes percentages and timings, never the text itself, and lists every source with its size and license.
 - **Rebuild on release.** Run `npm run bench:page` before a release and commit the two files. The page says which machine produced the timings and lists the limits of the evaluation.
+- **Named code and data.** `run.mjs` and `bench.mjs` record the code they measured as `code`: the commit, `dirty` when `main.js`, `library/`, `scripts/` or `package.json` have uncommitted changes, and `libraryHash`, the sha256 of `main.js` and every file under `library/`. `report.mjs` refuses results from two different code states, shows the commit on the page and writes `code` at the top of `benchmark.json`. Each data set in the eval results carries the sha256 it is pinned to.
 
 ## Win glyph table
 

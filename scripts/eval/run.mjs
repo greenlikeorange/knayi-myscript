@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import { loadAll, SOURCES } from './datasets.mjs';
 import { loadEngines } from './engines.mjs';
+import { codeState, REPO } from './lib/knayi.mjs';
 
 const args = process.argv.slice(2);
 function option(name) {
@@ -156,6 +157,8 @@ if (jsonOut) {
   const used = new Set(sections.flatMap((s) => s.rows.flatMap((r) => r.sources)));
   const result = {
     generatedAt: new Date().toISOString(),
+    // The code that produced these numbers: commit, uncommitted changes, and a hash of main.js and library/.
+    code: codeState(REPO),
     node: process.version,
     platform: os.type() + ' ' + os.release(),
     withUnlicensed,

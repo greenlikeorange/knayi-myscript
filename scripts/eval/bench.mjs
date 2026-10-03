@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import { loadAll } from './datasets.mjs';
 import { loadEngines } from './engines.mjs';
+import { codeState, REPO } from './lib/knayi.mjs';
 
 const args = process.argv.slice(2);
 function option(name) {
@@ -29,6 +30,8 @@ function mean(fn, warmups = 3, runs = 10) {
 
 const result = {
   generatedAt: new Date().toISOString(),
+  // The code that produced these timings: commit, uncommitted changes, and a hash of main.js and library/.
+  code: codeState(REPO),
   machine: (os.cpus()[0] ? os.cpus()[0].model : 'unknown CPU') + ', ' + os.type() + ' ' + os.release(),
   node: process.version,
   engines: { local: E.local.name, baseline: E.baseline.name }
