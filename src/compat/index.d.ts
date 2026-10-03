@@ -1,3 +1,7 @@
+// Types of knayi-myscript/compat, src/compat/index.js: the 2.x API on the 3.0 core (docs/next/DESIGN.md §5). They
+// are 2.x's index.d.ts, which 3.0 moved here from the package root; test/package.test.js checks that they declare
+// exactly what compat exports, and typecheck/ compiles 2.x code against them.
+
 /** Detector settings for a single fontDetect call. */
 export interface DetectorOptions {
   use_myanmartools?: boolean;

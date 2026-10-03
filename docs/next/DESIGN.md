@@ -196,6 +196,7 @@ src/
   api/encoding.js            L4          detectEncoding (§11.5)
   api/convert.js             L4          toUnicode, toZawgyi (§11.5)
   api/segment.js             L4          segmentSyllables, syllableBoundaries, truncate, collapseRepeatedMarks (§11.6, §11.7)
+  stream.js                  L4          the './stream' entry of the exports map: streaming (§9) lands here
   spec/detectorSignatures.js  (spec)     the 29 detector signature rows: the scanner's readable oracle
   spec/breakRules.js          (spec)     the 15 break rule rows: the scanners' readable oracle
   spec/typoRows.js            (spec)     the 4 typo rules, documented: fixTypos's readable oracle

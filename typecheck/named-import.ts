@@ -1,5 +1,5 @@
-import { fontConvert, fontDetect, normalize, setGlobalOptions, spellingFix, syllBreak, truncate, version } from "knayi-myscript";
-import type { DetectorOptions, GlobalOptions, TruncateOptions } from "knayi-myscript";
+import { fontConvert, fontDetect, normalize, setGlobalOptions, spellingFix, syllBreak, truncate, version } from "knayi-myscript/compat";
+import type { DetectorOptions, GlobalOptions, TruncateOptions } from "knayi-myscript/compat";
 
 const detectorOptions: DetectorOptions = { adapter: "rules" };
 const globalOptions: GlobalOptions = { silent_mode: true, detector: { use_myanmartools: false } };

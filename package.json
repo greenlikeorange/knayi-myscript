@@ -1,16 +1,34 @@
 {
   "name": "knayi-myscript",
   "version": "2.10.0",
-  "description": "Knayi Myanmar languages JavaScirpt library",
-  "main": "./main.js",
-  "types": "./index.d.ts",
+  "description": "Knayi Myanmar languages JavaScript library",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.js"
+    },
+    "./compat": {
+      "types": "./src/compat/index.d.ts",
+      "default": "./src/compat/index.js"
+    },
+    "./stream": {
+      "types": "./src/stream.d.ts",
+      "default": "./src/stream.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "engines": {
+    "node": ">=22.12"
+  },
   "sideEffects": [
     "./dist/knayi-myscript.min.js"
   ],
   "files": [
-    "main.js",
-    "index.d.ts",
-    "library",
+    "src",
+    "!src/spec",
     "dist/knayi-myscript.min.mjs",
     "dist/knayi-myscript-compat.min.mjs",
     "dist/knayi-myscript.min.js"
@@ -21,7 +39,6 @@
     "posttest": "node scripts/check-size.js",
     "test:bun": "bun scripts/bun-contract.js && bun scripts/bun-esm.mjs && bun scripts/bun-matrix.js && bun test ./test && bun test ./test/growth.timing.js ./test/next/*.timing.mjs ./test/next/api/*.timing.mjs",
     "test:pack": "node scripts/check-packed.mjs",
-    "test:smoke": "node scripts/smoke.js",
     "test:fuzz": "node --test test/fuzz.test.js test/properties.test.js \"test/next/**/*.fuzz.test.mjs\"",
     "test:fuzz:next": "node --test \"test/next/**/*.fuzz.test.mjs\"",
     "test:browser": "playwright test -c scripts/browser/playwright.config.js",
