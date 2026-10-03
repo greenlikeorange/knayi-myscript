@@ -1,12 +1,15 @@
 // compat's 2.x property-lookup quirks (src/compat/legacy.js; docs/next/DESIGN.md §5.2 C12, C20, D13), against
-// main.js on every Object.prototype name, the matrix's font names and separators of every kind.
+// main.js on every Object.prototype name, the matrix's font names and separators of every kind; and the 2.x shape
+// of the Win tables, against the live library/win.js.
 
 import { describe, it, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { assertSameAsReference, compat, resetOptions } from './compat-helpers.mjs';
 import {
-  legacyBreakFont, legacyCollapseFont, NO_RULES, legacyTypeError, toJoinSeparator
+  legacyBreakFont, legacyCollapseFont, NO_RULES, legacyTypeError, toJoinSeparator, legacyWinTables
 } from '../../src/compat/legacy.js';
+import { WIN_GLYPHS, LOOK_ALIKE_SEQUENCES, C1_ALIASES } from '../../src/fonts/win.js';
+import { library } from './helpers.mjs';
 
 const UNICODE = '\u1019\u103C\u1014\u103A\u1019\u102C\u1037\u103A';
 const ZAWGYI = '\u103B\u1019\u1014\u1039\u1019\u102C\u102C';
@@ -77,5 +80,32 @@ describe('compat: the syllBreak separator (C20)', () => {
   it('joins with nothing for a separator whose string is empty, as 2.x does: the text with row U1 applied', () => {
     const empty = { toString: () => '' };
     assert.equal(compat.syllBreak('\u1000\u103A\u1037\u1001', 'unicode', empty), '\u1000\u1037\u103A\u1001');
+  });
+});
+
+describe('compat: the 2.x shape of the Win tables (library/win.js tables)', () => {
+  it('legacyWinTables() has the 2.x shape of win.tables: keys in 2.x order, shared alias rows, role strings', () => {
+    const tables = legacyWinTables();
+    const tables2x = library('win.js').tables;
+    assert.deepEqual(Object.keys(tables), ['WIN', 'SEQUENCES', 'ROLES']);
+    assert.deepEqual(Object.keys(tables.WIN), Object.keys(tables2x.WIN));
+    assert.deepEqual(tables.WIN, tables2x.WIN);
+    for (const [control, key] of Object.entries(C1_ALIASES)) assert.equal(tables.WIN[control], tables.WIN[key]);
+    assert.deepEqual(tables.ROLES, tables2x.ROLES);
+    assert.deepEqual(Object.keys(tables.ROLES), Object.keys(tables2x.ROLES));
+    assert.deepEqual(tables.SEQUENCES.map(([re, to]) => [re.source, re.flags, to]),
+      tables2x.SEQUENCES.map(([re, to]) => [re.source, re.flags, to]));
+  });
+
+  it('legacyWinTables() returns new objects each call, none of them the core\'s own data', () => {
+    const first = legacyWinTables();
+    const second = legacyWinTables();
+    assert.notEqual(first, second);
+    assert.notEqual(first.WIN, second.WIN);
+    assert.ok(!Object.isFrozen(first.WIN), 'as open to change as 2.x\'s');
+    first.SEQUENCES.forEach(([re], i) => assert.notEqual(re, LOOK_ALIKE_SEQUENCES[i].re));
+    first.WIN.u[1] = 'changed';
+    assert.equal(WIN_GLYPHS.u[1], '\u1000');
+    assert.equal(legacyWinTables().WIN.u[1], '\u1000');
   });
 });

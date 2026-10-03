@@ -2,7 +2,8 @@
 //
 // - Syntax: acorn parses every file at ecmaVersion 2015 as a module. That rejects `**`, async, object spread,
 //   optional catch binding, `?.`, `??`, class fields, private names and import.meta.
-// - Regexes, literal or built: no lookbehind, named groups or backreferences, \p{} or s flag.
+// - Regexes, literal or built: no lookbehind, named groups or backreferences, \p{} or s flag. A built regex is
+//   built from string literals, or is a copy of another regex (new RegExp(re.source, re.flags)).
 // - Built-ins: the ES2016+ names of the denylist below, as a global identifier or as a property name (x.name or
 //   x['name']). The guard cannot know a receiver's type, so it also bans some ES2015 methods of the same name,
 //   such as String#includes and Array#values: use indexOf and a loop instead.
@@ -45,6 +46,23 @@ function regexAbove2015(pattern, flags) {
   return ES2015_FLAGS.test(flags) ? null : 'the flags ' + flags;
 }
 
+// The text of an identifier or of a chain of plain property reads (a.b.c), or null.
+function pathOf(node) {
+  if (node.type === 'Identifier') return node.name;
+  if (node.type !== 'MemberExpression' || node.computed) return null;
+  const object = pathOf(node.object);
+  return object === null ? null : object + '.' + node.property.name;
+}
+
+// new RegExp(re.source, re.flags): a copy of a regex that this guard reads where it is written (compat/legacy.js
+// copies the Win sequences this way, so that 2.x callers get RegExps of their own). It adds no pattern.
+function copiesARegex(node) {
+  const [source, flags] = node.arguments;
+  if (node.arguments.length !== 2 || memberName(source) !== 'source' || memberName(flags) !== 'flags') return false;
+  const regex = pathOf(source.object);
+  return regex !== null && regex === pathOf(flags.object);
+}
+
 // The regexes of an AST: literals, RegExp(...) and new RegExp(...), and string patterns of match and search.
 // Returns [{ node, pattern, flags }], with pattern null when it is not a literal.
 function regexesOf(ast) {
@@ -55,6 +73,7 @@ function regexesOf(ast) {
       found.push({ node, pattern: node.regex.pattern, flags: node.regex.flags });
     } else if ((node.type === 'NewExpression' || node.type === 'CallExpression') &&
       node.callee.type === 'Identifier' && node.callee.name === 'RegExp') {
+      if (copiesARegex(node)) return;
       const flags = node.arguments[1] ? literal(node.arguments[1]) : '';
       found.push({ node, pattern: literal(node.arguments[0]), flags: flags === null ? '?' : flags });
     } else if (node.type === 'CallExpression' && /^(match|search)$/.test(memberName(node.callee) || '') &&
@@ -122,5 +141,8 @@ describe('the ES2015 floor of src/ (DESIGN.md D14)', () => {
     assert.equal(flagged("x.includes('a'); y['at'](0); globalThis.z;"), 3);
     assert.equal(flagged('/(?<=a)b/; new RegExp("\\\\p{L}", "u"); /a/s; new RegExp(x);'), 4);
     assert.equal(flagged("x.indexOf('a'); var o = { values: 1, at: 2 }; /(?:a)b/gi;"), 0);
+    // A copy of a regex adds no pattern; a regex built from parts of two others is not a copy.
+    assert.equal(flagged('new RegExp(row.re.source, row.re.flags); new RegExp(re.source, re.flags);'), 0);
+    assert.equal(flagged('new RegExp(a.re.source, b.re.flags); new RegExp(re.source); new RegExp(re.source + "x", re.flags);'), 3);
   });
 });

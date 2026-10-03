@@ -1,5 +1,6 @@
-// The Win Innwa glyph table, look-alike sequences and C1 aliases: data only (DESIGN.md §2.3, §3.8), and the 2.x
-// shape of that data for compat. Layer L2. Owner: W6 (engine-fonts).
+// The Win Innwa glyph table, look-alike sequences and C1 aliases: data only (DESIGN.md §2.3, §3.8). Layer L2.
+// Owner: W6 (engine-fonts). The 2.x shape of this data, library/win.js `tables`, is compat's to build
+// (compat/legacy.js legacyWinTables).
 //
 // Moved from library/win.js at the reference (e5f6e24), rows and comments unchanged except for the role names
 // (ROLE in script/codes.js: 2.x PRE is BEFORE_BASE, and TEXT is PLAIN). The 2.x loop that copied each Windows-1252
@@ -224,21 +225,16 @@ function winGlyphTable() {
 
 // Letters Win has no glyph for, typed as look-alike sequences, applied before the glyphs, in order, each once (the
 // stage 'sequences'; research/win-fonts.md §2, "No glyph of their own", and §5, "Sequences first").
-export const LOOK_ALIKE_SEQUENCES = /* @__PURE__ */ lookAlikeSequences();
-
-// The rows, with new RegExps at each call: legacyWinTables takes its own from here.
-function lookAlikeSequences() {
-  return deepFreeze([
-    // aMomf: au (e + medial ra around sa + aa + asat).
-    { id: 'win.look-alike.1', re: /a[Mj]omf/g, to: '\u102A', repeat: false },
-    // Mo: o (medial ra around sa).
-    { id: 'win.look-alike.2', re: /[Mj]o/g, to: '\u1029', repeat: false },
-    // ps: jha (ca + medial ya).
-    { id: 'win.look-alike.3', re: /p[s\u00DF]/g, to: '\u1008', repeat: false },
-    // OD: uu (u + ii).
-    { id: 'win.look-alike.4', re: /OD/g, to: '\u1026', repeat: false }
-  ]);
-}
+export const LOOK_ALIKE_SEQUENCES = /* @__PURE__ */ deepFreeze([
+  // aMomf: au (e + medial ra around sa + aa + asat).
+  { id: 'win.look-alike.1', re: /a[Mj]omf/g, to: '\u102A', repeat: false },
+  // Mo: o (medial ra around sa).
+  { id: 'win.look-alike.2', re: /[Mj]o/g, to: '\u1029', repeat: false },
+  // ps: jha (ca + medial ya).
+  { id: 'win.look-alike.3', re: /p[s\u00DF]/g, to: '\u1008', repeat: false },
+  // OD: uu (u + ii).
+  { id: 'win.look-alike.4', re: /OD/g, to: '\u1026', repeat: false }
+]);
 
 // Text read as ISO-8859-1 instead of Windows-1252 has C1 controls where Windows-1252 has these characters
 // (research/win-fonts.md §2, "Decoding"). Each C1 control reads as the glyph of its Windows-1252 key, in the order
@@ -260,48 +256,3 @@ export const WIN_FONT = /* @__PURE__ */ deepFreeze({
   // of the plan, kept on purpose).
   wholeBases: ['\u1000\u103B\u1015\u103A', '\u1009\u102C']
 });
-
-// The 2.x shape of this data, as library/win.js exports it as `tables`: { WIN, SEQUENCES, ROLES }, with the role
-// strings, the C1 controls as keys that share their Windows-1252 key's row, the keys in 2.x's order, and
-// [pattern, replacement] pairs. That shape is 2.x API (scripts/eval/win-glyphs.mjs reads it; §1 of the plan), so
-// compat and the shim that replaces library/win.js in Phase 6 build it from here. Each call returns new objects
-// and new RegExps, as open to change as 2.x's, so no caller can reach this module's own data.
-export function legacyWinTables() {
-  const names = legacyRoleNames();
-  const win = {};
-  const keys = Object.keys(WIN_GLYPHS);
-  for (let i = 0; i < keys.length; i++) win[keys[i]] = legacyRow(WIN_GLYPHS[keys[i]], names);
-  const controls = Object.keys(C1_ALIASES);
-  for (let i = 0; i < controls.length; i++) win[controls[i]] = win[C1_ALIASES[controls[i]]];
-  const rows = lookAlikeSequences();
-  const sequences = [];
-  for (let i = 0; i < rows.length; i++) sequences.push([rows[i].re, rows[i].to]);
-  return { WIN: win, SEQUENCES: sequences, ROLES: legacyRoles(names) };
-}
-
-// The 2.x role string of each ROLE (storageOrder.js:10-16).
-function legacyRoleNames() {
-  const names = [];
-  names[ROLE.BASE] = 'base';
-  names[ROLE.BEFORE_BASE] = 'pre';
-  names[ROLE.MARK] = 'mark';
-  names[ROLE.STACK] = 'stack';
-  names[ROLE.KINZI] = 'kinzi';
-  names[ROLE.PLAIN] = 'text';
-  return names;
-}
-
-// storageOrder.ROLES: { BASE, PRE, MARK, STACK, KINZI, TEXT }, in that order.
-function legacyRoles(names) {
-  return {
-    BASE: names[ROLE.BASE], PRE: names[ROLE.BEFORE_BASE], MARK: names[ROLE.MARK], STACK: names[ROLE.STACK],
-    KINZI: names[ROLE.KINZI], TEXT: names[ROLE.PLAIN]
-  };
-}
-
-// A row in the 2.x shape: [role string, text], with the attached marks as a third item only where the row has them.
-function legacyRow(row, names) {
-  const out = [names[row[0]], row[1]];
-  if (row.length > 2) out.push(row[2]);
-  return out;
-}

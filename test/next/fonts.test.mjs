@@ -7,16 +7,12 @@
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { createRequire } from 'node:module';
 import { ROLE, KINZI_TEXT } from '../../src/script/codes.js';
 import { ZAWGYI_GLYPHS, LAGAUNG_SEQUENCES, ZAWGYI_FONT } from '../../src/fonts/zawgyi.js';
-import {
-  WIN_GLYPHS, LOOK_ALIKE_SEQUENCES, C1_ALIASES, WIN_FONT, legacyWinTables
-} from '../../src/fonts/win.js';
+import { WIN_GLYPHS, LOOK_ALIKE_SEQUENCES, C1_ALIASES, WIN_FONT } from '../../src/fonts/win.js';
 import { compileFont } from '../../src/engine/fontReader.js';
 import { internals, oracle, hex } from './helpers.mjs';
 
-const require = createRequire(import.meta.url);
 const zawgyi2x = internals('zawgyi.js', ['ZAWGYI', 'SEQUENCES', 'FONT']);
 const win2x = internals('win.js', ['WIN', 'SEQUENCES', 'CP1252', 'FONT']);
 const ROLES_2X = oracle.storageOrder.ROLES;
@@ -121,31 +117,6 @@ describe('src/fonts/win.js (DESIGN.md §2.3)', () => {
     assert.equal(WIN_FONT.aliases, C1_ALIASES);
     assert.deepEqual(WIN_FONT.wholeBases, ['\u1000\u103B\u1015\u103A', '\u1009\u102C']);
   });
-
-  it('legacyWinTables() has the 2.x shape of win.tables: keys in 2.x order, shared alias rows, role strings', () => {
-    const tables = legacyWinTables();
-    const tables2x = require2xWinTables();
-    assert.deepEqual(Object.keys(tables), ['WIN', 'SEQUENCES', 'ROLES']);
-    assert.deepEqual(Object.keys(tables.WIN), Object.keys(tables2x.WIN));
-    assert.deepEqual(tables.WIN, tables2x.WIN);
-    for (const [control, key] of Object.entries(C1_ALIASES)) assert.equal(tables.WIN[control], tables.WIN[key]);
-    assert.deepEqual(tables.ROLES, tables2x.ROLES);
-    assert.deepEqual(Object.keys(tables.ROLES), Object.keys(tables2x.ROLES));
-    assert.deepEqual(tables.SEQUENCES.map(([re, to]) => [re.source, re.flags, to]),
-      tables2x.SEQUENCES.map(([re, to]) => [re.source, re.flags, to]));
-  });
-
-  it('legacyWinTables() returns new objects each call, none of them this module\'s own data', () => {
-    const first = legacyWinTables();
-    const second = legacyWinTables();
-    assert.notEqual(first, second);
-    assert.notEqual(first.WIN, second.WIN);
-    assert.ok(!Object.isFrozen(first.WIN), 'as open to change as 2.x\'s');
-    first.SEQUENCES.forEach(([re], i) => assert.notEqual(re, LOOK_ALIKE_SEQUENCES[i].re));
-    first.WIN.u[1] = 'changed';
-    assert.equal(WIN_GLYPHS.u[1], '\u1000');
-    assert.equal(legacyWinTables().WIN.u[1], '\u1000');
-  });
 });
 
 describe('the font data is frozen (DESIGN.md §2.3, §4)', () => {
@@ -156,11 +127,6 @@ describe('the font data is frozen (DESIGN.md §2.3, §4)', () => {
     for (const row of LAGAUNG_SEQUENCES.concat(LOOK_ALIKE_SEQUENCES)) assert.equal(row.re.lastIndex, 0, row.id);
   });
 });
-
-// The 2.x win.tables, from the frozen copy.
-function require2xWinTables() {
-  return require('../../scripts/oracle/win.js').tables;
-}
 
 // ---------------------------------------------------------------------------------------------------------------
 // compileFont (DESIGN.md §3.8).
