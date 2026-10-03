@@ -11,7 +11,7 @@ const { loadWithInternals } = require('../../scripts/testing/internals');
 // the search stops at every character. On the Wikipedia sample, counting /\u1004\u103a/g takes about 7 times as
 // long as counting /[\u1004]\u103a/g, and /\u100d\u1039\u100e/g, which never matches there, about 50 times. So the
 // library puts the first character of such a pattern in a class of one, which V8 runs as a regex; a Unicode to
-// Zawgyi rule keeps the source it had before as its label, which debugging output logs (library/syllable.js).
+// Zawgyi rule keeps the source it had before as its label, which debugging output logs (library/syllableRules.js).
 //
 // The range is exactly U+1000-U+1010, and must not widen: from U+1011 the low byte is the higher one, V8 finds the
 // literal quickly, and a class of one is slower (about 5 times as long at U+1011, 1.6 times at U+1014).
@@ -324,7 +324,7 @@ describe('literal searches V8 runs slowly on Myanmar text', () => {
   });
 
   it('logs each wrapped Unicode to Zawgyi rule by the source it had before', () => {
-    const rules = loadWithInternals('syllable.js', ['convertRules']).__internals.convertRules.unicode.zawgyi;
+    const rules = loadWithInternals('syllableRules.js', ['convertRules']).__internals.convertRules.unicode.zawgyi;
     const labelled = rules.oneTime.concat(rules.asLongAsMatch).filter((rule) => rule.length > 2);
     assert.ok(labelled.length > 0);
     for (const rule of labelled) {

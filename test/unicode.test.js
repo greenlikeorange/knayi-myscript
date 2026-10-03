@@ -6,7 +6,7 @@ const vm = require('node:vm');
 const { createRequire } = require('node:module');
 
 // Which Unicode version the character tables match. The tables are hand-written code point ranges in
-// library/storageOrder.js, typingFixes.js, syllable.js and contentGate.js (which fontDetect in detector.js and
+// library/storageOrder.js, typingFixes.js, unicodeParser.js and contentGate.js (which fontDetect in detector.js and
 // every other public function use to find Myanmar text). This test reads the runtime's Unicode data with
 // \p{...} property escapes, so it runs in Node only.
 //
@@ -41,7 +41,7 @@ function internals(file, names) {
 
 const storageOrder = internals('storageOrder.js', ['isMyanmarLetter', 'isUnicodeMark', 'isDigit', 'isOtherMyanmar']);
 const typingFixes = internals('typingFixes.js', ['MARK', 'TONE', 'CONSONANT', 'ANY_DIGIT']);
-const syllable = internals('syllable.js', ['C', 'M', 'V', 'S', 'A', 'F']);
+const parser = internals('unicodeParser.js', ['C', 'M', 'V', 'S', 'A', 'F']);
 const gate = require('../library/contentGate');
 
 const VIRAMA = 0x1039;
@@ -59,7 +59,7 @@ function matches(re) {
   return (cp) => re.test(String.fromCodePoint(cp));
 }
 
-// The ranges syllable.js writes as 'X-Y' inside its bracket classes.
+// The ranges unicodeParser.js writes as 'X-Y' inside its bracket classes.
 function inClass(body) {
   const test = new RegExp('^[' + body + ']$');
   return (cp) => test.test(String.fromCodePoint(cp));
@@ -73,9 +73,9 @@ const TABLES = {
   // What every public function checks first: is there any Myanmar text?
   text: (cp) => gate.hasMyanmar(String.fromCodePoint(cp)),
   letters: (cp) => bmp(storageOrder.isMyanmarLetter)(cp) || matches(typingFixes.CONSONANT)(cp) ||
-    inClass(syllable.C)(cp),
+    inClass(parser.C)(cp),
   marks: (cp) => bmp(storageOrder.isUnicodeMark)(cp) || cp === VIRAMA || matches(typingFixes.MARK)(cp) ||
-    matches(typingFixes.TONE)(cp) || inString(syllable.M + syllable.V + syllable.S + syllable.A + syllable.F)(cp),
+    matches(typingFixes.TONE)(cp) || inString(parser.M + parser.V + parser.S + parser.A + parser.F)(cp),
   digits: (cp) => bmp(storageOrder.isDigit)(cp) || matches(typingFixes.ANY_DIGIT)(cp)
 };
 

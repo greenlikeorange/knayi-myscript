@@ -112,7 +112,7 @@ The exports, `index.d.ts` and `library/converter.d.ts`, the `dist/` file names a
 
 - New exports and options may come in a minor version, with types, matrix rows and tests.
 - A library file that moves leaves a one-line shim at its old path.
-- Don't rewrite a regex literal in `syllable.js` for style: its `.source` is debugging output. A Unicode to Zawgyi rule whose pattern changes for speed keeps its old `.source` as a third item, its label, which debugging output logs instead.
+- Don't rewrite a regex literal in `syllableRules.js` for style: its `.source` is debugging output. A Unicode to Zawgyi rule whose pattern changes for speed keeps its old `.source` as a third item, its label, which debugging output logs instead.
 
 ### Bundle size
 

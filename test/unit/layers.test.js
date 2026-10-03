@@ -25,7 +25,14 @@ const LAYERS = [
   ['L1 core', ['library/globalOptions.js', 'library/contentGate.js']],
   ['L2 fonts', ['library/zawgyi.js', 'library/win.js']],
   ['L3 engine', ['library/storageOrder.js']],
-  ['L3 rules', ['library/typingFixes.js', 'library/syllable.js']],
+  // library/syllable.js is the 2.x path of syllableRules.js, with the test-only unicodeParser.js; the library does
+  // not require either of the two.
+  ['L3 rules', [
+    'library/typingFixes.js',
+    'library/syllableRules.js',
+    'library/unicodeParser.js',
+    'library/syllable.js'
+  ]],
   ['L3 stages', []],
   ['L4 public', [
     'library/converter.js',

@@ -56,7 +56,7 @@ function replace(re, text, replacement) {
 }
 
 function loadTables() {
-  const syllable = loadWithInternals('syllable.js', ['convertRules', 'BREAK_RULES', 'COLLAPSE_MARKS']);
+  const syllable = loadWithInternals('syllableRules.js', ['convertRules', 'BREAK_RULES', 'COLLAPSE_MARKS']);
   return {
     zawgyi: loadWithInternals('zawgyi.js', ['ZAWGYI', 'SEQUENCES']).__internals,
     win: require(path.join(LIBRARY, 'win.js')).tables,
@@ -126,7 +126,7 @@ function buildRows(knayi) {
   });
   // fontConvert trims the text and collapses repeated marks, then applies every rule once, in order: each
   // oneTime rule, then each asLongAsMatch rule that matches, which one replace leaves without a match
-  // (syllable.js, convertText).
+  // (syllableRules.js, convertText).
   const u2zApply = (r) => (re, text) => replace(re, text, r.rule[1]);
   const u2zTurn = (index) => (probe) => {
     let text = tables.collapseMarks(probe.trim(), 'unicode');

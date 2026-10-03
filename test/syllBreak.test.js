@@ -113,7 +113,7 @@ describe('syllBreak',()=>{
   })
 
   // For the default breakpoint, syllBreak returns the text the break rules mark with U+200B, without splitting it
-  // into parts and joining them (breakText in library/syllable.js). A String object holding U+200B is not the
+  // into parts and joining them (breakText in library/syllableRules.js). A String object holding U+200B is not the
   // default breakpoint, so it takes the split and join, and must give the same text.
   describe('the default breakpoint', () => {
     it('gives what joining the parts with U+200B gives', () => {

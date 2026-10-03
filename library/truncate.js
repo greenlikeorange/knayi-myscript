@@ -3,7 +3,7 @@
 const fontDetect = require('./detector');
 const globalOptions = require('./globalOptions');
 const gate = require('./contentGate');
-const syllable = require('./syllable');
+const syllable = require('./syllableRules');
 
 // The start of the text that fits in the budget: the parts while they fit, then, of the first part that does not
 // fit, the longest start that ends in whitespace and fits, so the words of that part that fit with the whitespace

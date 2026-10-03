@@ -78,6 +78,11 @@ const floor = require('../scripts/browser/floor');
 const examples = require('../scripts/browser/examples');
 
 examples.runCalls(knayi, examples.allCalls());
+// What main.js builds, which min.js must build too (below).
+const fromMainJs = records.slice();
+// library/ also ships files that main.js does not load (library/syllable.js, the 2.x path, and the test-only
+// parser it exports); they build their RegExps when they load.
+for (const file of fs.readdirSync(LIBRARY).filter((f) => f.endsWith('.js'))) require(LIBRARY + file);
 
 // The records are complete, so the hooks come out again: under `bun test` they would also see the test files
 // that run after this one.
@@ -165,7 +170,7 @@ describe('RegExps built from strings', () => {
     vm.runInContext(fs.readFileSync(path.join(dist, 'knayi-myscript.min.js'), 'utf8'), context);
     vm.runInContext('(' + examples.runCalls + ')(knayi, JSON.parse(' + JSON.stringify(JSON.stringify(examples.allCalls())) + '))', context);
     const fromMin = [...new Set(vm.runInContext('built', context))].sort();
-    const fromMain = [...new Set(records.filter((r) => r.via === 'new RegExp' || r.via === 'RegExp()')
+    const fromMain = [...new Set(fromMainJs.filter((r) => r.via === 'new RegExp' || r.via === 'RegExp()')
       .map((r) => String(r.pattern) + '/' + r.flags))].sort();
     assert.deepEqual(fromMin, fromMain);
   });

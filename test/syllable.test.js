@@ -6,7 +6,7 @@ const fc = require('fast-check');
 const { check, runs } = require('../scripts/testing/fuzz-settings');
 const { loadWithInternals } = require('../scripts/testing/internals');
 
-const internals = loadWithInternals('syllable.js', ['convertRules', 'COLLAPSE_MARKS', 'BREAK_RULES']).__internals;
+const internals = loadWithInternals('syllableRules.js', ['convertRules', 'COLLAPSE_MARKS', 'BREAK_RULES']).__internals;
 const gate = require('../library/contentGate');
 const arb = require('../scripts/testing/arbitraries');
 
@@ -73,7 +73,7 @@ describe('collapseMarks', function () {
 
 // convertText applies each asLongAsMatch rule of Unicode to Zawgyi with one replace, where 2.10 replaced again
 // while the rule matched (at most 40 times). That gives the same text, and the same debugging log, only if one
-// replace never leaves a match: the reason is in library/syllable.js, and this checks it on generated strings.
+// replace never leaves a match: the reason is in library/syllableRules.js, and this checks it on generated strings.
 describe('the asLongAsMatch rules of Unicode to Zawgyi', function () {
   const rules = internals.convertRules.unicode.zawgyi.asLongAsMatch;
   // Syllables of the shape the rules read: a medial ra glyph (each rule starts with one), a consonant, a medial
@@ -219,6 +219,33 @@ describe('breakStart', function () {
           assert.deepEqual(start, whole);
         }
       }), 20000, [['\u1015\u102d\u1002\u1064\u101c\u102c \u1000\u1000 \u1062\u103a', 2]]);
+    });
+  });
+});
+
+// library/syllable.js is the 2.x path of the syllable rules: it exports the rules of syllableRules.js and the
+// test-only parser of unicodeParser.js, under the names it had when it held both. The library requires neither it
+// nor the parser, so the builds leave both out.
+describe('library/syllable.js', function () {
+  it('exports the rules and the parser under the names it had', function () {
+    const rules = require('../library/syllableRules');
+    const parser = require('../library/unicodeParser');
+    assert.deepEqual(Object.keys(syllable), ['parseUnicode', 'serializeUnicode', 'collapseMarks', 'breakParts',
+      'breakStart', 'joinParts', 'breakText', 'convertText']);
+    Object.keys(syllable).forEach(function (name) {
+      assert.equal(syllable[name], name in parser ? parser[name] : rules[name], name);
+    });
+  });
+
+  it('is left out of the builds, with the parser', function () {
+    const fs = require('fs');
+    const path = require('path');
+    const { builtDist } = require('../scripts/build');
+    ['knayi-myscript.js', 'knayi-myscript.mjs'].forEach(function (name) {
+      const source = fs.readFileSync(path.join(builtDist(), name), 'utf8');
+      assert.ok(source.indexOf('// library/syllableRules.js\n') !== -1, name + ' has no syllableRules.js');
+      assert.equal(source.indexOf('// library/syllable.js\n'), -1, name + ' has syllable.js');
+      assert.equal(source.indexOf('// library/unicodeParser.js\n'), -1, name + ' has unicodeParser.js');
     });
   });
 });

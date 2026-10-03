@@ -1,6 +1,6 @@
 # Architecture
 
-How knayi-myscript is built today: version 2.10.0, including the Shan look-alike fix (#73), the fix for `normalize`'s quadratic time on runs of e and medial ra (#74), NFC in linear time (`library/nfc.js`), one policy for font names, in any letter case (`resolveFont`, `breakFont` and `givenName` in `library/contentGate.js`), a `fontDetect` fallback that is a string or none, detector options that may be `null` and are checked (thresholds in order, adapter names), with every message silenced by silent mode, a `fontConvert` that reads no debug flag from `this`, a `fontConvert.debugging` that returns its report on every exit with text, as the types promise, the typing fixes in one order, typos then look-alikes, in conversion and `normalize`, a Unicode to Zawgyi rule for stacked jha, and a `truncate` that returns the start of the text and breaks only that start. This is a map of the current code, not a target design. A pull request that changes something described here updates this file in the same PR.
+How knayi-myscript is built today: version 2.10.0, including the Shan look-alike fix (#73), the fix for `normalize`'s quadratic time on runs of e and medial ra (#74), NFC in linear time (`library/nfc.js`), one policy for font names, in any letter case (`resolveFont`, `breakFont` and `givenName` in `library/contentGate.js`), a `fontDetect` fallback that is a string or none, detector options that may be `null` and are checked (thresholds in order, adapter names), with every message silenced by silent mode, a `fontConvert` that reads no debug flag from `this`, a `fontConvert.debugging` that returns its report on every exit with text, as the types promise, the typing fixes in one order, typos then look-alikes, in conversion and `normalize`, a Unicode to Zawgyi rule for stacked jha, a `truncate` that returns the start of the text and breaks only that start, and builds without the Unicode syllable parser that only the tests use. This is a map of the current code, not a target design. A pull request that changes something described here updates this file in the same PR.
 
 - [Entry points and builds](#entry-points-and-builds)
 - [Module map](#module-map)
@@ -55,7 +55,11 @@ All library code is CommonJS in `library/`. Every file there is strict code: it 
 | `nfc.js` | `nfc`, and `nfc.reorder` for the tests | `String.prototype.normalize('NFC')` in linear time: long runs of combining marks are put in order first ([below](#nfc-in-linear-time-librarynfcjs)). |
 | `zawgyi.js` | `toUnicode` | The Zawgyi glyph table and its two lagaung sequences. |
 | `win.js` | `toUnicode`, `tables` | The Win Innwa glyph table, its look-alike sequences and the Windows-1252 to C1 aliases. `tables` is `{ WIN, SEQUENCES, ROLES }`, read by `scripts/eval/win-glyphs.mjs`. |
-| `syllable.js` | `parseUnicode`, `serializeUnicode`, `collapseMarks`, `breakParts`, `breakStart`, `joinParts`, `breakText`, `convertText` | Four jobs in one file: the Unicode to Zawgyi rules, the mark-collapse rules, the syllable-break rules, and a Unicode syllable parser that only the tests use (`parseUnicode`, `serializeUnicode`). |
+| `syllableRules.js` | `collapseMarks`, `breakParts`, `breakStart`, `joinParts`, `breakText`, `convertText` | Three jobs in one file: the Unicode to Zawgyi rules, the mark-collapse rules and the syllable-break rules. |
+| `unicodeParser.js` | `parseUnicode`, `serializeUnicode` | A Unicode syllable parser that only the tests use. No public function calls it. |
+| `syllable.js` | `parseUnicode`, `serializeUnicode`, `collapseMarks`, `breakParts`, `breakStart`, `joinParts`, `breakText`, `convertText` | The 2.x path of the syllable rules: one line that exports what `unicodeParser.js` and `syllableRules.js` export, under the names this file had when it held both. |
+
+`main.js` requires neither `syllable.js` nor `unicodeParser.js`, so the builds leave them out: the parser would add about 430 bytes to `min.js` with gzip. They still ship in `library/`, so `require('knayi-myscript/library/syllable')` gives what it gave in 2.10 (`test/syllable.test.js` checks the names and the builds).
 
 ### Dependency graph
 
@@ -63,14 +67,16 @@ All library code is CommonJS in `library/`. Every file there is strict code: it 
 main.js
 ├── globalOptions.js
 ├── detector.js ─────────── globalOptions.js, contentGate.js
-├── converter.js ────────── detector.js, globalOptions.js, contentGate.js, syllable.js, win.js, zawgyi.js
-├── syllBreak.js ────────── detector.js, globalOptions.js, contentGate.js, syllable.js
-├── spellingCheck.js ────── detector.js, globalOptions.js, contentGate.js, syllable.js
-├── truncate.js ─────────── detector.js, globalOptions.js, contentGate.js, syllable.js
+├── converter.js ────────── detector.js, globalOptions.js, contentGate.js, syllableRules.js, win.js, zawgyi.js
+├── syllBreak.js ────────── detector.js, globalOptions.js, contentGate.js, syllableRules.js
+├── spellingCheck.js ────── detector.js, globalOptions.js, contentGate.js, syllableRules.js
+├── truncate.js ─────────── detector.js, globalOptions.js, contentGate.js, syllableRules.js
 └── normalization.js ────── globalOptions.js, contentGate.js, storageOrder.js, typingFixes.js, nfc.js
 
 zawgyi.js, win.js ───────── storageOrder.js ───── typingFixes.js, nfc.js
-leaves: globalOptions.js, contentGate.js, syllable.js, typingFixes.js, nfc.js
+leaves: globalOptions.js, contentGate.js, syllableRules.js, typingFixes.js, nfc.js
+
+not bundled: syllable.js ── unicodeParser.js, syllableRules.js
 ```
 
 Two edges point the unexpected way. The font data modules (`zawgyi.js`, `win.js`) require the engine and call its pipeline, instead of the engine reading the tables. And the engine (`storageOrder.js`) requires `typingFixes.js`, because `toUnicode` runs the whole font pipeline, typing fixes included.
@@ -83,7 +89,7 @@ Two edges point the unexpected way. The font data modules (`zawgyi.js`, `win.js`
 - `detector.js`: the loaded myanmar-tools detector, the load error, and a flag so the "not installed" warning is printed once.
 - `storageOrder.js`: a scratch array for the rank sort in `order`, which never runs inside itself.
 - `nfc.js`: what it has read from `String.prototype.normalize`: whether each code point below U+20000 it has looked at is a run character, in a 128 KB `Uint8Array` made when it first looks at one at or above U+0300, and the decomposition and combining classes of each run character (about a thousand exist). The memory stays bounded whatever the text; a character above U+1FFFF that is not a run character is probed again each time.
-- The rule regexes in `syllable.js`, and its `WHITESPACE`, have the `g` flag and are shared between calls, so the code resets `lastIndex` before each use.
+- The rule regexes in `syllableRules.js`, and its `WHITESPACE`, have the `g` flag and are shared between calls, so the code resets `lastIndex` before each use.
 
 Console output: missing content, an unknown source font and an unknown adapter warn (`console.warn`), conversion errors and the threshold error use `console.error`, and `silent_mode` silences all of them. The threshold error (`globalOptions.detector`) starts with its code in brackets, `[ERR_KNAYI_INVALID_THRESHOLD]`; no other message has a code.
 
@@ -268,9 +274,9 @@ The fonts also have a stage `normalize` does not: `zeroAsWa` (in `storageOrder.j
 These live in regex tables, applied one pass per pattern:
 
 - **Detection** (`detector.js`): 29 signature patterns. Only one has a comment saying why it is there.
-- **Breaks** (`syllable.js`, `BREAK_RULES`): each rule inserts or removes U+200B, except the first Unicode rule, which puts a dot below typed after asat in front of it. A rule may have a third item, a pattern that turns it off for the whole text; the Zawgyi kinzi rule uses it to skip text with S'gaw Karen vowels. A rule reads whitespace only as the first character of a match, which lets `truncate` break only the start of a text ([above](#syllbreak-spellingfix-and-truncate)).
-- **Mark collapse** (`syllable.js`, `COLLAPSE_MARKS` and `COLLAPSE`): the marks of each font, and one regex per font, `([marks])\1\1*`, which finds a mark and the same mark after it, so a run of one mark becomes that mark and two different marks stay. It gives what one `[mark]{2,}` regex per mark, applied in turn, gave in 2.10 (`test/syllable.test.js`). `\1\1*` matches what `\1+` matches, but V8 runs it faster on text where marks are rarely repeated.
-- **Unicode to Zawgyi** (`syllable.js`, `convertRules`): 58 `oneTime` rules, each applied once in order, then 8 `asLongAsMatch` rules, each applied with one replace when it matches. A stacked consonant with a rule of its own becomes Zawgyi's glyph for it; a virama that no rule reads stays U+1039, which Zawgyi reads as an asat. Stacked jha and stacked ca with medial ya both become U+1069, Zawgyi's stacked jha, which `zawgyi.js` reads back as stacked jha. They are rules to apply while they match, as 2.10 did (at most 40 times), but one replace leaves no match: each rule replaces the medial ra its pattern starts with (U+103B or U+107E) by another glyph, and the rest of its pattern matches neither of those two nor the glyphs the rule writes. `test/syllable.test.js` checks that on generated strings. A rule is `[pattern, replacement]`, or `[pattern, replacement, label]`. With `debug`, `matched_patterns` holds the label of each `oneTime` rule that changed the text and each `asLongAsMatch` rule that matched, which is the regex `.source` of a rule without one, and `steps` holds the text before each of those rules followed by the result.
+- **Breaks** (`syllableRules.js`, `BREAK_RULES`): each rule inserts or removes U+200B, except the first Unicode rule, which puts a dot below typed after asat in front of it. A rule may have a third item, a pattern that turns it off for the whole text; the Zawgyi kinzi rule uses it to skip text with S'gaw Karen vowels. A rule reads whitespace only as the first character of a match, which lets `truncate` break only the start of a text ([above](#syllbreak-spellingfix-and-truncate)).
+- **Mark collapse** (`syllableRules.js`, `COLLAPSE_MARKS` and `COLLAPSE`): the marks of each font, and one regex per font, `([marks])\1\1*`, which finds a mark and the same mark after it, so a run of one mark becomes that mark and two different marks stay. It gives what one `[mark]{2,}` regex per mark, applied in turn, gave in 2.10 (`test/syllable.test.js`). `\1\1*` matches what `\1+` matches, but V8 runs it faster on text where marks are rarely repeated.
+- **Unicode to Zawgyi** (`syllableRules.js`, `convertRules`): 58 `oneTime` rules, each applied once in order, then 8 `asLongAsMatch` rules, each applied with one replace when it matches. A stacked consonant with a rule of its own becomes Zawgyi's glyph for it; a virama that no rule reads stays U+1039, which Zawgyi reads as an asat. Stacked jha and stacked ca with medial ya both become U+1069, Zawgyi's stacked jha, which `zawgyi.js` reads back as stacked jha. They are rules to apply while they match, as 2.10 did (at most 40 times), but one replace leaves no match: each rule replaces the medial ra its pattern starts with (U+103B or U+107E) by another glyph, and the rest of its pattern matches neither of those two nor the glyphs the rule writes. `test/syllable.test.js` checks that on generated strings. A rule is `[pattern, replacement]`, or `[pattern, replacement, label]`. With `debug`, `matched_patterns` holds the label of each `oneTime` rule that changed the text and each `asLongAsMatch` rule that matched, which is the regex `.source` of a rule without one, and `steps` holds the text before each of those rules followed by the result.
 
 **Literal searches V8 runs slowly.** V8 finds the first character of a regex that is a plain literal (no class, group, alternative, anchor or quantifier), and of an `indexOf`, `includes`, `split` or `replace` needle, by the higher of its two bytes. For U+1000 to U+1010 that byte is 0x10, which every Myanmar character has, so on Myanmar text the search stops at every character and takes 6 to 50 times as long. So no pattern or needle in the library starts there as a plain literal: the first character goes in a class of one, as in `/[\u1004]\u103a\u1039/`, which V8 runs as a regex. Eight patterns are written this way: six Unicode to Zawgyi rules, which keep the source they had before as their label, so debugging output does not change, and the detector signatures for nya and nga with asat. The range is exact: from U+1011 the low byte is the higher one, the literal search is fast, and a class of one is slower. JavaScriptCore (Bun) runs a class of one slower than the literal at every character, so `fontDetect` is slower there: about 10% per line, and up to about 25% on one long string or document. `test/unit/literal-search.test.js` checks both directions, on the source and on the regexes and needles the call forms use.
 
@@ -302,16 +308,16 @@ These are the 2.x API. Changing them needs a major version.
 | The deep path `knayi-myscript/library/converter` | README ("These paths load"); `test/compat.test.js`; its types, `library/converter.d.ts`, in `typecheck/deep-path.ts` and `typecheck/packed/`. |
 | The shape of `win.tables` | `{ WIN, SEQUENCES, ROLES }`, with the role strings; read by `scripts/eval/win-glyphs.mjs`. |
 | The debug stage names and their order | `sequences`, `glyphs`, `syllables`, `zero as wa`, `typos`, `look-alikes`, `NFC`: README (`fontConvert.debugging`); `test/zawgyi.test.js`, with one input that passes all seven; the stage lists of `test/fixtures/tables.json`; and the comparison with the frozen 2.10 engine, with the deliberate changes made since, in `test/fuzz.test.js`. |
-| The regex-source labels in `matched_patterns` | Unicode to Zawgyi debugging logs each rule's label: its third item, the source its pattern had before a rewrite for speed, or else its pattern's `.source` (`syllable.js`, `record`). Rewriting a regex literal, even to an equal pattern, changes this output, unless the rule keeps the old source as its label. |
+| The regex-source labels in `matched_patterns` | Unicode to Zawgyi debugging logs each rule's label: its third item, the source its pattern had before a rewrite for speed, or else its pattern's `.source` (`syllableRules.js`, `record`). Rewriting a regex literal, even to an equal pattern, changes this output, unless the rule keeps the old source as its label. |
 | Error codes | The `code` of each error knayi throws on purpose: `ERR_KNAYI_INVALID_FONT` (`contentGate.js`); README ("Font names"); the contract matrix. The code at the start of the threshold error, `[ERR_KNAYI_INVALID_THRESHOLD]` (`globalOptions.js`); README ("fontDetect"). Messages may change; codes may not. |
 
-Any library file that moves keeps a one-line shim at its old path through 2.x.
+Any library file that moves keeps a one-line shim at its old path through 2.x, as `syllable.js` does for the rules that moved to `syllableRules.js`.
 
 ## Quirks kept on purpose
 
 The 2.x code keeps these so that refactors stay byte-identical. Each one changes only in its own deliberate pull request, with a CHANGELOG line.
 
-- **Three `isConsonant`s:** `storageOrder.js` means Burmese consonants (U+1000–U+1021), `typingFixes.js` the consonants of every language in the Myanmar blocks, and `syllable.js` the Burmese range again, for the test-only parser.
+- **Three `isConsonant`s:** `storageOrder.js` means Burmese consonants (U+1000–U+1021), `typingFixes.js` the consonants of every language in the Myanmar blocks, and `unicodeParser.js` the Burmese range again, for the test-only parser.
 - **Bases differ between engines:** U+1022 and U+1028 start a syllable in `storageOrder.js` (`isMyanmarLetter`) but not in the Unicode break rules.
 - **`fontConvert` reads a font that is not a string by its string form:** `resolveFont` looks the value up as a property name, with no case folding, so `['zawgyi']` is Zawgyi and `['ZAWGYI']` is detected, where `syllBreak`, `spellingFix` and `truncate` detect the font for any value that is not a string. Only an unknown name that is a string warns.
 - **`truncate` throws on an object that `String()` cannot convert,** such as `Object.create(null)` or `{ toString: undefined }`: it turns non-strings into strings with `String(content)` (`truncate.js`), where the other functions return them unchanged. `test/properties.test.js` pins the `TypeError`.
@@ -319,7 +325,7 @@ The 2.x code keeps these so that refactors stay byte-identical. Each one changes
 
 ## Where the rules are justified
 
-The rules in `storageOrder.js`, `typingFixes.js` and the glyph tables have a comment next to them in the code; the regex tables in `detector.js` and `syllable.js` mostly do not. The evidence, the counts on real text and the choices between sources are in `research/`:
+The rules in `storageOrder.js`, `typingFixes.js` and the glyph tables have a comment next to them in the code; the regex tables in `detector.js` and `syllableRules.js` mostly do not. The evidence, the counts on real text and the choices between sources are in `research/`:
 
 | Note | Covers |
 | --- | --- |

@@ -3,7 +3,7 @@
 const fontDetect = require('./detector');
 const globalOptions = require('./globalOptions');
 const gate = require('./contentGate');
-const syllable = require('./syllable');
+const syllable = require('./syllableRules');
 const win = require('./win');
 const zawgyi = require('./zawgyi');
 
