@@ -57,15 +57,22 @@ export function perCall(fn, minMs) {
 
 // How a call's time grows with its input, per doubling: 1 is linear, 2 quadratic. The plan's measure is
 // log2(t(2n) / t(n)); this averages it over two doublings, log2(t(4n) / t(n)) / 2, because a single doubling reads
-// anywhere from 0.9 to 1.3 on linear code under Bun. t(n), t(2n) and t(4n) are the medians of `samples` rotating
-// per-call timings of at least `sampleMs` each, after `warmMs` of calls at each size. A call slower than `capMs`
-// at n is reported without an exponent.
-// The sizes stay small on purpose: n = 1,024 UTF-16 units, so 4n = 4,096. Linear code costs more per unit on
-// longer strings. Under V8 the step is where strings pass 128 KB (64k units) and go to the large-object space: the
-// Win reader took about 21 ns a unit up to 128k units and 60 ns at 1M, and a doubling across the step read 1.3-2.2.
-// Under Bun the cost per unit starts to climb from about 4k units (1.1-1.3 a doubling up to 64k). Super-linear
-// code shows long before either: the 2.10 quadratic normalize reads 2.0 at these sizes.
-export function growthExponent(call, make, { n = 1024, samples = 3, sampleMs = 5, warmMs = 10, capMs = 1500 } = {}) {
+// anywhere from 0.9 to 1.3 on linear code under Bun. t(n), t(2n) and t(4n) are the fastest of `samples` rotating
+// per-call timings of at least `sampleMs` each, after `warmMs` of calls at each size: another process, a garbage
+// collection or a timer interrupt only ever adds time, so the minimum is the reading least disturbed (the median
+// of three still read 1.3-1.5 on linear calls of 4-70 microseconds while another process ran). A call slower than
+// `capMs` at n is reported without an exponent.
+//
+// The sizes. A quadratic term with a small constant reads close to linear while the linear part dominates: a
+// normalize that rescanned its prefix at every eighth character took 5 ms at 25k units against 1.9 ms for the linear
+// code; on the 36 shapes it read at most 1.25 at n = 1,024, and 1.3 to 1.65 on 17 of them at n = 8,192, where
+// linear code reads at most 1.11. So under V8, n = 8,192 (4n = 32,768), below the step where
+// strings pass 128 KB (64k units) and go to the large-object space: the Win reader took about 21 ns a unit up to
+// 128k units and 60 ns at 1M, and a doubling across the step read 1.3-2.2. Under Bun the cost per unit of linear
+// code starts to climb from about 4k units (1.1-1.3 a doubling up to 64k), so n stays 1,024 there.
+export const GROWTH_N = typeof Bun !== 'undefined' ? 1024 : 8192;
+
+export function growthExponent(call, make, { n = GROWTH_N, samples = 3, sampleMs = 5, warmMs = 10, capMs = 1500 } = {}) {
   const sizes = [make(n), make(2 * n), make(4 * n)];
   call(sizes[0].slice(0, 64));
   const first = timeOnce(() => call(sizes[0]));
@@ -79,6 +86,6 @@ export function growthExponent(call, make, { n = 1024, samples = 3, sampleMs = 5
       times[k].push(perCall(() => call(sizes[k]), sampleMs));
     }
   }
-  const [t1, t2, t4] = times.map(median);
+  const [t1, t2, t4] = times.map((xs) => Math.min(...xs));
   return { n, units: sizes[0].length, ms: t1, ms2: t2, ms4: t4, exponent: Math.log2(t4 / t1) / 2 };
 }

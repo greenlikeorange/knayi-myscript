@@ -27,7 +27,8 @@
 // it too when started with --expose-gc.
 //
 // Growth exponents (lib/timing.mjs): every adversarial shape of lib/inputs.mjs through the forms of GROWTH_FORMS,
-// at 1,024, 2,048 and 4,096 units. A reading above --max-exponent is measured twice more and the median kept.
+// at n, 2n and 4n units (n = 8,192 under Node, 1,024 under Bun). A reading above --max-exponent is measured twice
+// more, and the run fails only when all three readings are above it.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -162,15 +163,16 @@ async function measure({ base, head, opts }) {
   return result;
 }
 
-// A reading above the limit is measured twice more and the median of the three kept: super-linear code reads high
-// every time, while a garbage-collection pause in one sample does not repeat (JavaScriptCore under Bun has more of
-// them at these sizes than V8).
+// A reading above the limit is measured twice more and the lowest of the three kept, so a cell fails only when all
+// three are above the limit, as in test/growth.test.js: super-linear code reads high every time, while another
+// process or a garbage-collection pause (JavaScriptCore under Bun has more of them than V8) seldom spoils three
+// measurements in a row.
 function confirmedGrowth(call, make, limit) {
   const first = growthExponent(call, make);
   if (first.exponent != null && first.exponent <= limit) return first;
   const tries = [first, growthExponent(call, make), growthExponent(call, make)];
   const value = (g) => (g.exponent == null ? Infinity : g.exponent);
-  const kept = tries.slice().sort((x, y) => value(x) - value(y))[1];
+  const kept = tries.slice().sort((x, y) => value(x) - value(y))[0];
   return { ...kept, tries: tries.map((g) => g.exponent) };
 }
 
@@ -238,8 +240,9 @@ function report(results, opts, base, head) {
       const cells = r.growth.filter((g) => g.head);
       const over = cells.filter((g) => g.head.exponent == null || g.head.exponent > opts.maxExponent);
       const highest = cells.filter((g) => g.head.exponent != null).sort((x, y) => y.head.exponent - x.head.exponent);
-      console.log('\n' + r.runtime + ' ' + r.version + ': growth exponents of the head, per doubling from 1,024 to 4,096 units ' +
-        '(1 is linear, 2 quadratic)');
+      const n = cells.length ? cells[0].head.n : 0;
+      console.log('\n' + r.runtime + ' ' + r.version + ': growth exponents of the head, per doubling from ' + num(n) + ' to ' +
+        num(4 * n) + ' units (1 is linear, 2 quadratic; the lowest of three readings when one is high)');
       console.log('  ' + cells.length + ' cells (' + SHAPES.length + ' shapes × ' + (cells.length / SHAPES.length) + ' call forms), ' +
         over.length + ' above ' + opts.maxExponent + '; highest:');
       for (const g of highest.slice(0, 5)) {
