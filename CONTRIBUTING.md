@@ -172,8 +172,8 @@ For the maintainer. A release is the only commit that changes `dist/`.
 3. **Bump the version** in `package.json` and `package-lock.json` (`npm version X.Y.Z --no-git-tag-version`), in `main.js` (`const version`), in `test/compat.test.js`, and in the README (the version line and the unpkg URL). `test/package.test.js` checks that `main.js` and `package.json` agree.
 4. **Update `CHANGELOG.md`:** rename Unreleased to `X.Y.Z` with the date, and start a new, empty Unreleased section.
 5. **Rebuild `dist/`** with `npm run build`, check it with `npm run check:dist -- --fresh`, and run `KNAYI_DIST=dist npm test`, `npm run test:bun` and `npm run test:pack`. Note the `min.js` size from `npm run check:size` in the release notes.
-6. **Rebuild the benchmark page** with `npm run bench:page`, and commit `docs/benchmark.html` and `docs/benchmark.json`.
-7. **Commit** as `chore(release): X.Y.Z`, open the pull request, and merge it once CI passes.
+6. **Commit** the version bump, `CHANGELOG.md` and `dist/` as `chore(release): X.Y.Z`.
+7. **Rebuild the benchmark page** with `npm run bench:page`, after that commit: the page records the commit it measured and whether the code had uncommitted changes, so run before the commit, it would name the previous commit "with uncommitted changes". Commit `docs/benchmark.html` and `docs/benchmark.json` as `docs(benchmark): results for X.Y.Z`. Open the pull request with both commits, and merge it once CI passes.
 8. **Tag** the merge commit on `main`: `git tag -a vX.Y.Z -m X.Y.Z`, then `git push origin vX.Y.Z`.
 9. **Publish to npm with provenance:** `npm publish --provenance` from a GitHub Actions job with `id-token: write`, since npm generates provenance only on a supported CI provider, not on a laptop. A prerelease goes to the `next` dist-tag (`--tag next`). Until a publish workflow exists, publish from a clean checkout of the tag, and say in the release notes that the release has no provenance.
 10. **Pin the demo.** In `docs/index.html`, point the jsDelivr `<script>` at `@X.Y.Z` and set `integrity` to the hash of the published file:
