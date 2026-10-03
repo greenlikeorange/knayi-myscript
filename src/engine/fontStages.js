@@ -24,15 +24,21 @@ const WIN = /* @__PURE__ */ compileFont(WIN_FONT);
 const ZAWGYI_CONTEXT = /* @__PURE__ */ deepFreeze({ openAllGates: false, font: ZAWGYI });
 const WIN_CONTEXT = /* @__PURE__ */ deepFreeze({ openAllGates: false, font: WIN });
 
-// The stages, in 2.x order. Each run takes (text, ctx) and returns the text after it.
+// The stages, in 2.x order. Each run takes (text, ctx) and returns the text after it. The last four read only the
+// text, so they are the typing-fix and NFC functions themselves, as in NORMALIZE_STAGES:
+// - 'zero as wa': Zawgyi and Win have no glyph for wa and type it as zero, so a zero that is not part of a number
+//   is wa (research/zawgyi-to-unicode.md §2; research/win-fonts.md §5, "Zero").
+// - 'look-alikes', then 'typos': the typing fixes normalize makes too, look-alikes first in this pipeline and typos
+//   first in normalize's (research/normalize.md §4; ARCHITECTURE.md, "Typing fixes and their two orders").
+// - 'NFC': the result is NFC (research/zawgyi-to-unicode.md §2).
 export const FONT_STAGES = /* @__PURE__ */ deepFreeze([
   { id: 'sequences', label: 'sequences', run: replaceSequences },
   { id: 'glyphs', label: 'glyphs', run: showGlyphs, traceOnly: true },
   { id: 'syllables', label: 'syllables', run: readSyllables },
-  { id: 'zero as wa', label: 'zero as wa', run: readZeroAsWa },
-  { id: 'look-alikes', label: 'look-alikes', run: fixLookAlikeLetters },
-  { id: 'typos', label: 'typos', run: fixTypingSlips },
-  { id: 'NFC', label: 'NFC', run: composeNfc }
+  { id: 'zero as wa', label: 'zero as wa', run: zeroAsWa },
+  { id: 'look-alikes', label: 'look-alikes', run: fixLookAlikes },
+  { id: 'typos', label: 'typos', run: fixTypos },
+  { id: 'NFC', label: 'NFC', run: toNfc }
 ]);
 
 // 'sequences': letters the font types as look-alike sequences become the letter, before any glyph is read: Win's
@@ -50,27 +56,6 @@ function showGlyphs(text, ctx) {
 // 'syllables': each syllable in the storage order of UTN #11 (engine/fontReader.js).
 function readSyllables(text, ctx) {
   return readFont(text, ctx.font);
-}
-
-// 'zero as wa': Zawgyi and Win have no glyph for wa and type it as zero, so a zero that is not part of a number is
-// wa (research/zawgyi-to-unicode.md §2; research/win-fonts.md §5, "Zero").
-function readZeroAsWa(text) {
-  return zeroAsWa(text);
-}
-
-// 'look-alikes', then 'typos': the typing fixes normalize makes too, look-alikes first in this pipeline and typos
-// first in normalize's (research/normalize.md §4; ARCHITECTURE.md, "Typing fixes and their two orders").
-function fixLookAlikeLetters(text) {
-  return fixLookAlikes(text);
-}
-
-function fixTypingSlips(text) {
-  return fixTypos(text);
-}
-
-// 'NFC': the result is NFC (research/zawgyi-to-unicode.md §2).
-function composeNfc(text) {
-  return toNfc(text);
 }
 
 // Zawgyi or Win text in Unicode (2.x zawgyi.toUnicode, win.toUnicode). fontName is 'zawgyi' or 'win' (D5): the
