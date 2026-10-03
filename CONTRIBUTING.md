@@ -160,7 +160,7 @@ knayi is MIT-licensed, and contributions are accepted under the same licence.
 - **Never commit or ship the Win fonts.** They are freeware with all rights reserved. Check the Win table with your own copy (`node scripts/eval/win-glyphs.mjs path/to/WININNWA.TTF`) and don't publish the page it writes.
 - **Don't add a font to the repository or the site** unless its licence allows redistribution.
 - **Test fixtures are synthetic or hand-written by default.** Short snippets are allowed from sources under CC BY, CC0 or Apache-2.0, listed in a `SOURCES` file next to the fixtures with the source, its licence and where the snippet is used.
-- **Never commit corpus text or digests of it** from other sources, Common Crawl text included. mC4 and the unlicensed 2018 query log (`queries.tsv`) also stay out of CI: CI's corpus cache holds the other pinned corpora, and compare runs there with `--without mc4`. The eval scripts keep their downloads in `.eval-cache/`, which git ignores.
+- **Never commit corpus text from other sources, or anything derived from its lines,** Common Crawl text included: no line hashes, output snapshots or per-line counts keyed by text. Whole-file sha256 pins of a download, as in `scripts/eval/datasets.mjs`, are fine: they check the file and cannot rebuild any of it. mC4 and the unlicensed 2018 query log (`queries.tsv`) also stay out of CI: CI's corpus cache holds the other pinned corpora, and compare runs there with `--without mc4`. The eval scripts keep their downloads in `.eval-cache/`, which git ignores.
 - **Dependencies:** no runtime dependencies in 2.x (myanmar-tools stays an optional peer). Dev dependencies are fine when they are pinned to an exact version and their licence is checked.
 
 ## Release checklist
