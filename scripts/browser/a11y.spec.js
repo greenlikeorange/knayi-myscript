@@ -1,6 +1,7 @@
 // axe-core accessibility check of the demo (docs/index.html) and the benchmark page (docs/benchmark.html), in
 // light and dark mode, in Chromium only (scripts/browser/playwright.config.js). Every violation is printed and
-// attached; only a serious or critical one that KNOWN does not list fails the test.
+// attached; only a serious or critical one that KNOWN does not list fails the test, and an entry of KNOWN that no
+// page shows any more fails the file (remove it once the page is fixed).
 const { test, expect } = require('@playwright/test');
 const AxeBuilder = require('@axe-core/playwright').default;
 
@@ -28,6 +29,9 @@ const PAGES = [
 ];
 
 let cdnTags = null;
+// The KNOWN violations seen, and how many pages ran to the end of their check in this worker.
+const seen = new Set();
+let pagesChecked = 0;
 
 test.beforeEach(async ({ page, baseURL }) => {
   // Fonts and every other outside request fail, as on a machine with no network.
@@ -69,9 +73,24 @@ for (const target of PAGES) {
       for (const node of v.nodes) {
         const where = node.target.join(' ');
         if ((KNOWN[v.id] || []).indexOf(where) === -1) blocking.push(v.impact + ' ' + v.id + ': ' + where);
-        else testInfo.annotations.push({ type: 'known axe violation', description: v.id + ': ' + where });
+        else {
+          seen.add(v.id + ': ' + where);
+          testInfo.annotations.push({ type: 'known axe violation', description: v.id + ': ' + where });
+        }
       }
     }
+    pagesChecked++;
     expect(blocking, 'serious and critical axe violations; see the log above').toEqual([]);
   });
 }
+
+// The tests of this file run in order in one worker. After a failure Playwright starts a new worker for the rest,
+// which then sees only some of the pages; that run has failed already, so the check is left out.
+test.afterAll(() => {
+  if (pagesChecked < PAGES.length) return;
+  const stale = [];
+  for (const id of Object.keys(KNOWN)) {
+    for (const where of KNOWN[id]) if (!seen.has(id + ': ' + where)) stale.push(id + ': ' + where);
+  }
+  expect(stale, 'KNOWN lists axe violations that no page shows any more; remove them').toEqual([]);
+});
