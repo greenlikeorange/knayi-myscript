@@ -2226,6 +2226,8 @@ The plan left open whether to cut such a line at a syllable boundary or to raise
 
 **Speed.** On FLORES, Okell and mC4, each as one document in 64 KB chunks, a stream takes about the time of its function on the whole text: 0.74-1.02 of `normalize`'s, 1.01-1.12 of `toUnicode`'s from Zawgyi and 1.03-1.26 of its detecting each line (median of 5 interleaved rounds, Node 26.5). UTF-8 bytes cost 0.02-0.18 more than strings, the share of decoding; `mapLines` alone reads 0.75-1.10.
 
+**Sizes** (`scripts/next/size.mjs`, as §6.4 measures, gzip level 9): all the streams are 16,082 B, and an import of `createNormalizer` alone 10,315 B: the 9,200 B of `normalize` alone from `src/index.js`, and 1,115 B of the line cutter and the stream. The tree-shaking check of §2.4 runs on that import too: no byte of the fonts, detection, conversion or segmentation. The two error codes of §12.3 and §12.4 add 43 B to compat and to the 3.0 API, which share `ERR`.
+
 ---
 
 ## Appendix A: names, 2.x to next
