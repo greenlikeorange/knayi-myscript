@@ -19,8 +19,9 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
-// Targets before the port of the 2.x linear NFC helper (§6.4, §8). The port moves them to 10,854 B and 4,850 B.
-export const TARGETS = { compat: 10854, 'normalize-only': 4300 };
+// The targets after the port of the 2.x linear NFC helper (§6.4, "After it"): W1 ported the helper into core/nfc.js
+// (§7.3, as built), so both bundles carry it. Before the port they were 10,854 B and 4,300 B.
+export const TARGETS = { compat: 10854, 'normalize-only': 4850 };
 
 // Modules that must contribute 0 bytes to the normalize-only bundle (§2.4), as paths relative to the root.
 const NOT_IN_NORMALIZE = [
