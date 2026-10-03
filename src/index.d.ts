@@ -190,3 +190,27 @@ export interface ToZawgyiOptions {
 
 /** Unicode text in Zawgyi. */
 export declare function toZawgyi(text: string, options?: ToZawgyiOptions | number | null): string;
+
+// ---------------------------------------------------------------------------------------------------------------
+// segmentSyllables and syllableBoundaries
+
+/** The encodings the syllable scanners read. */
+export type BreakFont = 'unicode' | 'zawgyi';
+
+/**
+ * How a bare consonant, one with no mark, is read: 'separate' (the default), a syllable of its own as UTN #11 has
+ * it; 'chains', joined with every bare consonant before it to the syllable after; 'pairs', 2.x syllBreak's reading.
+ */
+export type BareConsonantPolicy = 'separate' | 'chains' | 'pairs';
+
+export interface SyllableOptions {
+  policy?: BareConsonantPolicy | null;
+  /** The text's encoding. Default 'unicode'. */
+  font?: BreakFont | null;
+}
+
+/** The syllables of the text, which join back to it; [] for ''. */
+export declare function segmentSyllables(text: string, options?: SyllableOptions | number | null): string[];
+
+/** Where each syllable after the first starts. */
+export declare function syllableBoundaries(text: string, options?: SyllableOptions | number | null): number[];

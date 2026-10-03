@@ -25,3 +25,4 @@ export { normalize, isNormalized } from './api/normalize.js';
 export { detectEncoding } from './api/encoding.js';
 export { explain } from './api/explain.js';
 export { toUnicode, toZawgyi } from './api/convert.js';
+export { segmentSyllables, syllableBoundaries } from './api/segment.js';

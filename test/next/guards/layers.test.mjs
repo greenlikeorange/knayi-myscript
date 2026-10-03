@@ -53,6 +53,7 @@ const LAYER_OF = {
   'api/explain.js': 'L4 public',
   'api/encoding.js': 'L4 public',
   'api/convert.js': 'L4 public',
+  'api/segment.js': 'L4 public',
   'spec/detectorSignatures.js': 'spec',
   'spec/breakRules.js': 'spec',
   'spec/typoRows.js': 'spec'

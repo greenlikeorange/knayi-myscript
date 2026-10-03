@@ -71,3 +71,12 @@ toUnicode('x', { from: 'Zawgyi' });
 // @ts-expect-error: tie is 'unicode' or 'zawgyi'
 toUnicode('x', { tie: 'win' });
 const zawgyi: string = toZawgyi(unicode, { trace });
+
+// segmentSyllables and syllableBoundaries
+import { segmentSyllables, syllableBoundaries } from '../../src/index.js';
+
+const syllables: string[] = segmentSyllables(lines[0], { policy: 'pairs', font: 'zawgyi' });
+const boundaries: number[] = syllableBoundaries(lines[0]);
+const pieces: string[][] = lines.map(segmentSyllables);
+// @ts-expect-error: the policies are separate, chains and pairs
+segmentSyllables('x', { policy: 'words' });
