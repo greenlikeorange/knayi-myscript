@@ -7,8 +7,9 @@
 // line to the function.
 //
 // A stream gives what its function gives for the whole text only when the function keeps to the line boundary,
-// f(a + '\n' + b) === f(a) + '\n' + f(b) (§12.2). normalize and toUnicode do; toZawgyi does not (DESIGN.md §10
-// Q10), so createConverter does not convert to Zawgyi.
+// f(a + '\n' + b) === f(a) + '\n' + f(b) (§12.2). normalize and toUnicode do, and toZawgyi does not
+// (DESIGN.md §10 Q10), so createConverter does not convert to Zawgyi. On a runtime with no TransformStream,
+// mapLines(fn) runs the same functions: mapLines(normalize) is what createNormalizer() runs.
 
 import { deepFreeze } from '../freeze.js';
 import { ERR, libraryError } from '../core/errors.js';
