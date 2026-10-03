@@ -257,6 +257,121 @@ knayi.truncate('') // '...'
 knayi.truncate(null) // ''
 ```
 
+## Command line
+
+`knayi` runs the 3.0 API over files or standard input, for shell scripts and for data pipelines in any language, Python included. It comes with knayi 3.0 and needs Node.js 22.12 or newer.
+
+```bash
+npm install --global knayi-myscript
+knayi to-unicode notes.txt > notes.unicode.txt
+npx --package knayi-myscript knayi detect notes.txt
+```
+
+### Synopsis
+
+```
+knayi <command> [options] [file ...]
+knayi --help
+knayi --version
+```
+
+### Description
+
+`knayi` reads each file in turn, or standard input when no file is given or a file is `-`, and writes to standard output. It reads plain text one line at a time, or with `--jsonl`, JSON Lines: one JSON object per line. Each line or record goes through the 3.0 API on its own, so an input of any size streams through: `knayi` holds one line at a time, cut as the 3.0 streams cut lines (`mapLines` of `src/stream.js`), and stops with an error at a line longer than `--max-line-length`.
+
+- **Line breaks:** each line of output ends as its line of input did, `\n` or `\r\n`, and a last line with no line break gets none.
+- **Encodings:** the input is UTF-8, or Windows-1252 with `--encoding windows-1252`, in which Win font text is often saved. Bytes that are not valid in that encoding stop the run, with the line they are on, rather than turn into U+FFFD. A byte order mark at the start of an input is dropped. The output is UTF-8.
+- **Offsets:** `check` counts columns and offsets in characters (code points), as a Python `str` does. The JavaScript API counts UTF-16 units; the two differ after a character above U+FFFF, such as an emoji.
+
+### Commands
+
+| Command | For each line or record | API |
+| --- | --- | --- |
+| `normalize` | The text in Unicode storage order, with typing slips and look-alike digits fixed, in NFC. | `normalize` |
+| `to-unicode` | The text in Unicode. Without `--from`, each line is detected: a line that reads as Zawgyi is converted, and a line whose evidence ties stays as it is, unless `--tie zawgyi`. Win text cannot be detected and needs `--from win`. | `toUnicode` |
+| `to-zawgyi` | Unicode text in Zawgyi. Each line converts on its own, so an ေ or medial ra at the start of a line never moves to the line before. `--from zawgyi` copies the text as it is. | `toZawgyi` |
+| `convert --to <encoding>` | `to-unicode` or `to-zawgyi`, by `--to`. | |
+| `detect` | `unicode`, `zawgyi`, `unknown` (the evidence ties) or `none` (no Myanmar letter). | `detectEncoding` |
+| `segment` | The syllables, with `--separator` between them; with `--jsonl`, an array. | `segmentSyllables` |
+| `check` | Each thing `normalize` would change, and each line in Zawgyi, as `<file>:<line>:<column>: <rule>: <text> -> <fix>`. A clean line writes nothing. | `explain` |
+
+### Options
+
+| Option | Commands | Meaning |
+| --- | --- | --- |
+| `--from <encoding>` | `to-unicode`: `unicode`, `zawgyi` or `win`. `to-zawgyi`, `segment`: `unicode` or `zawgyi`. | The encoding of the input text. Default: detect each line (`to-unicode`), `unicode` (the others). |
+| `--to <encoding>` | `convert` | `unicode` or `zawgyi`. |
+| `--tie <reading>` | `to-unicode` | How a line whose evidence ties is read: `unicode` (left as it is, the default) or `zawgyi`, as 2.x did. |
+| `--detector <name>` | `to-unicode`, `detect`, `check` | `rules` (the default) or `myanmar-tools`, Google's detector, which must be installed next to knayi-myscript (`npm install myanmar-tools@1.1.3`). |
+| `--policy <policy>` | `segment` | How a consonant with no mark is read: `separate` (the default), a syllable of its own; `chains`, joined to the syllable after it; `pairs`, joined two by two, as 2.x `syllBreak` did. |
+| `--separator <text>` | `segment` | What goes between syllables. Default `\|`. |
+| `--jsonl` | all | Read and write JSON Lines. |
+| `--field <name>` | all, with `--jsonl` | The field that holds the text. Default `text`. |
+| `--into <name>` | all, with `--jsonl` | The field the result is written to. Default: `--field` for text, else `encoding` (`detect`), `syllables` (`segment`) or `issues` (`check`). |
+| `--encoding <name>` | all | The input's encoding: `utf-8` (the default) or `windows-1252`. |
+| `--max-line-length <n>` | all | The longest line read, in UTF-16 units. Default 16,777,216. |
+| `--report` | all | When the input is read, write a summary to standard error as one JSON line. |
+| `-h`, `--help` | | Print the usage. |
+| `-v`, `--version` | | Print the version and the output version. |
+
+Names are exact: `--from Zawgyi` is a usage error, as in the 3.0 API. An option a command does not take is a usage error too.
+
+### JSON Lines
+
+With `--jsonl`, every line is a JSON object, and a blank line is passed through. `knayi` reads the text from `--field`, which must hold a string, and writes the result to `--into`. Every other byte of the line stays as it was: the order of the fields, their spacing and escapes, and numbers JavaScript cannot hold exactly, such as an id of 20 digits. A record whose text the command leaves as it is comes out byte for byte.
+
+```console
+$ echo '{"id":12345678901234567890,"text":"ေကာင္း"}' | knayi to-unicode --jsonl
+{"id":12345678901234567890,"text":"ကောင်း"}
+$ echo '{"id":7,"text":"မြန်မာ"}' | knayi segment --jsonl
+{"id":7,"text":"မြန်မာ","syllables":["မြန်","မာ"]}
+```
+
+`check` adds `issues` to every record, `[]` for a clean one; each issue is `{kind, rule, start, end, text, fix}`, as `explain` gives it, with `start` and `end` in characters.
+
+### Report
+
+`--report` writes one JSON line to standard error when the run has read all of its input: the command, `version`, `outputVersion`, the number of `records` (lines, or JSON Lines records), and what the command counts: `changed` (`normalize`, `to-unicode`, `to-zawgyi`), `encodings` (`detect`), `syllables` (`segment`), or `issues`, `recordsWithIssues` and `rules` (`check`). `outputVersion` changes with every deliberate change to knayi's output, so a dataset that records it knows when to run `knayi` again.
+
+For the three lines of the `detect` example below, `knayi to-unicode --report` writes:
+
+```json
+{"command":"to-unicode","version":"3.0.0","outputVersion":2,"records":3,"changed":1}
+```
+
+### Exit status
+
+| Status | Meaning |
+| --- | --- |
+| 0 | Done, and `check` found no issue. |
+| 1 | `check` found an issue. |
+| 2 | A usage error: an unknown command or option, a value the command does not take, or a detector that is not installed. Nothing is read. |
+| 3 | An input error: a file that cannot be read, bytes not valid in `--encoding`, a line longer than `--max-line-length`, or a JSON Lines line that is not an object with a string `--field`. The message names the file and the line. Nothing of that line or after it is written, and lines just before it may be missing too, since the input is read a chunk at a time. |
+| 4 | Any other failure, such as an output that cannot be written. |
+
+An error writes one line to standard error, `knayi: <what is wrong>`. When the reader of the output goes away, as `head` does, `knayi` stops with status 0.
+
+### Examples
+
+```console
+$ echo 'ေကာင္း ေမာင္' | knayi to-unicode
+ကောင်း မောင်
+$ printf 'ကောင်း\nေကာင္း\nabc\n' | knayi detect
+unicode
+zawgyi
+none
+$ echo 'မြန်မာစာ' | knayi segment
+မြန်|မာ|စာ
+$ echo 'ကျွန်တော် ကုိ' | knayi check
+<stdin>:1:11: order.marks: "ကုိ" -> "ကို"
+$ echo 'aMomf' | knayi to-unicode --from win
+ဪ
+```
+
+### Code it loads
+
+`knayi` loads no code from the working directory, so it is safe to run inside a folder of data nobody has checked. The one package it loads, myanmar-tools, it loads only for `--detector myanmar-tools`, and only from where knayi-myscript is installed, never from the working directory's `node_modules` or from `NODE_PATH`.
+
 ## Build
 
 `dist/` holds the build of the last release, or of the release being prepared, because jsDelivr serves the `dist/` of the main branch. It changes only in a release commit, which also changes the version. `npm run build` writes:

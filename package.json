@@ -5,11 +5,16 @@
   "main": "./main.js",
   "module": "./dist/knayi-myscript.es.js",
   "types": "./index.d.ts",
+  "bin": {
+    "knayi": "./bin/knayi.js"
+  },
   "sideEffects": [
     "./dist/knayi-myscript.js",
     "./dist/knayi-myscript.min.js"
   ],
   "files": [
+    "bin",
+    "src",
     "main.js",
     "index.d.ts",
     "library",
