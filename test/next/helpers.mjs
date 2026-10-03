@@ -74,6 +74,26 @@ export function tableProbes() {
 // The adversarial shapes and single-character pumps of perf's growth check.
 export { SHAPES, PUMPS } from '../../scripts/eval/lib/inputs.mjs';
 
+// The ten runs of marks of two combining classes that d170cd8 added to the 2.x growth shapes
+// (scripts/eval/lib/inputs.mjs on the 2.x line), with the same ids. NFC has to reorder each run: String#normalize
+// takes quadratic time on them, and core/nfc.js linear time, since W1 ported the 2.x helper (DESIGN.md §7.3). The
+// growth checks of toNfc, normalize and the fonts run them with no exemption (§6.2 item 4, §8). When the merge of
+// main brings them into SHAPES (§8), this list goes. make(n) returns about n UTF-16 units.
+const fromCodes = (...codes) => String.fromCodePoint(...codes);
+const repeatToLength = (unit, n) => unit.repeat(Math.max(1, Math.round(n / unit.length)));
+export const NFC_RUNS = Object.freeze([
+  ['ka + (dot below + virama) run', (n) => fromCodes(0x1000) + repeatToLength(fromCodes(0x1037, 0x1039), n)],
+  ['(dot below + virama) run', (n) => repeatToLength(fromCodes(0x1037, 0x1039), n)],
+  ['Win (virama + h) run', (n) => repeatToLength(fromCodes(0x1039) + 'h', n)],
+  ['ka + (asat + dot below) run', (n) => fromCodes(0x1000) + repeatToLength(fromCodes(0x103A, 0x1037), n)],
+  ['Latin a + (acute + dot below) run', (n) => 'a' + repeatToLength(fromCodes(0x301, 0x323), n)],
+  ['Greek alpha + (ypogegrammeni + U+0344) run', (n) => fromCodes(0x3B1) + repeatToLength(fromCodes(0x345, 0x344), n)],
+  ['Hebrew bet + (dagesh + qamats) run', (n) => fromCodes(0x5D1) + repeatToLength(fromCodes(0x5BC, 0x5B8), n)],
+  ['Arabic beh + (shadda + fatha) run', (n) => fromCodes(0x628) + repeatToLength(fromCodes(0x651, 0x64E), n)],
+  ['Tibetan ka + (U+0F73 + U+0F39) run', (n) => fromCodes(0xF40) + repeatToLength(fromCodes(0xF73, 0xF39), n)],
+  ['x + (U+1D16D + U+1D165) run', (n) => 'x' + repeatToLength(fromCodes(0x1D16D, 0x1D165), n)]
+].map(([id, make]) => Object.freeze({ id, make })));
+
 // Every file under src/, as paths relative to src/ with forward slashes, sorted.
 export function srcFiles() {
   const out = [];
