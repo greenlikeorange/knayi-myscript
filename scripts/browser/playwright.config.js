@@ -1,5 +1,5 @@
-// `npm run test:browser`: the script and module builds in Chromium, Firefox and WebKit. Browsers come from
-// `npx playwright install chromium firefox webkit`.
+// `npm run test:browser`: the script and module builds in Chromium, Firefox and WebKit, and an axe check of the
+// demo and benchmark pages. Browsers come from `npx playwright install chromium firefox webkit`.
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -28,10 +28,12 @@ module.exports = defineConfig({
   retries: 0,
   reporter: process.env.CI ? [['list'], ['github']] : 'list',
   use: { baseURL, trace: 'retain-on-failure' },
+  // The axe check runs once, in Chromium.
   projects: [
     { name: 'chromium', use: devices['Desktop Chrome'] },
-    { name: 'firefox', use: Object.assign({}, devices['Desktop Firefox'], { launchOptions: firefoxLaunchOptions() }) },
-    { name: 'webkit', use: devices['Desktop Safari'] }
+    { name: 'firefox', testIgnore: 'a11y.spec.js',
+      use: Object.assign({}, devices['Desktop Firefox'], { launchOptions: firefoxLaunchOptions() }) },
+    { name: 'webkit', testIgnore: 'a11y.spec.js', use: devices['Desktop Safari'] }
   ],
   webServer: {
     command: 'node scripts/browser/serve.js',
