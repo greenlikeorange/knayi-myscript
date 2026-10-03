@@ -55,18 +55,8 @@ function replace(re, text, replacement) {
   return result;
 }
 
-// An asLongAsMatch rule of syllable.js: replaced again while it matches and changes the text, at most 40 times.
-function replaceRepeated(re, text, replacement) {
-  for (let guard = 0; guard < 40 && test(re, text); guard++) {
-    const next = replace(re, text, replacement);
-    if (next === text) break;
-    text = next;
-  }
-  return text;
-}
-
 function loadTables() {
-  const syllable = loadWithInternals('syllable.js', ['convertRules', 'BREAK_RULES', 'COLLAPSE']);
+  const syllable = loadWithInternals('syllable.js', ['convertRules', 'BREAK_RULES', 'COLLAPSE_MARKS']);
   return {
     zawgyi: loadWithInternals('zawgyi.js', ['ZAWGYI', 'SEQUENCES']).__internals,
     win: require(path.join(LIBRARY, 'win.js')).tables,
@@ -137,9 +127,10 @@ function buildRows(knayi) {
         label: typeof rule[2] === 'string' ? rule[2] : rule[0].source });
     });
   });
-  // fontConvert trims the text and collapses repeated marks, then applies every oneTime rule once and every
-  // asLongAsMatch rule while it matches, in order (syllable.js, convertText).
-  const u2zApply = (r) => (re, text) => (r.group === 'oneTime' ? replace(re, text, r.rule[1]) : replaceRepeated(re, text, r.rule[1]));
+  // fontConvert trims the text and collapses repeated marks, then applies every rule once, in order: each
+  // oneTime rule, then each asLongAsMatch rule that matches, which one replace leaves without a match
+  // (syllable.js, convertText).
+  const u2zApply = (r) => (re, text) => replace(re, text, r.rule[1]);
   const u2zTurn = (index) => (probe) => {
     let text = tables.collapseMarks(probe.trim(), 'unicode');
     for (let j = 0; j < index; j++) text = u2zApply(u2zRules[j])(u2zRules[j].rule[0], text);
@@ -258,21 +249,20 @@ function buildRows(knayi) {
     });
   });
 
-  // spellingFix: one collapse rule per mark and font.
-  Object.keys(tables.syllable.COLLAPSE).forEach(function (font) {
-    const rules = tables.syllable.COLLAPSE[font];
-    rules.forEach(function (rule, i) {
+  // spellingFix: one row per mark and font. collapseMarks collapses a run of any one mark of the font with a
+  // single regex; a row's pattern, [mark]{2,}, is the part of that regex for its mark. A run of one mark ends
+  // where any other character starts, so collapsing the other marks never changes it, and every row sees the
+  // cleaned text.
+  Object.keys(tables.syllable.COLLAPSE_MARKS).forEach(function (font) {
+    tables.syllable.COLLAPSE_MARKS[font].split('').forEach(function (mark) {
+      const re = new RegExp('[' + mark + ']{2,}', 'g');
       rows.push({
-        id: 'collapse ' + font + ' ' + codePoint(rule[1]),
+        id: 'collapse ' + font + ' ' + codePoint(mark),
         table: 'spellingFix collapse',
-        label: rule[0].source,
-        pattern: rule[0],
-        branches: [{
-          re: rule[0],
-          turn: (probe) => rules.slice(0, i).reduce((text, earlier) => replace(earlier[0], text, earlier[1]), cleaned(probe)),
-          apply: (re, text) => replace(re, text, rule[1])
-        }],
-        exercises: (probe) => test(rule[0], cleaned(probe)),
+        label: re.source,
+        pattern: re,
+        branches: [{ re: re, turn: cleaned, apply: (other, text) => replace(other, text, mark) }],
+        exercises: (probe) => test(re, cleaned(probe)),
         run: (probe) => ({ output: knayi.spellingFix(probe, font) })
       });
     });

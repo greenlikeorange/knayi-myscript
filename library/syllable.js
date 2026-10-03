@@ -89,6 +89,9 @@ const convertRules = {
 
         [/([^\u1000\u1003\u1006\u100f\u1010\u1011\u1018\u1021\u101a\u101c\u101e\u101f])\u1071/g, "$1\u1072"],
       ],
+      // Rules that apply while they match. One replace is enough: each replaces the medial ra its pattern starts
+      // with (U+103B or U+107E) by another glyph, and the rest of its pattern matches neither of those two nor
+      // the glyphs the rule writes, so one replace finds every match and makes no new one (test/syllable.test.js).
       asLongAsMatch: [
         // [/([\u103b\u103c\u103d\u103e])\u1031/g, "\u1031$1"],
 
@@ -210,26 +213,27 @@ function serializeUnicode(syllables) {
   }).join("");
 }
 
-function compileCollapse(chars) {
-  return chars.split(" ").map(function (ch) {
-    return [new RegExp("[" + ch + "]{2,}", "g"), ch];
-  });
-}
+// The marks spellingFix collapses, per font: a mark typed two or more times in a row becomes one. One regex per
+// font does it in one pass: its class takes a mark, \1 the same mark again and \1* any more, so a run of one mark
+// becomes that mark, and two different marks stay as they are. \1\1* matches what \1+ matches, but V8 runs it
+// faster on text where marks are rarely repeated: on one long Unicode string, spellingFix takes about two thirds
+// of the time with it under Node.
+const COLLAPSE_MARKS = {
+  unicode: "\u102b\u102c\u102d\u102e\u102f\u1030\u1031\u1032\u1036\u1037\u1038\u103a\u103b\u103c\u103d\u103e\u1039",
+  zawgyi: "\u102b\u102c\u102d\u102e\u102f\u1030\u1031\u1032\u1033\u1034\u1036\u1037\u1038\u1039\u103a\u103b\u103c\u103d\u105a\u1060\u1061\u1062\u1063\u1064\u1065\u1066\u1067\u1068\u1069\u106a\u106b\u106c\u106d\u1070\u1071\u1072\u1073\u1074\u1075\u1076\u1077\u1078\u1079\u107a\u107b\u107c\u107d\u107e\u107f\u1080\u1081\u1082\u1083\u1084\u1085\u1087\u1088\u1089\u108a\u108b\u108c\u108d\u108e\u1093\u1094\u1095\u1096"
+};
 
 const COLLAPSE = {
-  unicode: compileCollapse("\u102b \u102c \u102d \u102e \u102f \u1030 \u1031 \u1032 \u1036 \u1037 \u1038 \u103a \u103b \u103c \u103d \u103e \u1039"),
-  zawgyi: compileCollapse("\u102b \u102c \u102d \u102e \u102f \u1030 \u1031 \u1032 \u1033 \u1034 \u1036 \u1037 \u1038 \u1039 \u103a \u103b \u103c \u103d \u105a \u1060 \u1061 \u1062 \u1063 \u1064 \u1065 \u1066 \u1067 \u1068 \u1069 \u106a \u106b \u106c \u106d \u1070 \u1071 \u1072 \u1073 \u1074 \u1075 \u1076 \u1077 \u1078 \u1079 \u107a \u107b \u107c \u107d \u107e \u107f \u1080 \u1081 \u1082 \u1083 \u1084 \u1085 \u1087 \u1088 \u1089 \u108a \u108b \u108c \u108d \u108e \u1093 \u1094 \u1095 \u1096")
+  unicode: new RegExp("([" + COLLAPSE_MARKS.unicode + "])\\1\\1*", "g"),
+  zawgyi: new RegExp("([" + COLLAPSE_MARKS.zawgyi + "])\\1\\1*", "g")
 };
 
 function collapseMarks(content, fontType) {
   // Zawgyi has marks of its own. Any other name, 'win' and unknown names included, uses the Unicode marks: an own
   // property, so that a name such as 'constructor' finds no Object.prototype member.
-  var rules = Object.prototype.hasOwnProperty.call(COLLAPSE, fontType) ? COLLAPSE[fontType] : COLLAPSE.unicode;
-  for (var i = 0; i < rules.length; i++) {
-    rules[i][0].lastIndex = 0;
-    content = content.replace(rules[i][0], rules[i][1]);
-  }
-  return content;
+  var re = Object.prototype.hasOwnProperty.call(COLLAPSE, fontType) ? COLLAPSE[fontType] : COLLAPSE.unicode;
+  re.lastIndex = 0;
+  return content.replace(re, "$1");
 }
 
 const BREAK_RULES = {
@@ -297,25 +301,12 @@ function replaceOnce(content, rule) {
   return content.replace(re, rule[1]);
 }
 
-function replaceRepeated(content, rule) {
-  var guard = 0;
-  while (guard < 40) {
-    guard += 1;
-    if (!ruleMatches(rule, content)) break;
-    var next = replaceOnce(content, rule);
-    if (next === content) break;
-    content = next;
-  }
-  return content;
-}
-
 function convertText(content, from, to, debug) {
   var refLib = convertRules[from][to];
   var logs = debug ? { to: to, from: from, matched_patterns: [], steps: [] } : null;
 
   function record(rule, current) {
     if (!logs) return;
-    if (!ruleMatches(rule, current)) return;
     logs.matched_patterns.push(rule[2] || rule[0].source);
     logs.steps.push(current);
   }
@@ -326,9 +317,11 @@ function convertText(content, from, to, debug) {
     if (next !== content) record(refLib.oneTime[i], content);
     content = next;
   }
+  // An asLongAsMatch rule is logged when it matches, and one replace leaves no match (convertRules).
   for (var j = 0; j < refLib.asLongAsMatch.length; j++) {
+    if (!ruleMatches(refLib.asLongAsMatch[j], content)) continue;
     record(refLib.asLongAsMatch[j], content);
-    content = replaceRepeated(content, refLib.asLongAsMatch[j]);
+    content = replaceOnce(content, refLib.asLongAsMatch[j]);
   }
   if (logs) {
     logs.steps.push(content);
