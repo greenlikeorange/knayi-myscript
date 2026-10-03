@@ -92,7 +92,9 @@ jobs:
       - run: node scripts/smoke.js "$RUNNER_TEMP/dist"
 
   # Static checks that need Node 20.11 or newer: every regex the library ships through recheck, the types as
-  # users get them from the packed tarball, and the min.js size with a per-module breakdown.
+  # users get them from the packed tarball, and the min.js size with a per-module breakdown. On next, also the
+  # sizes of the 3.0 core's compat and normalize-only bundles, and its tree-shaking check (docs/next/DESIGN.md
+  # §2.4, §6.4).
   checks:
     name: ReDoS, types and size
     runs-on: ubuntu-latest
@@ -109,6 +111,7 @@ jobs:
       - run: npm run check:redos
       - run: npm run check:types
       - run: npm run check:size
+      - run: node scripts/next/size.mjs
 
   # The script and module builds in Chromium, Firefox and WebKit against main.js, and axe on the demo and
   # benchmark pages. The browsers are cached by Playwright's version and the runner image: Playwright ships
