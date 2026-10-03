@@ -17,6 +17,8 @@
 // three characters, and kept in a memo: they are always the runtime's own. The memo holds facts about the
 // runtime's Unicode data, never the result of a call, and its size is bounded by that data (D20, §3.11).
 
+import { isMyanmarBlock, mayChangeUnderNfc } from '../script/codes.js';
+
 // The longest run of non-starters, in UTF-16 units, left to normalize as it is: the limit of the stream-safe text
 // format (UAX #15 §13), which ordinary text never reaches.
 const STREAM_SAFE_RUN = 30;
@@ -178,4 +180,44 @@ function canonicalOrder(text, from, to, memo) {
 
 function nfd(text) {
   return text.normalize('NFD');
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Where NFC changed a text (DESIGN.md §11.3), for the change report of normalize and the offsets of toUnicode.
+
+// Records in `log`, an EditLog, each span of text that NFC changed, with where its NFC lands in toNfc(text), and
+// returns that length. NFC works on segments, each from a starter that composes with nothing before it up to the
+// next one (startsNfcSegment). So the NFC of a text is the NFC of its segments, one after the other, and only a
+// segment that holds a unit NFC may move or compose (mayChangeUnderNfc) is normalized again, alone. Each change is
+// cut down to the units that differ (EditLog#addChange).
+export function logNfcEdits(text, log) {
+  let out = 0; // where the segment's NFC starts in toNfc(text)
+  for (let start = 0; start < text.length;) {
+    const end = nfcSegmentEnd(text, start + 1);
+    let mayChange = false;
+    for (let k = start; k < end && !mayChange; k++) mayChange = mayChangeUnderNfc(text.charCodeAt(k));
+    const segment = text.slice(start, end);
+    const done = mayChange ? toNfc(segment) : segment;
+    if (done !== segment) log.addChange(start, segment, out, done);
+    out += done.length;
+    start = end;
+  }
+  return out;
+}
+
+// Where the segment that continues at `from` ends: at the next unit that starts a segment, or at the end.
+function nfcSegmentEnd(text, from) {
+  let end = from;
+  while (end < text.length && !startsNfcSegment(text.charCodeAt(end))) end++;
+  return end;
+}
+
+// A starter that no canonical composition takes as its second half, so NFC never joins it to the unit before it
+// and never moves a mark across it: every unit below U+0300 (every combining mark, and every second half of a
+// composition, is at or above it), and every unit of the Myanmar block but the four of a non-zero combining class
+// (U+1037, U+1039, U+103A and U+108D) and U+102E, which composes with a U+1025 before it into U+1026.
+function startsNfcSegment(code) {
+  if (code < 0x300) return true;
+  if (!isMyanmarBlock(code)) return false;
+  return code !== 0x102E && code !== 0x1037 && code !== 0x1039 && code !== 0x103A && code !== 0x108D;
 }

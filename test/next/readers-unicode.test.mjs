@@ -10,7 +10,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import fc from 'fast-check';
 import {
-  UNICODE_READING, SEEN, reorderUnicode, unicodeReaderScratchUnits
+  UNICODE_READING, STABLE_UNICODE_READING, SEEN, reorderUnicode, unicodeReaderScratchUnits
 } from '../../src/engine/unicodeReader.js';
 import { SyllableBuffer, CodeBuffer } from '../../src/engine/syllable.js';
 import { ZW } from '../../src/script/codes.js';
@@ -34,8 +34,10 @@ describe('the Unicode reader\'s options (DESIGN.md §3.5)', () => {
   it('UNICODE_READING and SEEN have their values', () => {
     assert.deepEqual(UNICODE_READING, {
       heldZeroWidth: ZW.ZWSP | ZW.WORD_JOINER | ZW.BOM, digitTakesMarksAcrossSpace: false,
-      prebaseCrossesZeroWidth: false, keepUAfterVowelSign: true
+      prebaseCrossesZeroWidth: false, keepUAfterVowelSign: true, stackedLookAlikesAreLetters: false
     });
+    // 3.0's reading differs in one field (DESIGN.md §11.2).
+    assert.deepEqual(STABLE_UNICODE_READING, Object.assign({}, UNICODE_READING, { stackedLookAlikesAreLetters: true }));
     assert.deepEqual(SEEN, { LETTER_U: 1, NFC_UNSAFE: 2 });
   });
 

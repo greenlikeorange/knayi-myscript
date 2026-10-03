@@ -14,6 +14,8 @@
 // A Stage is { id, label, run(text, ctx), traceOnly?, gate?(ctx) }, and a pipeline is a frozen list of them. One
 // runner serves the fast path and the trace, so the order and the names are written once (D10).
 
+import { EditLog, composeEdits } from './edits.js';
+
 // The most passes of a repeat row (2.x asLongAsMatch, syllable.js replaceRepeated).
 export const REPEAT_LIMIT = 40;
 
@@ -118,6 +120,24 @@ function runGatedStages(text, stages, ctx) {
     if (stage.traceOnly || (stage.gate && !ctx.openAllGates && !stage.gate(ctx))) continue;
     text = stage.run(text, ctx);
   }
+  return text;
+}
+
+// runStages with no trace, recording in `log`, an EditLog (core/edits.js), the edits of the whole pipeline: from
+// `text` to the result, each with the ids of the stages that made it (DESIGN.md §11.3). loggedRuns holds, by stage
+// id, a run(text, ctx, stageLog) for each stage that is not trace-only: it gives what the stage's run gives and
+// records its own edits, and the runner composes them. The gates are those of the fast path. The logged runs are a
+// table of their own, not fields of the stages, so that a bundle that never logs (compat) leaves them out.
+export function runStagesLogged(text, stages, loggedRuns, ctx, log) {
+  let edits = [];
+  for (let i = 0; i < stages.length; i++) {
+    const stage = stages[i];
+    if (stage.traceOnly || (stage.gate && !ctx.openAllGates && !stage.gate(ctx))) continue;
+    const stageLog = new EditLog(stage.id);
+    text = loggedRuns[stage.id](text, ctx, stageLog);
+    if (!stageLog.isEmpty()) edits = composeEdits(edits, stageLog.edits);
+  }
+  log.addAll(edits);
   return text;
 }
 

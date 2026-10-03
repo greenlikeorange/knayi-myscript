@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": false,
+    "allowJs": true,
+    "checkJs": false
+  },
+  "files": ["api.ts", "../../src/index.d.ts", "../../src/api/args.js", "../../src/api/normalize.js"]
+}

@@ -289,6 +289,7 @@ export class SyllableBuffer {
 // ---------------------------------------------------------------------------------------------------------------
 // CopyThroughWriter: the Unicode reader's output (§3.7). It appends slices of the input, and returns the input
 // string itself when no syllable changed: 99.92% of syllables and 93.6% of lines come out of normalize unchanged.
+// Every change passes through endSyllable, so that is where an EditLog (core/edits.js) learns of it (§3.7, §11.3).
 
 export class CopyThroughWriter {
   constructor() {
@@ -296,12 +297,15 @@ export class CopyThroughWriter {
     this.source = '';
     this.out = ''; // the output up to source[copyFrom]
     this.copyFrom = 0; // source[copyFrom, ...) is not in out yet, and is the output so far as it stands
+    this.log = null; // the EditLog of this call, or null
   }
 
-  begin(source) {
+  // log: an EditLog that records each syllable written differently from its source, or null.
+  begin(source, log) {
     this.source = source;
     this.out = '';
     this.copyFrom = 0;
+    this.log = log || null;
     this.syllable.clear();
   }
 
@@ -314,16 +318,20 @@ export class CopyThroughWriter {
   // start, then the syllable.
   endSyllable(start, end) {
     if (this.syllable.equalsText(this.source, start, end)) return;
-    this.out += this.source.slice(this.copyFrom, start) + this.syllable.decode();
+    this.out += this.source.slice(this.copyFrom, start);
+    const outStart = this.out.length;
+    this.out += this.syllable.decode();
+    if (this.log !== null) this.log.add(start, end, outStart, this.out.length);
     this.copyFrom = end;
   }
 
-  // The output: source itself when no syllable changed. The writer lets go of both strings.
+  // The output: source itself when no syllable changed. The writer lets go of both strings and the log.
   finish() {
     const unchanged = this.copyFrom === 0 && this.out === '';
     const text = unchanged ? this.source : this.out + this.source.slice(this.copyFrom);
     this.source = '';
     this.out = '';
+    this.log = null;
     return text;
   }
 

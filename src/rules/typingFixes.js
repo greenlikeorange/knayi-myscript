@@ -10,7 +10,10 @@
 // - Each pass finds its candidates with one regex scan from left to right, or indexOf, and decides by char code.
 //   Around a candidate it reads only that candidate's own tones, closed syllable or number, so the time is linear
 //   (DESIGN.md §1.2 rule 6).
-// - Each returns its input string when nothing changes (copy-through).
+// - Each returns its input string when nothing changes (copy-through). Those that 3.0's pipelines run with an edit
+//   log have a twin, named ...Logged, that takes an EditLog (core/edits.js) and records there every span it
+//   replaced, at the one place it writes the replacement (DESIGN.md §11.3). The plain functions take the text alone,
+//   so a stage list can name them as its run(text, ctx), as 2.x's did.
 // - charCodeAt before the start or past the end is NaN, which no predicate accepts, so the edges of the text need
 //   no case of their own.
 // - The global regexes are this module's own. Each exec loop sets lastIndex to 0 first and runs until exec
@@ -19,6 +22,7 @@
 //   (issue #43).
 
 import { deepFreeze } from '../freeze.js';
+import { EditLog, composeEdits } from '../core/edits.js';
 import {
   CP, isBurmeseDigit, isScriptDigit, isScriptMark, isScriptTone, isScriptConsonant, isScriptWordChar
 } from '../script/codes.js';
@@ -44,6 +48,8 @@ const TYPOS = /\u102D\u102E|\u102E\u102D|\u102F\u1030|\u1030\u102F|\u1029\u1031\
 
 // The 4 rules of spec/typoRows.js in one scan (2.x typos, typingFixes.js:116-121). An exec loop rather than
 // String#replace with a function: the same scan, without replace's cost per call, which dominates on short text.
+// scanTypos is this loop with what 3.0 adds (whole runs, edit logs); this one stays as it is, so that a bundle of
+// 2.x's API (compat) carries none of that.
 export function fixTypos(text) {
   let out = '';
   let copied = 0;
@@ -57,6 +63,75 @@ export function fixTypos(text) {
     copied = at + found[0].length;
   }
   return copied === 0 ? text : out + text.slice(copied);
+}
+
+// The typo rows applied until they change nothing, in one scan: 3.0's normalize (decision 36; DESIGN.md §11.2).
+// typo.ii and typo.uu join two signs of one run of i and ii (or u and uu) into one ii, so a longer run needs one
+// pass per i: fixTypos turns ိိီ into ိီ, and a second pass into ီ. Here each run is read whole: a run that holds
+// both signs becomes its count of ii (or uu), which is what repeating the row ends with, since joining an i to an
+// ii keeps the ii, and two ii never join. The other two rows make nothing another pass would change.
+export function settleTypos(text) {
+  return scanTypos(text, true, null);
+}
+
+// settleTypos, recording its edits in `log`.
+export function settleTyposLogged(text, log) {
+  return scanTypos(text, true, log);
+}
+
+// fixTypos, or settleTypos when `wholeRuns`, recording the edits in `log` when it is not null.
+function scanTypos(text, wholeRuns, log) {
+  let out = '';
+  let copied = 0;
+  TYPOS.lastIndex = 0;
+  let found;
+  while ((found = TYPOS.exec(text)) !== null) {
+    let start = found.index;
+    let end = start + found[0].length;
+    let fixed = typoFix(text, start);
+    if (fixed === null) continue;
+    if (wholeRuns && (fixed === II_TEXT || fixed === UU_TEXT)) {
+      start = vowelRunStart(text, start, copied);
+      end = vowelRunEnd(text, end);
+      fixed = joinedVowelRun(text, start, end, fixed);
+      TYPOS.lastIndex = end;
+    }
+    out += text.slice(copied, start);
+    if (log !== null) log.add(start, end, out.length, out.length + fixed.length);
+    out += fixed;
+    copied = end;
+  }
+  return copied === 0 ? text : out + text.slice(copied);
+}
+
+// The two signs of the run the pair at `at` belongs to: i and ii, or u and uu.
+function isSignOfRun(code, first) {
+  if (first === CP.I || first === CP.II) return code === CP.I || code === CP.II;
+  return code === CP.U || code === CP.UU;
+}
+
+// The run reaches back over the signs before the pair, but not into text an earlier fix wrote.
+function vowelRunStart(text, at, copied) {
+  const first = text.charCodeAt(at);
+  let start = at;
+  while (start > copied && isSignOfRun(text.charCodeAt(start - 1), first)) start--;
+  return start;
+}
+
+function vowelRunEnd(text, end) {
+  const first = text.charCodeAt(end - 1);
+  while (isSignOfRun(text.charCodeAt(end), first)) end++;
+  return end;
+}
+
+// The run text[start, end) joined: one long sign for each long sign in it.
+function joinedVowelRun(text, start, end, longSign) {
+  const longCode = longSign.charCodeAt(0);
+  let joined = '';
+  for (let k = start; k < end; k++) {
+    if (text.charCodeAt(k) === longCode) joined += longSign;
+  }
+  return joined;
 }
 
 // What the typo TYPOS found at `at` becomes, or null when it stays as typed.
@@ -152,9 +227,19 @@ export function fixLookAlikes(text) {
   return readLettersAsDigits(readDigitsAsLetters(text));
 }
 
+// fixLookAlikes, recording in `log` the edits of its two passes together.
+export function fixLookAlikesLogged(text, log) {
+  if (text.search(BURMESE_DIGIT) === -1) return text;
+  const first = new EditLog(log.rule);
+  const second = new EditLog(log.rule);
+  const out = readLettersAsDigits(readDigitsAsLetters(text, first), second);
+  log.addAll(composeEdits(first.edits, second.edits));
+  return out;
+}
+
 // 2.x lookAlikes, first pass (typingFixes.js:86-96): a zero or seven that reads as a letter becomes wa or ra.
-// Each decision reads the text as it came in.
-export function readDigitsAsLetters(text) {
+// Each decision reads the text as it came in. log: an EditLog that records the edits, or none.
+export function readDigitsAsLetters(text, log) {
   let out = '';
   let copied = 0;
   ZERO_OR_SEVEN.lastIndex = 0;
@@ -163,7 +248,9 @@ export function readDigitsAsLetters(text) {
     const i = found.index;
     const code = text.charCodeAt(i);
     if (!readsAsLetter(text, i, code)) continue;
-    out += text.slice(copied, i) + (code === CP.DIGIT_ZERO ? WA_TEXT : RA_TEXT);
+    out += text.slice(copied, i);
+    if (log) log.add(i, i + 1, out.length, out.length + 1);
+    out += code === CP.DIGIT_ZERO ? WA_TEXT : RA_TEXT;
     copied = i + 1;
   }
   return copied === 0 ? text : out + text.slice(copied);
@@ -204,8 +291,8 @@ function startsClosedSyllable(text, i) {
 // A number is a run of Burmese digits and bare wa and ra, with at most one decimal point or thousands separator
 // between two of them, that holds a digit (2.x RUN and HAS_DIGIT). Each number is found from one of its digits,
 // out to both ends, and read once; 2.x's regex found the same runs from their first unit, but a pattern that
-// required the digit would backtrack over long runs of wa.
-export function readLettersAsDigits(text) {
+// required the digit would backtrack over long runs of wa. log: an EditLog that records the edits, or none.
+export function readLettersAsDigits(text, log) {
   let out = '';
   let copied = 0;
   BURMESE_DIGIT.lastIndex = 0;
@@ -223,7 +310,9 @@ export function readLettersAsDigits(text) {
       if (isBurmeseDigit(code)) glued = false;
       const digit = glued ? null : digitForLetter(code, k + 1 === end && raEndsWordAfter);
       if (digit === null) continue;
-      out += text.slice(copied, k) + digit;
+      out += text.slice(copied, k);
+      if (log) log.add(k, k + 1, out.length, out.length + 1);
+      out += digit;
       copied = k + 1;
     }
   }

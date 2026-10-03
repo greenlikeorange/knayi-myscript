@@ -7,7 +7,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { parsedSources, walk, where } from './ast.mjs';
-import { normalizeOnlyLeaks } from '../../../scripts/next/size.mjs';
+import { measure, normalizeOnlyLeaks } from '../../../scripts/next/size.mjs';
 import { ZW } from '../../../src/script/codes.js';
 import { UNICODE_READING } from '../../../src/engine/unicodeReader.js';
 import { FONT_READING } from '../../../src/engine/fontReader.js';
@@ -148,5 +148,9 @@ describe('top-level code of src/ (DESIGN.md §2.4)', () => {
 
   it('a normalize-only bundle has no bytes from the modules normalize never needs', () => {
     assert.deepEqual(normalizeOnlyLeaks(), []);
+  });
+
+  it('nor has an import of normalize alone from the 3.0 API (DESIGN.md §11.1)', () => {
+    assert.deepEqual(normalizeOnlyLeaks(measure('api normalize-only')), []);
   });
 });

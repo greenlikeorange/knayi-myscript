@@ -166,6 +166,7 @@ src/
   core/input.js              L1          FONTS registry, text predicates, requireText()
   core/rules.js              L1          rule rows and their runner, traces, the stage runner
   core/nfc.js                L1          toNfc() in linear time, the only calls of String#normalize in src/
+  core/edits.js              L1          EditLog and composeEdits: where a pass changed its text (§11.3)
   fonts/zawgyi.js            L2          Zawgyi glyph table and lagaung sequences (data only)
   fonts/win.js               L2          Win Innwa glyph table, look-alike sequences, C1 aliases (data only)
   engine/syllable.js         L3 engine   SyllableBuffer, orderSyllable and its steps, CodeBuffer, CopyThroughWriter
@@ -185,6 +186,9 @@ src/
   compat/fontDetect.js       L4          fontDetect, fontDetectCore
   compat/fontConvert.js      L4          fontConvert, fontConvert.debugging
   compat/text.js             L4          normalize, syllBreak, spellingFix, truncate
+  index.js                   L4          the 3.0 API, one import for all of it (§11)
+  api/args.js                L4          the 3.0 API's argument checks and coded errors (§11.1)
+  api/normalize.js           L4          normalize, isNormalized (§11.2, §11.3)
   spec/detectorSignatures.js  (spec)     the 29 detector signature rows: the scanner's readable oracle
   spec/breakRules.js          (spec)     the 15 break rule rows: the scanners' readable oracle
   spec/typoRows.js            (spec)     the 4 typo rules, documented: fixTypos's readable oracle
