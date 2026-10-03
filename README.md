@@ -259,7 +259,9 @@ knayi.truncate(null) // ''
 
 ## Build
 
-`npm test` builds the browser and ESM files, runs the tests, and type-checks `typecheck/`. `npm run test:bun` runs the Bun checks. `npm run test:pack` packs the tarball, installs it with Bun, and converts the Zawgyi greeting through `require` and `import`. `npm run build` writes:
+`npm test` runs the tests and type-checks `typecheck/`. The tests build the browser and ESM files into a temporary directory. `npm run test:bun` runs the Bun checks. `npm run test:pack` packs the tarball with a fresh build, installs it with Bun, and converts the Zawgyi greeting through `require` and `import`.
+
+`dist/` holds the build of the last release, because jsDelivr serves the `dist/` of the main branch. It changes only in a release commit, which also changes the version. `npm run build` writes:
 
 - `dist/knayi-myscript.mjs`
 - `dist/knayi-myscript.es.js` (same bytes as the `.mjs` file)

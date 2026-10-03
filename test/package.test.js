@@ -4,6 +4,7 @@ const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const knayi = require('../main');
 const pkg = require('../package.json');
+const { builtDist } = require('../scripts/build');
 
 describe('package', () => {
   it('reports the same version as package.json', () => {
@@ -11,8 +12,10 @@ describe('package', () => {
   });
 
   it('gives the ESM builds a named export for every main.js export', async () => {
-    for (const file of [pkg.module, './dist/knayi-myscript.mjs']) {
-      const esm = await import(pathToFileURL(path.join(__dirname, '..', file)).href);
+    // The `module` field names a file in dist/; the test reads that file from a fresh build of this checkout.
+    assert.equal(path.posix.dirname(pkg.module), './dist');
+    for (const file of [path.posix.basename(pkg.module), 'knayi-myscript.mjs']) {
+      const esm = await import(pathToFileURL(path.join(builtDist(), file)).href);
       for (const name of Object.keys(knayi)) {
         assert.equal(typeof esm[name], typeof knayi[name], file + ' is missing ' + name);
         assert.equal(esm[name], esm.default[name], file + ' ' + name + ' differs from the default export');

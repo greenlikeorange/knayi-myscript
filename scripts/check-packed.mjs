@@ -1,14 +1,30 @@
 import { execSync } from "node:child_process";
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
 
+const { build } = createRequire(import.meta.url)("./build.js");
+
 const root = path.join(import.meta.dirname, "..");
+const stageDir = fs.mkdtempSync(path.join(os.tmpdir(), "knayi-stage-"));
 const packDir = fs.mkdtempSync(path.join(os.tmpdir(), "knayi-pack-"));
 const appDir = fs.mkdtempSync(path.join(os.tmpdir(), "knayi-app-"));
+process.on("exit", () => {
+  for (const dir of [stageDir, packDir, appDir]) fs.rmSync(dir, { recursive: true, force: true });
+});
 
-execSync("npm pack --pack-destination " + JSON.stringify(packDir), {
-  cwd: root,
+// The tracked dist/ holds the last release, so pack a copy of the package whose dist/ is a fresh build of this
+// checkout. npm lists the files it would pack, so the copy holds exactly what `npm pack` would publish.
+const listing = JSON.parse(execSync("npm pack --dry-run --json --ignore-scripts", { cwd: root, encoding: "utf8" }));
+for (const { path: file } of listing[0].files) {
+  fs.mkdirSync(path.join(stageDir, path.dirname(file)), { recursive: true });
+  fs.copyFileSync(path.join(root, file), path.join(stageDir, file));
+}
+build(path.join(stageDir, "dist"));
+
+execSync("npm pack --ignore-scripts --pack-destination " + JSON.stringify(packDir), {
+  cwd: stageDir,
   stdio: "inherit"
 });
 

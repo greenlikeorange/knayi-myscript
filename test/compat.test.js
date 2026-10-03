@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const knayi = require('../main');
 const converter = require('../library/converter');
+const { builtDist } = require('../scripts/build');
 
 const zawgyiGreeting = 'မဂၤလာပါ';
 const unicodeGreeting = 'မင်္ဂလာပါ';
@@ -31,7 +32,7 @@ describe('runtime contract', () => {
   });
 
   it('ships the browser file and the module file under the 2.8 names', () => {
-    const dist = path.join(__dirname, '..', 'dist');
+    const dist = builtDist();
     const es = fs.readFileSync(path.join(dist, 'knayi-myscript.es.js'));
     const mjs = fs.readFileSync(path.join(dist, 'knayi-myscript.mjs'));
     assert.ok(fs.existsSync(path.join(dist, 'knayi-myscript.min.js')));
