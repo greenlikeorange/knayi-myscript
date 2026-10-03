@@ -545,7 +545,7 @@ if (require.main === module) {
   const builds = { 'knayi-myscript.min.js': 'script', 'knayi-myscript.js': 'script', 'knayi-myscript.mjs': 'module',
     'knayi-myscript.es.js': 'module' };
   for (const file of Object.keys(builds)) {
-    const code = fs.readFileSync(path.join(ROOT, 'dist', file), 'utf8');
+    const code = fs.readFileSync(path.join(require('../build').builtDist(), file), 'utf8');
     const uses = scan(code, builds[file]);
     const counts = {};
     uses.forEach((u) => { counts[u.id] = (counts[u.id] || 0) + 1; });

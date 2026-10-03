@@ -1,10 +1,11 @@
 'use strict';
-// Rewrites test/contract/api-matrix.json from main.js: `npm run matrix:update` (which builds dist/ first).
+// Rewrites test/contract/api-matrix.json from main.js: `npm run matrix:update`.
 // `--out <file>` writes the snapshot to another file instead, for comparing runtimes or checkouts.
 //
-// It also runs the dist builds and records the cells where they differ from main.js as known build differences.
-// A difference that scripts/contract/matrix.js does not explain stops the update: either the build is stale
-// (rebuild it) or the builds really disagree, which needs a reason in KNOWN_BUILD_DIFFERENCES.
+// It also runs the dist builds (a fresh build in a temporary directory, or KNAYI_DIST) and records the cells
+// where they differ from main.js as known build differences. A difference that scripts/contract/matrix.js does
+// not explain stops the update: either a KNAYI_DIST build is stale (rebuild it) or the builds really disagree,
+// which needs a reason in KNOWN_BUILD_DIFFERENCES.
 
 const fs = require('fs');
 const path = require('path');
@@ -33,7 +34,7 @@ async function main() {
     const differences = matrix.buildDifferences(cells, name, matrix.runCells(build));
     if (differences.unexplained.length || differences.missing.length || differences.extra.length) {
       fail(`${build.label} differs from main.js in cells that no known build difference explains. ` +
-        'Rebuild dist/ (npm run build) if it is stale.\n' +
+        'If KNAYI_DIST points at a stale build, rebuild it.\n' +
         matrix.formatReport(build.label + ' against main.js', {
           total: cells.length,
           changed: differences.unexplained,

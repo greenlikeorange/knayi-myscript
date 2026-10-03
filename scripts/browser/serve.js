@@ -1,7 +1,9 @@
 'use strict';
 // A read-only static server for the browser tests: dist/, docs/ and scripts/browser/ on 127.0.0.1.
-// Playwright starts it (scripts/browser/playwright.config.js); nothing else is served. KNAYI_DIST_DIR serves
-// /dist/ from another build directory, such as a build made in a temporary directory.
+// Playwright starts it (scripts/browser/playwright.config.js); nothing else is served. /dist/ is a fresh build
+// of this checkout, made in a temporary directory when the server starts and removed when it stops, because the
+// tracked dist/ holds the last release. KNAYI_DIST serves another build directory instead (`KNAYI_DIST=dist`
+// for the committed release build).
 
 const http = require('http');
 const fs = require('fs');
@@ -9,7 +11,9 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..', '..');
 const PORT = Number(process.env.KNAYI_BROWSER_PORT || 4317);
-const DIST = process.env.KNAYI_DIST_DIR ? path.resolve(process.env.KNAYI_DIST_DIR) : path.join(ROOT, 'dist');
+const DIST = require('../build').builtDist();
+// builtDist() removes its temporary directory on exit; Playwright stops the server with SIGTERM.
+for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => process.exit(0));
 const SERVED = ['dist', 'docs', path.join('scripts', 'browser')];
 const TYPES = {
   '.html': 'text/html; charset=utf-8',

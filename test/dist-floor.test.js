@@ -12,7 +12,8 @@ const examples = require('../scripts/browser/examples');
 // checks ES2015 syntax; this checks the parts of ES2015 and the built-ins those browsers lack (decision 18,
 // option a for 2.x). The rules and their browser versions are in scripts/browser/floor.js.
 
-const DIST = path.join(__dirname, '..', 'dist');
+// A fresh build of this checkout in a temporary directory, or KNAYI_DIST (scripts/build.js).
+const DIST = require('../scripts/build').builtDist();
 const builds = {
   'knayi-myscript.min.js': 'script',
   'knayi-myscript.js': 'script',

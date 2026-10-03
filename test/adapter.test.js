@@ -239,7 +239,8 @@ describe('myanmar-tools adapter', () => {
       t.skip('myanmar-tools is not installed in the working directory');
       return;
     }
-    const esm = await import(pathToFileURL(path.join(__dirname, '..', 'dist', 'knayi-myscript.mjs')).href);
+    const dist = require('../scripts/build').builtDist();
+    const esm = await import(pathToFileURL(path.join(dist, 'knayi-myscript.mjs')).href);
     const run = capture(() => esm.fontDetect('က္က', 'unicode', { adapter: 'myanmartools', myanmartools_zg_threshold: [0.05, 0.9] }));
     if (typeof process.getBuiltinModule === 'function') {
       assert.equal(run.value, 'zawgyi');

@@ -41,6 +41,8 @@ module.exports = defineConfig({
     url: baseURL + '/scripts/browser/page.html',
     env: { KNAYI_BROWSER_PORT: String(port) },
     reuseExistingServer: false,
+    // SIGTERM, not the default SIGKILL, so the server removes its temporary build.
+    gracefulShutdown: { signal: 'SIGTERM', timeout: 5000 },
     timeout: 15000
   }
 });

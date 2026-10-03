@@ -161,7 +161,8 @@ describe('RegExps built from strings', () => {
       '  apply: function (t, self, a) { built.push(String(a[0]) + "/" + (a[1] === undefined ? "" : String(a[1]))); return Reflect.apply(t, self, a); }',
       '});'
     ].join('\n'), context);
-    vm.runInContext(fs.readFileSync(path.join(ROOT, 'dist', 'knayi-myscript.min.js'), 'utf8'), context);
+    const dist = require('../scripts/build').builtDist();
+    vm.runInContext(fs.readFileSync(path.join(dist, 'knayi-myscript.min.js'), 'utf8'), context);
     vm.runInContext('(' + examples.runCalls + ')(knayi, JSON.parse(' + JSON.stringify(JSON.stringify(examples.allCalls())) + '))', context);
     const fromMin = [...new Set(vm.runInContext('built', context))].sort();
     const fromMain = [...new Set(records.filter((r) => r.via === 'new RegExp' || r.via === 'RegExp()')

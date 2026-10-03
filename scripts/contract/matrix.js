@@ -18,8 +18,9 @@ const { pathToFileURL } = require('url');
 const ROOT = path.join(__dirname, '..', '..');
 const SNAPSHOT = path.join(ROOT, 'test', 'contract', 'api-matrix.json');
 
-// The builds the matrix runs on. main.js is the source of truth; the dist files come from KNAYI_DIST when it is
-// set (a directory holding a fresh build), otherwise from dist/.
+// The builds the matrix runs on. main.js is the source of truth; the dist files come from a fresh build of this
+// checkout in a temporary directory, or from KNAYI_DIST when it is set (`KNAYI_DIST=dist` checks the committed
+// release build); see builtDist() in scripts/build.js.
 const BUILDS = ['main.js', 'knayi-myscript.mjs', 'knayi-myscript.min.js'];
 
 // Cells in which a build is expected to differ from main.js, with the reason. `npm run matrix:update` refuses to
@@ -241,7 +242,7 @@ function withGlobalDebug(global, call) {
 // --- Builds ---------------------------------------------------------------------------------------------------
 
 function distDir() {
-  return process.env.KNAYI_DIST ? path.resolve(process.env.KNAYI_DIST) : path.join(ROOT, 'dist');
+  return require('../build').builtDist();
 }
 
 function runtimeName() {
@@ -257,7 +258,8 @@ async function loadBuild(name) {
   }
   const file = path.join(distDir(), name);
   const relative = path.relative(ROOT, file);
-  const label = relative && relative.indexOf('..') !== 0 ? relative : file;
+  const label = relative && relative.indexOf('..') !== 0 ? relative
+    : process.env.KNAYI_DIST ? file : name + ' (temporary build)';
   if (name === 'knayi-myscript.mjs') {
     const module = await import(pathToFileURL(file).href);
     return hostBuild(name, label, module.default, logs);
