@@ -1949,6 +1949,7 @@ Phase 6 #5 of the plan: the rows of Unicode to Zawgyi that write one glyph for o
   - against 2.x at e5f6e24: 0.40, 0.22, 0.43 and 0.43 under Node, and 0.69, 0.34, 0.82 and 0.84 under Bun, where §7.11 read 0.49, 0.30, 0.49 and 0.49, and 0.80, 0.41, 0.91 and 0.92, after the review;
   - growth: 0 of 308 cells above 1.3, the highest 1.15 under Node and 1.06 under Bun.
 - **Size.** compat is 17,289 B gzip, 581 B more than `next`'s 16,708 B. The rows read from the table took 107 B off it (16,601 B, 51,433 B minified), and the pass adds 688 B (53,557 B minified): its builders, its two ways of writing and its typed tables compress worse than the regex literals the rows replaced. The normalize-only bundle is unchanged at 6,528 B. Both were over their targets before, and still need the maintainer's decision.
+- **On `next`.** The branch merged into `next` after the 3.0 API of §11 (merge 0fc1669), with no conflict and no change to either side: the API's `toZawgyi` calls `unicodeToZawgyi` and `traceUnicodeToZawgyi`, whose signatures and row ids stay as they were. On the merged tree compat's output is still the reference's: compare reads 0 differences in 2,771,318 comparisons under Node 26.5 and Bun 1.4.2, and 0 in 8,957,756 with `--fuzz 200000 --seed 7`, and the matrix matches all 3,523 cells under both. compat is 17,624 B gzip, 916 B more than 16,708 B: the 343 B of §11.3 and the 581 B above, less 8 B. The whole API is 21,107 B, and the two normalize-only bundles stay at the API's 6,804 B (the core's) and 9,158 B (the API's `normalize`). Against 2.x at e5f6e24 (`npm run perf`, 5 rounds, load about 7) it passes the binding checks of D22: no Node row above 0.52, `fontConvert.unicode-zawgyi` 0.41, 0.22, 0.44 and 0.44 per line, word, string and document under Node and 0.68, 0.33, 0.83 and 0.82 under Bun, and 0 of 2,264 growth cells above 1.3 (highest 1.20 under Node, 1.25 under Bun).
 
 ---
 
@@ -2028,7 +2029,7 @@ The files are `index.js`, which re-exports, and `api/`: `args.js` (the checks), 
 
 **Types.** `src/index.d.ts` is hand-written. `typecheck/next/api.ts` compiles code against it in `npm test`, with an `@ts-expect-error` line for each kind of call the functions refuse; `test/next/api/types.test.mjs` checks that it declares exactly what `src/index.js` exports; and the sources of `api/` carry JSDoc types and `// @ts-check`, which the same `tsc` run checks against `index.d.ts`. `normalize` and `toUnicode` have an overload for the options that change what they return.
 
-**Sizes** (`scripts/next/size.mjs`, as §6.4 measures, gzip level 9): the whole API is 20,557 B, and an import of `normalize` alone 9,158 B. The tree-shaking check of §2.4 runs on that import too: no byte of the fonts, detection, segmentation, Unicode to Zawgyi or the other modules of `api/`. Neither has a target yet.
+**Sizes** (`scripts/next/size.mjs`, as §6.4 measures, gzip level 9): the whole API is 21,107 B (20,557 B before the one-pass Unicode to Zawgyi writer of §7.12 joined it), and an import of `normalize` alone 9,158 B. The tree-shaking check of §2.4 runs on that import too: no byte of the fonts, detection, segmentation, Unicode to Zawgyi or the other modules of `api/`. Neither has a target yet.
 
 ### 11.2 normalize, idempotent by construction (decision 36)
 
