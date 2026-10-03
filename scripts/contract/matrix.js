@@ -646,6 +646,8 @@ module.exports = {
   ROOT,
   SNAPSHOT,
   BUILDS,
+  // The content probes, which scripts/eval/lib/inputs.mjs also hands to compare.
+  CONTENTS,
   defineCells,
   loadBuild,
   runCells,

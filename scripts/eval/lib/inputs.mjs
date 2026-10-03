@@ -1,7 +1,11 @@
 // Inputs for compare.mjs and perf.mjs: the cached corpora, generated inputs, seeded fuzz, perf workloads and the
 // adversarial shapes for growth exponents. Only the corpora need the eval cache; everything else is made here.
+import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import { loadAll } from '../datasets.mjs';
 
+const require = createRequire(import.meta.url);
+const ROOT = new URL('../../../', import.meta.url);
 const cp = (...codes) => String.fromCodePoint(...codes);
 const range = (from, to) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
 const distinct = (xs) => [...new Set(xs)];
@@ -51,12 +55,60 @@ export function generatedSets() {
   // Windows-1252 characters and C1 controls alone, before and after every printable ASCII character.
   const win = LATIN1.flatMap((a) => [cp(a), ...ASCII_PRINTABLE.map((b) => cp(a, b))]);
   const cp1252 = [...CP1252, ...C1].flatMap((a) => [cp(a), ...ASCII_PRINTABLE.flatMap((b) => [cp(a, b), cp(b, a)])]);
+  const rows = rowProbes();
   return [
     set('generated.pairs', 'myanmar', 'generated', pairs, 'U+1000-U+109F alone, doubled, and every ordered pair after U+1000'),
     set('generated.extended', 'myanmar', 'generated', extended, 'Myanmar Extended-A/B/C, spaces and joiners next to U+1000'),
+    set('generated.rows', 'myanmar', 'generated', rows.lines, rows.about),
     set('generated.win', 'win', 'generated', win, 'printable Latin-1 alone and before printable ASCII'),
     set('generated.cp1252', 'win', 'generated', cp1252, 'Windows-1252 and C1 characters next to printable ASCII')
   ];
+}
+
+// The probes the tests already hold, so that compare sees every one of them under every call form, in every
+// build and runtime it runs: the main and edge probes of the table rows (test/fixtures/tables.json), every
+// string in the examples of README.md and ARCHITECTURE.md, and the matrix's content probes
+// (scripts/contract/matrix.js). Each is used alone and with ka, the digit one, a space, Win's ka (u) or the
+// digit 1 before or after it. They reach rules of four or more characters, and the branches of each rule, that
+// the generated pairs and the fuzz alphabets do not build: o with e, aa and asat, for example. All of them are
+// synthetic or hand-written (decision 22). The set is kind 'myanmar' and not a corpus, so the Win call forms
+// read it too.
+function rowProbes() {
+  const probes = [];
+  const fixture = JSON.parse(fs.readFileSync(new URL('test/fixtures/tables.json', ROOT), 'utf8'));
+  for (const entry of Object.values(fixture.cases)) {
+    probes.push(entry.probe, ...(entry.edges || []).map((edge) => edge.probe));
+  }
+  const tables = probes.length;
+  const acorn = require('acorn');
+  const { readExamples } = require('../../testing/readme-examples.js');
+  const strings = (code) => {
+    const found = [];
+    (function walk(node) {
+      if (Array.isArray(node)) return node.forEach(walk);
+      if (!node || typeof node.type !== 'string') return;
+      if (node.type === 'Literal' && typeof node.value === 'string') found.push(node.value);
+      for (const key of Object.keys(node)) if (node[key] && typeof node[key] === 'object') walk(node[key]);
+    })(acorn.parse('(' + code + ')', { ecmaVersion: 'latest' }));
+    return found;
+  };
+  for (const doc of ['README.md', 'ARCHITECTURE.md']) {
+    for (const example of readExamples(fs.readFileSync(new URL(doc, ROOT), 'utf8'))) {
+      probes.push(...strings(example.code), ...(example.expected === null ? [] : strings(example.expected)));
+    }
+  }
+  const docs = probes.length - tables;
+  const { CONTENTS } = require('../../contract/matrix.js');
+  for (const [, value] of CONTENTS) if (typeof value === 'string' || value instanceof String) probes.push(String(value));
+  const matrix = probes.length - tables - docs;
+  const around = [cp(KA), cp(0x1041), ' ', 'u', '1'];
+  const lines = distinct(probes).filter(Boolean).flatMap((p) => [p, ...around.flatMap((c) => [c + p, p + c])]);
+  const num = (n) => n.toLocaleString('en-US');
+  return {
+    lines,
+    about: num(tables) + ' table probes, ' + num(docs) + ' strings of the README and ARCHITECTURE examples, ' + num(matrix) +
+      ' matrix probes; alone and next to ka, a digit, a space, u and 1'
+  };
 }
 
 export const DEFAULT_SEED = 20261003;
