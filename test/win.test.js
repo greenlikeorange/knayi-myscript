@@ -50,9 +50,15 @@ describe('Win', () => {
       assert.equal(toUnicode('êu'), 'ကြု');
     });
 
-    it('reads zero as wa unless it is next to a digit', () => {
+    it('reads zero as wa unless it is part of a number', () => {
       assert.equal(toUnicode('0if;'), 'ဝင်း');
       assert.equal(toUnicode('1000'), '၁၀၀၀');
+      assert.equal(toUnicode('5.0'), '၅.၀');
+    });
+
+    it('reads seven with a vowel sign or medial as ra', () => {
+      assert.equal(toUnicode('a7;'), 'ရေး');
+      assert.equal(toUnicode('7;30'), '၇း၃၀');
     });
 
     it('returns marks in Unicode order, dot below before asat', () => {
@@ -60,11 +66,16 @@ describe('Win', () => {
       assert.equal(toUnicode('ajumifh'), '\u1000\u103C\u1031\u102C\u1004\u1037\u103A');
     });
 
-    it('stores an asat typed before a vowel sign right after its consonant', () => {
+    it('stores asat where Unicode Technical Note #11 puts it', () => {
+      // On the consonant: right after it, before the medials and vowels.
       assert.equal(toUnicode('a,musfm;'), 'ယောက်ျား');
       assert.equal(toUnicode('a,mufsm;'), 'ယောက်ျား');
       assert.equal(toUnicode('usGefkyf'), 'ကျွန်ုပ်');
+      assert.equal(toUnicode('usGekfyf'), 'ကျွန်ုပ်');
+      assert.equal(toUnicode('csf'), 'ခ်ျ');
+      // Last: after aa, even typed before it without a medial, and after a visarga typed first.
       assert.equal(toUnicode('ausmf'), 'ကျော်');
+      assert.equal(toUnicode('aufm'), 'ကော်');
       assert.equal(toUnicode('vn;f'), 'လည်း');
     });
 

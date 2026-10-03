@@ -37,6 +37,6 @@ describe('locked phrases', () => {
     assert.equal(knayi.fontConvert('ကျ', 'unicode'), 'ကျ');
     assert.equal(knayi.spellingFix('ကိီ', 'unicode'), 'ကိီ');
     assert.equal(knayi.normalize('ကိီ'), 'ကီ');
-    assert.equal(knayi.normalize('ဝ'), '၀');
+    assert.equal(knayi.normalize('ဝ'), 'ဝ');
   });
 });

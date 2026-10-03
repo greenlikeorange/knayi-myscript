@@ -1,9 +1,12 @@
-const spellingFix = require('./spellingCheck');
 const fontDetect = require('./detector');
 const globalOptions = require('./globalOptions');
 const gate = require('./contentGate');
 const syllable = require('./syllable');
 const win = require('./win');
+const zawgyi = require('./zawgyi');
+
+// Fonts stored in drawing order, converted to Unicode glyph by glyph (library/storageOrder.js).
+const DRAWING_ORDER_FONTS = { win: win, zawgyi: zawgyi };
 
 function fontConvert(content, to, from) {
   content = gate.toText(content);
@@ -21,7 +24,8 @@ function fontConvert(content, to, from) {
     return content;
   }
 
-  content = gate.cleanText(content, true);
+  // Zero-width spaces and non-joiners mark word breaks, so they stay.
+  content = content.trim();
   to = gate.resolveFont(to);
   from = gate.resolveFont(from);
 
@@ -43,18 +47,19 @@ function fontConvert(content, to, from) {
   }
 
   var debug = this && this.debug;
-  if (from === 'win') return winToUnicode(content, debug);
+  // Here a Win or Zawgyi source always has a Unicode target.
+  if (DRAWING_ORDER_FONTS[from]) return drawingOrderToUnicode(content, from, debug);
 
-  content = spellingFix(content, from);
+  content = syllable.collapseMarks(content, from);
   return syllable.convertText(content, from, to, debug);
 }
 
-// Win has its own rules in library/win.js. The debugging log has the same shape as the other conversions
-// and ends with the converted text.
-function winToUnicode(content, debug) {
-  var result = win.toUnicode(content, debug);
+// Win and Zawgyi have their tables in library/win.js and library/zawgyi.js. The debugging log has the same
+// shape as the other conversions and ends with the converted text.
+function drawingOrderToUnicode(content, from, debug) {
+  var result = DRAWING_ORDER_FONTS[from].toUnicode(content, debug);
   if (!debug) return result;
-  return { to: 'unicode', from: 'win', matched_patterns: result.matched_patterns, steps: result.steps };
+  return { to: 'unicode', from: from, matched_patterns: result.matched_patterns, steps: result.steps };
 }
 
 fontConvert.debugging = function (param1, param2, param3) {

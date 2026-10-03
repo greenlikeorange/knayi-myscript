@@ -10,7 +10,7 @@ const unicodeGreeting = 'မင်္ဂလာပါ';
 
 describe('runtime contract', () => {
   it('exposes the public functions and the package version', () => {
-    assert.equal(knayi.version, '2.9.1');
+    assert.equal(knayi.version, '2.10.0');
     assert.equal(typeof knayi.setGlobalOptions, 'function');
     assert.equal(typeof knayi.fontDetect, 'function');
     assert.equal(typeof knayi.fontConvert, 'function');
