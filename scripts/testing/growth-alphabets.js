@@ -1,4 +1,4 @@
-// The characters the growth checks build their inputs from, by role: test/growth.test.js draws structured random
+// The characters the growth checks build their inputs from, by role: test/growth.timing.js draws structured random
 // cases from them, and both it and scripts/eval/lib/inputs.mjs (perf's growth exponents) also pump every one of
 // them alone. A letter starts a syllable; a mark joins the one before it.
 

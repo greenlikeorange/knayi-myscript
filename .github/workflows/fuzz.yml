@@ -1,7 +1,7 @@
 name: fuzz
 
 # Long runs of the randomized tests with a new seed each night: the differential fuzz test (test/fuzz.test.js),
-# the property tests (test/properties.test.js) and the growth test (test/growth.test.js). Pull requests run them
+# the property tests (test/properties.test.js) and the growth test (test/growth.timing.js). Pull requests run them
 # in npm test with a fixed seed and fewer cases. A failure keeps its seed in the log and in an artifact: replay it
 # with the command in replay.txt, and add the shrunk counterexample to the regressions of the property.
 
@@ -57,8 +57,8 @@ jobs:
           KNAYI_GROWTH_SEED: ${{ steps.seed.outputs.seed }}
           KNAYI_GROWTH_RUNS: '500'
         run: |
-          echo "KNAYI_GROWTH_SEED=$KNAYI_GROWTH_SEED KNAYI_GROWTH_RUNS=$KNAYI_GROWTH_RUNS node --test test/growth.test.js" | tee -a replay.txt
-          node --test test/growth.test.js 2>&1 | tee growth.log
+          echo "KNAYI_GROWTH_SEED=$KNAYI_GROWTH_SEED KNAYI_GROWTH_RUNS=$KNAYI_GROWTH_RUNS node --test test/growth.timing.js" | tee -a replay.txt
+          node --test test/growth.timing.js 2>&1 | tee growth.log
       - if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

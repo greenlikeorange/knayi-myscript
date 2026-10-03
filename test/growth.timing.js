@@ -12,7 +12,11 @@ const knayi = require('../main');
 // the shapes someone thought of; scripts/check-redos.mjs checks the regexes one by one.
 //
 // Timings are noisy, so each size runs REPS times interleaved and the medians count, sizes grow until a call
-// takes long enough to measure, and a case fails only when every one of ATTEMPTS measurements is above LIMIT.
+// takes MIN_MS, and a ratio above LIMIT is measured again at twice the size: a case fails only when the ratio is
+// above LIMIT at two sizes (or on all ATTEMPTS at the largest size). A burst of load on the machine spoils one
+// measurement, seldom two at different sizes, while super-linear code reads high at every size. The file runs on
+// its own, after the other test files (package.json `test`), so the fuzz, matrix and property tests do not
+// compete with it for the CPU.
 // fast-check shrinks a failing case and prints its seed; KNAYI_GROWTH_SEED replays it and KNAYI_GROWTH_RUNS
 // sets the number of random cases per call form (a nightly job can run many more).
 //
@@ -30,7 +34,7 @@ const START_CHARS = 2048;
 // Past about 64k characters, memory effects alone push the ratio of even trivially linear calls to 2.5-3.5,
 // while a quadratic path is already obvious at a few thousand.
 const MAX_CHARS = 1 << 15;
-const MIN_MS = 1; // a median below this is mostly timer and GC noise, so the input grows
+const MIN_MS = 4; // a median below this is mostly timer and GC noise, so the input grows
 const SLOW_MS = 2000; // one call this slow fails at once
 const RUNS = Number(process.env.KNAYI_GROWTH_RUNS) || 10;
 const SEED = Number(process.env.KNAYI_GROWTH_SEED) || 20261003;
@@ -137,11 +141,13 @@ function median(values) {
   return sorted[sorted.length >> 1];
 }
 
-// How the call's time grows from k to 2k units: { ok, chars, ratios, ms }.
+// How the call's time grows from k to 2k units: { ok, chars, ratios, ms }. After a ratio above LIMIT the next
+// measurement is at twice the size, until 4k units would pass MAX_CHARS.
 function growth(fn, shape) {
   const make = (k) => shape.prefix + shape.pump.repeat(k) + shape.suffix;
   let k = Math.ceil(START_CHARS / shape.pump.length);
   const ratios = [];
+  const highAt = new Set();
   for (;;) {
     const small = make(k);
     const big = make(2 * k);
@@ -162,7 +168,9 @@ function growth(fn, shape) {
     }
     ratios.push(ms[1] / ms[0]);
     if (ratios[ratios.length - 1] <= LIMIT) return { ok: true, chars: big.length, ratios, ms };
-    if (ratios.length >= ATTEMPTS) return { ok: false, chars: big.length, ratios, ms };
+    highAt.add(big.length);
+    if (highAt.size >= 2 || ratios.length >= ATTEMPTS) return { ok: false, chars: big.length, ratios, ms };
+    if (make(4 * k).length <= MAX_CHARS) k *= 2;
   }
 }
 

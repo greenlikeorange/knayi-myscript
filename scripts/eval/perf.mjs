@@ -167,7 +167,7 @@ async function measure({ base, head, opts }) {
 }
 
 // A reading above the limit is measured twice more and the lowest of the three kept, so a cell fails only when all
-// three are above the limit, as in test/growth.test.js: super-linear code reads high every time, while another
+// three are above the limit, as in test/growth.timing.js: super-linear code reads high every time, while another
 // process or a garbage-collection pause (JavaScriptCore under Bun has more of them than V8) seldom spoils three
 // measurements in a row.
 function confirmedGrowth(call, make, limit) {
