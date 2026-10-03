@@ -10,7 +10,7 @@ knayi's output is used as data: people store it, index it and train on it. So ev
 - how many lines of the eval corpora change, per corpus, and whether those are distinct lines;
 - the pull request, and an example.
 
-"None" means the output comparison found no difference and the contract matrix no changed cell. A pull request that changes output on purpose adds its entry here (see [CONTRIBUTING.md](CONTRIBUTING.md)). Everything else goes under **Security**, **Added**, **Changed** or **Fixed**.
+"None" means the output comparison found no difference and the contract matrix no changed cell. A pull request that changes output on purpose adds its entry here (see [CONTRIBUTING.md](CONTRIBUTING.md)). Everything else goes under **Security**, **Added**, **Changed**, **Removed** or **Fixed**. A breaking change, which only a major version makes, says so under **Changed** or **Removed**.
 
 Counts below are distinct lines of the corpora that `npm run eval` downloads (see [scripts/eval/README.md](scripts/eval/README.md)). "Wikipedia" is the 4,812-line sample those scripts read today.
 
@@ -24,40 +24,51 @@ None.
 
 2026-10-04. The first prerelease of 3.0, for npm's `next` tag; not yet published.
 
-3.0, built on the `next` branch: ES modules with an exports map, one stateless API with options per call and coded errors, and the 2.x API as `knayi-myscript/compat`. README's "Upgrading from 2.x" says what to change.
-
-### Breaking changes
-
-- **ES modules only, for Node.js 22.12 or newer** (`engines`), Bun and browsers. From Node 22.12 on, `require` loads ES modules, so CommonJS code keeps `require`. Node 16 to 22.11 stay on 2.x.
-- **An exports map with one entry per API.** `knayi-myscript` is the 3.0 API, `knayi-myscript/compat` the 2.x API and `knayi-myscript/stream` the streams. No other path loads: `knayi-myscript/library/converter`, `main.js` and the `dist/` paths are gone, and so is the `module` field.
-- **The 2.x API moved to `knayi-myscript/compat`**, with 2.x's output on every input. `import knayi from 'knayi-myscript'` no longer compiles or loads, since the 3.0 API has no default export: import from `knayi-myscript/compat`, or `require('knayi-myscript/compat').default`.
-- **Types:** the package's types are the 3.0 API's (`src/index.d.ts`); 2.x's `index.d.ts` is `src/compat/index.d.ts`, the types of `knayi-myscript/compat`. TypeScript finds the subpaths under `moduleResolution` `node16`, `nodenext` or `bundler`, not `node` (node10), and CommonJS code in TypeScript can `require` the package under `module` `node20` or `nodenext` only.
-- **Browser builds:** `dist/knayi-myscript.min.js` sets `knayi` to the 3.0 API, with the 2.x API as `knayi.compat`; a page written for 2.x sets `knayi = knayi.compat` after the tag. The module builds are `dist/knayi-myscript.min.mjs` (the 3.0 API) and `dist/knayi-myscript-compat.min.mjs` (the 2.x API); `knayi-myscript.js`, `knayi-myscript.mjs` and `knayi-myscript.es.js` are gone. All three are minified and strict.
-- **The browser floor rises** to the first versions with all of ES2015 (decision 18): Chrome 51, Edge 15, Firefox 54, Safari 10.1 (iOS 10.3), Samsung Internet 5 and Opera 38, where 2.x ran in Chrome 49, Edge 14, Firefox 34 and Safari 10.
-- `parseUnicode` and `serializeUnicode`, which only 2.x's tests used through `library/syllable.js`, are gone.
+3.0, built on the `next` branch: one core of ES modules that keeps nothing between calls, the 3.0 API on it with options per call and errors with codes, streams and a command line for data pipelines, and the 2.x API as `knayi-myscript/compat`, with 2.x's output. [MIGRATION.md](MIGRATION.md) says what to change, call by call, and counts the output changes.
 
 ### Output changes
 
-- **`knayi-myscript/compat`: none.** It gives 2.10.0's output (commit e5f6e24) on every call form and input: 0 differences in `npm run compare`, and every cell of the contract matrix, under Node and Bun. It differs from 2.x's `main.js` where 2.x's own ES module build did: a detached `fontConvert` call never reads a global `debug`, and myanmar-tools is looked up from the working directory.
-- **The 3.0 `normalize` settles** (`OUTPUT_VERSION` 2): it is idempotent, and reads u, zero and seven right after a virama or under a kinzi as nya, wa and ra. It gives 2.x's `normalize` output on every line of the Unicode corpora; on raw mC4, mostly Zawgyi, 199 of 14,304 lines differ. docs/next/DESIGN.md §11.2 has the evidence.
+- **`knayi-myscript/compat`: none.** It gives 2.10.0's output (commit e5f6e24) on every call form and input: 0 differences in `npm run compare` on every eval corpus and on generated and fuzzed input, and every cell of the contract matrix, under Node and Bun. It differs from 2.x's `main.js` where 2.x's own ES module build did: a detached `fontConvert` call never reads a global `debug`, and myanmar-tools is looked up from the working directory.
+- **`OUTPUT_VERSION` is 2.** It was 1 for 2.10.0's output, which compat keeps; the 3.0 `normalize` raises it.
+- **The 3.0 API against the 2.x calls it replaces.** MIGRATION.md, "Output changes, counted", has the counts per corpus, from `npm run compare` between compat and the 3.0 API:
+  - **`normalize` settles:** it is idempotent, and reads ဥ, ၀ and ၇ right after a virama or under a kinzi as ဉ, ဝ and ရ. It gives 2.x's output on every line of the Unicode corpora (FLORES, Wikipedia, Okell, and GlotCC Shan, Mon, S'gaw Karen and Pa'o) and on WaitZar; on raw mC4, mostly Zawgyi, 199 of 14,304 lines differ. [research/normalize-idempotence.md](research/normalize-idempotence.md) has the evidence.
+  - **`toUnicode` with no source detects each line, and leaves a tie as it is,** where 2.x's `fontConvert(text, 'unicode')` read a tie as Zawgyi: 168 of 4,812 Wikipedia lines and 550 of 16,924 Okell lines, all Unicode, that 2.x changed stay as they are. Short Zawgyi text needs its source named: of Google's 80 pairs, 3.0 converts 49 right with no source, against 2.x's 79, and all 80 with `from: 'zawgyi'`. `tie: 'zawgyi'` restores 2.x's reading. [research/tie-policy.md](research/tie-policy.md) has the counts.
+  - **`detectEncoding`** answers `'unknown'` for a tie and `'none'` for text with no Myanmar character, where `fontDetect` answered its fallback: 242 Wikipedia and 1,092 Okell lines are ties.
+  - **No function of the 3.0 API trims**, and none removes zero-width characters: `toUnicode`, `toZawgyi` and `collapseRepeatedMarks` keep the white space at the ends, and `collapseRepeatedMarks` and `segmentSyllables` keep U+200B and U+200C (1,068 Okell lines hold them).
+  - **`segmentSyllables` reads a bare consonant as a syllable of its own** by default, and keeps every character, where `syllBreak` joined bare consonants in pairs: its pieces differ from 2.x's on 1,986 of 2,009 FLORES lines. `policy: 'pairs'` gives 2.x's breaks. [research/segmentation.md](research/segmentation.md) has the counts.
+  - **`truncate` is always a prefix of its text, and returns a text that fits as it is,** where 2.x could keep a later word after a skipped one, and appended the omission to every text: at length 30, 1,117 of 2,009 FLORES lines differ.
 
 ### Added
 
-- **The 3.0 API** (`knayi-myscript`): `normalize` with a change report, `isNormalized`, `explain`, `detectEncoding` with an injected myanmar-tools detector, `toUnicode` that converts and detects each line on its own and maps output offsets back to the input, `toZawgyi`, lossless `segmentSyllables` and `syllableBoundaries`, a `truncate` that always returns a prefix, `collapseRepeatedMarks`, `createTrace`, `VERSION` and `OUTPUT_VERSION`. Options are per call and in camelCase, and a wrong argument throws a `TypeError` or `RangeError` with a `code`.
-- **Streams** (`knayi-myscript/stream`): `createNormalizer` and `createConverter`, TransformStreams of `normalize` and `toUnicode` that take strings or UTF-8 bytes in chunks and give what the function gives for the whole text; `lineTransform` for any function of a line; and `mapLines`, the line cutter under them, for a loop or a Node `Transform`. A line longer than `maxLineLength` is an error with the code `ERR_KNAYI_LINE_TOO_LONG`; a runtime with no `TransformStream`, or bytes with no `TextDecoder`, throws `ERR_KNAYI_UNSUPPORTED_RUNTIME`.
+- **The 3.0 API** (`knayi-myscript`): `normalize`, idempotent, with a change report (`report: true`); `isNormalized`; `explain`, which lists the Zawgyi lines and each thing `normalize` changes, with offsets, rule ids and fixes; `detectEncoding`, with the evidence and an injected myanmar-tools detector (`zawgyiDetector`); `toUnicode`, which detects each line on its own, takes a `tie` reading and maps each output unit back to the input (`offsets: true`); `toZawgyi`; `segmentSyllables` and `syllableBoundaries`, whose pieces join back to the text, with three bare-consonant policies; a `truncate` that always returns a prefix; `collapseRepeatedMarks`; `createTrace`, for the `trace` option of `normalize`, `toUnicode` and `toZawgyi`, with stable ids; `VERSION`; and `OUTPUT_VERSION`, which changes with every deliberate change to any output. Options are per call and in camelCase, and a bad argument throws a `TypeError` or `RangeError` with a `code` (`ERR_KNAYI_INVALID_ARG_TYPE`, `ERR_KNAYI_INVALID_ARG_VALUE`). Types: `src/index.d.ts`.
+- **Streams** (`knayi-myscript/stream`): `createNormalizer` and `createConverter`, TransformStreams of `normalize` and `toUnicode` that take strings or UTF-8 bytes in chunks and give what the function gives for the whole text; `lineTransform` for any function of a line; and `mapLines`, the line cutter under them, for a loop or a Node `Transform`. A line longer than `maxLineLength` is an error with the code `ERR_KNAYI_LINE_TOO_LONG`; a runtime with no `TransformStream`, or bytes with no `TextDecoder`, throws `ERR_KNAYI_UNSUPPORTED_RUNTIME`. Types: `src/stream.d.ts`.
 - **The `knayi` command** (`bin/knayi.js`): `normalize`, `to-unicode`, `to-zawgyi`, `convert`, `detect`, `segment` and `check` over files or standard input, as plain text or JSON Lines, holding one line at a time. It loads myanmar-tools only for `--detector myanmar-tools`, and only from where knayi-myscript is installed. README's "Command line" is its manual.
-
-### Security
-
-- The 3.0 `explain` found the end of a line that reads as Zawgyi with a regex that took quadratic time on a long run of white space inside the line (40,000 tabs: 1 s); it takes linear time before any release ships it.
+- **Browser builds of the 3.0 API:** `dist/knayi-myscript.min.mjs`, and the global `knayi` of `dist/knayi-myscript.min.js`.
+- **Documentation:** a README for the 3.0 API; MIGRATION.md, the 2.x API call by call with its 3.0 equivalent and the output changes counted; research notes on the 3.0 decisions (`research/normalize-idempotence.md`, `research/tie-policy.md`, `research/segmentation.md`); and `scripts/next/migration/`, which lets `npm run compare` count the output changes between compat and the 3.0 API.
 
 ### Changed
 
-- Size budgets for 3.0, proposed for the maintainer to confirm (docs/next/DESIGN.md §6.4): `dist/knayi-myscript.min.js` 25,000 B gzip (23,951 B today), the 3.0 module build 22,000 B, the compat module build 18,300 B, and an import of the whole 3.0 API 22,200 B, of compat 18,600 B, of `normalize` alone 9,700 B, of the streams 16,900 B and of `createNormalizer` alone 10,900 B. 2.10's `min.js` was 9,830 B.
+- **Breaking: ES modules only, for Node.js 22.12 or newer** (`engines`), Bun and browsers. From Node 22.12 on, `require` loads ES modules, so CommonJS code keeps `require`. Node 16 to 22.11 stay on 2.x.
+- **Breaking: an exports map with one entry per API.** `knayi-myscript` is the 3.0 API, `knayi-myscript/stream` the streams and `knayi-myscript/compat` the 2.x API. No other path loads.
+- **Breaking: the 2.x API moved to `knayi-myscript/compat`**, with 2.x's output on every input. `import knayi from 'knayi-myscript'` no longer compiles or loads, since the 3.0 API has no default export: import from `knayi-myscript/compat`, or `require('knayi-myscript/compat').default`. compat's `version` is the package's, `'3.0.0-next.0'`.
+- **Breaking: types.** The package's types are the 3.0 API's (`src/index.d.ts`); 2.x's `index.d.ts` is `src/compat/index.d.ts`, the types of `knayi-myscript/compat`. TypeScript finds the subpaths under `moduleResolution` `node16`, `nodenext` or `bundler`, not `node` (node10), and CommonJS code in TypeScript can `require` the package under `module` `node20` or `nodenext` only.
+- **Breaking: the script build's global.** `dist/knayi-myscript.min.js` sets `knayi` to the 3.0 API, with the 2.x API as `knayi.compat`; a page written for 2.x sets `knayi = knayi.compat` after the tag. The 2.x module build is `dist/knayi-myscript-compat.min.mjs`. All three `dist/` files are minified and strict.
+- **Breaking: the browser floor rises** to the first versions with all of ES2015 (decision 18): Chrome 51, Edge 15, Firefox 54, Safari 10.1 (iOS 10.3), Samsung Internet 5 and Opera 38, where 2.10 ran in Chrome 49, Edge 14, Firefox 34 and Safari 10.
+- **One core under both APIs.** The engine is rewritten on char codes, with named steps, one-pass readers and scanners in place of 2.x's regex tables, and no module state but scratch buffers and a memo of the runtime's Unicode data (docs/next/DESIGN.md). compat runs on it with 0 differences from 2.10.0.
+- **Size budgets for 3.0**, proposed for the maintainer to confirm (docs/next/DESIGN.md §6.4): `dist/knayi-myscript.min.js` 25,000 B gzip (23,951 B today), the 3.0 module build 22,000 B, the compat module build 18,300 B, and an import of the whole 3.0 API 22,200 B, of compat 18,600 B, of `normalize` alone 9,700 B, of the streams 16,900 B and of `createNormalizer` alone 10,900 B. 2.10's `min.js` was 9,830 B.
+- **Development:** `npm test` tests a build made in a temporary directory and never rewrites `dist/`. CI runs the tests on Node 22.12, 24 and 26 and on Bun; the output comparison with the base branch, and of compat with 2.10.0's code (the `Compat` job), with the contract matrix; the README, MIGRATION and ARCHITECTURE examples, fuzz, property and adapter tests; the browser floor checks and a Playwright run; ReDoS, type, size and `dist/` checks; and growth exponents. `ARCHITECTURE.md`, `CONTRIBUTING.md`, `SECURITY.md`, this changelog and a pull request template describe the project.
 
-- Contributor documentation: `ARCHITECTURE.md`, a rewritten `CONTRIBUTING.md`, `SECURITY.md`, this changelog and a pull request template.
-- Development: `npm test` no longer rewrites `dist/`; it tests a build made in a temporary directory. CI also runs the output comparison, the API contract matrix, table, README, fuzz, property and adapter tests, the browser floor checks and a Playwright run, ReDoS, type, size and `dist/` checks, growth exponents, and a smoke run on Node 16, 18 and 20.
-- README: `normalize` returns text with no Myanmar letters in NFC, and a Win source is converted even though it has no Myanmar letters; name the source font for short text, because a detection tie reads it as Zawgyi; `normalize` can change converted text where an ေ or medial ra has no consonant after it.
+### Removed
+
+- `main.js`, `library/`, the root `index.d.ts`, the `module` field, and the deep paths they served, such as `knayi-myscript/library/converter` and `knayi-myscript/dist/...`.
+- `dist/knayi-myscript.js`, `dist/knayi-myscript.mjs` and `dist/knayi-myscript.es.js`.
+- `parseUnicode` and `serializeUnicode`, which only 2.x's tests used through `library/syllable.js`.
+- Support for Node.js 16 to 22.11, and CI's smoke runs on Node 16, 18 and 20.
+
+### Security
+
+- **NFC takes linear time.** The quadratic case 2.10.0 lists as known, a long run of dot below with virama or asat, is linear in both APIs: `core/nfc.js` puts such a run in canonical order itself before `String#normalize` sees it. `'က'` followed by 64,000 pairs of U+1037 U+1039 takes about 4 s in 2.10.0's `normalize` and a few milliseconds in 3.0's, and in compat's (Node 26.5, one run).
+- The 3.0 `explain` found the end of a line that reads as Zawgyi with a regex that took quadratic time on a long run of white space inside the line (40,000 tabs: 1 s); it takes linear time before any release ships it.
 
 ## 2.10.0
 
