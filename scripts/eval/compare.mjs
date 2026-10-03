@@ -12,6 +12,8 @@
 //   --expect form:set=n   a deliberate difference: exactly n differences in that cell; set `all` (or a quoted *)
 //                         counts the form's total over every set. Repeat it, or separate entries with commas.
 //                         Every other cell must show 0.
+//   --skip-missing-sets   an --expect entry for an input set this run does not have (mC4, a corpus the cache lacks,
+//                         any corpus with --offline) is listed and skipped, not an error; CI passes it
 //   --forms a,b           only these call forms (a trailing * matches a prefix, as in debugging.*)
 //   --sets a,b            only these input sets (same matching)
 //   --fuzz <n>            fuzz strings per generator (default 20000; 0 for none)
@@ -30,7 +32,7 @@ import { selectForms, formById, available, outcome } from './lib/callForms.mjs';
 import { generatedSets, fuzzSets, corpusSets, DEFAULT_SEED } from './lib/inputs.mjs';
 
 function parseArgs(argv) {
-  const opts = { base: 'origin/main', head: '.', offline: false, without: [], expect: [], forms: [], sets: [], fuzz: 20000,
+  const opts = { base: 'origin/main', head: '.', offline: false, without: [], expect: [], skipMissingSets: false, forms: [], sets: [], fuzz: 20000,
     seed: DEFAULT_SEED, jobs: Math.min(16, (os.availableParallelism ? os.availableParallelism() : os.cpus().length) || 1),
     examples: 3, json: null };
   const value = (i) => {
@@ -50,6 +52,7 @@ function parseArgs(argv) {
       case '--offline': opts.offline = true; break;
       case '--without': opts.without.push(...list(value(i++))); break;
       case '--expect': opts.expect.push(...list(value(i++))); break;
+      case '--skip-missing-sets': opts.skipMissingSets = true; break;
       case '--forms': opts.forms.push(...list(value(i++))); break;
       case '--sets': opts.sets.push(...list(value(i++))); break;
       case '--fuzz': opts.fuzz = count(arg, value(i++)); break;
@@ -64,18 +67,24 @@ function parseArgs(argv) {
   return opts;
 }
 
-function parseExpect(entries, forms, sets) {
+// Returns { expected: Map('form:set' -> n), skipped: [entries for sets not in this run, with skipMissingSets] }.
+function parseExpect(entries, forms, sets, skipMissingSets) {
   const expected = new Map();
+  const skipped = [];
   for (const entry of entries) {
     const m = /^([^:=]+):([^:=]+)=(\d+)$/.exec(entry);
     if (!m) throw new Error('--expect takes form:set=n, not ' + entry);
     const [, form, given, n] = m;
     const set = given === 'all' ? '*' : given;
     if (!forms.some((f) => f.id === form)) throw new Error('--expect ' + entry + ': no call form ' + form + ' in this run');
-    if (set !== '*' && !sets.some((s) => s.id === set)) throw new Error('--expect ' + entry + ': no input set ' + set + ' in this run');
+    if (set !== '*' && !sets.some((s) => s.id === set)) {
+      if (!skipMissingSets) throw new Error('--expect ' + entry + ': no input set ' + set + ' in this run');
+      skipped.push(entry);
+      continue;
+    }
     expected.set(form + ':' + set, Number(n));
   }
-  return expected;
+  return { expected, skipped };
 }
 
 const matches = (id, patterns) => patterns.length === 0 ||
@@ -217,7 +226,7 @@ async function main(argv) {
   if (sets.length === 0) throw new Error('no input set matches --sets ' + opts.sets.join(','));
   const unknownSets = opts.sets.filter((p) => !sets.some((s) => matches(s.id, [p])));
   if (unknownSets.length) throw new Error('no input set matches ' + unknownSets.join(', '));
-  const expected = parseExpect(opts.expect, run, sets);
+  const { expected, skipped: skippedExpect } = parseExpect(opts.expect, run, sets, opts.skipMissingSets);
 
   console.log('knayi compare');
   console.log('  base  ' + describe(base));
@@ -227,6 +236,7 @@ async function main(argv) {
   for (const s of sets) console.log('  ' + s.id.padEnd(20) + num(s.lines.length).padStart(8) + '  ' + s.about);
   if (skipped.length) console.log('\nskipped (missing in the base): ' + skipped.map((f) => f.id).join(', '));
   if (lost.length) console.log('\nmissing in the head: ' + lost.map((f) => f.id).join(', '));
+  if (skippedExpect.length) console.log('\nskipped (set not in this run): --expect ' + skippedExpect.join(', --expect '));
 
   const jobs = makeJobs(sets, run);
   const done = await runJobs(jobs, sets, { base, head, A, B }, opts);
@@ -304,7 +314,7 @@ async function main(argv) {
       base, head, offline: opts.offline, seed: opts.seed, fuzz: opts.fuzz,
       sets: sets.map((s) => ({ id: s.id, kind: s.kind, origin: s.origin, inputs: s.lines.length, total: s.total, about: s.about })),
       forms: run.map((f) => f.id), skipped: skipped.map((f) => f.id), lost: lost.map((f) => f.id),
-      cells: ordered, comparisons, seconds, ok: problems.length === 0, problems
+      skippedExpect, cells: ordered, comparisons, seconds, ok: problems.length === 0, problems
     }, null, 1) + '\n');
     console.error('wrote ' + opts.json);
   }

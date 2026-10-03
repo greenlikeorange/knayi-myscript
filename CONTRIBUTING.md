@@ -80,7 +80,7 @@ Knayi's output is used as data, so an unannounced change to it is a bug even whe
   - both hold for `main.js`, the `.mjs` build and `min.js`, under Node and Bun. CI checks all of this.
 - **The matrix records error messages only for errors knayi throws itself.** For a `TypeError` the engine raises by accident, it records only the class, because those messages differ between runtimes and builds. An error knayi throws on purpose carries a string `code` property; that is how the matrix tells the two apart.
 - **A pull request that changes output on purpose** gets the `DELIBERATE` label and:
-  - lists the exact counts it expects in its description, one `--expect form:corpus=n` per changed cell, and the matrix cells that change. CI's compare job reads those lines (it skips mC4, which CI does not read, and `all` totals); re-run the job after you add the label or change the counts;
+  - lists the exact counts it expects in its description, one `--expect form:corpus=n` per changed cell, and the matrix cells that change. CI's compare job reads those lines. It skips the counts for sets CI does not read (mC4, the legacy `wikipedia-v1` sample, and every corpus when its cache is cold) and `all` totals; re-run the job after you add the label or change the counts;
   - commits the new matrix written by `npm run matrix:update`;
   - changes nothing else;
   - adds a line under "Output changes" in [CHANGELOG.md](CHANGELOG.md);

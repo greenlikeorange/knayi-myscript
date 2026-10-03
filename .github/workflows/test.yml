@@ -211,13 +211,12 @@ jobs:
           DELIBERATE: ${{ contains(github.event.pull_request.labels.*.name, 'DELIBERATE') }}
           PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          args=(--base "origin/$BASE_REF" $FLAGS)
+          # --skip-missing-sets: counts for sets this run lacks (mC4, wikipedia-v1, or every corpus when offline)
+          # are listed and skipped. `all` totals are dropped, since they add up sets CI does not read.
+          args=(--base "origin/$BASE_REF" $FLAGS --skip-missing-sets)
           if [ "$DELIBERATE" = "true" ]; then
             entries=$(printf '%s\n' "$PR_BODY" | grep -oE -- '--expect [A-Za-z0-9._-]+:[A-Za-z0-9._-]+=[0-9]+' \
-              | cut -d' ' -f2 | grep -vE ':(all|mc4)=' || true)
-            if [ "$FLAGS" = "--offline" ]; then
-              entries=$(printf '%s\n' "$entries" | grep -E ':(generated|fuzz)\.' || true)
-            fi
+              | cut -d' ' -f2 | grep -vE ':all=' || true)
             for entry in $entries; do args+=(--expect "$entry"); done
           fi
           printf '%s\n' "${args[@]}" > "$RUNNER_TEMP/compare-args"
