@@ -253,10 +253,20 @@ export const SOURCES = [
     license: 'none stated', licenseUrl: null, use: 'Detection of real search queries (opt-in only)', unlicensed: true }
 ];
 
+// The corpora loadAll reads. queries is not one of them: it is read only with withUnlicensed.
+export const CORPORA = ['google', 'cldr', 'waitzar', 'flores', 'okell', 'mc4', 'wikipedia', 'shn', 'mnw', 'ksw', 'blk'];
+
 // Every line set is returned as its distinct lines. `meta` states, per set, how many lines it had and how many
 // are distinct, and the sha256 its source is pinned to (the download, the sample or the extracted archive).
 // `withLegacy` also returns, in `legacy`, cached samples that nothing downloads any more (LEGACY_SAMPLES).
-export async function loadAll({ withUnlicensed = false, withLegacy = false } = {}) {
+// `only` reads just the listed corpora, and `without` skips the listed ones; a corpus that is not read is neither
+// downloaded nor checked, comes back empty and has no meta entry. CI reads everything but mc4, which the licence
+// policy in CONTRIBUTING.md keeps out of CI.
+export async function loadAll({ withUnlicensed = false, withLegacy = false, only = null, without = [] } = {}) {
+  const known = [...CORPORA, ...Object.keys(LEGACY_SAMPLES)];
+  const unknown = [...(only || []), ...without].filter((id) => !known.includes(id));
+  if (unknown.length) throw new Error('unknown corpus ' + unknown.join(', ') + '; the corpora are ' + known.join(', '));
+  const wanted = (id) => (!only || only.includes(id)) && !without.includes(id);
   const meta = {};
   const lineSet = (id, lines, sha) => {
     const distinct = unique(lines);
@@ -264,21 +274,26 @@ export async function loadAll({ withUnlicensed = false, withLegacy = false } = {
     return distinct;
   };
 
-  const google = uniquePairs(read(await file('google')).split('\n').slice(1)
+  // CLDR is measured against Google's pairs, so it reads Google's file even when google itself is not wanted.
+  const googleAll = wanted('google') || wanted('cldr') ? uniquePairs(read(await file('google')).split('\n').slice(1)
     .map((l) => l.split('\t'))
     .filter((r) => r.length >= 3 && r[1] && r[2] && !/EXAMPLE NEEDED/.test(r.join(' ')))
-    .map((r) => [r[1], r[2]]));
+    .map((r) => [r[1], r[2]])) : [];
+  const google = wanted('google') ? googleAll : [];
+  if (wanted('google')) meta.google = { pairs: google.length, sha256: FILES.google.sha256 };
 
   // Most CLDR pairs repeat Google's file word for word; only the pairs Google does not have are measured.
-  const googleKeys = new Set(google.map((p) => p[0] + '\t' + p[1]));
-  const cldrAll = uniquePairs(read(await file('cldr')).split('\n')
-    .filter((l) => l && !l.startsWith('#'))
-    .map((l) => l.split('\t'))
-    .filter((r) => r.length >= 2 && r[0] && r[1])
-    .map((r) => [r[0], r[1].trimEnd()]));
-  const cldr = cldrAll.filter((p) => !googleKeys.has(p[0] + '\t' + p[1]));
-  meta.google = { pairs: google.length, sha256: FILES.google.sha256 };
-  meta.cldr = { pairs: cldrAll.length, notInGoogle: cldr.length, sha256: FILES.cldr.sha256 };
+  let cldr = [];
+  if (wanted('cldr')) {
+    const googleKeys = new Set(googleAll.map((p) => p[0] + '\t' + p[1]));
+    const cldrAll = uniquePairs(read(await file('cldr')).split('\n')
+      .filter((l) => l && !l.startsWith('#'))
+      .map((l) => l.split('\t'))
+      .filter((r) => r.length >= 2 && r[0] && r[1])
+      .map((r) => [r[0], r[1].trimEnd()]));
+    cldr = cldrAll.filter((p) => !googleKeys.has(p[0] + '\t' + p[1]));
+    meta.cldr = { pairs: cldrAll.length, notInGoogle: cldr.length, sha256: FILES.cldr.sha256 };
+  }
 
   // No license is stated for the query log, so it is only read on request.
   // Columns: query, freq, then the C++ and the JS myanmar-tools detector (p, converted, same?, class).
@@ -288,19 +303,20 @@ export async function loadAll({ withUnlicensed = false, withLegacy = false } = {
     .filter((r) => r.length > 9 && r[0] && r[5] === r[9] && (r[5] === 'Z' || r[5] === 'U'))
     .map((r) => [r[0], { text: r[0], label: r[5] === 'Z' ? 'zawgyi' : 'unicode' }])).values()];
 
-  const waitzar = lineSet('waitzar', myanmarLines(read(await file('waitzar'))), FILES.waitzar.sha256);
+  const waitzar = !wanted('waitzar') ? [] : lineSet('waitzar', myanmarLines(read(await file('waitzar'))), FILES.waitzar.sha256);
 
   const dataDir = path.join(CACHE, 'data');
-  const flores = lineSet('flores', (await floresFiles(dataDir)).flatMap((f) => myanmarLines(read(path.join(dataDir, 'flores', f)))),
-    FILES.flores.sha256);
+  const flores = !wanted('flores') ? [] : lineSet('flores',
+    (await floresFiles(dataDir)).flatMap((f) => myanmarLines(read(path.join(dataDir, 'flores', f)))), FILES.flores.sha256);
 
-  const okell = lineSet('okell', myanmarLines(read(await file('okell'))), FILES.okell.sha256);
+  const okell = !wanted('okell') ? [] : lineSet('okell', myanmarLines(read(await file('okell'))), FILES.okell.sha256);
 
-  const mc4 = lineSet('mc4', zlib.gunzipSync(fs.readFileSync(await file('mc4'))).toString('utf8').split('\n')
+  const mc4 = !wanted('mc4') ? [] : lineSet('mc4', zlib.gunzipSync(fs.readFileSync(await file('mc4'))).toString('utf8').split('\n')
     .filter(Boolean)
     .flatMap((l) => myanmarLines(JSON.parse(l).text)), FILES.mc4.sha256);
 
   const sampled = async (id) => {
+    if (!wanted(id)) return [];
     const sample = await hfSample(id);
     meta[id] = { ...sample.meta };
     return lineSet(id, sample.texts.flatMap(myanmarLines), HF_SAMPLES[id].sha256);
@@ -313,7 +329,7 @@ export async function loadAll({ withUnlicensed = false, withLegacy = false } = {
   if (withLegacy) {
     for (const [id, spec] of Object.entries(LEGACY_SAMPLES)) {
       const p = path.join(dataDir, spec.file);
-      if (!fs.existsSync(p)) continue;
+      if (!wanted(id) || !fs.existsSync(p)) continue;
       const actual = sha256(p);
       if (actual !== spec.sha256) {
         throw new Error(spec.file + ' has sha256 ' + actual + ', but ' + spec.sha256 + ' is pinned (LEGACY_SAMPLES). ' +
@@ -324,7 +340,7 @@ export async function loadAll({ withUnlicensed = false, withLegacy = false } = {
   }
 
   for (const [id, lines] of Object.entries({ waitzar, flores, okell, mc4, wikipedia, ...other, ...legacy })) {
-    if (lines.length === 0) throw new Error(id + ': no lines with Myanmar text');
+    if (wanted(id) && lines.length === 0) throw new Error(id + ': no lines with Myanmar text');
   }
 
   return { google, cldr, queries, waitzar, flores, okell, mc4, wikipedia, other, legacy, meta };
@@ -347,16 +363,24 @@ export function checkCache() {
 }
 
 // node scripts/eval/datasets.mjs --check                   checks the cache against the pins; downloads nothing
+// node scripts/eval/datasets.mjs --fetch [--without a,b]   downloads what the cache lacks (CI fills its cache with
+//                                                          --without mc4), then checks the cache
 // node scripts/eval/datasets.mjs --refresh-samples [id …]  downloads the Hugging Face samples again, prints their hashes
 if (process.argv[1] && fs.realpathSync(path.resolve(process.argv[1])) === fs.realpathSync(fileURLToPath(import.meta.url))) {
   const args = process.argv.slice(2);
-  if (args.length === 1 && args[0] === '--check') {
+  const printCheck = () => {
     const rows = checkCache();
     for (const r of rows) {
       console.log(r.status.padEnd(9) + r.name + (r.status === 'mismatch' ? ' (found ' + r.sha256 + ', pinned ' + r.pinned + ')' : ''));
     }
     // A missing file is downloaded on first use; only a file that does not match its pin is an error.
     process.exitCode = rows.some((r) => r.status === 'mismatch') ? 1 : 0;
+  };
+  if (args.length === 1 && args[0] === '--check') {
+    printCheck();
+  } else if (args[0] === '--fetch' && (args.length === 1 || (args.length === 3 && args[1] === '--without'))) {
+    await loadAll({ without: args.length === 3 ? args[2].split(',').filter(Boolean) : [] });
+    printCheck();
   } else if (args[0] === '--refresh-samples') {
     const ids = args.length > 1 ? args.slice(1) : Object.keys(HF_SAMPLES);
     const unknown = ids.filter((id) => !HF_SAMPLES[id]);
@@ -371,7 +395,8 @@ if (process.argv[1] && fs.realpathSync(path.resolve(process.argv[1])) === fs.rea
         (actual === HF_SAMPLES[id].sha256 ? ' (matches the pin)' : ' (pinned: ' + HF_SAMPLES[id].sha256 + '; update HF_SAMPLES to use it)'));
     }
   } else {
-    console.error('usage: node scripts/eval/datasets.mjs --check | --refresh-samples [' + Object.keys(HF_SAMPLES).join(' ') + ']');
+    console.error('usage: node scripts/eval/datasets.mjs --check | --fetch [--without a,b] | --refresh-samples [' +
+      Object.keys(HF_SAMPLES).join(' ') + ']');
     process.exit(2);
   }
 }

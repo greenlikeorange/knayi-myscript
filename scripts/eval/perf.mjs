@@ -12,7 +12,7 @@
 //   --forms a,b            only these call forms (a trailing * matches a prefix)
 //   --workloads a,b        line, word, string, document (default all four)
 //   --growth <which>       growth exponents for the head copy (head, the default), both copies, or none
-//   --offline              growth exponents only; they need no corpus cache
+//   --offline              growth exponents only; they need no corpus cache (the timed rows read only FLORES)
 //   --max-exponent <x>     fail when a head growth exponent is above x (default 1.3)
 //   --max-slowdown <x>     fail when a Node row's head/base time ratio is above 1 + x (default 0.2)
 //   --json <file>          also write every timing as JSON
@@ -99,7 +99,7 @@ async function measure({ base, head, opts }) {
   let last;
 
   if (!opts.offline && opts.workloads.length) {
-    const flores = (await loadAll()).flores;
+    const flores = (await loadAll({ only: ['flores'] })).flores;
     const texts = perfTexts(flores, A, opts.lines);
     // The same calls on the head copy, whose results are not used: both copies then start the timing with the
     // same history of calls, which the engine's optimisations depend on.

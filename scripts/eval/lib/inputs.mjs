@@ -97,10 +97,12 @@ export function fuzzSets({ seed = DEFAULT_SEED, count = 20000 } = {}) {
   ];
 }
 
-// Every cached corpus, as distinct lines, through datasets.mjs. The reference pairs give both columns.
-export async function corpusSets() {
-  const data = await loadAll({ withLegacy: true });
+// Every cached corpus, as distinct lines, through datasets.mjs. The reference pairs give both columns. The corpora
+// in `without` are not read, so they are neither downloaded nor checked (CI passes mc4).
+export async function corpusSets({ without = [] } = {}) {
+  const data = await loadAll({ withLegacy: true, without });
   const M = data.meta;
+  const read = (id) => !without.includes(id);
   const pin = (id) => (M[id] && M[id].sha256 ? 'sha256 ' + M[id].sha256.slice(0, 12) : '');
   const lines = (id, xs, what) => {
     const m = M[id];
@@ -112,16 +114,16 @@ export async function corpusSets() {
     what + ', ' + ps.length + ' pairs, both columns, ' + pin(id));
   return {
     sets: [
-      lines('flores', data.flores, 'FLORES-200 mya_Mymr dev + devtest'),
-      lines('wikipedia', data.wikipedia, 'Wikipedia sample v2'),
+      read('flores') && lines('flores', data.flores, 'FLORES-200 mya_Mymr dev + devtest'),
+      read('wikipedia') && lines('wikipedia', data.wikipedia, 'Wikipedia sample v2'),
       ...Object.keys(data.legacy).map((id) => lines(id, data.legacy[id], 'Wikipedia sample v1 (legacy cache)')),
-      lines('okell', data.okell, 'Okell corpus'),
-      lines('mc4', data.mc4, 'mC4 c4-my validation, raw (mostly Zawgyi)'),
-      lines('waitzar', data.waitzar, 'WaitZar Zawgyi words'),
-      ...['shn', 'mnw', 'ksw', 'blk'].map((id) => lines(id, data.other[id], 'GlotCC ' + id + ' sample')),
-      pairs('google', data.google, 'google/language-resources Zawgyi/Unicode pairs'),
-      pairs('cldr', data.cldr, 'CLDR pairs not in Google\'s file')
-    ],
+      read('okell') && lines('okell', data.okell, 'Okell corpus'),
+      read('mc4') && lines('mc4', data.mc4, 'mC4 c4-my validation, raw (mostly Zawgyi)'),
+      read('waitzar') && lines('waitzar', data.waitzar, 'WaitZar Zawgyi words'),
+      ...['shn', 'mnw', 'ksw', 'blk'].filter(read).map((id) => lines(id, data.other[id], 'GlotCC ' + id + ' sample')),
+      read('google') && pairs('google', data.google, 'google/language-resources Zawgyi/Unicode pairs'),
+      read('cldr') && pairs('cldr', data.cldr, 'CLDR pairs not in Google\'s file')
+    ].filter(Boolean),
     data
   };
 }

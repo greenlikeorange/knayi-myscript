@@ -8,6 +8,7 @@
 //                         A spec is a path, git:<ref> or a bare ref, npm:<version> (installed only), or min:/mjs:
 //                         followed by a dist file or by any of those (built in a temporary directory); see lib/knayi.mjs.
 //   --offline             generated and fuzz inputs only: needs no corpus cache and no network
+//   --without a,b         corpora not to read, so they are neither downloaded nor compared (CI passes mc4)
 //   --expect form:set=n   a deliberate difference: exactly n differences in that cell; set `all` (or a quoted *)
 //                         counts the form's total over every set. Repeat it, or separate entries with commas.
 //                         Every other cell must show 0.
@@ -27,7 +28,7 @@ import { selectForms, formById, available, outcome } from './lib/callForms.mjs';
 import { generatedSets, fuzzSets, corpusSets, DEFAULT_SEED } from './lib/inputs.mjs';
 
 function parseArgs(argv) {
-  const opts = { base: 'origin/main', head: '.', offline: false, expect: [], forms: [], sets: [], fuzz: 20000,
+  const opts = { base: 'origin/main', head: '.', offline: false, without: [], expect: [], forms: [], sets: [], fuzz: 20000,
     seed: DEFAULT_SEED, jobs: Math.min(16, (os.availableParallelism ? os.availableParallelism() : os.cpus().length) || 1),
     examples: 3, json: null };
   const value = (i) => {
@@ -45,6 +46,7 @@ function parseArgs(argv) {
       case '--base': opts.base = value(i++); break;
       case '--head': opts.head = value(i++); break;
       case '--offline': opts.offline = true; break;
+      case '--without': opts.without.push(...list(value(i++))); break;
       case '--expect': opts.expect.push(...list(value(i++))); break;
       case '--forms': opts.forms.push(...list(value(i++))); break;
       case '--sets': opts.sets.push(...list(value(i++))); break;
@@ -205,7 +207,7 @@ async function main(argv) {
   const run = forms.filter((f) => !skipped.includes(f));
 
   let sets = [...generatedSets(), ...(opts.fuzz ? fuzzSets({ seed: opts.seed, count: opts.fuzz }) : [])];
-  if (!opts.offline) sets = (await corpusSets()).sets.concat(sets);
+  if (!opts.offline) sets = (await corpusSets({ without: opts.without })).sets.concat(sets);
   sets = sets.filter((s) => matches(s.id, opts.sets));
   if (sets.length === 0) throw new Error('no input set matches --sets ' + opts.sets.join(','));
   const unknownSets = opts.sets.filter((p) => !sets.some((s) => matches(s.id, [p])));
