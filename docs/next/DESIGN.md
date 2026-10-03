@@ -52,7 +52,7 @@ Where this spec departs from the plan, §1.4 says so and gives the reason.
   - a detached `fontConvert` call never reads a global `debug`;
   - myanmar-tools is looked up from the working directory, not from `library/`.
 - **Not here:**
-  - the 3.0 public API: `toUnicode`, `toZawgyi`, `detectEncoding`, streaming, lossless segmentation, change reports and the CLI;
+  - the 3.0 public API: `toUnicode`, `toZawgyi`, `detectEncoding`, streaming, lossless segmentation, change reports and the CLI. Of these, only the core of lossless segmentation is built here, in `segment.js` (§7.5);
   - the package `exports` map and the 3.0 builds;
   - any output change.
 
@@ -113,7 +113,7 @@ The recommended option of each decision below is adopted.
 | 31 | ESM-only sources; minimum Node 22.12 for `require(esm)` | `src/package.json` has `"type": "module"`, and `library/` stays CommonJS for the transition. The `engines` field and the exports map come in Phase 6 packaging. |
 | 32 | (b) A CLI | Later. The core never reads the working directory or loads code (§4), so a CLI on it is safe (§10.2 of the plan). |
 | 33 | (b) `OUTPUT_VERSION` | `src/version.js`. It is 1 for the output of 2.10.0 at the reference. |
-| 34 | Lossless segmentation tokens | Later. `forEachBreak` reports positions. The 2.x pairwise rule is one named predicate (`legacyBareConsonantPair`), so a 3.0 policy option can replace it. |
+| 34 | Lossless segmentation tokens | `forEachBreak` reports positions. The 2.x pairwise rule is one named predicate (`legacyBareConsonantPair`), and `BARE_CONSONANTS` names the policies: `PAIRS` (2.x), `CHAINS` and `SEPARATE`. `segment.js` builds the lossless core, `segmentSyllables` and `syllableBoundaries`: the pieces join to the text, ZWNJ is kept and nothing is reordered. The 3.0 API and its default policy come later; §7.5 gives the corpus counts the default is to be chosen from. |
 | 35 | Delete parseUnicode and serializeUnicode | Not ported. |
 | 36 | normalize idempotent by construction in 3.0 | Later, as a 3.0 option and invariant. compat stays non-idempotent, exactly like 2.x. |
 
@@ -171,7 +171,7 @@ src/
   engine/fontReader.js       L3 engine   FONT_READING, compileFont, readFont, glyphsInTypedOrder
   engine/typingFixes.js      L3 rules    typos, look-alikes, zero as wa, isInNumber
   detect.js                  L3 rules    countEvidence, decide, scoreByZawgyiModel, detectFont
-  segment.js                 L3 rules    break scanners, forEachBreak, breakParts, breakString, collapseRepeatedMarks
+  segment.js                 L3 rules    break scanners, forEachBreak, breakParts, breakString, segmentSyllables, collapseRepeatedMarks
   unicodeToZawgyi.js         L3 rules    Unicode to Zawgyi rule rows, unicodeToZawgyi, traceUnicodeToZawgyi
   engine/normalizeStages.js  L3 stages   NORMALIZE_STAGES, normalizeText, traceNormalizeText
   engine/fontStages.js       L3 stages   the compiled fonts, FONT_STAGES, fontToUnicode, traceFontToUnicode
@@ -554,16 +554,26 @@ The precondition is that `text` has been cleaned: trimmed, with no U+200B or U+2
 
 ```ts
 type BreakFont = 'unicode' | 'zawgyi'
+// How a bare consonant joins the syllable after it (rows U7 and Z8, decision 34). Frozen.
+export const BARE_CONSONANTS: Readonly<{ PAIRS: 'pairs', CHAINS: 'chains', SEPARATE: 'separate' }>
+type BareConsonants = 'pairs' | 'chains' | 'separate'
 export function prepareBreakText(text: string, font: BreakFont): string   // unicode: U+103A U+1037 -> U+1037 U+103A (row U1)
 // Calls onBreak(index) at every break, in increasing order, never at 0; stops when onBreak returns false.
-export function forEachBreak(prepared: string, font: BreakFont, onBreak: (index: number) => boolean | void): void
+export function forEachBreak(prepared: string, font: BreakFont, onBreak: (index: number) => boolean | void,
+  bareConsonants?: BareConsonants /* default 'pairs', as 2.x */): void
 export function breakParts(text: string, font: BreakFont): string[]                // 2.x breakParts
-export function breakString(text: string, font: BreakFont, separator: string): string   // 2.x joinParts(breakParts(...))
+// 2.x joinParts(breakParts(...)): an empty separator means U+200B. compat passes a string (C20).
+export function breakString(text: string, font: BreakFont, separator: string): string
+// Lossless (decision 34): no precondition; join('') === text; [] for ''. U+200B and U+200C are ordinary units.
+export function segmentSyllables(text: string, font: BreakFont, bareConsonants?: BareConsonants): string[]
+export function syllableBoundaries(text: string, font: BreakFont, bareConsonants?: BareConsonants): number[]  // the breaks
 export function looksLikeSgawKaren(text: string): boolean   // row Z6's switch: /[U+1062 U+1063]U+103A/ tested on the input
 export function collapseRepeatedMarks(text: string, font: BreakFont): string   // 2.x collapseMarks for a known font
 ```
 
-The precondition for the break functions is that `text` has no U+200B or U+200C. 2.x always cleans the text first. `font` is one of the two names. compat resolves every other value (§5.2, C12).
+The precondition for the break functions (`forEachBreak`, `breakParts`, `breakString`) is that `text` has no U+200B or U+200C. 2.x always cleans the text first. `font` is one of the two names. compat resolves every other value (§5.2, C12).
+
+The policies of `BARE_CONSONANTS`: `PAIRS` is 2.x (`legacyBareConsonantPair`: a consonant that has just been joined to the one before it joins nothing, so ကကက breaks as ကက|က); `CHAINS` joins every bare consonant, as the comment of 2.x syllable.js:239 says; `SEPARATE` joins none, so each bare consonant is a syllable of its own (UTN #11). In Zawgyi text an e or medial ra with no base after it joins the consonant before it under every policy. `segmentSyllables` and `syllableBoundaries` default to `PAIRS` until decision 34 picks the 3.0 default.
 
 #### `src/unicodeToZawgyi.js` (L3 rules)
 
@@ -1277,8 +1287,9 @@ The 2.x line brings each of these, and they reach compat through §8.
 | `core-rules.fuzz.test.mjs` | `applyRuleRows` against 2.x, per table | 100k | 1M |
 | | `runStages` traces against `oracle.storageOrder.toUnicode(x, font, true)` | 50k | 300k |
 | `typingFixes.fuzz.test.mjs` | `fixTypos`, `fixLookAlikes`, `zeroAsWa`, targeted strings | 200k | 4M (PR 2.6 of the plan) |
-| `segment.fuzz.test.mjs` | `breakParts`, `breakString`, both fonts | 200k | 1M |
+| `segment.fuzz.test.mjs` | `breakParts`, `breakString`, the spec rows, and 2.x `syllBreak` and `spellingFix` with their preamble, both fonts | 200k | 1M, plus every corpus line |
 | | `collapseRepeatedMarks`, both fonts | 300k | 1M |
+| | `segmentSyllables`, `syllableBoundaries`: lossless under every policy, 2.x's breaks under `PAIRS` | 100k | 1M |
 | `detect.fuzz.test.mjs` | `countEvidence` | 200k | 2M, plus every string of length ≤ 4 (5,884,901) |
 | `syllable.fuzz.test.mjs` | `orderSyllable` on records | 200k | 2M |
 | `readers-unicode.fuzz.test.mjs` | `reorderUnicode` | 200k | 1M, plus 400k random strings |
@@ -1549,6 +1560,42 @@ W8 compat              after all of them; its option, input and legacy files nee
   - Each join reason is a named predicate citing its row. The pairwise rule is `legacyBareConsonantPair`, and the S'gaw Karen switch is `looksLikeSgawKaren` (PRs 3.3-3.4).
   - Growth ≤ 1.3.
   - Start from `SCR/syllables-verify/proto/library/scan.js`.
+- **As built**, where the build settles what this section leaves open:
+  - W3 also owns `test/next/segment.fuzz.test.mjs`, `segment.timing.mjs` and `segmentOracle.mjs`, the 2.x side the three share: the frozen break and collapse code, and 2.x `syllBreak` and `spellingFix` composed from it with the reference's preamble.
+  - **The lossless core of 3.0 segmentation is built** (decision 34): `segmentSyllables` and `syllableBoundaries` (§2.3) run the scanners on the text as given, decide on row U1's order without writing it, and slice the text, so the pieces join to it. `BARE_CONSONANTS` names the three policies the decision weighs, and `forEachBreak` takes one as an optional fourth argument. Nothing in compat changes: 2.x's `PAIRS` is the default everywhere.
+  - Decision 34's counts, for choosing the 3.0 default: lines whose pieces change from `PAIRS`, of the distinct lines with a Myanmar-block character.
+
+    | Corpus (read as) | Lines | `CHAINS` | `SEPARATE` | Pieces: `PAIRS` / `CHAINS` / `SEPARATE` |
+    |---|---|---|---|---|
+    | FLORES-200 (Unicode) | 2,009 | 377 (18.8%) | 1,985 (98.8%) | 65,805 / 65,368 / 77,128 |
+    | Wikipedia v2 (Unicode) | 4,812 | 1,013 (21.1%) | 3,801 (79.0%) | 120,363 / 118,517 / 142,962 |
+    | Okell (Unicode) | 16,924 | 3,885 (23.0%) | 14,156 (83.6%) | 588,013 / 581,621 / 700,205 |
+    | mC4, raw (Zawgyi) | 14,304 | 4,963 (34.7%) | 12,750 (89.1%) | 618,033 / 602,322 / 750,691 |
+    | Shan GlotCC (Unicode) | 9,923 | 94 (0.9%) | 1,426 (14.4%) | 186,348 / 186,219 / 188,791 |
+    | Mon GlotCC (Unicode) | 2,270 | 834 (36.7%) | 2,024 (89.2%) | 76,094 / 74,334 / 95,757 |
+
+    `SEPARATE` moves most lines because a bare consonant before another syllable is common (အ|မျိုး); it is the only policy whose pieces are the syllables of UTN #11.
+  - **Row U4 never decides a break.** Its text starts with nga and asat, which row U5's first branch already keeps with the syllable before. The scanner has no predicate for it, and `segment.test.mjs` checks that the rows give the same breaks without it.
+  - **Row Z8 is decided left to right**, with no consumed span. Its first branch takes a base typed after e or a medial ra whole, and row Z3 never leaves a break between those glyphs and their base, so a consonant right after e or a medial ra is never bare. Under `PAIRS`, the consonant the last join took is not bare either (`legacyBareConsonantPair`, as row U7). A run of e and medial ra with no break inside is at most four glyphs: e and a medial ra, twice, when row Z6 deleted the break between the pairs.
+  - The classes of the rows stay local predicates named after them (§3.1): `startsUnicodeSyllable` (U2), `startsZawgyiSyllable` (Z1), `isZawgyiBreakBase` (Z3-Z5, Z8), `isOpeningCharacter` (U3, Z4) and `isWhiteSpace` (U6, Z7). `segment.test.mjs` checks every class on all 65,536 units, in the positions the rows read it.
+  - `spec/breakRules.js` writes each `why` and `source` as one string literal: the tree-shaking guard reads every file of `src/`, `spec/` included, and `'a' + 'b'` is an operator (§2.4 rule 3).
+  - `collapseRepeatedMarks` is one char-code pass with copy-through. 2.x ran one regex per mark (17 for Unicode, 67 for Zawgyi); collapsing a run never makes a run of another mark, so one pass gives the same text.
+  - The growth check screens each shape and pump with a quick n-to-4n reading and measures a high one in full with `growthExponent` (scripts/eval/lib/timing.mjs), up to twice; it fails only when every reading is above 1.3. It runs in about 6 s under Node and 5 s under Bun, and it fails a scanner made quadratic (a whole-text scan per letter) with exponents of about 2.0.
+  - The fuzz file takes about 6 s at the pull-request counts, and 34 s at the nightly scale (`KNAYI_FUZZ_SCALE=100`, seed 4242): 1M strings per property, then 64,986 corpus lines in 12 sets, with 0 differences.
+  - Speed, interleaved in one process on perf's 400 FLORES lines (Zawgyi made by the reference converter), as core time ÷ 2.x time. The public forms run 2.x's preamble around the core function; the function forms compare the functions alone, on cleaned text.
+
+    | Form | Node 26.5: line / word / string / document | Bun 1.4.2: line / word / string / document |
+    |---|---|---|
+    | `syllBreak.unicode` | 0.27 / 0.20 / 0.38 / 0.38 | 0.25 / 0.27 / 0.31 / 0.30 |
+    | `syllBreak.zawgyi` | 0.28 / 0.20 / 0.42 / 0.42 | 0.32 / 0.28 / 0.38 / 0.38 |
+    | `spellingFix.unicode` | 0.24 / 0.13 / 0.43 / 0.43 | 0.20 / 0.14 / 0.23 / 0.24 |
+    | `spellingFix.zawgyi` | 0.08 / 0.04 / 0.15 / 0.15 | 0.07 / 0.04 / 0.09 / 0.09 |
+    | `breakParts` + `joinParts`, Unicode | 0.30 / 0.18 / 0.38 / 0.38 | 0.29 / 0.24 / 0.30 / 0.29 |
+    | `breakParts` + `joinParts`, Zawgyi | 0.29 / 0.18 / 0.33 / 0.33 | 0.32 / 0.26 / 0.37 / 0.36 |
+    | `collapseMarks`, Unicode | 0.19 / 0.07 / 0.29 / 0.29 | 0.14 / 0.10 / 0.15 / 0.15 |
+    | `collapseMarks`, Zawgyi | 0.06 / 0.02 / 0.10 / 0.10 | 0.05 / 0.03 / 0.08 / 0.08 |
+
+    The goals of §6.4 for these rows hold on lines: `syllBreak.unicode` ≤ 0.33, `syllBreak.zawgyi` ≤ 0.50, `spellingFix.unicode` ≤ 0.77 and `spellingFix.zawgyi` ≤ 0.33. The binding check is the gate's perf run.
 
 ### 7.6 W4: detect
 
@@ -1676,7 +1723,7 @@ These are the rest of Phase 6. The core is shaped so that they need no core chan
 
 - **The 3.0 API** (`src/index.js`): `toUnicode(text, {from, tie, trace})`, `toZawgyi`, `detectEncoding` (from `countEvidence`), `normalize(text, options)`. It validates with `requireText`, injects `zawgyiModel`, passes `tie` to `decide`, and records traces with ids.
 - **Streaming:** `createNormalizer`, `createConverter`, `mapLines`, `lineTransform`. The core functions are stateless and line-local on the proven boundary (Phase 6 #2 of the plan).
-- **Lossless segmentation** (`segmentSyllables`, `syllableBoundaries`) on `forEachBreak`. The 3.0 bare-consonant policy replaces `legacyBareConsonantPair` (decision 34).
+- **Lossless segmentation** in the 3.0 API, on the core's `segmentSyllables` and `syllableBoundaries` (built, §7.5). Its default bare-consonant policy is decision 34's to pick from the counts of §7.5; `PAIRS` stays the 2.x reading (`legacyBareConsonantPair`).
 - **A truncate that always returns a prefix, and stops early** through `onBreak` returning false.
 - **The change report** from `CopyThroughWriter.endSyllable`.
 - **`isNormalized` and `explain`.**
