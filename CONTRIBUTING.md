@@ -66,6 +66,8 @@ run of e or medial ra. ...
 
 Open pull requests against `main`. The [pull request template](.github/pull_request_template.md) asks for the results of the checks below. Code changes come with tests: a test that failed before the change, or new tests for new behaviour.
 
+Merge with **Create a merge commit** when other branches are built on the pull request's commits (stacked pull requests, merged in order) or when one of its commits is listed in `.git-blame-ignore-revs`: squash and rebase merges give the commits new hashes, so the stacked branches no longer share history with `main` and the ignore file names a commit that is not there. CI's `dist only in releases` check fails on the second.
+
 ### One concern per pull request
 
 Structure, speed and behaviour never share a pull request. A refactor changes no output. A speed-up changes no output. A behaviour change changes only the output it is about.
