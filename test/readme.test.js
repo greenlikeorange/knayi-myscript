@@ -2,16 +2,20 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-// The 2.x API: compat, on the 3.0 core.
-const knayi = require('../src/compat/index.js').default;
 const { readExamples } = require('../scripts/testing/readme-examples');
 
-// Every `knayi.…` example in README.md and ARCHITECTURE.md runs against compat, the 2.x API on the 3.0 core, and
-// returns the value in its comment. An example whose note says it warns must write a warning or an error to the console.
+// The two APIs the examples call: `knayi.…` the 3.0 API, `compat.…` the 2.x API on the 3.0 core.
+const LIBRARIES = {
+  knayi: require('../src/index.js'),
+  compat: require('../src/compat/index.js').default
+};
+
+// Every example in README.md and ARCHITECTURE.md runs against the API it names and returns the value in its comment.
+// An example whose note says it warns must write a warning or an error to the console.
 //
 // The number of examples in each file is pinned, so an example the reader stops seeing fails here. When you add or
 // remove an example, change its count.
-const FILES = { 'README.md': 51, 'ARCHITECTURE.md': 11 };
+const FILES = { 'README.md': { knayi: 18, compat: 51 }, 'ARCHITECTURE.md': { knayi: 0, compat: 11 } };
 
 // Runs fn with console.warn and console.error recorded instead of printed.
 function capture(fn) {
@@ -28,12 +32,18 @@ function capture(fn) {
   }
 }
 
-for (const [file, count] of Object.entries(FILES)) {
+function countByApi(examples) {
+  const counts = { knayi: 0, compat: 0 };
+  for (const example of examples) counts[example.api]++;
+  return counts;
+}
+
+for (const [file, counts] of Object.entries(FILES)) {
   describe(file + ' examples', () => {
     const examples = readExamples(fs.readFileSync(path.join(__dirname, '..', file), 'utf8'), file);
 
     it('reads every example', (t) => {
-      assert.equal(examples.length, count, file + ' has ' + examples.length + ' examples; if you added or removed one, ' +
+      assert.deepEqual(countByApi(examples), counts, file + ' has other examples; if you added or removed one, ' +
         'change its count in test/readme.test.js');
       t.diagnostic(examples.length + ' examples');
     });
@@ -41,7 +51,8 @@ for (const [file, count] of Object.entries(FILES)) {
     for (const example of examples) {
       it(file + ':' + example.line + ' ' + example.code.replace(/\s+/g, ' '), () => {
         assert.notEqual(example.expected, null, 'add the value this call returns to ' + file + ', as a comment after it');
-        const run = capture(() => new Function('knayi', 'return (' + example.code + ');')(knayi));
+        const call = new Function(example.api, 'return (' + example.code + ');');
+        const run = capture(() => call(LIBRARIES[example.api]));
         const expected = new Function('return (' + example.expected + ');')();
         assert.deepEqual(run.value, expected);
         if (example.note && /\bwarns\b/.test(example.note)) {
@@ -52,12 +63,13 @@ for (const [file, count] of Object.entries(FILES)) {
   });
 }
 
-// README.md also gives examples in its prose, as "`input` is output" with Myanmar output. Each runs through the
-// call of the section it is in; one in another section fails until it gets a call here.
+// README.md also gives examples of the 2.x API in its prose, as "`input` is output" with Myanmar output. Each runs
+// through the call of the section it is in; one in another section fails until it gets a call here.
+const compat = LIBRARIES.compat;
 const PROSE_CALLS = {
-  'Zawgyi to Unicode': (s) => knayi.fontConvert(s, 'unicode', 'zawgyi'),
-  'Win fonts': (s) => knayi.fontConvert(s, 'unicode', 'win'),
-  'normalize(content)': (s) => knayi.normalize(s)
+  'Zawgyi to Unicode': (s) => compat.fontConvert(s, 'unicode', 'zawgyi'),
+  'Win fonts': (s) => compat.fontConvert(s, 'unicode', 'win'),
+  'normalize(content)': (s) => compat.normalize(s)
 };
 const PROSE_COUNT = 12;
 
@@ -97,33 +109,34 @@ describe('README.md prose examples', () => {
 describe('example reader', () => {
   const fence = (tag, body) => '```' + tag + '\n' + body + '\n```\n';
 
-  it('reads every fence tag and notation of an example', () => {
+  it('reads every fence tag and notation of an example, and the API it calls', () => {
     const text = 'Prose that names knayi.normalize is not an example.\n' +
       fence('javascript', "knayi.normalize('a') // 'a'") +
-      fence('js', "  knayi.normalize('b') // 'b'") +
-      fence('ts', "import knayi from 'knayi-myscript'\nconsole.log(knayi.normalize('c')) // 'c'") +
-      fence('mjs', "knayi.syllBreak('d', 'unicode', '|')\n// 'd'") +
-      fence('cjs', "const knayi = require('knayi-myscript');\nknayi.truncate('e', {\n  length: 4\n}) // 'e...'") +
-      fence('typescript', 'knayi.version // ' + JSON.stringify(knayi.version)) +
+      fence('js', "  compat.normalize('b') // 'b'") +
+      fence('ts', "import compat from 'knayi-myscript/compat'\nconsole.log(compat.normalize('c')) // 'c'") +
+      fence('mjs', "compat.syllBreak('d', 'unicode', '|')\n// 'd'") +
+      fence('cjs', "const knayi = require('knayi-myscript');\nknayi.truncate('e', {\n  length: 4\n}) // 'e'") +
+      fence('typescript', 'knayi.OUTPUT_VERSION // 2') +
       fence('bash', 'echo knayi.normalize');
     const examples = readExamples(text, 'probe.md');
-    assert.deepEqual(examples.map((e) => [e.line, e.code, e.expected]), [
-      [3, "knayi.normalize('a')", "'a'"],
-      [6, "knayi.normalize('b')", "'b'"],
-      [10, "knayi.normalize('c')", "'c'"],
-      [13, "knayi.syllBreak('d', 'unicode', '|')", "'d'"],
-      [18, "knayi.truncate('e', {\n  length: 4\n})", "'e...'"],
-      [23, 'knayi.version', JSON.stringify(knayi.version)]
+    assert.deepEqual(examples.map((e) => [e.line, e.api, e.code, e.expected]), [
+      [3, 'knayi', "knayi.normalize('a')", "'a'"],
+      [6, 'compat', "compat.normalize('b')", "'b'"],
+      [10, 'compat', "compat.normalize('c')", "'c'"],
+      [13, 'compat', "compat.syllBreak('d', 'unicode', '|')", "'d'"],
+      [18, 'knayi', "knayi.truncate('e', {\n  length: 4\n})", "'e'"],
+      [23, 'knayi', 'knayi.OUTPUT_VERSION', '2']
     ]);
   });
 
   it('keeps a note after the value, and parentheses inside strings out of the count', () => {
-    const [example] = readExamples(fence('javascript', "knayi.fontConvert('(', 'unicode') // '('  (no change; warns)"));
-    assert.deepEqual([example.code, example.expected, example.note], ["knayi.fontConvert('(', 'unicode')", "'('", 'no change; warns']);
+    const [example] = readExamples(fence('javascript', "compat.fontConvert('(', 'unicode') // '('  (no change; warns)"));
+    assert.deepEqual([example.code, example.expected, example.note], ["compat.fontConvert('(', 'unicode')", "'('", 'no change; warns']);
   });
 
-  it('rejects a line with knayi. in any other form', () => {
-    for (const body of ["const x = knayi.normalize('a')", "knayi.normalize('a').length", "console.log(knayi.normalize('a')"]) {
+  it('rejects a line with knayi. or compat. in any other form', () => {
+    for (const body of ["const x = knayi.normalize('a')", "knayi.normalize('a').length", "console.log(knayi.normalize('a')",
+      "const y = compat.normalize('a')"]) {
       assert.throws(() => readExamples(fence('javascript', body), 'probe.md'), /unrecognised example at probe\.md:2/, body);
     }
   });

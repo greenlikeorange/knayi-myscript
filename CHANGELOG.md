@@ -16,11 +16,34 @@ Counts below are distinct lines of the corpora that `npm run eval` downloads (se
 
 ## Unreleased
 
+3.0, built on the `next` branch: ES modules with an exports map, one stateless API with options per call and coded errors, and the 2.x API as `knayi-myscript/compat`. README's "Upgrading from 2.x" says what to change.
+
+### Breaking changes
+
+- **ES modules only, for Node.js 22.12 or newer** (`engines`), Bun and browsers. From Node 22.12 on, `require` loads ES modules, so CommonJS code keeps `require`. Node 16 to 22.11 stay on 2.x.
+- **An exports map with one entry per API.** `knayi-myscript` is the 3.0 API, `knayi-myscript/compat` the 2.x API and `knayi-myscript/stream` streaming, which exports nothing yet. No other path loads: `knayi-myscript/library/converter`, `main.js` and the `dist/` paths are gone, and so is the `module` field.
+- **The 2.x API moved to `knayi-myscript/compat`**, with 2.x's output on every input. `import knayi from 'knayi-myscript'` no longer compiles or loads, since the 3.0 API has no default export: import from `knayi-myscript/compat`, or `require('knayi-myscript/compat').default`.
+- **Types:** the package's types are the 3.0 API's (`src/index.d.ts`); 2.x's `index.d.ts` is `src/compat/index.d.ts`, the types of `knayi-myscript/compat`. TypeScript finds the subpaths under `moduleResolution` `node16`, `nodenext` or `bundler`, not `node` (node10), and CommonJS code in TypeScript can `require` the package under `module` `node20` or `nodenext` only.
+- **Browser builds:** `dist/knayi-myscript.min.js` sets `knayi` to the 3.0 API, with the 2.x API as `knayi.compat`; a page written for 2.x sets `knayi = knayi.compat` after the tag. The module builds are `dist/knayi-myscript.min.mjs` (the 3.0 API) and `dist/knayi-myscript-compat.min.mjs` (the 2.x API); `knayi-myscript.js`, `knayi-myscript.mjs` and `knayi-myscript.es.js` are gone. All three are minified and strict.
+- **The browser floor rises** to the first versions with all of ES2015 (decision 18): Chrome 51, Edge 15, Firefox 54, Safari 10.1 (iOS 10.3), Samsung Internet 5 and Opera 38, where 2.x ran in Chrome 49, Edge 14, Firefox 34 and Safari 10.
+- `parseUnicode` and `serializeUnicode`, which only 2.x's tests used through `library/syllable.js`, are gone.
+
 ### Output changes
 
-None.
+- **`knayi-myscript/compat`: none.** It gives 2.10.0's output (commit e5f6e24) on every call form and input: 0 differences in `npm run compare`, and every cell of the contract matrix, under Node and Bun. It differs from 2.x's `main.js` where 2.x's own ES module build did: a detached `fontConvert` call never reads a global `debug`, and myanmar-tools is looked up from the working directory.
+- **The 3.0 `normalize` settles** (`OUTPUT_VERSION` 2): it is idempotent, and reads u, zero and seven right after a virama or under a kinzi as nya, wa and ra. It gives 2.x's `normalize` output on every line of the Unicode corpora; on raw mC4, mostly Zawgyi, 199 of 14,304 lines differ. docs/next/DESIGN.md §11.2 has the evidence.
+
+### Added
+
+- **The 3.0 API** (`knayi-myscript`): `normalize` with a change report, `isNormalized`, `explain`, `detectEncoding` with an injected myanmar-tools detector, `toUnicode` that detects each line and maps output offsets back to the input, `toZawgyi`, lossless `segmentSyllables` and `syllableBoundaries`, a `truncate` that always returns a prefix, `collapseRepeatedMarks`, `createTrace`, `VERSION` and `OUTPUT_VERSION`. Options are per call and in camelCase, and a wrong argument throws a `TypeError` or `RangeError` with a `code`.
+
+### Security
+
+- The 3.0 `explain` found the end of a line that reads as Zawgyi with a regex that took quadratic time on a long run of white space inside the line (40,000 tabs: 1 s); it takes linear time before any release ships it.
 
 ### Changed
+
+- Size budgets for 3.0, proposed for the maintainer to confirm (docs/next/DESIGN.md §6.4): `dist/knayi-myscript.min.js` 25,000 B gzip (23,782 B today), the 3.0 module build 22,000 B, the compat module build 18,300 B, and an import of the whole 3.0 API 22,200 B, of compat 18,600 B and of `normalize` alone 9,700 B. 2.10's `min.js` was 9,830 B.
 
 - Contributor documentation: `ARCHITECTURE.md`, a rewritten `CONTRIBUTING.md`, `SECURITY.md`, this changelog and a pull request template.
 - Development: `npm test` no longer rewrites `dist/`; it tests a build made in a temporary directory. CI also runs the output comparison, the API contract matrix, table, README, fuzz, property and adapter tests, the browser floor checks and a Playwright run, ReDoS, type, size and `dist/` checks, growth exponents, and a smoke run on Node 16, 18 and 20.

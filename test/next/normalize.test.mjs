@@ -30,7 +30,8 @@ function normalized(text) {
   return normalizeText(text);
 }
 
-// The examples of `file` whose call is knayi.normalize('...'): [argument, expected value].
+// The examples of `file` whose call is compat.normalize('...'), the 2.x normalize that normalizeText is: [argument,
+// expected value].
 function normalizeExamples(file) {
   const literal = (code) => {
     const node = acorn.parseExpressionAt(code, 0, { ecmaVersion: 'latest' });
@@ -38,7 +39,7 @@ function normalizeExamples(file) {
     return node.value;
   };
   return readExamples(fs.readFileSync(path.join(ROOT, file), 'utf8'), file)
-    .filter((example) => /^knayi\.normalize\(/.test(example.code))
+    .filter((example) => /^compat\.normalize\(/.test(example.code))
     .map((example) => {
       const call = acorn.parseExpressionAt(example.code, 0, { ecmaVersion: 'latest' });
       assert.equal(call.arguments.length, 1, file + ': ' + example.code);

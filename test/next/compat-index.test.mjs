@@ -69,17 +69,18 @@ describe('compat: every function as an Array#map callback (C27)', () => {
   }
 });
 
-// The examples of README.md and ARCHITECTURE.md, run against compat as an ES module. test/readme.test.js runs the
-// same examples against compat through require, and pins how many each file has.
+// The examples of the 2.x API (`compat.…`) in README.md and ARCHITECTURE.md, run against compat as an ES module.
+// test/readme.test.js runs the same examples against compat through require, and pins how many each file has.
 for (const file of ['README.md', 'ARCHITECTURE.md']) {
   describe('compat: the examples of ' + file, () => {
-    const examples = readExamples(fs.readFileSync(path.join(ROOT, file), 'utf8'), file);
+    const all = readExamples(fs.readFileSync(path.join(ROOT, file), 'utf8'), file);
+    const examples = all.filter((example) => example.api === 'compat');
 
     it('finds the examples', () => assert.ok(examples.length > 0));
 
     for (const example of examples) {
       it(file + ':' + example.line + ' ' + example.code.replace(/\s+/g, ' '), () => {
-        const call = new Function('knayi', 'return (' + example.code + ');');
+        const call = new Function('compat', 'return (' + example.code + ');');
         const expected = new Function('return (' + example.expected + ');')();
         const run = recordConsole(() => call(compat));
         assert.equal(run.throws, undefined, run.error && run.error.message);

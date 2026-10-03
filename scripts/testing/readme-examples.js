@@ -1,18 +1,25 @@
 // Reads the examples in README.md, or in another Markdown file such as ARCHITECTURE.md. An example is any line of
-// a fenced block tagged js, javascript, mjs, cjs, ts or typescript that contains `knayi.` and is not an import or a
-// require. It starts with `knayi.`, after any indentation and an optional `console.log(` around the call; a line
-// with `knayi.` in any other form is an error, "unrecognised example", so no example is skipped for its notation.
+// a fenced block tagged js, javascript, mjs, cjs, ts or typescript that calls `knayi.` (the 3.0 API) or `compat.`
+// (the 2.x API) and is not an import or a require. It starts with that name, after any indentation and an optional
+// `console.log(` around the call; a line with either name in any other form is an error, "unrecognised example", so
+// no example is skipped for its notation.
 //
-// An example is the call (over several lines if its parentheses close later), the expected value from the comment
-// after it (on the line where the call ends, or alone on the next line), and a note in parentheses after the
-// value, such as "(no target font; warns)". test/readme.test.js runs them against compat and pins how many each
-// file has; scripts/browser/examples.js runs the same calls in the builds.
+// An example is the call (over several lines if its parentheses close later), the API it calls ('knayi' or
+// 'compat'), the expected value from the comment after it (on the line where the call ends, or alone on the next
+// line), and a note in parentheses after the value, such as "(no target font; warns)". test/readme.test.js runs them
+// against the 3.0 API and compat and pins how many each file has; scripts/browser/examples.js runs the same calls in
+// the builds.
 
 const fs = require('fs');
 const path = require('path');
 
 const README = path.join(__dirname, '..', '..', 'README.md');
 const JS_FENCES = ['js', 'javascript', 'mjs', 'cjs', 'ts', 'typescript'];
+
+// The names an example calls through: the 3.0 API, and the 2.x API.
+const APIS = ['knayi', 'compat'];
+const NAMED = /\b(knayi|compat)\./;
+const STARTS_WITH_API = /^(knayi|compat)\./;
 
 function splitComment(comment) {
   let note = null;
@@ -57,18 +64,19 @@ function readExamples(text, file) {
       fence = fence === null ? marker[1].toLowerCase() : null;
       continue;
     }
-    if (fence === null || JS_FENCES.indexOf(fence) === -1 || line.indexOf('knayi.') === -1) continue;
+    if (fence === null || JS_FENCES.indexOf(fence) === -1 || !NAMED.test(line)) continue;
     const where = name + ':' + (n + 1);
     let code = line.trim();
     if (/^import\b/.test(code) || /^(const|let|var)\s+[\w{},\s]+=\s*require\(/.test(code)) continue;
     const wrapped = /^console\.log\(/.test(code);
     if (wrapped) code = code.slice('console.log('.length);
-    if (!/^knayi\./.test(code)) throw new Error('unrecognised example at ' + where + ': ' + line.trim());
+    const api = STARTS_WITH_API.exec(code);
+    if (!api) throw new Error('unrecognised example at ' + where + ': ' + line.trim());
 
-    // A property such as knayi.version has no call; otherwise the call ends where its parentheses close.
+    // A property such as knayi.VERSION has no call; otherwise the call ends where its parentheses close.
     let last = n;
     let end;
-    const property = /^knayi\.[\w.]+(?=\s*(\/\/|\)|$))/.exec(code);
+    const property = /^(knayi|compat)\.[\w.]+(?=\s*(\/\/|\)|$))/.exec(code);
     if (property && code[property[0].length] !== '(') {
       end = property[0].length;
     } else {
@@ -95,10 +103,10 @@ function readExamples(text, file) {
       }
     }
     const value = comment === null ? { expected: null, note: null } : splitComment(comment);
-    examples.push(Object.assign({ file: name, line: n + 1, code: code }, value));
+    examples.push(Object.assign({ file: name, line: n + 1, api: api[1], code: code }, value));
     n = last;
   }
   return examples;
 }
 
-module.exports = { README: README, readExamples: readExamples };
+module.exports = { README: README, APIS: APIS, readExamples: readExamples };

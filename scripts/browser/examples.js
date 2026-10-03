@@ -7,10 +7,11 @@
 
 const { readExamples } = require('../testing/readme-examples');
 
-// Every `knayi.…` call in the code blocks of README.md, as source text: the examples test/readme.test.js runs, read
-// by the same reader (scripts/testing/readme-examples.js).
-function readmeExamples(text) {
-  return readExamples(text).map((example) => example.code);
+// The calls in the code blocks of README.md of one API, 'compat' (the 2.x API) or 'knayi' (the 3.0 API), as source
+// text: the examples test/readme.test.js runs, read by the same reader (scripts/testing/readme-examples.js).
+// runCalls evaluates them with both names bound to the library it runs.
+function readmeExamples(api, text) {
+  return readExamples(text).filter((example) => example.api === api).map((example) => example.code);
 }
 
 // Call forms the README shows only in prose: the three debugging sources, the rule adapter, options objects,
@@ -74,15 +75,17 @@ function generatedCalls() {
   return calls;
 }
 
-// Strings are source text to evaluate with `knayi` in scope; arrays are [functionName, ...args].
+// The calls of the 2.x API. Strings are source text to evaluate with `knayi` and `compat` in scope; arrays are
+// [functionName, ...args].
 function allCalls() {
-  return readmeExamples().concat(EXTRA, generatedCalls());
+  return readmeExamples('compat').concat(EXTRA, generatedCalls());
 }
 
-// [functionName, ...args] calls of the 3.0 API over generated text, and calls that it refuses (a thrown error is
-// kept by class, as everywhere here). Win text converts only when named.
+// The README examples of the 3.0 API, then [functionName, ...args] calls of it over generated text, and calls that it
+// refuses (a thrown error is kept by class, as everywhere here). Win text converts only when named.
 function apiCalls() {
-  const calls = [['createTrace'], ['normalize', 42], ['toUnicode', 'x', { from: 'Zawgyi' }], ['truncate', 'abc', { length: 1 }]];
+  const calls = readmeExamples('knayi').concat([['createTrace'], ['normalize', 42], ['toUnicode', 'x', { from: 'Zawgyi' }],
+    ['truncate', 'abc', { length: 1 }]]);
   for (const t of generatedTexts()) {
     calls.push(
       ['normalize', t],
@@ -125,7 +128,7 @@ function runCalls(knayi, calls) {
       lines = [];
       try {
         var value = typeof call === 'string' ?
-          Function('knayi', 'return (' + call + ');')(knayi) :
+          Function('knayi', 'compat', 'return (' + call + ');')(knayi, knayi) :
           knayi[call[0]].apply(knayi, call.slice(1));
         entry.type = typeof value;
         if (value !== undefined) entry.value = value;
