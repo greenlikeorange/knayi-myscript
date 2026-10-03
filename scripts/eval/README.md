@@ -20,6 +20,26 @@ They need Node 20.11 or newer and network access the first time. Downloads go to
 
 The comparison packages (`knayi-myscript@<baseline>`, `myanmar-tools@1.1.3`, `rabbit-node@1.0.4`) are installed into the cache, not into this project. myanmar-tools 1.2.0 on npm cannot be loaded, so 1.1.3 is used.
 
+## Comparing two copies
+
+`npm run compare` runs two copies of knayi side by side and reports every call whose output differs. A refactor must show 0 differences; a change made on purpose states its exact counts.
+
+```bash
+npm run compare                                   # this working tree against origin/main
+npm run compare -- --base origin/main --head .    # the same, spelled out
+npm run compare -- --base . --head min:.          # main.js against the min.js built from it, run in a vm
+npm run compare -- --offline                      # generated and fuzz inputs only: no corpus cache, no network
+npm run compare -- --expect normalize:ksw=15 --expect normalize:all=66
+```
+
+A copy is named by a spec: a path (`.` is this working tree), a git ref (`origin/main`, `v2.9.1`, `git:HEAD~1`) unpacked read-only with `git archive` into a temporary directory, `npm:<version>` for a release that is already installed (in `node_modules/` or the eval cache; nothing is downloaded), or `min:` and `mjs:` followed by a dist file or by any of these, which builds that copy's dist files with its own `scripts/build.js` in a temporary directory. Both copies run in one process, each as its own module instance, so `--base . --head .` is a valid A/A check. In CI, fetch the base first (`git fetch --depth=1 origin main`), since a shallow checkout has no `origin/main`.
+
+Every public call form is compared (`scripts/eval/lib/callForms.mjs`): normalize; fontConvert from Zawgyi, Win and a detected font to Unicode, and from Unicode to Zawgyi; the four `fontConvert.debugging` forms; fontDetect with the default and the `unicode` fallback; syllBreak with `unicode`, `zawgyi` and a detected font; spellingFix with both fonts; and truncate at 10, 30, 60 and 120 characters. A string result is compared as it is, any other value as its JSON, and a throw by its error class only.
+
+The inputs (`scripts/eval/lib/inputs.mjs`) are the distinct lines of every cached corpus (see [Data](#data)), the reference pairs with both columns, and the first Wikipedia sample when an older cache still holds it; every Myanmar code point alone, doubled and in every ordered pair after က (25,920 strings); Myanmar Extended-A, -B and -C and the spaces and joiners around Myanmar text; Win text, every printable Latin-1 character alone and before every printable ASCII character (18,145) and the Windows-1252 and C1 characters next to ASCII; and three seeded fuzz sets (`--fuzz`, `--seed`). The Win forms read the Win sets and the generated and fuzz Myanmar sets; every other form reads all Myanmar sets.
+
+A differing cell prints its count and first examples with code points. `--expect form:set=n` lists a deliberate difference (`all` as the set counts the form's total), and every cell not listed must be 0; the exit status is 1 otherwise. The work is split over one worker thread per CPU: about 2.5 million comparisons take 4 s on a 16-core laptop and use about 50 s of CPU time in all. Run it under Bun with `bun scripts/eval/compare.mjs`.
+
 ## Data
 
 There is no large public corpus of human-typed Zawgyi with a human-checked Unicode version. The reference pairs are few, and the larger sets are real text with labels from tools, or real text without labels. Every set is measured on its distinct lines: pages repeat headings and boilerplate (Wikipedia's "references" heading alone appears hundreds of times in a sample).
