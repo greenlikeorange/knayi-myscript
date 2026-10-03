@@ -4,10 +4,12 @@ How knayi-myscript 3.0 is built, on the `next` branch: one core of ES modules un
 
 - [Entry points and builds](#entry-points-and-builds)
 - [Module map](#module-map)
+- [What each 3.0 call does](#what-each-30-call-does)
 - [What each 2.x call does](#what-each-2x-call-does)
 - [The syllable engine](#the-syllable-engine)
 - [Typing fixes and their two orders](#typing-fixes-and-their-two-orders)
 - [Detection, breaks and the Unicode to Zawgyi rules](#detection-breaks-and-the-unicode-to-zawgyi-rules)
+- [Edit logs](#edit-logs)
 - [Streams and the command line](#streams-and-the-command-line)
 - [Glossary](#glossary)
 - [Stable surfaces](#stable-surfaces)
@@ -22,8 +24,8 @@ The package is ES modules only (`"type": "module"`), for Node 22.12 and later, w
 | Entry | Module | Types |
 | --- | --- | --- |
 | `knayi-myscript` | `src/index.js`: the 3.0 API | `src/index.d.ts` |
-| `knayi-myscript/compat` | `src/compat/index.js`: the 2.x API, its eight exports and a non-enumerable `default` that points back at them | `src/compat/index.d.ts`, 2.x's `index.d.ts` |
 | `knayi-myscript/stream` | `src/stream.js`: the streams of the 3.0 API, `createNormalizer`, `createConverter`, `lineTransform` and `mapLines` (see [Streams and the command line](#streams-and-the-command-line)) | `src/stream.d.ts` |
+| `knayi-myscript/compat` | `src/compat/index.js`: the 2.x API, its eight exports and a non-enumerable `default` that points back at them | `src/compat/index.d.ts`, 2.x's `index.d.ts` |
 | `knayi-myscript/package.json` | `package.json` | |
 
 No other path of the package can be imported. `main` and `types` name the 3.0 API for tools that read no exports map. `bin` maps the `knayi` command to `bin/knayi.js`. The package ships `bin/`, `src/` but `src/spec/`, and the three `dist/` files.
@@ -36,7 +38,7 @@ No other path of the package can be imported. `main` and `types` name the 3.0 AP
 | `dist/knayi-myscript-compat.min.mjs` | ES module | the 2.x API: the named exports and the default of 2.x's `knayi-myscript.mjs` |
 | `dist/knayi-myscript.min.js` | script (IIFE), `"use strict"` | sets the global `knayi`: the 3.0 API, with the 2.x API as `knayi.compat`; also sets the global when a bundler wraps the file in a module scope |
 
-The committed `dist/` is the build of the last release, or of the release being prepared: jsDelivr serves `main`'s `dist/` to `@master` links, so it changes only in a release commit (`scripts/check-dist.js`). Everything else builds into a temporary directory: `builtDist()` in `scripts/build.js` builds once per process and removes the directory on exit, or returns `KNAYI_DIST` when that is set.
+The builds hold no streams. The committed `dist/` is the build of the last release, or of the release being prepared: jsDelivr serves `main`'s `dist/` to `@master` links, so it changes only in a release commit (`scripts/check-dist.js`). Everything else builds into a temporary directory: `builtDist()` in `scripts/build.js` builds once per process and removes the directory on exit, or returns `KNAYI_DIST` when that is set.
 
 Each `dist/` file holds a copy of the code of its own. Imports of `knayi-myscript/compat` in one Node or Bun process share one module, and so one 2.x option store.
 
@@ -52,7 +54,7 @@ Each `dist/` file holds a copy of the code of its own. Imports of `knayi-myscrip
 | L3 engine | `engine/syllable.js`, `unicodeReader.js`, `fontReader.js` | the syllable buffer and sort, and the two one-pass readers |
 | L3 rules | `rules/typingFixes.js`, `detect.js`, `segment.js`, `unicodeToZawgyi.js` | the typing fixes, the detection and break scanners, the mark collapse, and the Unicode to Zawgyi rows |
 | L3 stages | `stages/normalize.js`, `stages/fonts.js` | the normalize and font pipelines as stage lists, the only files that import both the engine and the rules |
-| L4 public | `index.js` and `api/`, `stream.js`; `compat/` | the 3.0 API; the 2.x API |
+| L4 public | `index.js` and `api/`, `stream.js`; `compat/` | the 3.0 API and its streams; the 2.x API |
 | spec | `spec/` | the detector signatures, break rules and typo rows as readable tables: the oracle the scanners are tested against; nothing in `src/` imports them |
 
 The 3.0 API and compat import neither each other nor each other's files. compat reproduces 2.x's public layer in `compat/`: its input checks and font names (`input.js`), the rule-table lookups and accidental TypeErrors of 2.x (`legacy.js`), the option store and the console (`globalOptions.js`), myanmar-tools loading (`zawgyiModel.js`), and one file per group of functions (`fontDetect.js`, `fontConvert.js`, `text.js`).
@@ -61,14 +63,65 @@ The 3.0 API and compat import neither each other nor each other's files. compat 
 
 ### Module state
 
-The core holds no options and writes nothing to the console (DESIGN.md §4): every option is an argument, myanmar-tools' detector is passed in as an object, and `test/next/guards/stateless.test.mjs` checks every top-level value. What the modules keep:
+The core holds no options and writes nothing to the console (DESIGN.md §4): every option is an argument, myanmar-tools' detector is passed in as an object, and `test/next/guards/stateless.test.mjs` checks every top-level value of every file outside `compat/` and `spec/`. What the modules keep:
 
 - `core/nfc.js`: `NFC_MEMO`, facts about the runtime's Unicode data (which code points start or continue a run of non-starters, their decompositions and combining classes), never a result of a call.
 - The readers' scratch buffers (`engine/unicodeReader.js`, `engine/fontReader.js`), which a call resets and gives back when they grow past 65,536 units.
 - Three regexes of `rules/typingFixes.js` driven by `exec` loops, each left with `lastIndex` 0.
 - compat only: the 2.x option store (`compat/globalOptions.js`: `silent_mode` and the detector options) and the myanmar-tools loader (`compat/zawgyiModel.js`: the loaded model, the load error, and whether the "not installed" warning was printed).
 
+A stream's state lives in its own `LineMapper` object, made per call (`api/lines.js`), and no stream keeps anything at module level.
+
 compat's console output: missing content warns (`console.warn`), conversion errors use `console.error`, and both are silenced by `silent_mode`. One message ignores silent mode: the threshold error of the detector options. Nothing else in `src/` writes to the console.
+
+## What each 3.0 call does
+
+`src/index.js` re-exports the functions of `src/api/`, one file per group, with `VERSION`, `OUTPUT_VERSION` (`src/version.js`) and `createTrace` (`core/rules.js`). Every function starts the same way, in `api/args.js`: `requireString` refuses a text that is not a string; `readOptions` takes an object, or `NO_OPTIONS` for `undefined`, `null` or a number (the index `Array#map` passes); and one reader per option (`readChoice`, `readFlag`, `readCount`, `readLimit`, `readText`, `readTrace`, `readZawgyiDetector`, `readThresholds`) gives its value, its default for `undefined` or `null`, or a coded error. Each error is `libraryError(code, 'knayi.<function>: ...', TypeError or RangeError)`. The options are read once, and nothing is kept.
+
+| File | Exports | What it runs in the core |
+| --- | --- | --- |
+| `api/normalize.js` | `normalize`, `isNormalized` | `normalizeTextStable`, `traceNormalizeTextStable` and `normalizeTextStableLogged` (`stages/normalize.js`) |
+| `api/explain.js` | `explain` | `STABLE_NORMALIZE_STAGES` and their logged runs, `composeEdits`; `fontToUnicode` for a Zawgyi line |
+| `api/encoding.js` | `detectEncoding`, and `readDetector` and `encodingOf` for the others | `detectEncoding` and `decideByProbability` (`rules/detect.js`) |
+| `api/convert.js` | `toUnicode`, `toZawgyi`, and `readUnicodeReading` and `convertToUnicode` for `createConverter` | `fontToUnicode`, `fontToUnicodeLogged` and `traceFontToUnicode` (`stages/fonts.js`); `unicodeToZawgyi` and `traceUnicodeToZawgyi` (`rules/unicodeToZawgyi.js`) |
+| `api/segment.js` | `segmentSyllables`, `syllableBoundaries`, `truncate`, `collapseRepeatedMarks` | `segmentSyllables`, `syllableBoundaries`, `forEachBreak` and `collapseRepeatedMarks` (`rules/segment.js`) |
+| `api/lines.js`, `api/stream.js` | `mapLines`; `lineTransform`, `createNormalizer`, `createConverter` (through `src/stream.js`) | `normalize` and `convertToUnicode` of the files above |
+
+### normalize: the stable pipeline
+
+`normalizeTextStable(text)` gives 3.0's idempotent `normalize` (decision 36; DESIGN.md §11.2):
+
+1. **Gate 1:** a text with no character of the three Myanmar blocks is only put in NFC.
+2. **The first pass** runs `STABLE_NORMALIZE_STAGES`: the stages and ids of 2.x's `NORMALIZE_STAGES` (`nfc.input`, `syllables`, `typos`, `look-alikes`, `nfc.final`), with two changes that make every chain of repeated passes short. The reader runs with `STABLE_UNICODE_READING`, whose `stackedLookAlikesAreLetters` reads u, zero and seven right after a virama or under a kinzi as nya, wa and ra; and `settleTypos` reads each run of i and ii, or u and uu, whole. Each stage after the first NFC records its edits in an `EditLog`.
+3. **No edit:** the text is settled already.
+4. **Regions:** otherwise the pass is repeated on each region that holds an edit, until it changes nothing, at most `MOST_NORMALIZE_PASSES` (16) times. A region starts at 0, or at a syllable base or Burmese digit whose unit before is below U+0300 and is neither `.` nor `,` (`isRegionStart`): no stage reads or writes across that point, so a region the first pass left as it was is a fixpoint already.
+
+`normalize(text, { report: true })` runs `normalizeTextStableLogged`, which records each pass and composes the passes into one edit list, then describes each edit as a change. `trace` runs `traceNormalizeTextStable`, the whole pipeline once per pass through `runStages` with the trace. `isNormalized(text)` is `normalizeTextStable(text) === text`. compat's `normalize` runs `NORMALIZE_STAGES` once, as 2.x did.
+
+### toUnicode and toZawgyi
+
+`toUnicode` reads `from`, `tie` and, with no `from`, the detector options (`readUnicodeReading`), then decides which parts of the text convert, as pieces `{ start, end, font }` (`piecesToConvert`):
+
+- `from: 'unicode'`: none;
+- `from: 'win'`: the whole text;
+- `from: 'zawgyi'`: each line (split at `\n`) with a character of U+1000–U+109F (`linesWithMyanmar`);
+- no `from`: each line that `encodingOf` reads as Zawgyi, or as a tie when `tie` is `'zawgyi'` (`zawgyiLines`).
+
+Neighbouring lines join one piece, line break included, since the font pipeline converts each line as it would alone. Each piece goes through `fontToUnicode`, and the text between pieces is copied as it is, with no trim. With `offsets: true`, each piece runs through `fontToUnicodeLogged`, its edits are moved to where the piece lies (`shiftEdits`), and `outputToInputOffsets` turns them into the input index of each output unit. With `trace`, each piece is traced alone and the records are the whole text after each stage of `FONT_STAGES` (`traceInPieces`).
+
+`toZawgyi` is `unicodeToZawgyi(text)`. Its trace starts at the input: when the collapse of repeated marks changed the text, a record `uz.collapse` comes first, then the records of `traceUnicodeToZawgyi`.
+
+### detectEncoding and explain
+
+`encodingOf(text, detector)` trims the text and removes U+200B and U+200C, as 2.x cleaned it, and asks `detectEncoding` of `rules/detect.js`: `none` with no unit of U+1000–U+109F, `unknown` on a tie, else the side with more evidence. With a `zawgyiDetector`, and a text that is not `none`, the detector's probability decides through `decideByProbability(probability, thresholds, 'unknown')`, and the result also holds it.
+
+`explain` reads the text line by line. A line that `encodingOf` reads as Zawgyi is one issue, `encoding.zawgyi`, whose fix is `fontToUnicode(line, 'zawgyi')` over the line without the white space at its ends. Any other line runs the passes of `STABLE_NORMALIZE_STAGES` with a log per stage; each edit is named by what its stage changed (`nameEdit`: the reader's edits by a census of their units, the typing fixes by the rule, NFC as `nfc.order`), carried back to the line through the passes, and takes the span and fix of the change of `normalize`'s report that holds it.
+
+### segmentSyllables, syllableBoundaries, truncate and collapseRepeatedMarks
+
+`segmentSyllables` and `syllableBoundaries` call the core's functions with `font` (`'unicode'` by default) and `policy` (`'separate'` by default, `DEFAULT_POLICY` in `api/segment.js`; the core's own default is `'pairs'`, 2.x's). `collapseRepeatedMarks` is the core's, with the font's set of marks. None trims or removes a zero-width character.
+
+`truncate` returns a text that fits as it is. Otherwise `lastCutAtOrBefore` marks the syllable breaks up to `length - omission.length`, with `forEachBreak` stopping at the first break past it, and takes the last place at or before that budget that is a break, or lies before a unit outside the Myanmar blocks that does not join the unit before it (`joinsUnitBefore`: a low surrogate, a combining mark of the common blocks, ZWNJ, ZWJ or a variation selector). The prefix loses its trailing white space and gets the omission.
 
 ## What each 2.x call does
 
@@ -87,6 +140,8 @@ compat gives 2.x's output on every input. The core does the work; compat adds 2.
 
 ### The font pipeline: stages/fonts.js
 
+Both APIs convert to Unicode through `FONT_STAGES`; the ids are the stage names.
+
 | Stage name | What it does |
 | --- | --- |
 | `sequences` | The font's look-alike sequences, as regex replacements. Zawgyi: two lagaung rules. Win: `aMomf`, `Mo`, `ps`, `OD`. |
@@ -97,17 +152,17 @@ compat gives 2.x's output on every input. The core does the work; compat adds 2.
 | `typos` | `fixTypos`. |
 | `NFC` | `toNfc`, which runs only when the reader wrote a unit NFC may change. |
 
-With `debug`, `fontConvert` returns `{ to, from, matched_patterns, steps }`: `matched_patterns` names each stage that changed the text, in order, and `steps` holds the input followed by the text after each of those stages. The README documents these stage names.
+With `debug`, `fontConvert` returns `{ to, from, matched_patterns, steps }`: `matched_patterns` names each stage that changed the text, in order, and `steps` holds the input followed by the text after each of those stages. MIGRATION.md documents these stage names.
 
 ### normalize(content)
 
-After the input checks there is no Myanmar test. Every string goes through `NORMALIZE_STAGES` (`stages/normalize.js`):
+After the input checks there is no Myanmar test: every string goes through `NORMALIZE_STAGES` (`stages/normalize.js`) once, by `normalizeText`:
 
 ```
 NFC → reorderUnicode → fixTypos → fixLookAlikes → NFC
 ```
 
-So text with no Myanmar characters still comes back in NFC. The first NFC is there because it can move a dot below in front of an asat or virama, which changes what they attach to. The 3.0 `normalize` runs `STABLE_NORMALIZE_STAGES` instead, again on each region the first pass changed, until nothing changes (DESIGN.md §11.2).
+So text with no Myanmar characters still comes back in NFC; `normalizeText` takes it straight to NFC (gate 1), which gives the same result. The first NFC is there because it can move a dot below in front of an asat or virama, which changes what they attach to. The 3.0 `normalize` runs `STABLE_NORMALIZE_STAGES` instead, again on each region the first pass changed, until nothing changes ([above](#normalize-the-stable-pipeline)).
 
 ### fontDetect(content, fallback, options)
 
@@ -172,12 +227,12 @@ Both readers share these rules:
 
 A code unit with no entry ends the syllable and is written as it is. A mark, stack or kinzi with no open syllable is written as its Unicode text, unattached. `compileFont` checks the table when it loads, and adds every syllable base in U+1000–U+104F that the table leaves out as a base of itself.
 
-**`reorderUnicode(text)`, the Unicode reader**, reads Unicode's logical order. Kinzi (nga or ra, asat, virama) before a consonant starts that consonant's syllable. A letter or digit starts a syllable. Virama plus consonant is a stacked consonant. The Burmese marks join the open syllable. Two Zawgyi typing habits are undone:
+**`reorderUnicode(text, reading)`, the Unicode reader**, reads Unicode's logical order. Kinzi (nga or ra, asat, virama) before a consonant starts that consonant's syllable. A letter or digit starts a syllable. Virama plus consonant is a stacked consonant. The Burmese marks join the open syllable. Two Zawgyi typing habits are undone:
 
 - **e or medial ra typed before its consonant.** `placePrebaseMark` decides where each one goes: to the open syllable (`TO_OPEN_SYLLABLE`), to the consonant after it (`TO_NEXT_BASE`), or nowhere (`STAYS`). It goes to the open syllable unless that syllable is finished (it has a vowel or a final) and no mark of it follows. Right after a letter or mark of another Myanmar-script language it stays where it is.
 - **A space typed before a mark** is dropped, as in the font reader.
 
-Letters and marks of Mon, Shan, Karen and the other languages are not read here: they end the syllable and stay where they are.
+Letters and marks of Mon, Shan, Karen and the other languages are not read here: they end the syllable and stay where they are. `reading` is `UNICODE_READING` for compat's `normalize` and `STABLE_UNICODE_READING` for the 3.0 `normalize`; they differ in one field, `stackedLookAlikesAreLetters`.
 
 ### The four deliberate differences between the readers
 
@@ -202,21 +257,23 @@ compat.fontConvert('လဲဥ္း', 'unicode', 'zawgyi') // 'လဲဉ်း'
 compat.normalize('လဲဥ်း') // 'လဲဥ်း'
 ```
 
-One more difference follows from the encodings, not from a choice: in the fonts, e and medial ra always belong to the next base, while in Unicode they may also belong to the syllable before (`TO_OPEN_SYLLABLE`). That is why the converters write an e or medial ra with no base after it where it was typed, and `normalize` can move it into the syllable before. On the 10,166 distinct mC4 lines that `fontDetect` calls Zawgyi, `normalize` changes the converted output of 31, each with an e or medial ra where the two first differ.
+The 3.0 API's `toUnicode` and `normalize` give the same results on these: they run the same readers.
+
+One more difference follows from the encodings, not from a choice: in the fonts, e and medial ra always belong to the next base, while in Unicode they may also belong to the syllable before (`TO_OPEN_SYLLABLE`). That is why the converters write an e or medial ra with no base after it where it was typed, and `normalize` can move it into the syllable before. On the 10,166 distinct mC4 lines that `fontDetect` calls Zawgyi, compat's `normalize` changes the converted output of 31, each with an e or medial ra where the two first differ; on the 9,811 that `detectEncoding` calls Zawgyi, the 3.0 `normalize` changes that of 24.
 
 ## Typing fixes and their two orders
 
 `rules/typingFixes.js` holds the fixes both pipelines use:
 
 - **`fixLookAlikes`:** zero and seven are typed for wa and ra, and the other way round. A zero or seven that carries a mark, or starts a closed syllable, is a letter; a zero inside a word with no digit next to it is a letter too. A bare wa or ra inside a run of digits is a digit. The marks and consonants here cover every language in the Myanmar blocks, so Shan and Karen text gets the same reading (#43).
-- **`fixTypos`:** four rules, in order: i with ii is ii; u with uu is uu; o with e, aa and asat is au; the digit four before nga, asat and visarga is lagaung. `spec/typoRows.js` documents them.
+- **`fixTypos`:** four rules, in order: i with ii is ii; u with uu is uu; o with e, aa and asat is au; the digit four before nga, asat and visarga is lagaung. `spec/typoRows.js` documents them. `settleTypos`, which the 3.0 `normalize` runs instead, reads a whole run of i and ii, or u and uu, as repeating the first two rules would end.
 
 The two pipelines run them in opposite orders, as 2.x did (DESIGN.md §10 Q8):
 
 | Pipeline | Order |
 | --- | --- |
 | Zawgyi and Win (`FONT_STAGES`, `stages/fonts.js`) | `zero as wa` → `look-alikes` → `typos` → `NFC` |
-| `normalize` (`NORMALIZE_STAGES`, `stages/normalize.js`) | `NFC` → syllables → `typos` → `look-alikes` → `NFC` |
+| `normalize` (`NORMALIZE_STAGES` and `STABLE_NORMALIZE_STAGES`, `stages/normalize.js`) | `NFC` → syllables → `typos` → `look-alikes` → `NFC` |
 
 On the eval corpora the order makes no difference: the two orders give the same result on every Unicode line read by the Unicode reader (FLORES-200, the Wikipedia sample, Okell, mC4, and the GlotCC Shan, Mon, S'gaw Karen and Pa'o sets) and on every mC4 line converted from Zawgyi. Synthetic input shows the difference, for example a ra before the digit four of a lagaung:
 
@@ -233,14 +290,23 @@ The fonts also have a stage `normalize` does not: `zeroAsWa`. Its idea of a zero
 
 2.x applied these as regex tables, one pass per pattern. The core reads each in one pass of char codes where it can, and keeps 2.x's tables as readable oracles in `spec/`:
 
-- **Detection** (`rules/detect.js`): `countEvidence` scans the text once for the 29 signatures of `spec/detectorSignatures.js` (12 Unicode, 17 Zawgyi) and counts them as 2.x's patterns counted; `decide` compares the counts; `scoreByZawgyiModel` and `decideByProbability` read an injected myanmar-tools model.
+- **Detection** (`rules/detect.js`): `countEvidence` scans the text once for the 29 signatures of `spec/detectorSignatures.js` (12 Unicode, 17 Zawgyi) and counts them as 2.x's patterns counted; `decide` compares the counts, with the fallback a caller names for a tie (compat `'zawgyi'`); `detectEncoding` gives the evidence with `'none'` and `'unknown'` named, for the 3.0 API; `scoreByZawgyiModel` and `decideByProbability` read an injected myanmar-tools model.
 - **Breaks** (`rules/segment.js`): one scanner per font finds the breaks that the rows of `spec/breakRules.js` (2.x's `BREAK_RULES`, 7 for Unicode and 8 for Zawgyi) made. Bare consonants follow a policy (`BARE_CONSONANTS`): `pairs` as 2.x, `chains`, or `separate`, the 3.0 API's default. `segmentSyllables` and `syllableBoundaries` keep every character.
 - **Mark collapse** (`rules/segment.js`, `collapseRepeatedMarks`): one pass, with a set of repeated marks per font.
 - **Unicode to Zawgyi** (`rules/unicodeToZawgyi.js`): 2.x's 57 rules applied once in order, then its 8 rules repeated while they match (at most 40 times), as rule rows with stable ids. 38 of the rows that replace one fixed text with one glyph are read from the Zawgyi glyph table backwards; the glyph rows run as one pass where that equals running them in order. A row whose units the text lacks is skipped. Traced, the rows run one by one, and the trace holds 2.x's labels: the regex `.source` of each rule that changed the text, or that matched for a repeated rule.
 
+## Edit logs
+
+`core/edits.js` holds the edit lists behind `normalize`'s report, `toUnicode`'s offsets, `explain` and the regions `normalize` settles (DESIGN.md §11.3). An edit is `{ start, end, outStart, outEnd, rules }`: `input[start, end)` became `output[outStart, outEnd)`, the units between edits are copied, and `rules` holds the ids of the stages that made it.
+
+- `EditLog` collects the edits of one pass, each tagged with the stage id in its `rule`. `addChange` cuts a replacement down to the units that differ, but leaves at least one unit on each side (`sharedEnds`), so a unit a replacement wrote still maps to a unit of its input.
+- `composeEdits(first, second)` gives the edits of two passes run one after the other; `shiftEdits` moves a piece's edits to where it lies in the whole text; `outputToInputOffsets` gives the input index of each output unit.
+
+The writers record only when they are handed a log, so the fast paths, and compat, which never logs, pay nothing. The logging lives in twins of the 2.x stage functions: `fixTyposLogged`, `settleTyposLogged`, `fixLookAlikesLogged` and `zeroAsWaLogged` (`rules/typingFixes.js`), `readFontLogged` (`engine/fontReader.js`), `applyRuleRowsLogged` (`core/rules.js`) and `logNfcEdits` (`core/nfc.js`); the Unicode reader and `readDigitsAsLetters` and `readLettersAsDigits` take the log as an optional argument. `runStagesLogged` runs a pipeline with a log per stage, from a table of logged runs apart from the stage list: `STABLE_NORMALIZE_LOGGED_RUNS`, and a private one in `stages/fonts.js`.
+
 ## Streams and the command line
 
-**`src/stream.js`**, the entry `knayi-myscript/stream` (DESIGN.md §12), holds the 3.0 streams, apart from `src/index.js` so that an import of `normalize` alone carries no stream code: `createNormalizer` and `createConverter` (`api/stream.js`), TransformStreams of `normalize` and `toUnicode` that take strings or UTF-8 bytes in chunks and give what the function gives for the whole text, since both convert a text as they convert each of its lines; `lineTransform`, the same for any function of a line; and `mapLines` (`api/lines.js`), the line cutter under them, with no stream class. Node's `stream.pipeline` takes the TransformStreams between Node streams. A line is never cut: one longer than `maxLineLength` is an error with the code `ERR_KNAYI_LINE_TOO_LONG`. Unicode to Zawgyi does not stream, since its rules move e and medial ra across line breaks (DESIGN.md §10 Q10).
+**`src/stream.js`**, the entry `knayi-myscript/stream` (DESIGN.md §12), holds the 3.0 streams, apart from `src/index.js` so that an import of `normalize` alone carries no stream code: `createNormalizer` and `createConverter` (`api/stream.js`), TransformStreams of `normalize` and `toUnicode` that take strings or UTF-8 bytes in chunks and give what the function gives for the whole text, since both convert a text as they convert each of its lines; `lineTransform`, the same for any function of a line; and `mapLines` (`api/lines.js`), the line cutter under them, with no stream class. A `LineMapper` holds the waiting pieces of the current line and, for bytes, one `TextDecoder`; each unit is read once, and a line is joined once, at its end. Node's `stream.pipeline` takes the TransformStreams between Node streams. A line is never cut: one longer than `maxLineLength` is an error with the code `ERR_KNAYI_LINE_TOO_LONG`. Unicode to Zawgyi does not stream, since its rules move e and medial ra across line breaks (DESIGN.md §10 Q10).
 
 **`bin/knayi.js`** is the command line (README.md, "Command line", DESIGN.md §13): `normalize`, `to-unicode`, `to-zawgyi`, `convert`, `detect`, `segment` and `check` over files or standard input, as plain text or JSON Lines. It is Node-only and lies outside `src/`, so the browser floor does not apply to it; its modules, in `bin/cli/`, import only Node's built-ins, each other, `src/index.js` and `src/stream.js`. A run reads a chunk at a time, cuts it into lines with `mapLines`, and calls the 3.0 API once per line or record, so it holds one line however large the input; it decodes strictly, writes a JSON Lines record's result into the line's own text so every other byte passes through, and loads myanmar-tools only for `--detector myanmar-tools`, from where knayi-myscript is installed, never from the working directory (`test/next/cli/loading.test.mjs`). `test/next/cli/` runs it as a process on hand-written fixtures.
 
@@ -250,6 +316,7 @@ The fonts also have a stage `normalize` does not: `zeroAsWa`. Its idea of a zero
 - **Drawing order (visual order):** the order a font draws glyphs from left to right, which Zawgyi and Win store. e and medial ra come before the consonant, kinzi and stacked consonants after it, and the other marks in any order.
 - **Prebase:** a mark drawn before its consonant: e (U+1031) and medial ra (U+103C; in Zawgyi U+103B and U+107E–U+1084). The font tables give them the role `BEFORE_BASE`; the Unicode reader places them with `placePrebaseMark`.
 - **Base:** what starts a syllable: a consonant, independent vowel, digit or symbol.
+- **Bare consonant:** a consonant with no mark of its own, read with its inherent vowel. The break policies of `segmentSyllables` differ in how they read one.
 - **Stacked consonant:** a consonant written under another, stored as virama (U+1039) plus consonant. Zawgyi draws them as separate glyphs after the base (role `STACK`), and has a few two-consonant ligatures that are bases.
 - **Kinzi:** nga, asat and virama (U+1004 U+103A U+1039), stored before the consonant it is drawn over. Zawgyi draws it with U+1064, or U+108B–U+108D together with i, ii or anusvara, typed after that consonant. The Unicode reader also reads ra, asat and virama as kinzi.
 - **Held space:** a space or zero-width character after an open syllable, held until the next character shows whether the syllable goes on.
@@ -257,6 +324,7 @@ The fonts also have a stage `normalize` does not: `zeroAsWa`. Its idea of a zero
 - **Slip:** an asat that `orderSyllable` drops, because it was typed early for the next consonant's asat.
 - **Look-alikes:** zero (U+1040) and wa (U+101D), and seven (U+1047) and ra (U+101B), typed for each other.
 - **Tie:** equal evidence for Unicode and Zawgyi. 2.x's `fontDetect` returns the fallback, `'zawgyi'` when none is given; the 3.0 `detectEncoding` says `'unknown'`, and `toUnicode` leaves the line as it is. Short Unicode text, such as one consonant or a word whose only sign is a stacked consonant, ties often.
+- **Region:** a part of a text that one pass of the stable normalize reads and writes on its own (see [above](#normalize-the-stable-pipeline)).
 - **Silent mode:** compat's `setGlobalOptions({ silent_mode: true })`, which hides the warnings and errors (all but one, see [Module state](#module-state)).
 - **Output version:** `OUTPUT_VERSION`, which goes up with every deliberate change to what any function returns: 1 for 2.10.0's output, which compat keeps, and 2 since the 3.0 `normalize` settles.
 
@@ -271,20 +339,20 @@ These are the public surfaces of 3.0. Changing them needs a major version, or fo
 | The error codes | `ERR_KNAYI_INVALID_ARG_TYPE` and `ERR_KNAYI_INVALID_ARG_VALUE`, and the streams' `ERR_KNAYI_LINE_TOO_LONG` and `ERR_KNAYI_UNSUPPORTED_RUNTIME` (`src/core/errors.js`) |
 | The `knayi` command: its commands, options, output formats and exit status | `bin/cli/`, README's "Command line"; `test/next/cli/` |
 | The output, and `OUTPUT_VERSION` | `src/version.js`; compare (`npm run compare`) and the tests of each module |
-| The stage and rule ids of traces | the stage lists of `stages/`, the rule rows of `rules/unicodeToZawgyi.js` |
+| The stage and rule ids of traces, and the rule ids of `explain` | the stage lists of `stages/`, the rule rows of `rules/unicodeToZawgyi.js`, `api/explain.js` |
 | The dist file names and the `knayi` global | `scripts/build.js`; `test/browser.test.js`, `test/compat.test.js` |
 | The minimum Node, 22.12, and the browser floor | `package.json` `engines`; README, read by `scripts/browser/floor.js` |
 | The 2.x API in `knayi-myscript/compat`: its exports and their shapes, the option keys, the debug stage names and their order, and the regex-source labels in `matched_patterns` | `src/compat/`; the contract matrix (`test/contract/`), compare against the reference, and `test/next/compat-*.test.mjs` |
 
 ## Quirks kept on purpose
 
-compat keeps 2.x's output on every input, so the core keeps 2.x's quirks where compat's output depends on them. DESIGN.md §10 lists each, with its size, where the code keeps it and the fix planned for it, and the code cites them as `DESIGN.md §10 Q11`. compat also keeps these behaviours of 2.x's public layer:
+compat keeps 2.x's output on every input, so the core keeps 2.x's quirks where compat's output depends on them. DESIGN.md §10 lists each, with its size, where the code keeps it and the fix planned for it, and the code cites them as `DESIGN.md §10 Q11`. The 3.0 API answers three of them itself: its `truncate` is always a prefix (Q5), `segmentSyllables` reads bare consonants as `separate` by default (Q11), and its `normalize` is idempotent (Q12). Q3 and Q15 belong to compat's public layer alone; the others, among them the Unicode to Zawgyi rules that move e and medial ra across a line break (Q10), hold in both APIs. compat also keeps these behaviours of 2.x's public layer:
 
 - **`fontConvert.debugging`** returns what `fontConvert` returns, not an object, on every early exit: missing or non-string content, no Myanmar text, a missing or unknown target, the same source and target, or a Win direction knayi does not convert.
 - **The debug flag is read from `this`.** compat and its builds are strict code, so a detached call such as `const f = compat.fontConvert; f(...)` never reads a global `debug`, as 2.x's ES module build did not (2.x's `main.js` and script builds did).
 - **Font names in `syllBreak`, `truncate` and `spellingFix`:** an unknown name, or `'win'`, reaches 2.x's rule tables as it is. `syllBreak` and `truncate` throw a `TypeError` for most of them; a few names of `Object.prototype` properties, such as `'toString'`, return the text with no breaks instead. `spellingFix` uses the Unicode marks for an unknown name, but throws on some `Object.prototype` names such as `'constructor'`. `fontConvert` detects the source instead of an unknown source name.
 - **`truncate` throws on an object that `String()` cannot convert,** such as `Object.create(null)` or `{ toString: undefined }`: it turns non-strings into strings with `String(content)`, where the other functions return them unchanged. `test/properties.test.js` pins the `TypeError`.
-- **Only U+1000–U+109F counts as Myanmar** for compat's input checks. The extended blocks (U+A9E0–U+A9FF, U+AA60–U+AA7F) are read by the typing fixes and by the Unicode reader, but `fontDetect`, `fontConvert`, `syllBreak`, `spellingFix` and `truncate` treat text made only of them as having no Myanmar character. Myanmar Extended-C (U+116D0–U+116E3) is not read anywhere yet (decision 20b). The tables match Unicode 15.1, apart from the classes `test/next/unicode.test.mjs` lists, and that test fails when the runtime knows Myanmar code points they miss.
+- **Only U+1000–U+109F counts as Myanmar** for compat's input checks, and for `detectEncoding`'s `'none'` and `toUnicode`'s lines from Zawgyi. The extended blocks (U+A9E0–U+A9FF, U+AA60–U+AA7F) are read by the typing fixes and by the Unicode reader, but `fontDetect`, `fontConvert`, `syllBreak`, `spellingFix` and `truncate` treat text made only of them as having no Myanmar character. Myanmar Extended-C (U+116D0–U+116E3) is not read anywhere yet (decision 20b). The tables match Unicode 15.1, apart from the classes `test/next/unicode.test.mjs` lists, and that test fails when the runtime knows Myanmar code points they miss.
 
 ## Where the rules are justified
 
@@ -294,6 +362,9 @@ The rules in the engine, the typing fixes and the glyph tables have a comment ne
 | --- | --- |
 | [`research/zawgyi-to-unicode.md`](research/zawgyi-to-unicode.md) | Why the 2.9 Zawgyi rules were replaced; the glyph table; asat placement; UTN #11 against myanmar-tools and human typing, with counts. |
 | [`research/normalize.md`](research/normalize.md) | What 2.9's `normalize` did wrong; each 2.10 rule; the typing fixes; the effect on conversion; other languages; speed. |
+| [`research/normalize-idempotence.md`](research/normalize-idempotence.md) | Why 2.x's `normalize` could change its own output; how the 3.0 `normalize` settles; the region argument; the evidence and the cost. |
+| [`research/tie-policy.md`](research/tie-policy.md) | What a tie in detection is; the damage of reading it as Zawgyi, recounted per corpus; the cost to short Zawgyi text; the `tie` option. |
+| [`research/segmentation.md`](research/segmentation.md) | The three readings of a bare consonant, the corpus counts, and why `separate` is the 3.0 default. |
 | [`research/win-fonts.md`](research/win-fonts.md) | The Win fonts and their encoding; existing converters and their licences; where the table comes from; open questions. |
 | [`scripts/eval/README.md`](scripts/eval/README.md) | The eval data, its licences, and what the benchmark measures. |
 | [`docs/next/DESIGN.md`](docs/next/DESIGN.md) | The 3.0 core and API: the data structures, the readers, the gates, the 3.0 API's choices and the measurements behind them. |
@@ -307,7 +378,7 @@ Setup is `npm ci` in each clone or worktree; see [CONTRIBUTING.md](CONTRIBUTING.
 | Command | What it runs | CI check |
 | --- | --- | --- |
 | `npm run build` | Writes the three `dist/` files. Only a release commit runs it. | — |
-| `npm test` | `node --test` on `test/**/*.test.js` and `test/**/*.test.mjs`, then the timing tests alone (`*.timing.js`, `*.timing.mjs`), then `tsc` on `typecheck/` (the 2.x types with and without `esModuleInterop`, and the 3.0 API's), then the dist size budgets (`posttest`). The tests read the dist files from a temporary build. Among them: the 2.x tests against compat; the tests of each module of the core, of the 3.0 API and of its streams, and the guards of `test/next/guards/` (layers, the stateless core, tree-shaking, the ES2015 floor of `src/`, function sizes, error codes, citations and the frozen oracle); the package and its exports map; the `knayi` command, run as a process (`test/next/cli/`); the contract matrix (`test/contract/`); a probe for every table row (`test/tables.test.js`); every example in README.md and this file, with their number pinned, and README's prose examples (`test/readme.test.js`); differential fuzz against the frozen 2.10 engine in `scripts/oracle/`; property tests; the browser floor checks of the builds (`test/syntax.test.js`, `test/dist-floor.test.js`, `test/regex-floor.test.js`); and the Unicode version check. The timing tests check that time grows linearly on adversarial and random structured input; they run after the others so that they do not compete with them for the CPU. | Node 22.12, Node 24, Node 26 |
+| `npm test` | `node --test` on `test/**/*.test.js` and `test/**/*.test.mjs`, then the timing tests alone (`*.timing.js`, `*.timing.mjs`), then `tsc` on `typecheck/` (the 2.x types with and without `esModuleInterop`, and the 3.0 API's), then the dist size budgets (`posttest`). The tests read the dist files from a temporary build. Among them: the 2.x tests against compat; the tests of each module of the core, of the 3.0 API and of its streams, and the guards of `test/next/guards/` (layers, the stateless core, tree-shaking, the ES2015 floor of `src/`, function sizes, error codes, citations and the frozen oracle); the package and its exports map; the `knayi` command, run as a process (`test/next/cli/`); the contract matrix (`test/contract/`); a probe for every table row (`test/tables.test.js`); every example in README.md, MIGRATION.md and this file, with their number pinned, and README's prose examples (`test/readme.test.js`); differential fuzz against the frozen 2.10 engine in `scripts/oracle/`; property tests; the browser floor checks of the builds (`test/syntax.test.js`, `test/dist-floor.test.js`, `test/regex-floor.test.js`); and the Unicode version check. The timing tests check that time grows linearly on adversarial and random structured input; they run after the others so that they do not compete with them for the CPU. | Node 22.12, Node 24, Node 26 |
 | `npm run test:bun` | `scripts/bun-contract.js`, `scripts/bun-esm.mjs` and `scripts/bun-matrix.js` (the contract matrix in a process of its own), then `bun test ./test` and the timing tests. | Bun |
 | `npm run test:pack` | Packs the package with a fresh build (`scripts/pack-fresh.mjs`), installs it with Bun in a temporary app, and loads each entry of the exports map through `require` and `import`. | Bun |
 | `npm run test:fuzz` | The fuzz and property tests alone. `KNAYI_FUZZ_SEED` and `KNAYI_FUZZ_SCALE` set the seed and size; `KNAYI_GROWTH_SEED` and `KNAYI_GROWTH_RUNS` do the same for `test/growth.timing.js`. `npm run test:fuzz:next` runs those of `test/next/` only. | fuzz, nightly (`fuzz.yml`) |
@@ -317,7 +388,7 @@ Setup is `npm ci` in each clone or worktree; see [CONTRIBUTING.md](CONTRIBUTING.
 | `npm run check:redos` | Every regex `src/` ships, as literals, built at run time or exported, and every regex literal of the `knayi` command in `bin/`, through recheck. The allowlist is `scripts/redos-allowlist.json`. | ReDoS, types and size |
 | `npm run check:types` | Packs the package, then compiles `typecheck/packed/` against it under node16, node20, nodenext and bundler resolution, runs the output, and runs @arethetypeswrong/cli on every entry of the exports map. | ReDoS, types and size |
 | `npm run matrix:update` | Rewrites `test/contract/api-matrix.json` from `scripts/oracle/main.js`, after a port moves the 2.x reference, and refuses build differences that `scripts/contract/matrix.js` does not explain. | — |
-| `npm run compare -- --base <ref>` | Two copies of knayi's 2.x API on every call form, including `fontConvert.debugging`, over every cached corpus, generated input and seeded fuzz; lists the differences. A 3.0 copy is its compat. `--expect form:set=n` declares the differences a deliberate change expects, `--offline` uses no corpus, and `--head min:.` or `mjs:.` compares compat with the builds that hold it. `--base e5f6e24fa756f8f9c8d790f9a15ede85b135e8ae --head mjs:src/compat/index.js` compares compat with the 2.x reference. | Compare, Compat (Node and Bun) |
+| `npm run compare -- --base <ref>` | Two copies of knayi's 2.x API on every call form, including `fontConvert.debugging`, over every cached corpus, generated input and seeded fuzz; lists the differences. A 3.0 copy is its compat. `--expect form:set=n` declares the differences a deliberate change expects, `--offline` uses no corpus, and `--head min:.` or `mjs:.` compares compat with the builds that hold it. `--base e5f6e24fa756f8f9c8d790f9a15ede85b135e8ae --head mjs:src/compat/index.js` compares compat with the 2.x reference; `--base mjs:src/compat/index.js --head mjs:scripts/next/migration/plain.mjs` (or `as-2x.mjs`) compares compat with the 3.0 API, for MIGRATION.md's counts. | Compare, Compat (Node and Bun) |
 | `npm run perf -- --base <ref>` | Two copies timed interleaved in one process, under Node and Bun: ratios per line, per word, on one string and on one document, and growth exponents on adversarial inputs (`--offline`: growth only). | Perf |
 | `npm run eval` | Accuracy on public data, next to a published knayi release, myanmar-tools and Rabbit. | — |
 | `npm run bench` | Speed on real text and long input; `-- --sweep` adds 1,059 long inputs. | — |
