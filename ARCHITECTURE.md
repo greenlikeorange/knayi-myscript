@@ -1,6 +1,6 @@
 # Architecture
 
-How knayi-myscript is built today: version 2.10.0, including the Shan look-alike fix (#73), the fix for `normalize`'s quadratic time on runs of e and medial ra (#74), NFC in linear time (`library/nfc.js`), one policy for font names, in any letter case (`resolveFont`, `breakFont` and `fontName` in `library/contentGate.js`), and a `fontDetect` fallback that is a string or none. This is a map of the current code, not a target design. A pull request that changes something described here updates this file in the same PR.
+How knayi-myscript is built today: version 2.10.0, including the Shan look-alike fix (#73), the fix for `normalize`'s quadratic time on runs of e and medial ra (#74), NFC in linear time (`library/nfc.js`), one policy for font names, in any letter case (`resolveFont`, `breakFont` and `fontName` in `library/contentGate.js`), a `fontDetect` fallback that is a string or none, and detector options that may be `null` and are checked (thresholds in order, adapter names), with every message silenced by silent mode. This is a map of the current code, not a target design. A pull request that changes something described here updates this file in the same PR.
 
 - [Entry points and builds](#entry-points-and-builds)
 - [Module map](#module-map)
@@ -49,7 +49,7 @@ All library code is CommonJS in `library/`.
 | `spellingCheck.js` | `spellingFix` | Input checks, font choice, then `collapseMarks`. The file name differs from the export name. |
 | `truncate.js` | `truncate` | Input checks, font choice, `breakParts`, then a fit loop over the parts. |
 | `contentGate.js` | `isMissing`, `toText`, `hasMyanmar`, `resolveFont`, `fontName`, `breakFont`, `libraryError`, `cleanText` | Shared input helpers; the font names and their aliases (`uni`, `zaw`), read in any letter case, and the font-name policy; and `libraryError`, which makes every error knayi throws on purpose. |
-| `globalOptions.js` | `isSilentMode`, `setOptions`, `detector` | The module-level option store and the detector-option merge. |
+| `globalOptions.js` | `isSilentMode`, `setOptions`, `detector` | The module-level option store, and the detector-option merge with its threshold check. |
 | `storageOrder.js` | `ROLES`, `font`, `toUnicode`, `arrangeUnicode` | The syllable engine: the shared syllable sort `order`, the font reader `arrange`, the Unicode reader `arrangeUnicode`, the font compiler `font` and the font pipeline `toUnicode`. |
 | `typingFixes.js` | `lookAlikes`, `typos` | Zero and seven read as wa and ra (and back), and four typo rules. |
 | `nfc.js` | `nfc`, and `nfc.reorder` for the tests | `String.prototype.normalize('NFC')` in linear time: long runs of combining marks are put in order first ([below](#nfc-in-linear-time-librarynfcjs)). |
@@ -85,7 +85,7 @@ Two edges point the unexpected way. The font data modules (`zawgyi.js`, `win.js`
 - `nfc.js`: what it has read from `String.prototype.normalize`: whether each code point below U+20000 it has looked at is a run character, in a 128 KB `Uint8Array` made when it first looks at one at or above U+0300, and the decomposition and combining classes of each run character (about a thousand exist). The memory stays bounded whatever the text; a character above U+1FFFF that is not a run character is probed again each time.
 - The rule regexes in `syllable.js` have the `g` flag and are shared between calls, so the code resets `lastIndex` before each use.
 
-Console output: missing content and an unknown source font warn (`console.warn`), conversion errors use `console.error`, and both are silenced by `silent_mode`. One message ignores silent mode: the threshold error in `globalOptions.detector`.
+Console output: missing content, an unknown source font and an unknown adapter warn (`console.warn`), conversion errors and the threshold error use `console.error`, and `silent_mode` silences all of them. The threshold error (`globalOptions.detector`) starts with its code in brackets, `[ERR_KNAYI_INVALID_THRESHOLD]`; no other message has a code.
 
 Errors: knayi throws on purpose in one place, `breakFont` (below), and builds the error with `libraryError(code, message, Ctor)`, which sets a string `code`. `test/unit/errors.test.js` fails on any other `throw` in the library, and the contract matrix records the code and message of such an error, but only the class of a `TypeError` the engine raises by accident.
 
@@ -132,7 +132,7 @@ So text with no Myanmar characters still comes back in NFC. The first NFC is the
 2. Missing content, or no Myanmar character: the fallback, or `'en'`.
 3. `cleanText(content, true)`: trim, and remove U+200B and U+200C.
 4. The fallback defaults to `'zawgyi'`.
-5. `globalOptions.detector(options)` merges the call's options with the stored ones. An explicit `adapter` (`'rules'` or `'myanmartools'`) wins; otherwise `use_myanmartools` picks myanmar-tools.
+5. `globalOptions.detector(options)` merges the call's options with the stored ones; `null` options, like `undefined`, are none. A threshold must be two finite numbers in order; for any other value the call uses the stored pair, with the threshold error unless silent. `setGlobalOptions` checks the same way and keeps the stored pair, and `setGlobalOptions(null)` does nothing. `chooseAdapter` reads the `adapter` with `fontName`, so a value that is not a string, or `''`, names no adapter. An explicit `'rules'` or `'myanmartools'` wins; otherwise `use_myanmartools` picks myanmar-tools, and any other name also warns, unless silent.
 6. **Rules:** each side's score is the total number of matches of its signature patterns (`String#match` with the `g` flag). The higher score wins; a tie returns the fallback.
 7. **myanmar-tools:** loaded on first use through `nodeRequire`, which only works in Node: `module.require`, or `process.getBuiltinModule('module').createRequire(...)` from `__filename` or, where that is missing, from the working directory's `package.json`. A probability below the first threshold is `'unicode'`, above the second `'zawgyi'`, and in between the fallback. If the package cannot be loaded, the call uses the rules and warns once.
 
@@ -278,7 +278,7 @@ These live in regex tables, applied one pass per pattern:
 - **Slip:** an asat that `order` drops, because it was typed early for the next consonant's asat.
 - **Look-alikes:** zero (U+1040) and wa (U+101D), and seven (U+1047) and ra (U+101B), typed for each other.
 - **Tie:** equal rule scores in `fontDetect`. The result is the fallback, `'zawgyi'` when none is given. Short Unicode text, such as one consonant or a word whose only sign is a stacked consonant, ties often.
-- **Silent mode:** `setGlobalOptions({ silent_mode: true })`, which hides the warnings and errors (all but one, see [Module state](#module-state)).
+- **Silent mode:** `setGlobalOptions({ silent_mode: true })`, which hides every warning and error knayi writes to the console (see [Module state](#module-state)).
 
 ## Stable surfaces
 
@@ -294,7 +294,7 @@ These are the 2.x API. Changing them needs a major version.
 | The shape of `win.tables` | `{ WIN, SEQUENCES, ROLES }`, with the role strings; read by `scripts/eval/win-glyphs.mjs`. |
 | The debug stage names and their order | `sequences`, `glyphs`, `syllables`, `zero as wa`, `look-alikes`, `typos`, `NFC`: README (`fontConvert.debugging`); `test/zawgyi.test.js`, with one input that passes all seven; the stage lists of `test/fixtures/tables.json`; and the comparison with the frozen 2.10 engine in `test/fuzz.test.js`. |
 | The regex-source labels in `matched_patterns` | Unicode to Zawgyi debugging logs each rule's `.source` (`syllable.js`, `record`). Rewriting a regex literal, even to an equal pattern, changes this output. |
-| Error codes | The `code` of each error knayi throws on purpose: `ERR_KNAYI_INVALID_FONT` (`contentGate.js`); README ("Font names"); the contract matrix. Messages may change; codes may not. |
+| Error codes | The `code` of each error knayi throws on purpose: `ERR_KNAYI_INVALID_FONT` (`contentGate.js`); README ("Font names"); the contract matrix. The code at the start of the threshold error, `[ERR_KNAYI_INVALID_THRESHOLD]` (`globalOptions.js`); README ("fontDetect"). Messages may change; codes may not. |
 
 Any library file that moves keeps a one-line shim at its old path through 2.x.
 

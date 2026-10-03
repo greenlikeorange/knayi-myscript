@@ -19,12 +19,21 @@ function detector (incoming) {
     ? incoming.myanmartools_zg_threshold
     : OPTIONS.detector.myanmartools_zg_threshold;
 
+  // A threshold is two finite numbers in order. A probability below the first is Unicode, above the second Zawgyi,
+  // and from the first to the second the fallback, so equal numbers leave only that one probability to the fallback.
+  // Any other value keeps the stored pair, with an error unless silent. The code at the start of the error is API,
+  // like the code of an error knayi throws; the words after it may change.
   if (
     !Array.isArray(myanmartools_zg_threshold)
     || typeof myanmartools_zg_threshold[0] !== 'number'
     || typeof myanmartools_zg_threshold[1] !== 'number'
+    || !isFinite(myanmartools_zg_threshold[0])
+    || !isFinite(myanmartools_zg_threshold[1])
+    || myanmartools_zg_threshold[0] > myanmartools_zg_threshold[1]
   ) {
-    console.error('myanmartools_zg_threshold must be [number, number]')
+    if (!OPTIONS.silent_mode) {
+      console.error('[ERR_KNAYI_INVALID_THRESHOLD] myanmartools_zg_threshold must be two finite numbers in order.')
+    }
     myanmartools_zg_threshold = OPTIONS.detector.myanmartools_zg_threshold
   }
 
@@ -34,7 +43,10 @@ function detector (incoming) {
   }
 }
 
-function setOptions (options = {}) {
+// undefined and null are no options: the call changes nothing.
+function setOptions (options) {
+  if (options == null) return;
+
   if (Object.keys(options).indexOf('silent_mode') !== -1) {
     OPTIONS.silent_mode = options.silent_mode;
   }

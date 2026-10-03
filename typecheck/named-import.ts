@@ -6,9 +6,11 @@ const globalOptions: GlobalOptions = { silent_mode: true, detector: { use_myanma
 const truncateOptions: TruncateOptions = { length: 30, fontType: null };
 
 setGlobalOptions(globalOptions);
+setGlobalOptions(null);
 
 const converted: string = fontConvert("မဂၤလာပါ", "unicode", null);
 const detected: string = fontDetect("ကျ", null, detectorOptions);
+const detectedWithStored: string = fontDetect("ကျ", null, null);
 const broken: string = syllBreak("မင်္ဂလာပါ", null, "|");
 const spelled: string = spellingFix("ကိီ", null);
 const shortened: string = truncate("က", truncateOptions);
@@ -19,4 +21,4 @@ const current: string = version;
 // @ts-expect-error
 setGlobalOptions({ detector: { adapter: "rules" } });
 
-export { converted, detected, broken, spelled, shortened, normalized, current };
+export { converted, detected, detectedWithStored, broken, spelled, shortened, normalized, current };

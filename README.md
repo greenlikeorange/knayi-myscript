@@ -121,7 +121,15 @@ knayi.fontDetect('မင်္ဂလာပါ', null, {
 
 `use_myanmartools: true` selects the same adapter. A probability below the first threshold returns `'unicode'`. A probability above the second returns `'zawgyi'`. A probability between them returns the fallback. The default pair is `[0.05, 0.95]`. If the package is not installed or cannot be loaded, the call uses the rule scorer and warns once. The warning says which of the two happened.
 
-`setGlobalOptions({ detector: { use_myanmartools: true } })` changes the default. An explicit `adapter` on a later call wins. A later call that only sets `use_myanmartools` keeps a previously stored threshold.
+`setGlobalOptions({ detector: { use_myanmartools: true } })` changes the default. An explicit `adapter` on a later call wins. A later call that only sets `use_myanmartools` keeps a previously stored threshold. `null` options, like omitted ones, use the stored settings, and `setGlobalOptions(null)` changes nothing.
+
+The threshold pair must be two finite numbers in order, `[low, high]`; the two may be equal. For any other value, the call uses the stored pair (`setGlobalOptions` keeps it) and writes an error unless silent. The error starts with its code, `[ERR_KNAYI_INVALID_THRESHOLD]`: match the code, not the words after it, which may change. An `adapter` name other than `'rules'` and `'myanmartools'` warns unless silent, and the call uses the adapter `use_myanmartools` picks, as it does when the `adapter` is not a string or is `''`. `fontDetect` reads its options only for text with a Myanmar letter, so only those calls check them.
+
+```javascript
+knayi.fontDetect('ကျ', null, null) // 'unicode'
+knayi.fontDetect('ကျ', null, { adapter: 'rule' }) // 'unicode'  (unknown adapter; warns)
+knayi.fontDetect('ကျ', null, { myanmartools_zg_threshold: [0.95, 0.05] }) // 'unicode'  (thresholds out of order; an error unless silent)
+```
 
 The rule scorer does not count a consonant, `U+1039`, consonant sequence such as `က္က` as Unicode. In Zawgyi, `U+1039` is the visible asat, so `ပ္က` is a common Zawgyi sequence. A lone stack is a tie and returns the fallback. In longer Unicode text such as `ရန်ကုန်တက္ကသိုလ်`, the other signs decide.
 

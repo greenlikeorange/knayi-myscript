@@ -107,7 +107,7 @@ The README promises Chrome 49, Edge 14, Firefox 34, Safari 10, Samsung Internet 
 
 ### The 2.x API stays stable
 
-The exports, `index.d.ts`, the `dist/` file names and the `knayi` global, the option keys, the deep path `library/converter`, the shape of `win.tables`, the debug stage names and their order, the regex-source labels in `matched_patterns`, and the codes of the errors knayi throws are 2.x API. [ARCHITECTURE.md](ARCHITECTURE.md#stable-surfaces) lists where each is defined.
+The exports, `index.d.ts`, the `dist/` file names and the `knayi` global, the option keys, the deep path `library/converter`, the shape of `win.tables`, the debug stage names and their order, the regex-source labels in `matched_patterns`, and the codes of the errors knayi throws, and of the threshold error it writes to the console, are 2.x API. [ARCHITECTURE.md](ARCHITECTURE.md#stable-surfaces) lists where each is defined.
 
 - New exports and options may come in a minor version, with types, matrix rows and tests.
 - A library file that moves leaves a one-line shim at its old path.

@@ -6,7 +6,9 @@ const path = require('path');
 const vm = require('vm');
 const Module = require('module');
 const { pathToFileURL } = require('url');
+const { inspect } = require('util');
 const knayi = require('../main');
+const globalOptions = require('../library/globalOptions');
 const { ZawgyiDetector } = require('myanmar-tools');
 const { loadWithInternals } = require('../scripts/testing/internals');
 
@@ -86,12 +88,57 @@ describe('myanmar-tools adapter', () => {
       assert.equal(knayi.fontDetect('က္က', 'en'), 'zawgyi');
     });
 
-    it('uses the default pair, with an error, when a threshold is not [number, number]', () => {
-      for (const threshold of ['0.5', [0.05], [0.05, '0.9'], null]) {
+    // Not two finite numbers in order: not a pair, a string, NaN, an infinity, or the higher number first.
+    const INVALID = ['0.5', [0.05], [0.05, '0.9'], null, [NaN, NaN], [0.05, NaN], [-Infinity, 0.95], [0.05, Infinity],
+      [0.95, 0.05], [0.5, 0.4999]];
+    // The error starts with its code, which is API; the words after it may change.
+    const THRESHOLD_ERROR = '[ERR_KNAYI_INVALID_THRESHOLD] myanmartools_zg_threshold must be two finite numbers in order.';
+
+    it('uses the stored pair, with an error, when a threshold is not two finite numbers in order', () => {
+      for (const threshold of INVALID) {
+        const label = inspect(threshold);
         const run = capture(() => knayi.fontDetect('က္က', 'en', { adapter: 'myanmartools', myanmartools_zg_threshold: threshold }));
-        assert.equal(run.value, 'en', JSON.stringify(threshold));
-        assert.deepEqual(run.messages, [['error', 'myanmartools_zg_threshold must be [number, number]']]);
+        assert.equal(run.value, 'en', label);
+        assert.deepEqual(run.messages, [['error', THRESHOLD_ERROR]], label);
       }
+      const p = probability('က္က');
+      knayi.setGlobalOptions({ detector: { myanmartools_zg_threshold: [0.05, 0.9] } });
+      const run = capture(() => knayi.fontDetect('က္က', 'en', { adapter: 'myanmartools', myanmartools_zg_threshold: [0.95, 0.05] }));
+      assert.ok(p > 0.9);
+      assert.equal(run.value, 'zawgyi');
+      assert.deepEqual(run.messages, [['error', THRESHOLD_ERROR]]);
+    });
+
+    it('keeps the stored pair, with an error, when setGlobalOptions gets an invalid threshold', () => {
+      knayi.setGlobalOptions({ detector: { myanmartools_zg_threshold: [0.05, 0.9] } });
+      for (const threshold of INVALID) {
+        const run = capture(() => knayi.setGlobalOptions({ detector: { use_myanmartools: true, myanmartools_zg_threshold: threshold } }));
+        assert.deepEqual(run.messages, [['error', THRESHOLD_ERROR]], inspect(threshold));
+        assert.deepEqual(globalOptions.detector({}).myanmartools_zg_threshold, [0.05, 0.9]);
+        // The rest of the detector options are stored.
+        assert.equal(knayi.fontDetect('က္က', 'en'), 'zawgyi');
+        knayi.setGlobalOptions({ detector: { use_myanmartools: false } });
+        assert.equal(knayi.fontDetect('က္က', 'en'), 'en');
+      }
+    });
+
+    it('accepts equal numbers, and any finite numbers in order', () => {
+      for (const threshold of [[0.5, 0.5], [0, 1], [-1, 2], [0.05, 0.95]]) {
+        const run = capture(() => knayi.setGlobalOptions({ detector: { myanmartools_zg_threshold: threshold } }));
+        assert.deepEqual(run.messages, [], JSON.stringify(threshold));
+        assert.deepEqual(globalOptions.detector({}).myanmartools_zg_threshold, threshold);
+      }
+    });
+
+    it('writes the threshold error only when not silent', () => {
+      knayi.setGlobalOptions({ silent_mode: true });
+      const run = capture(() => [
+        knayi.fontDetect('က္က', 'en', { adapter: 'myanmartools', myanmartools_zg_threshold: [0.95, 0.05] }),
+        knayi.setGlobalOptions({ detector: { myanmartools_zg_threshold: [NaN, NaN] } }),
+        knayi.setGlobalOptions({ silent_mode: false, detector: { myanmartools_zg_threshold: 'x' } })
+      ]);
+      assert.deepEqual(run.value, ['en', undefined, undefined]);
+      assert.deepEqual(run.messages, [['error', THRESHOLD_ERROR]]);
     });
   });
 
@@ -117,9 +164,44 @@ describe('myanmar-tools adapter', () => {
       assert.equal(knayi.fontDetect('က္က', 'unicode', Object.assign({ adapter: 'rules', use_myanmartools: true }, tools)), 'unicode');
     });
 
-    it('falls back to use_myanmartools for an unknown adapter name', () => {
-      assert.equal(knayi.fontDetect('က္က', 'unicode', Object.assign({ adapter: 'other' }, tools)), 'unicode');
-      assert.equal(knayi.fontDetect('က္က', 'unicode', Object.assign({ adapter: 'other', use_myanmartools: true }, tools)), 'zawgyi');
+    it('falls back to use_myanmartools for an unknown adapter name, with a warning', () => {
+      const run = capture(() => [
+        knayi.fontDetect('က္က', 'unicode', Object.assign({ adapter: 'other' }, tools)),
+        knayi.fontDetect('က္က', 'unicode', Object.assign({ adapter: 'other', use_myanmartools: true }, tools)),
+        knayi.fontDetect('က္က', 'unicode', Object.assign({ adapter: 'Rules' }, tools)),
+        knayi.fontDetect('က္က', 'unicode', Object.assign({ adapter: new String('tools'), use_myanmartools: true }, tools))
+      ]);
+      assert.deepEqual(run.value, ['unicode', 'zawgyi', 'unicode', 'zawgyi']);
+      assert.deepEqual(run.messages, [
+        ['warn', 'Unknown adapter "other" on knayi.fontDetect.'],
+        ['warn', 'Unknown adapter "other" on knayi.fontDetect.'],
+        ['warn', 'Unknown adapter "Rules" on knayi.fontDetect.'],
+        ['warn', 'Unknown adapter "tools" on knayi.fontDetect.']
+      ]);
+    });
+
+    it('warns about an unknown adapter only when not silent, and only for text it detects', () => {
+      const options = Object.assign({ adapter: 'other' }, tools);
+      knayi.setGlobalOptions({ silent_mode: true });
+      const silent = capture(() => knayi.fontDetect('က္က', 'unicode', options));
+      assert.deepEqual(silent, { value: 'unicode', messages: [] });
+      knayi.setGlobalOptions({ silent_mode: false });
+      const loud = capture(() => [knayi.fontDetect('abc', undefined, options), knayi.fontDetect(123, undefined, options)]);
+      assert.deepEqual(loud, { value: ['en', 'en'], messages: [] });
+    });
+
+    // An adapter name is read like a font name: a string other than '', or a String object's string.
+    it('reads no adapter, and no warning, from a value that is not a string or is empty', () => {
+      knayi.setGlobalOptions({ detector: { use_myanmartools: true } });
+      const values = [undefined, null, '', 0, 1, false, true, NaN, {}, [], ['rules'], new String('')];
+      const run = capture(() => values.map((adapter) =>
+        knayi.fontDetect('က္က', 'unicode', Object.assign({ adapter: adapter }, tools))));
+      assert.deepEqual(run, { value: values.map(() => 'zawgyi'), messages: [] });
+      const named = capture(() => [
+        knayi.fontDetect('က္က', 'unicode', Object.assign({ adapter: new String('rules') }, tools)),
+        knayi.fontDetect('က္က', 'unicode', Object.assign({ adapter: new String('myanmartools'), use_myanmartools: false }, tools))
+      ]);
+      assert.deepEqual(named, { value: ['unicode', 'zawgyi'], messages: [] });
     });
 
     it('skips the adapter for missing content and text with no Myanmar character', () => {

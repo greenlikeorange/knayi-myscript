@@ -150,6 +150,40 @@ describe('detector fallback', () => {
   });
 })
 
+// undefined and null are no options: the call uses the stored detector options, as with {}.
+describe('detector options', () => {
+  afterEach(() => {
+    knayi.setGlobalOptions({
+      silent_mode: false,
+      detector: { use_myanmartools: false, myanmartools_zg_threshold: [0.05, 0.95] }
+    });
+  });
+
+  it('takes null as no options', () => {
+    const texts = ['ျမန္မာ', 'မြန်မာ', 'ဗုဒ္ဓ', ' မြန်\u200Bမာ ', 'ျမန္မာ\nမြန်မာ', 'abc', 123];
+    for (const text of texts) {
+      for (const fallback of [undefined, null, 'unicode', 1]) {
+        const label = inspect([text, fallback]);
+        assert.equal(knayi.fontDetect(text, fallback, null), knayi.fontDetect(text, fallback, {}), label);
+        assert.equal(knayi.fontDetect(text, fallback, null), knayi.fontDetect(text, fallback), label);
+      }
+    }
+    assert.deepEqual(['ျမန္မာ', 'ဗုဒ္ဓ'].map((text) => knayi.fontDetect(text, null, null)), ['zawgyi', 'zawgyi']);
+  });
+
+  it('uses the stored adapter and threshold with null options', () => {
+    // myanmar-tools gives က္က a probability of about 0.93: Zawgyi above 0.9, and a rule-score tie.
+    knayi.setGlobalOptions({ detector: { use_myanmartools: true, myanmartools_zg_threshold: [0.05, 0.9] } });
+    assert.equal(knayi.fontDetect('က္က', 'unicode', null), 'zawgyi');
+    knayi.setGlobalOptions(null);
+    assert.equal(knayi.fontDetect('က္က', 'unicode', null), 'zawgyi');
+    knayi.setGlobalOptions({ detector: null });
+    assert.equal(knayi.fontDetect('က္က', 'unicode', null), 'zawgyi');
+    knayi.setGlobalOptions({ detector: { use_myanmartools: false } });
+    assert.equal(knayi.fontDetect('က္က', 'unicode', null), 'unicode');
+  });
+})
+
 after(function () {
   knayi.setGlobalOptions({
     silent_mode: false,

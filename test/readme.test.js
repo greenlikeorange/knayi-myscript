@@ -6,11 +6,12 @@ const knayi = require('../main');
 const { readExamples } = require('../scripts/testing/readme-examples');
 
 // Every `knayi.…` example in README.md and ARCHITECTURE.md runs against main.js, and returns the value in its
-// comment. An example whose note says it warns must write a warning or an error to the console.
+// comment. An example whose note says it warns, or that it writes an error, must write a warning or an error to the
+// console.
 //
 // The number of examples in each file is pinned, so an example the reader stops seeing fails here. When you add or
 // remove an example, change its count.
-const FILES = { 'README.md': 55, 'ARCHITECTURE.md': 11 };
+const FILES = { 'README.md': 58, 'ARCHITECTURE.md': 11 };
 
 // Runs fn with console.warn and console.error recorded instead of printed.
 function capture(fn) {
@@ -43,8 +44,8 @@ for (const [file, count] of Object.entries(FILES)) {
         const run = capture(() => new Function('knayi', 'return (' + example.code + ');')(knayi));
         const expected = new Function('return (' + example.expected + ');')();
         assert.deepEqual(run.value, expected);
-        if (example.note && /\bwarns\b/.test(example.note)) {
-          assert.ok(run.messages.length > 0, 'the documentation says this call warns');
+        if (example.note && /\bwarns\b|\ban error\b/.test(example.note)) {
+          assert.ok(run.messages.length > 0, 'the documentation says this call writes to the console');
         }
       });
     }

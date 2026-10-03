@@ -31,12 +31,14 @@ export interface ConvertDebug {
 
 export declare const version: string;
 
-export declare function setGlobalOptions(options?: GlobalOptions): void;
+/** `null`, like `undefined`, sets nothing. */
+export declare function setGlobalOptions(options?: GlobalOptions | null): void;
 
+/** `options` of `null`, like `undefined`, uses the detector settings that setGlobalOptions stored. */
 export declare function fontDetect(
   content: string | null | undefined,
   fallbackFontType?: string | null,
-  options?: DetectorOptions
+  options?: DetectorOptions | null
 ): string;
 
 export declare const fontConvert: ((

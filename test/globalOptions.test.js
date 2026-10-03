@@ -25,6 +25,21 @@ describe('globalOptions',()=>{
       })
     })
 
+    it('takes undefined and null as no options', () => {
+      globalOptions.setOptions({
+        silent_mode: true,
+        detector: { use_myanmartools: true, myanmartools_zg_threshold: [0.2, 0.8] }
+      })
+      assert.equal(globalOptions.setOptions(null), undefined)
+      assert.equal(globalOptions.setOptions(undefined), undefined)
+      assert.equal(globalOptions.setOptions(), undefined)
+      assert.equal(globalOptions.isSilentMode(), true)
+      assert.deepEqual(globalOptions.detector(null), { use_myanmartools: true, myanmartools_zg_threshold: [0.2, 0.8] })
+      assert.deepEqual(globalOptions.detector(undefined), { use_myanmartools: true, myanmartools_zg_threshold: [0.2, 0.8] })
+      globalOptions.setOptions({ detector: null })
+      assert.deepEqual(globalOptions.detector({}), { use_myanmartools: true, myanmartools_zg_threshold: [0.2, 0.8] })
+    })
+
     it('keeps a stored threshold when a later call only sets the adapter flag', () => {
       globalOptions.setOptions({
         detector: { use_myanmartools: true, myanmartools_zg_threshold: [0.2, 0.8] }

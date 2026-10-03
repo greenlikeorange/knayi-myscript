@@ -109,12 +109,16 @@ function scoreWithMyanmarTools(content, fallback, threshold) {
 
 var warnedMissingMyanmarTools = false;
 
-function chooseAdapter(options) {
-  if (options.adapter === 'rules' || options.adapter === 'myanmartools') {
-    return options.adapter;
+// The adapter a call names, 'rules' or 'myanmartools', or else the one use_myanmartools picks. An adapter name is
+// read like a font name (gate.fontName): a string other than '', or a String object's string; any other value names
+// no adapter. A name other than those two warns, unless silent.
+function chooseAdapter(requested, use_myanmartools) {
+  requested = gate.fontName(requested);
+  if (requested === 'rules' || requested === 'myanmartools') return requested;
+  if (requested && !globalOptions.isSilentMode()) {
+    console.warn('Unknown adapter ' + JSON.stringify(requested) + ' on knayi.fontDetect.');
   }
-  if (options.use_myanmartools) return 'myanmartools';
-  return 'rules';
+  return use_myanmartools ? 'myanmartools' : 'rules';
 }
 
 /**
@@ -123,7 +127,7 @@ function chooseAdapter(options) {
  * @param def Default return format;
  * @return unicode ? zawgyi
  */
-function fontDetect(content, fallback_font_type, options = {}){
+function fontDetect(content, fallback_font_type, options){
   // The fallback is a string other than '' (a String object counts as its string), returned as given. Any other
   // value, such as the index Array#map passes, is no fallback: the call returns 'en' or 'zawgyi', as if omitted.
   fallback_font_type = gate.fontName(fallback_font_type);
@@ -139,11 +143,11 @@ function fontDetect(content, fallback_font_type, options = {}){
   content = gate.cleanText(content, true);
   fallback_font_type = fallback_font_type || 'zawgyi';
 
-  var requestedAdapter = options.adapter;
+  // undefined and null are no options; globalOptions.detector reads them as {}.
+  var requestedAdapter = options && options.adapter;
   options = globalOptions.detector(options);
-  if (requestedAdapter) options.adapter = requestedAdapter;
 
-  if (chooseAdapter(options) === 'rules') {
+  if (chooseAdapter(requestedAdapter, options.use_myanmartools) === 'rules') {
     return scoreWithRules(content, fallback_font_type);
   }
 

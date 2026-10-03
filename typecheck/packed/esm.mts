@@ -37,6 +37,8 @@ check(fontConvert(zawgyi, "unicode", "zawgyi") === unicode, "named fontConvert")
 const debug: ConvertDebug = fontConvert.debugging(zawgyi, "unicode", "zawgyi");
 check(debug.steps[debug.steps.length - 1] === unicode, "fontConvert.debugging");
 check(fontDetect(zawgyi, null, detectorOptions) === "zawgyi", "fontDetect");
+check(fontDetect(zawgyi, null, null) === "zawgyi", "fontDetect with null options");
+setGlobalOptions(null);
 check(syllBreak(unicode, null, "|") === "မင်္ဂလာ|ပါ", "syllBreak");
 check(typeof spellingFix(unicode, "unicode") === "string", "spellingFix");
 check(typeof truncate(unicode, truncateOptions) === "string", "truncate");
