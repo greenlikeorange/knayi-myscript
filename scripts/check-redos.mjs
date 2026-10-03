@@ -2,14 +2,16 @@
 //
 // The library is src/ (its spec/ is not shipped: nothing in src/ imports it). The regexes come from four places, so
 // that none is missed:
-// - regex literals in src/**/*.js, found by parsing the files with acorn;
+// - regex literals in src/**/*.js, and in bin/**/*.js, the knayi command, which reads untrusted input too
+//   (SECURITY.md), found by parsing the files with acorn;
 // - regexes built with RegExp(...), recorded by a hook on the global RegExp while the modules load and every
 //   public call form of the 2.x API (compat) and the 3.0 API runs, and compat's legacyWinTables();
 // - regexes in the modules' exports (the rule rows, the font sequences);
 // - every regex a call form runs, recorded by hooks on RegExp.prototype. This also catches a regex that a
 //   string method builds from a string, such as text.match('...'), which the RegExp hook cannot see.
 // Every RegExp(...) call site in src/ must run while the hooks are on: a regex built from a string that never
-// ran cannot be checked, so an unreached call site fails the check.
+// ran cannot be checked, so an unreached call site fails the check. The command's modules are not run here, so a
+// RegExp(...) call site in bin/ always fails it: the command writes its regexes as literals.
 //
 // recheck must call each distinct pattern safe. A vulnerable verdict, or an unknown one (a timeout or an
 // unsupported pattern), fails unless scripts/redos-allowlist.json lists the pattern with the reason it cannot
@@ -43,6 +45,8 @@ function shippedFiles(dir) {
   return files;
 }
 const ownFiles = new Set(shippedFiles(srcDir));
+// The command's files, read for their literals and call sites only (section 3).
+const commandFiles = shippedFiles(path.join(root, 'bin'));
 
 function relative(file) {
   return path.relative(root, file).split(path.sep).join('/');
@@ -306,9 +310,10 @@ function walk(node, visit) {
   }
 }
 
-for (const file of [...ownFiles].sort()) {
+for (const file of [...ownFiles].sort().concat(commandFiles.sort())) {
   const code = fs.readFileSync(file, 'utf8');
-  const ast = acorn.parse(code, { ecmaVersion: 'latest', sourceType: 'module', locations: true });
+  const ast = acorn.parse(code, { ecmaVersion: 'latest', sourceType: 'module', locations: true,
+    allowHashBang: true });
   walk(ast, (node) => {
     const site = relative(file) + ':' + (node.loc && node.loc.start.line);
     if (node.type === 'Literal' && node.regex) {

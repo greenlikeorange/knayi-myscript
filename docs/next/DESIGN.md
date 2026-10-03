@@ -2295,6 +2295,8 @@ It lies outside `src/`: it is Node-only (22.12 or later, decision 31), uses Node
 - `loading.test.mjs`: the command run in a folder whose `node_modules` holds a myanmar-tools that marks a file when loaded, with `NODE_PATH` pointing there too, never loads it; the sources of `bin/` load code in one place, import only what 13.1 lists, and keep every function to 40 lines (§1.2 rule 3). With a loader that reads the working directory, three of its six tests fail;
 - `readme.test.mjs`: every example of README.md, "Command line", run, with its output exact.
 
+Since the merge with the packaging (§14.7), `npm run check:redos` reads `bin/` too, for regex literals and `RegExp(...)` call sites: the command reads untrusted input, as the library does (SECURITY.md). It has one literal, `/^[0-9]{1,10}$/` for `--max-line-length`, which recheck calls safe, and no call site, which the check could not reach, since it runs only the library.
+
 The files pass under Node 26.5 and Bun 1.4.2 (`bun test ./test/next/cli`, which runs the command under Bun). compat is unchanged: compare reports 0 differences on 2,771,318 comparisons against `e5f6e24`, and the contract matrix all 3,523 cells.
 
 ---
