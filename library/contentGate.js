@@ -4,7 +4,8 @@ const FONT_ALIASES = {
   unicode: 'unicode',
   uni: 'unicode',
   zawgyi: 'zawgyi',
-  zaw: 'zawgyi'
+  zaw: 'zawgyi',
+  win: 'win'
 };
 
 // null, undefined, '', 0, false, and NaN are missing content, as in 2.8.3.

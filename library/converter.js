@@ -1,8 +1,12 @@
-const spellingFix = require('./spellingCheck');
 const fontDetect = require('./detector');
 const globalOptions = require('./globalOptions');
 const gate = require('./contentGate');
 const syllable = require('./syllable');
+const win = require('./win');
+const zawgyi = require('./zawgyi');
+
+// Fonts stored in drawing order, converted to Unicode glyph by glyph (library/storageOrder.js).
+const DRAWING_ORDER_FONTS = { win: win, zawgyi: zawgyi };
 
 function fontConvert(content, to, from) {
   content = gate.toText(content);
@@ -11,7 +15,8 @@ function fontConvert(content, to, from) {
     return '';
   }
 
-  if (!gate.hasMyanmar(content))
+  // Win text is ASCII, so it has no Myanmar letters to find.
+  if (gate.resolveFont(from) !== 'win' && !gate.hasMyanmar(content))
     return content;
 
   if (!to) {
@@ -19,7 +24,8 @@ function fontConvert(content, to, from) {
     return content;
   }
 
-  content = gate.cleanText(content, true);
+  // Zero-width spaces and non-joiners mark word breaks, so they stay.
+  content = content.trim();
   to = gate.resolveFont(to);
   from = gate.resolveFont(from);
 
@@ -34,8 +40,26 @@ function fontConvert(content, to, from) {
     return content;
   }
 
-  content = spellingFix(content, from);
-  return syllable.convertText(content, from, to, this && this.debug);
+  // Win is a source font only: knayi converts Win text to Unicode.
+  if (to === 'win' || (from === 'win' && to !== 'unicode')) {
+    if (!globalOptions.isSilentMode()) console.error('knayi.fontConvert converts Win text to Unicode only.');
+    return content;
+  }
+
+  var debug = this && this.debug;
+  // Here a Win or Zawgyi source always has a Unicode target.
+  if (DRAWING_ORDER_FONTS[from]) return drawingOrderToUnicode(content, from, debug);
+
+  content = syllable.collapseMarks(content, from);
+  return syllable.convertText(content, from, to, debug);
+}
+
+// Win and Zawgyi have their tables in library/win.js and library/zawgyi.js. The debugging log has the same
+// shape as the other conversions and ends with the converted text.
+function drawingOrderToUnicode(content, from, debug) {
+  var result = DRAWING_ORDER_FONTS[from].toUnicode(content, debug);
+  if (!debug) return result;
+  return { to: 'unicode', from: from, matched_patterns: result.matched_patterns, steps: result.steps };
 }
 
 fontConvert.debugging = function (param1, param2, param3) {

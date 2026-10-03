@@ -48,7 +48,8 @@ sections.push({
     'myanmar-tools ships, so myanmar-tools has a home advantage on them. CLDR pairs that repeat Google\'s file are counted once, in the ' +
     'Google row. "NFC" compares after Unicode NFC normalization, which treats canonically equivalent spellings as equal (ဦ typed as ' +
     'U+1025 U+102E or as U+1026). The round trip turns Wikipedia lines into Zawgyi with Rabbit and converts them back; Rabbit is left ' +
-    'out of that row because it made the input.',
+    'out of that row because it made the input. The Wikipedia text has typing errors of its own, mostly ဝ typed for zero in numbers ' +
+    '(၁ဝ for ၁၀). Since 2.10 knayi corrects them, and this row counts each correction as a miss.',
   columns: converters.flatMap((engine) => [{ engine, variant: 'exact' }, { engine, variant: 'NFC' }]),
   rows: [
     pairsRow('google/language-resources reference pairs', ['google'], data.google, converters),

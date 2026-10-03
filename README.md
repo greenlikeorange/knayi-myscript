@@ -1,6 +1,6 @@
 # knayi-myscript
 
-JavaScript library for Myanmar (Burmese) text stored as Unicode or Zawgyi. Version 2.9.1. MIT license.
+JavaScript library for Myanmar (Burmese) text stored as Unicode or Zawgyi. Version 2.10.0. MIT license.
 
 It detects the encoding, converts between them, inserts syllable breaks, collapses repeated spelling marks, normalizes some Unicode typing errors, and truncates on those breaks. It does not segment dictionary words, translate, or tokenize for a language model.
 
@@ -18,7 +18,7 @@ bun add knayi-myscript
 Browser script, global name `knayi`:
 
 ```html
-<script src="https://unpkg.com/knayi-myscript@2.9.1/dist/knayi-myscript.min.js"></script>
+<script src="https://unpkg.com/knayi-myscript@2.10.0/dist/knayi-myscript.min.js"></script>
 ```
 
 ## Runtime
@@ -52,7 +52,7 @@ These paths load without an `exports` map:
 
 ## Font names
 
-`unicode`, `uni`, `zawgyi`, and `zaw`. `uni` is Unicode. `zaw` is Zawgyi. Any other string is an unknown font.
+`unicode`, `uni`, `zawgyi`, `zaw`, and `win`. `uni` is Unicode. `zaw` is Zawgyi. `win` is the Win Innwa family of legacy fonts, which `fontConvert` converts to Unicode. Any other string is an unknown font.
 
 ## Missing content
 
@@ -109,7 +109,7 @@ The rule scorer does not count a consonant, `U+1039`, consonant sequence such as
 
 Returns a string. `targetFontType` is required. When `originalFontType` is omitted, `fontDetect` chooses it.
 
-When the two fonts differ, spelling fix runs on the source font first. When they are the same, the trimmed text is returned and spelling fix does not run.
+The text is trimmed first. Zero-width spaces (`U+200B`) and non-joiners (`U+200C`) are kept, because they mark word breaks. When the two fonts are the same, the trimmed text is returned.
 
 ```javascript
 knayi.fontConvert('မဂၤလာပါ', 'unicode', 'zawgyi') // 'မင်္ဂလာပါ'
@@ -122,7 +122,58 @@ knayi.fontConvert(null, 'unicode') // ''
 knayi.fontConvert('က') // 'က'  (no target font; warns)
 ```
 
-`fontConvert.debugging(content, targetFontType, originalFontType)` returns `{ to, from, matched_patterns, steps }`. `steps` is an array of strings. The last step equals `fontConvert` for the same arguments. `matched_patterns` is an array of pattern source strings.
+`fontConvert.debugging(content, targetFontType, originalFontType)` returns `{ to, from, matched_patterns, steps }`. `steps` is an array of strings. The last step equals `fontConvert` for the same arguments. From Unicode, `matched_patterns` holds the source of each rule pattern that matched. From Zawgyi or Win, it names each stage that changed the text: `sequences`, `glyphs`, `syllables`, `zero as wa`, `look-alikes`, `typos`, `NFC`.
+
+### Zawgyi to Unicode
+
+Zawgyi stores text in the order the glyphs are drawn: ေ and medial ra before the consonant, kinzi and stacked consonants after it, and the marks in any order. knayi reads each Zawgyi glyph as Unicode characters and writes every syllable in Unicode storage order ([UTN #11](https://www.unicode.org/notes/tn11/)). Win fonts use the same rules.
+
+```javascript
+knayi.fontConvert('ေယာက္်ား', 'unicode', 'zawgyi') // 'ယောက်ျား'
+knayi.fontConvert('ေစ်း', 'unicode', 'zawgyi') // 'ဈေး'
+knayi.fontConvert('ႏို္င္ငံ', 'unicode', 'zawgyi') // 'နိုင်ငံ'
+knayi.fontConvert('ၿမိဳ ့', 'unicode', 'zawgyi') // 'မြို့'
+```
+
+- **Marks:** a mark typed twice counts once.
+- **Asat on a consonant:** stored right after the consonant, before the medials and vowels: ယောက်ျား, ကျွန်ုပ်, ခ်ျ.
+- **Asat stored last:**
+  - after ာ, as in ကျော်, even when typed before the ာ of a word with no medial (ကော်ဖီ);
+  - with a dot below (ကြောင့်);
+  - after medial ha (ရှ်).
+- **Asat dropped:** typed with ိ or ီ, or on a stacked consonant, an asat is a slip (နိုင်ငံ, ကုလသမဂ္ဂ).
+- **Letters Zawgyi draws alike:**
+  - စ with medial ya is ဈ (ဈေး);
+  - ဥ with a stacked consonant, asat or ာ is ဉ (ပဉ္စ, ဉာဏ်);
+  - ၄ before င်း is ၎ (၎င်း);
+  - ၇ with a vowel sign or medial is ရ (ရေး).
+- **Zero:** `၀` is also ဝ. A zero stays a digit next to a digit or an arithmetic sign, or across a decimal point from a digit (၁၀၀, ၅.၀).
+- **Typing fixes, as in [normalize](#normalizecontent):** ဝ or ရ typed in a number is a digit (`၂ဝ၁၉` is ၂၀၁၉). ၇ starting a closed syllable is ရ (ဆိုရင်). ိ with ီ is ီ (ဦး), and ု with ူ is ူ.
+- **Spaces:** a space typed before a mark only moved the mark, so it is dropped: `ၿမိဳ ့` is မြို့ and `တစ္ခ ု` is တစ်ခု. A line break stays.
+- **Zero-width characters:** a zero-width space or non-joiner typed inside a syllable moves to the end of the syllable.
+- **NFC:** the result is NFC.
+
+Converting from Unicode collapses a mark typed twice in a row, as `spellingFix` does, then applies knayi's pattern rules.
+
+### Win fonts
+
+Win Innwa, Win Researcher, Win Kalaw and the other Win fonts by WinMyanmar Systems (1992–2005) draw Burmese glyphs on the keys that type them. Win text is ASCII and Latin-1: `jrefrm` shows as မြန်မာ in a Win font. Name the source font, because `fontDetect` never returns `win`.
+
+```javascript
+knayi.fontConvert('jrefrm', 'unicode', 'win') // 'မြန်မာ'
+knayi.fontConvert('ajumifh', 'unicode', 'win') // 'ကြောင့်'
+knayi.fontConvert('ZvGefaps;', 'unicode', 'win') // 'ဇလွန်ဈေး'
+knayi.fontConvert('jrefrm', 'unicode') // 'jrefrm'  (no source font: plain ASCII)
+```
+
+knayi converts Win to Unicode only. Any other target returns the text unchanged, with an error unless silent.
+
+- Win text is stored in drawing order, like Zawgyi, and knayi converts it with the same rules (see [Zawgyi to Unicode](#zawgyi-to-unicode)). So `ajumifh` (asat before the dot below) becomes ကြောင့် with the dot below first, `a,musfm;` is ယောက်ျား and `usGefkyf` is ကျွန်ုပ်.
+- `0` is both ဝ and ၀ in Win, and `7` can be ရ, as in Zawgyi. `ps`, `Mo`, `aMomf` and `OD` become ဈ, ဩ, ဪ and ဦ.
+- Text read as ISO-8859-1 instead of Windows-1252 converts the same way.
+- Fractions become text such as ၁/၂. Dingbats become the Unicode symbols they show. The vendor logo at byte 0xB0 is dropped.
+- English typed in another font run is ASCII too. Once the font names are gone, convert only the Win text.
+- Wwin_Burmese and other ASCII fonts use different mappings and are not supported.
 
 ## syllBreak(content, fontType?, breakPoint?)
 
@@ -157,15 +208,35 @@ knayi.spellingFix('\u1033\u1033', 'zaw') // '\u1033'
 
 ## normalize(content)
 
-Unicode only. Reorders marks in a cluster, applies a small set of typing fixes, and rewrites some `ဝ` / `၀` and `ရ` / `၇` pairs. It keeps surrounding spaces. It is not the same operation as `spellingFix`.
+Unicode only, written for Burmese. Puts every syllable in Unicode storage order ([UTN #11](https://www.unicode.org/notes/tn11/)) with the rules of [Zawgyi to Unicode](#zawgyi-to-unicode), makes a few typing fixes, and returns NFC.
+- **What stays the same:** text that is already right, text normalized a second time, and the output of `fontConvert` all come back unchanged.
+- **What it keeps:** surrounding spaces, zero-width spaces and joiners.
+
+It is not the same operation as `spellingFix`.
 
 ```javascript
 knayi.normalize('မိြုင်မိြုင်\nဆိုင်ဆုိင်') // 'မြိုင်မြိုင်\nဆိုင်ဆိုင်'
 knayi.normalize(' မိြုင် ') // ' မြိုင် '
+knayi.normalize('ယောကျ်ား') // 'ယောက်ျား'
+knayi.normalize('လည်းေကာင်း') // 'လည်းကောင်း'
+knayi.normalize('၂ဝ၁၉') // '၂၀၁၉'
 knayi.normalize('ကိီ') // 'ကီ'
-knayi.normalize('ဝ') // '၀'
-knayi.normalize('ဦ') // 'ဦ'
+knayi.normalize('ဝ') // 'ဝ'
 ```
+
+- **Order:** marks typed in any order are sorted, and a mark typed twice counts once. Asat goes where UTN #11 puts it (ကျွန်ုပ်, ခ်ျ, ရှ်), and the dot below comes before asat, as NFC requires.
+- **Zawgyi typing habits:**
+  - ေ or medial ra typed before its consonant moves after it: `လည်းေကာင်း` is လည်းကောင်း.
+  - A space typed before a mark is dropped (`သုံ း` is သုံး). A line break stays.
+- **Look-alikes:** only clear cases change.
+  - ဝ and ရ inside a number are digits: `၄ဝဝ` is ၄၀၀.
+  - ၀ and ၇ that carry a vowel sign or start a closed syllable are letters, as is ၀ inside a word: `ဘ၀` is ဘဝ, `ဆို၇င်` is ဆိုရင်.
+  - Words such as လုံးဝ, ဘဝ and ထာဝရ, and numbers such as ၁၉၇၇, stay as they are.
+- **Spelling:**
+  - စ with medial ya is ဈ.
+  - ဥ with asat, aa or a stacked consonant is ဉ (ညဉ့်, ဉာဏ်), except right after a vowel sign, where Pa'o writes ဥ်း.
+  - ၄င်း is ၎င်း, ိ with ီ is ီ, ု with ူ is ူ, and ဩော် is ဪ.
+- **Other languages:** Mon, Karen, Pa'o and Shan letters stay as they are, and so do spellings that differ from Burmese (တုဲ, ခရံာ်).
 
 ## truncate(content, options?)
 

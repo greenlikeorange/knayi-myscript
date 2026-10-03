@@ -63,3 +63,14 @@ Rows whose labels or expected outputs came from Google's tools favour myanmar-to
 - **Licensed data only.** Every result row names its sources. `report.mjs` refuses any row whose source isn't openly licensed in `datasets.mjs`, and any run made with `--with-unlicensed`.
 - **Aggregate numbers only.** It publishes percentages and timings, never the text itself, and lists every source with its size and license.
 - **Rebuild on release.** Run `npm run bench:page` before a release and commit the two files. The page says which machine produced the timings and lists the limits of the evaluation.
+
+## Win glyph table
+
+`library/win.js` maps each code point of the Win fonts to the Unicode characters it stands for. Check the table against the font:
+
+```bash
+node scripts/eval/win-glyphs.mjs path/to/WININNWA.TTF          # writes .eval-cache/win-glyphs.html
+node scripts/eval/win-glyphs.mjs path/to/WININNWA.TTF --out page.html
+```
+
+The page shows every entry twice: the Win glyph in the Win font, and the Unicode text knayi converts it to, in Noto Sans Myanmar or an installed Myanmar font. Each pair should show the same letters. The Win fonts are freeware with all rights reserved, so use your own copy; the page embeds it and must not be published. `research/win-fonts.md` has the background.

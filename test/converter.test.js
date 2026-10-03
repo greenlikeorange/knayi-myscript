@@ -20,6 +20,12 @@ assert.equal(			knayi.fontConvert('\u1000\u103a\u108b', 'unicode', 'zawgyi'), '�
 assert.equal(			knayi.fontConvert('\u1021\u1000\u103a\u108c', 'unicode', 'zawgyi'), 'အင်္ကျီ');
 assert.equal(			knayi.fontConvert('\u1000\u103a\u108d', 'unicode', 'zawgyi'), 'င်္ကျံ');
 		})
+
+		it('reads the dda and ddha ligature as dda over ddha', () => {
+			assert.equal(knayi.fontConvert('\u106f', 'unicode', 'zawgyi'), '\u100d\u1039\u100e');
+			assert.equal(knayi.fontConvert('\u101d\u106f\u1014', 'unicode', 'zawgyi'), '\u101d\u100d\u1039\u100e\u1014');
+			assert.equal(knayi.fontConvert('\u101d\u100d\u1039\u100e\u1014', 'zawgyi', 'unicode'), '\u101d\u106f\u1014');
+		})
 	})
 
 	describe('Unicode to Zawgyi',()=>{
@@ -33,6 +39,18 @@ assert.equal(			knayi.fontConvert('က္ကြွှေိာ်','zawgyi'), '�
 assert.equal(			knayi.fontConvert('င်္ကျိ', 'zawgyi', 'unicode'), '\u1000\u108b\u103a');
 assert.equal(			knayi.fontConvert('င်္ကျီ', 'zawgyi', 'unicode'), '\u1000\u108c\u103a');
 assert.equal(			knayi.fontConvert('င်္ကျံ', 'zawgyi', 'unicode'), '\u1000\u108d\u103a');
+		})
+		it('keeps zero-width spaces', () => {
+assert.equal(			knayi.fontConvert('မြန်\u200Bမာ', 'zawgyi', 'unicode'), 'ျမန္\u200Bမာ');
+		})
+		it('picks the medial ra shape from its own consonant, not the next syllable', () => {
+			// The next syllable has a mark below (သူ, ဂု) or a stacked consonant (ဟ္မ): the ra stays whole.
+assert.equal(			knayi.fontConvert('ဆန္ဒပြသူ', 'zawgyi', 'unicode'), 'ဆႏၵျပသူ');
+assert.equal(			knayi.fontConvert('သြဂုတ်', 'zawgyi', 'unicode'), 'ၾသဂုတ္');
+assert.equal(			knayi.fontConvert('ဗြဟ္မာ', 'zawgyi', 'unicode'), 'ျဗဟၼာ');
+			// Its own consonant has medial wa below: the ra is cut.
+assert.equal(			knayi.fontConvert('ကြွ', 'zawgyi', 'unicode'), 'ႂကြ');
+assert.equal(			knayi.fontConvert('ပြွတ်', 'zawgyi', 'unicode'), 'ႁပြတ္');
 		})
 	})
 
@@ -49,8 +67,8 @@ assert.equal(			knayi.fontConvert('abc', 'unicode'), 'abc');
 assert.equal(			knayi.fontConvert('က'), 'က');
 		})
 
-		it('trims and strips zero-width before rejecting an unknown font', () => {
-assert.equal(			knayi.fontConvert(' က \u200B', 'nope'), 'က ');
+		it('trims, and keeps zero-width spaces, before rejecting an unknown font', () => {
+assert.equal(			knayi.fontConvert(' က \u200B', 'nope'), 'က \u200B');
 		})
 
 		it('skips spelling fix when the source and target fonts match', () => {

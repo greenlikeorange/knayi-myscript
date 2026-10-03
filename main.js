@@ -6,7 +6,7 @@ const spellingFix = require('./library/spellingCheck');
 const truncate = require('./library/truncate');
 const normalize = require('./library/normalization');
 
-const version = '2.9.1';
+const version = '2.10.0';
 // Shorthand properties only: Node finds the named exports for `import { … }` by scanning this object.
 const setGlobalOptions = globalOptions.setOptions;
 
