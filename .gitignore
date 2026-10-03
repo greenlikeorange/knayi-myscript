@@ -1,4 +1,5 @@
 *.log
 yarn.lock
-node_modules/
-.eval-cache/
+# No trailing slash, so a worktree's symlink to another checkout's node_modules or .eval-cache is ignored too.
+node_modules
+.eval-cache
