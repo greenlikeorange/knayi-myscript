@@ -1,7 +1,7 @@
 // Seed and size of the fuzz and property tests. Pull requests run a fixed seed, so a failure always comes back;
-// a long run sets both:
+// a long run sets both (the fuzz workflow, .github/workflows/fuzz.yml, does this each night at scale 100):
 //
-//   KNAYI_FUZZ_SEED=$RANDOM KNAYI_FUZZ_SCALE=40 node --test test/fuzz.test.js test/properties.test.js
+//   KNAYI_FUZZ_SEED=$RANDOM KNAYI_FUZZ_SCALE=100 npm run test:fuzz
 //
 // A failure prints the seed, fast-check's path and the shrunk counterexample. Add the counterexample to the
 // regressions list of the property, so every later run checks it first.

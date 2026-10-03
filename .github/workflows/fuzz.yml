@@ -1,0 +1,55 @@
+name: fuzz
+
+# A long run of the differential fuzz test (test/fuzz.test.js) and the property tests
+# (test/properties.test.js) with a new seed each night. Pull requests run them in npm test with a fixed seed
+# and 50,000 strings. A failure keeps its seed in the log and in an artifact: replay it with the command in
+# replay.txt, and add the shrunk counterexample to the regressions of the property.
+
+on:
+  schedule:
+    - cron: '23 3 * * *'
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: Seed (empty for a new one)
+        required: false
+        default: ''
+      scale:
+        description: Run counts times this (100 is about five million fuzz strings)
+        required: false
+        default: '100'
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+      - run: npm ci
+      - name: Pick the seed
+        id: seed
+        shell: bash
+        env:
+          SEED: ${{ inputs.seed }}
+        run: echo "seed=${SEED:-$(( (RANDOM << 15) | RANDOM ))}" >> "$GITHUB_OUTPUT"
+      - name: Fuzz and property tests
+        shell: bash
+        env:
+          KNAYI_FUZZ_SEED: ${{ steps.seed.outputs.seed }}
+          KNAYI_FUZZ_SCALE: ${{ inputs.scale || '100' }}
+        run: |
+          echo "KNAYI_FUZZ_SEED=$KNAYI_FUZZ_SEED KNAYI_FUZZ_SCALE=$KNAYI_FUZZ_SCALE npm run test:fuzz" | tee replay.txt
+          npm run test:fuzz 2>&1 | tee fuzz.log
+      - if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: fuzz-failure-${{ steps.seed.outputs.seed }}
+          path: |
+            replay.txt
+            fuzz.log
