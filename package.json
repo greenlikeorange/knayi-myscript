@@ -30,6 +30,7 @@
     "test:fuzz": "node --test test/fuzz.test.js test/properties.test.js",
     "test:browser": "node scripts/build.js && playwright test -c scripts/browser/playwright.config.js",
     "check:redos": "node scripts/check-redos.mjs",
+    "check:types": "node scripts/check-types.mjs",
     "eval": "node scripts/eval/run.mjs",
     "bench": "node scripts/eval/bench.mjs",
     "bench:page": "node scripts/eval/page.mjs",
