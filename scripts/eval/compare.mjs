@@ -231,7 +231,7 @@ async function main(argv) {
   console.log('knayi compare');
   console.log('  base  ' + describe(base));
   console.log('  head  ' + describe(head));
-  if (base.libraryHash && base.libraryHash === head.libraryHash) console.log('  (base and head have the same main.js and library/)');
+  if (base.libraryHash && base.libraryHash === head.libraryHash) console.log('  (base and head have the same library code)');
   console.log('\ninput sets (distinct strings)');
   for (const s of sets) console.log('  ' + s.id.padEnd(20) + num(s.lines.length).padStart(8) + '  ' + s.about);
   if (skipped.length) console.log('\nskipped (missing in the base): ' + skipped.map((f) => f.id).join(', '));

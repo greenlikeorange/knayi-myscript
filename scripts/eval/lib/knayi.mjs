@@ -1,14 +1,17 @@
 // Loads one copy of knayi, so that two copies can be compared (compare.mjs) or timed (perf.mjs) in one process.
 //
-// A spec names the copy:
-//   .  or a path            a checkout or package directory (its main.js), or a CommonJS file
+// What is loaded is always the 2.x API: main.js of a 2.x copy, or of a 3.0 copy the './compat' export of its
+// package.json (src/compat/index.js, the 2.x API on the 3.0 core, an ES module). A spec names the copy:
+//   .  or a path            a checkout or package directory (its 2.x API, as above), or a CommonJS or .mjs file
 //   git:<ref>  or  <ref>    a commit, unpacked read-only with `git archive` into a temporary directory
 //   npm:<version>           a published version, only if it is already installed (node_modules/knayi-myscript, or the
 //                           eval cache's knayi-baseline from scripts/eval/engines.mjs). Nothing is downloaded.
-//   min:<file>              a script build such as dist/knayi-myscript.min.js, run in a vm context like a <script>
+//   min:<file>              a script build such as dist/knayi-myscript.min.js, run in a vm context like a <script>;
+//                           a 3.0 script build's global holds the 2.x API as knayi.compat
 //   min:<spec>              the script build of that copy, built by its own scripts/build.js in a temporary directory
 //                           (an npm package's own dist file is used as shipped)
-//   mjs:<file>, mjs:<spec>  the same for the ES module build, which is imported
+//   mjs:<file>, mjs:<spec>  the same for the ES module build of the 2.x API (3.0: knayi-myscript-compat.min.mjs),
+//                           which is imported
 //
 // prepareKnayi() does the git and build work and returns a plain descriptor. instantiate() turns a descriptor into a
 // library, so worker threads and a Bun child process load the very same copy without repeating that work.
@@ -55,7 +58,10 @@ export function cleanup() {
 }
 process.on('exit', cleanup);
 
-// sha256 over main.js and every file under library/, with their paths: equal hashes mean equal library code.
+// The library code of a copy: main.js and library/ of 2.x, src/ of 3.0.
+const LIBRARY_PATHS = ['main.js', 'library', 'src'];
+
+// sha256 over every file of LIBRARY_PATHS, with their paths: equal hashes mean equal library code.
 export function libraryHash(dir) {
   const files = [];
   const walk = (rel) => {
@@ -64,8 +70,7 @@ export function libraryHash(dir) {
     if (st.isDirectory()) fs.readdirSync(path.join(dir, rel)).forEach((name) => walk(rel + '/' + name));
     else files.push(rel);
   };
-  walk('main.js');
-  walk('library');
+  LIBRARY_PATHS.forEach(walk);
   const hash = crypto.createHash('sha256');
   for (const rel of files.sort()) hash.update(rel + '\0').update(fs.readFileSync(path.join(dir, rel))).update('\0');
   return hash.digest('hex');
@@ -73,10 +78,28 @@ export function libraryHash(dir) {
 
 const fileHash = (file) => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 
+// The file that holds a copy's 2.x API, and how it loads: { main, kind }. A 2.x copy has main.js (CommonJS). A 3.0
+// copy has none, and its package.json maps './compat' to the 2.x API on the 3.0 core, an ES module. null when the
+// directory has neither.
+export function apiOf(dir) {
+  const main = path.join(dir, 'main.js');
+  if (fs.existsSync(main)) return { main, kind: 'cjs' };
+  let pkg = null;
+  try {
+    pkg = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8'));
+  } catch (e) {
+    return null;
+  }
+  const entry = pkg.exports && pkg.exports['./compat'];
+  const target = typeof entry === 'string' ? entry : entry && (entry.import || entry.default);
+  if (typeof target !== 'string' || !fs.existsSync(path.join(dir, target))) return null;
+  return { main: path.join(dir, target), kind: 'esm' };
+}
+
 // The commit a checkout is at, whether the code that runs differs from it, and the library hash. `dirty` is true
-// when main.js, library/, scripts/ or package.json have changes or new files that are not committed; other files
-// (docs/benchmark.*, which the benchmark itself rewrites) do not count.
-export const CODE_PATHS = ['main.js', 'library', 'scripts', 'package.json'];
+// when main.js, library/, src/, scripts/ or package.json have changes or new files that are not committed; other
+// files (docs/benchmark.*, which the benchmark itself rewrites) do not count.
+export const CODE_PATHS = ['main.js', 'library', 'src', 'scripts', 'package.json'];
 export function codeState(dir) {
   const state = { commit: null, dirty: null, libraryHash: libraryHash(dir) };
   try {
@@ -114,16 +137,17 @@ function installedVersion(version) {
 }
 
 // What a build needs besides the library: the build script and whatever else scripts/ holds for it.
-const SOURCE = ['main.js', 'library', 'package.json'];
+const SOURCE = LIBRARY_PATHS.concat('package.json');
 const BUILD = ['scripts'];
 
-// Unpacks main.js, library/ and package.json of a commit (and scripts/ when it is to be built).
+// Unpacks the library code and package.json of a commit (and scripts/ when it is to be built): main.js and
+// library/ of a 2.x commit, src/ of a 3.0 one.
 function unpack(sha, withBuild) {
   const wanted = SOURCE.concat(withBuild ? BUILD : []);
   const listed = git(['ls-tree', '--name-only', sha, '--', ...wanted]).split('\n').filter(Boolean);
-  for (const p of ['main.js', 'library']) {
-    if (!listed.includes(p)) throw new Error(sha.slice(0, 7) + ' has no ' + p);
-  }
+  const is2x = listed.includes('main.js') && listed.includes('library');
+  const is3x = listed.includes('src') && listed.includes('package.json');
+  if (!is2x && !is3x) throw new Error(sha.slice(0, 7) + ' has neither main.js and library/ nor src/ and package.json');
   const dir = tempDir('git-' + sha.slice(0, 7));
   const tar = git(['archive', '--format=tar', sha, '--', ...listed], { encoding: 'buffer' });
   run('tar', ['-xf', '-', '-C', dir], { input: tar, stdio: ['pipe', 'pipe', 'pipe'] });
@@ -132,6 +156,13 @@ function unpack(sha, withBuild) {
 }
 
 const short = (sha) => (sha ? sha.slice(0, 7) : '?');
+
+// The 2.x API of a copy's directory, or an error naming what is missing.
+function requireApi(dir, what) {
+  const api = apiOf(dir);
+  if (!api) throw new Error(what + ' has no main.js, and its package.json exports no ./compat');
+  return api;
+}
 
 // A copy as source code: { dir, main, label, kind, state }.
 function prepareSource(spec, { withBuild = false } = {}) {
@@ -142,19 +173,19 @@ function prepareSource(spec, { withBuild = false } = {}) {
       throw new Error('knayi-myscript@' + m[1] + ' is not installed. Nothing is downloaded here: install it into the eval ' +
         'cache with `KNAYI_EVAL_BASELINE=' + m[1] + ' npm run eval`, or name the release tag instead (git:v' + m[1] + ').');
     }
-    return { type: 'npm', dir, main: path.join(dir, 'main.js'), label: 'npm ' + m[1], state: { version: m[1], ...codeState(dir) } };
+    return { type: 'npm', dir, ...requireApi(dir, 'npm ' + m[1]), label: 'npm ' + m[1],
+      state: { version: m[1], ...codeState(dir) } };
   }
   m = /^git:(.+)$/.exec(spec);
   const asPath = m ? null : path.resolve(spec);
   if (asPath && fs.existsSync(asPath)) {
     const real = fs.realpathSync(asPath);
     if (fs.statSync(real).isDirectory()) {
-      const main = path.join(real, 'main.js');
-      if (!fs.existsSync(main)) throw new Error(spec + ' has no main.js');
+      const api = requireApi(real, spec);
       const state = codeState(real);
       const where = real === fs.realpathSync(REPO) ? 'working tree' : path.relative(process.cwd(), real) || '.';
       const at = state.commit ? ' (' + short(state.commit) + (state.dirty ? ', uncommitted changes' : '') + ')' : '';
-      return { type: 'path', dir: real, main, label: where + at, state };
+      return { type: 'path', dir: real, ...api, label: where + at, state };
     }
     return { type: 'file', dir: path.dirname(real), main: real, kind: real.endsWith('.mjs') ? 'esm' : 'cjs',
       label: path.relative(process.cwd(), real), state: { fileHash: fileHash(real) } };
@@ -163,7 +194,7 @@ function prepareSource(spec, { withBuild = false } = {}) {
   const sha = resolveRef(ref);
   if (!sha) throw new Error(spec + ' is not a path, an installed npm:<version> or a git ref that this clone has');
   const dir = unpack(sha, withBuild);
-  return { type: 'git', dir, main: path.join(dir, 'main.js'), label: ref + ' (' + short(sha) + ')',
+  return { type: 'git', dir, ...requireApi(dir, ref), label: ref + ' (' + short(sha) + ')',
     state: { commit: sha, dirty: false, libraryHash: libraryHash(dir) } };
 }
 
@@ -206,8 +237,10 @@ export function prepareKnayi(spec) {
   }
   const source = prepareSource(inner, { withBuild: true });
   const dist = buildDist(source);
-  // Releases before 2.9 ship the ES module build only as knayi-myscript.es.js.
-  const names = m[1] === 'min' ? ['knayi-myscript.min.js'] : ['knayi-myscript.mjs', 'knayi-myscript.es.js'];
+  // The ES module build of the 2.x API: 3.0's knayi-myscript-compat.min.mjs (its knayi-myscript.min.mjs is the 3.0
+  // API), 2.9 and 2.10's knayi-myscript.mjs, and knayi-myscript.es.js, the only one of the releases before 2.9.
+  const names = m[1] === 'min' ? ['knayi-myscript.min.js']
+    : ['knayi-myscript-compat.min.mjs', 'knayi-myscript.mjs', 'knayi-myscript.es.js'];
   const name = names.find((n) => fs.existsSync(path.join(dist, n)));
   if (!name) throw new Error(source.label + ' has no dist/' + names.join(' or dist/'));
   const file = path.join(dist, name);
@@ -231,12 +264,14 @@ function requireFresh(file) {
   return lib;
 }
 
-// A script build sets the `knayi` global, as in a browser. Builds from 2.8.x set window.knayi.
+// A script build sets the `knayi` global, as in a browser. Builds from 2.8.x set window.knayi. In a 3.0 build the
+// global is the 3.0 API, and its `compat` the 2.x API.
 function runScript(file) {
   const context = vm.createContext({ console });
   vm.runInContext('this.window = this; this.self = this;', context);
   vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
-  return context.knayi;
+  const knayi = context.knayi;
+  return knayi && typeof knayi.fontConvert !== 'function' && knayi.compat ? knayi.compat : knayi;
 }
 
 let imports = 0;

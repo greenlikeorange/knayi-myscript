@@ -13,11 +13,11 @@
 //   returns the result as a string. scripts/testing/table-cases.js runs apply with copies of the pattern that
 //   differ in one branch, to find a probe for each branch.
 //
-// The tables are read from fresh copies of the library modules (scripts/testing/internals.js), so the library
-// does not export them.
+// The tables are the 2.x tables that compat keeps, read from fresh copies of the frozen 2.x library in
+// scripts/oracle/ (scripts/testing/internals.js), which does not export them.
 
 const path = require('path');
-const { LIBRARY, loadWithInternals } = require('./internals');
+const { ORACLE, loadWithInternals } = require('./internals');
 
 const ZERO_WIDTH_BREAKS = /[\u200B\u200C]/g;
 
@@ -69,12 +69,12 @@ function loadTables() {
   const syllable = loadWithInternals('syllable.js', ['convertRules', 'BREAK_RULES', 'COLLAPSE']);
   return {
     zawgyi: loadWithInternals('zawgyi.js', ['ZAWGYI', 'SEQUENCES']).__internals,
-    win: require(path.join(LIBRARY, 'win.js')).tables,
+    win: require(path.join(ORACLE, 'win.js')).tables,
     syllable: syllable.__internals,
     collapseMarks: syllable.collapseMarks,
     detector: loadWithInternals('detector.js', ['library']).__internals.library.detect,
     typingFixes: loadWithInternals('typingFixes.js', ['TYPOS']).__internals,
-    storageOrder: require(path.join(LIBRARY, 'storageOrder.js'))
+    storageOrder: require(path.join(ORACLE, 'storageOrder.js'))
   };
 }
 

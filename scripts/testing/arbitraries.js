@@ -2,7 +2,8 @@
 // strings over the characters each reader decides on, and structured Burmese text with typing slips.
 
 const fc = require('fast-check');
-const win = require('../../library/win').tables;
+// The keys of the Win table, from the frozen 2.x library (scripts/oracle/), which compat's table equals.
+const win = require('../oracle/win').tables;
 
 function chars(from, to) {
   const out = [];

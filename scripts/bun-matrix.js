@@ -1,6 +1,7 @@
 'use strict';
-// Checks main.js, the ES module build, min.js (in a vm) and compat against the API contract matrix under the runtime
-// that runs this file. `npm run test:bun` runs it with Bun; under Node, test/contract/api-matrix.test.js does the same.
+// Checks main.js at the 2.x reference, compat and the 3.0 builds that hold it (the compat module build, and the
+// script build's knayi.compat in a vm) against the API contract matrix under the runtime that runs this file.
+// `npm run test:bun` runs it with Bun; under Node, test/contract/api-matrix.test.js does the same.
 const matrix = require('./contract/matrix');
 
 async function main() {

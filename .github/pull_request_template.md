@@ -15,7 +15,7 @@ Fixes #
 - [ ] **Compare:** `npm run compare -- --base origin/main` shows 0 differences on every call form, or only the `--expect` counts listed under "Output changes".
 - [ ] **Contract matrix:** 0 changed cells, or only the cells listed under "Output changes".
 - [ ] **Perf:** ratios from `npm run perf -- --base origin/main` on a quiet machine are pasted below. Any Node row more than 5% slower, or Bun row more than 10% slower, has a reason.
-- [ ] **Bundle:** the `min.js` size from `npm run check:size`, before → after, in bytes.
+- [ ] **Sizes:** the `dist/` files from `npm run check:size` and the imports from `node scripts/next/size.mjs`, before → after, in bytes.
 - [ ] **CHANGELOG.md:** a line under Unreleased, in "Output changes" if output changes.
 - [ ] **Output changes:** none, or this pull request has the `DELIBERATE` label, and the README, the research note and the demo (`docs/index.html`) are updated.
 - [ ] `dist/` is unchanged (it changes only in release commits).

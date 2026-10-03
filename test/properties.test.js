@@ -1,7 +1,8 @@
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fc = require('fast-check');
-const knayi = require('../main');
+// The 2.x API: compat, on the 3.0 core.
+const knayi = require('../src/compat/index.js').default;
 const arb = require('../scripts/testing/arbitraries');
 const { check } = require('../scripts/testing/fuzz-settings');
 

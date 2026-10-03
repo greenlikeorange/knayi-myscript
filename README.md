@@ -1,62 +1,173 @@
 # knayi-myscript
 
-JavaScript library for Myanmar (Burmese) text stored as Unicode or Zawgyi. Version 2.10.0. MIT license.
+JavaScript library for Myanmar (Burmese) text stored as Unicode or Zawgyi. Version 3.0.0-next.0, a prerelease of 3.0. MIT license.
 
-It detects the encoding, converts between them, inserts syllable breaks, collapses repeated spelling marks, normalizes some Unicode typing errors, and truncates on those breaks. It does not segment dictionary words, translate, or tokenize for a language model.
+It detects the encoding, converts between them, splits syllables, collapses repeated spelling marks, normalizes some Unicode typing errors, and truncates on syllable breaks. It does not segment dictionary words, translate, or tokenize for a language model.
 
 Try every function in the browser at <https://greenlikeorange.github.io/knayi-myscript/>.
 
-Install it from npm. npm, Yarn, pnpm, and Bun all read that registry.
+This is knayi 3.0, built on the `next` branch: one API whose functions keep nothing between calls, take their options per call and throw errors with codes, with the 2.x API kept as `knayi-myscript/compat`. A 2.x user can [upgrade](#upgrading-from-2x) by changing one import.
+
+Install it from npm. npm, Yarn, pnpm, and Bun all read that registry. The prereleases of 3.0 are on its `next` tag; without a tag you get 2.x.
 
 ```bash
-npm install knayi-myscript
-yarn add knayi-myscript
-pnpm add knayi-myscript
-bun add knayi-myscript
-```
-
-Browser script, global name `knayi`:
-
-```html
-<script src="https://unpkg.com/knayi-myscript@2.10.0/dist/knayi-myscript.min.js"></script>
+npm install knayi-myscript@next
+yarn add knayi-myscript@next
+pnpm add knayi-myscript@next
+bun add knayi-myscript@next
 ```
 
 ## Runtime
 
-Node.js 16 or newer. CI runs the tests on Node 22, 24, and 26, and a smoke test of the README examples and the builds on Node 16, 18, and 20. Building and testing the package needs Node 22 or newer. Node 24 is the version in `.nvmrc`.
+ES modules only, for Node.js 22.12 or newer, Bun and browsers. From Node 22.12 on, `require` loads ES modules too, so CommonJS code needs no change but the import path. CI runs the tests on Node 22.12, 24 and 26, and on Bun. Building and testing the package needs Node 22.12 or newer; Node 24 is the version in `.nvmrc`.
+
+The package has one entry per API:
+
+| Import | What it is | Types |
+| --- | --- | --- |
+| `knayi-myscript` | the 3.0 API, [below](#the-30-api) | `src/index.d.ts` |
+| `knayi-myscript/compat` | the 2.x API, with 2.x's output, which this page documents from [The 2.x API](#the-2x-api-knayi-myscriptcompat) on | `src/compat/index.d.ts` |
+| `knayi-myscript/stream` | the 3.0 API's streams, [below](#streams-knayi-myscriptstream) | `src/stream.d.ts` |
+
+```javascript
+import * as knayi from 'knayi-myscript'
+import { normalize, toUnicode } from 'knayi-myscript'
+import compat from 'knayi-myscript/compat'
+```
 
 ```javascript
 const knayi = require('knayi-myscript')
+const compat = require('knayi-myscript/compat').default
 ```
+
+The package also installs the command `knayi`, the 3.0 API over files and standard input: see [Command line](#command-line).
+
+No other path loads: 2.x's `knayi-myscript/library/converter` and its `dist/` imports are gone. TypeScript finds the subpaths under `moduleResolution` `node16`, `nodenext` or `bundler`, and CommonJS code in TypeScript can `require` them under `module` `node20` or `nodenext` (TypeScript 5.9 has both).
+
+Browsers load one of three files in `dist/`, from a CDN such as unpkg or jsDelivr:
+
+```html
+<script src="https://unpkg.com/knayi-myscript@3.0.0-next.0/dist/knayi-myscript.min.js"></script>
+```
+
+- `knayi-myscript.min.js` sets the global `knayi`: the 3.0 API, with the 2.x API as `knayi.compat`. A page written for 2.x's global keeps working with `knayi = knayi.compat` after the tag.
+- `knayi-myscript.min.mjs` is the 3.0 API as one ES module, and `knayi-myscript-compat.min.mjs` the 2.x API, with the named exports and the default export of 2.x's `knayi-myscript.mjs`.
+
+They are ES2015. They run in Chrome 51, Edge 15, Firefox 54, Safari 10.1 (iOS 10.3), Samsung Internet 5 and Opera 38, or newer: the first versions with all of ES2015. Older browsers need knayi 2.x, and Internet Explorer knayi 2.8.3.
+
+Each `dist/` file is a copy of the library of its own, so the 2.x `setGlobalOptions` called on one does not reach another, nor `knayi-myscript/compat` loaded from npm.
+
+## The 3.0 API
+
+Every function takes the text first and its options second, as an object of camelCase keys. `undefined`, `null` or a number in place of the options means none, so `lines.map(normalize)` works. Nothing is kept between calls and nothing is written to the console. A wrong argument throws a `TypeError` with the code `ERR_KNAYI_INVALID_ARG_TYPE`, or a `RangeError` with `ERR_KNAYI_INVALID_ARG_VALUE` for a value knayi does not accept: `normalize(null)` throws, where 2.x returned `''`. `src/index.d.ts` describes each option.
 
 ```javascript
-import knayi from 'knayi-myscript'
+knayi.normalize('ယောကျ်ား') // 'ယောက်ျား'
+knayi.isNormalized('ယောကျ်ား') // false
+knayi.toUnicode('မဂၤလာပါ', { from: 'zawgyi' }) // 'မင်္ဂလာပါ'
+knayi.toUnicode('jrefrm', { from: 'win' }) // 'မြန်မာ'
+knayi.toZawgyi('မြန်မာ') // 'ျမန္မာ'
+knayi.detectEncoding('မဂၤလာပါ') // { encoding: 'zawgyi', unicode: 0, zawgyi: 1 }
+knayi.segmentSyllables('မင်္ဂလာပါ') // ['မင်္ဂ', 'လာ', 'ပါ']
+knayi.collapseRepeatedMarks('မင်္ဂလာာပါါ') // 'မင်္ဂလာပါ'
 ```
 
-```typescript
-import knayi from 'knayi-myscript'
+- **`normalize(text, { report, trace })`** puts the text in storage order ([UTN #11](https://www.unicode.org/notes/tn11/)), fixes typing slips and look-alike digits, and returns NFC, as the [2.x normalize](#normalizecontent) does. It is idempotent: a second call changes nothing. With `report: true` it returns `{ text, changes }`, each change with its span in the input and in the output and the stages that made it. `isNormalized(text)` is `normalize(text) === text`.
+- **`explain(text, { zawgyiDetector, thresholds })`** lists each line that reads as Zawgyi and each thing normalize would change, as issues with a span, a rule id and a fix:
+
+  ```javascript
+  knayi.explain('ယောကျ်ား') // [{ kind: 'order', rule: 'order.marks', start: 3, end: 8, text: 'ကျ်ား', fix: 'က်ျား' }]
+  ```
+- **`detectEncoding(text, { zawgyiDetector, thresholds })`** returns `'unicode'`, `'zawgyi'`, `'unknown'` on a tie, or `'none'` for text with no Myanmar character, with the evidence for each side. Pass myanmar-tools' `ZawgyiDetector`, or anything with `getZawgyiProbability`, to score with its model: knayi never loads a package itself.
+- **`toUnicode(text, { from, tie, offsets, trace, zawgyiDetector, thresholds })`** converts Zawgyi or Win text and never trims. With no `from`, it detects each line on its own and converts the lines that read as Zawgyi. A line whose evidence ties stays as it is, and `tie: 'zawgyi'` reads it as 2.x did, so name the source for short text. Win text needs `from: 'win'`. With `offsets: true` it returns `{ text, offsets }`, the input index of each output unit.
+
+  ```javascript
+  knayi.toUnicode('ျမန္မာ\nမြန်မာ') // 'မြန်မာ\nမြန်မာ'
+  knayi.toUnicode('ဗုဒ္ဓ') // 'ဗုဒ္ဓ'  (a tie: left as it is)
+  knayi.toUnicode('ဗုဒ္ဓ', { tie: 'zawgyi' }) // 'ဗုဒ်ဓ'
+  ```
+- **`toZawgyi(text, { trace })`** converts Unicode to Zawgyi, with no trim.
+- **`segmentSyllables(text, { policy, font })`** returns syllables that join back to the text, and **`syllableBoundaries`** where each syllable after the first starts. A bare consonant is a syllable of its own; `policy: 'pairs'` joins bare consonants in pairs, as the 2.x `syllBreak` does.
+
+  ```javascript
+  knayi.segmentSyllables('ကကက') // ['က', 'က', 'က']
+  knayi.segmentSyllables('ကကက', { policy: 'pairs' }) // ['ကက', 'က']
+  knayi.syllableBoundaries('မြန်မာ') // [4]
+  ```
+- **`truncate(text, { length, omission, policy, font })`** returns the text when it is at most `length` units long, and otherwise the longest prefix that ends at a syllable break, then the omission, in at most `length` units.
+
+  ```javascript
+  knayi.truncate('မင်္ဂလာပါ မြန်မာ', { length: 10 }) // 'မင်္ဂလာ...'
+  knayi.truncate('abc') // 'abc'
+  ```
+- **`collapseRepeatedMarks(text, { font })`** makes a mark typed two or more times one mark, as the 2.x `spellingFix` does, but with no trim.
+- **`createTrace()`** returns an empty trace for the `trace` option of normalize, toUnicode and toZawgyi, which fill it with the text after each step that changed it, by the step's stable id.
+- **`VERSION`** is the package version, and **`OUTPUT_VERSION`** the version of knayi's output. It goes up with every deliberate change to what a function returns, so a dataset can record it and know when to process its text again.
+
+  ```javascript
+  knayi.OUTPUT_VERSION // 2
+  ```
+
+[docs/next/DESIGN.md](docs/next/DESIGN.md) §11 gives the details, and the counts behind each choice.
+
+### Streams: knayi-myscript/stream
+
+For text too large to hold at once, `knayi-myscript/stream` cuts the text into lines at `\n` and runs a function on each line, so a text of any size passes through with one line held at a time. The chunks are strings or UTF-8 bytes, cut anywhere, even inside a character; a stream takes one kind or the other.
+
+- **`createNormalizer()`** and **`createConverter({ from, tie, zawgyiDetector, thresholds })`** are TransformStreams of `normalize` and `toUnicode`. Each gives what its function gives for the whole text, since both treat each line as they would alone. Without `from`, each line is detected, as `toUnicode` does. There is no stream to Zawgyi: its rules move ေ and medial ra across line breaks, so use `toZawgyi` on the whole text.
+- **`lineTransform(fn)`** is the same TransformStream for any function of a line.
+- **`mapLines(fn)`** is the line cutter itself, with no stream class, for a loop, a Node `Transform` of your own, or a browser with no `TransformStream` (Safari before 14.1, Firefox before 102): `transform(chunk)` returns the lines that chunk completes, and `flush()` the last one.
+
+Each takes `maxLineLength`: a line longer than that many UTF-16 units, 1,048,576 by default, is an error with the code `ERR_KNAYI_LINE_TOO_LONG`, and is never cut. In TypeScript, the types of this entry need the `TransformStream` type, from the DOM library or from `@types/node`.
+
+```javascript
+import { pipeline } from 'node:stream/promises'
+import fs from 'node:fs'
+import { createConverter, createNormalizer } from 'knayi-myscript/stream'
+
+// Node streams: a file in Zawgyi to a file in Unicode.
+await pipeline(fs.createReadStream('notes.txt'), createConverter({ from: 'zawgyi' }), fs.createWriteStream('notes.unicode.txt'))
+
+// WHATWG streams: the body of a fetch() response, normalized, as a ReadableStream of strings.
+const normalized = response.body.pipeThrough(createNormalizer())
 ```
 
-TypeScript types are `index.d.ts`. Named imports such as `import { fontConvert } from 'knayi-myscript'` work in Node and in bundlers, next to the default import. The default import compiles with or without `esModuleInterop`. The option types (`DetectorOptions`, `GlobalOptions`, `TruncateOptions`) are exported.
+[docs/next/DESIGN.md](docs/next/DESIGN.md) §12 gives the details, with the evidence that each stream gives what its function gives for the whole text.
 
-In Node, `require` and `import` both load `main.js` and share `setGlobalOptions`. A bundler that follows the `module` field loads `dist/knayi-myscript.es.js` instead. That file is a second copy. If one part of an app uses `main.js` and another uses `dist/knayi-myscript.es.js`, silent mode and detector settings do not cross between them.
+## Upgrading from 2.x
 
-The script build sets the global `knayi`, both in a `<script>` tag and when a bundler loads it with `import 'knayi-myscript/dist/knayi-myscript.min.js'`.
+`knayi-myscript/compat` is the 2.x API, with 2.x's output on every input: the same exports, options, console messages and debug output. It differs from 2.x only where 2.x's own ES module build did: a detached `fontConvert` call never reads a global `debug`, and myanmar-tools is looked up from the working directory.
 
-The `dist/` builds are ES2015. They run in Chrome 49, Edge 14, Firefox 34, Safari 10 (iOS 10), Samsung Internet 5 and Opera 36, or newer. Internet Explorer needs knayi 2.8.3.
+- `import knayi from 'knayi-myscript'` becomes `import knayi from 'knayi-myscript/compat'`, and `require('knayi-myscript')` becomes `require('knayi-myscript/compat').default`.
+- A page that uses the script build uses `knayi.compat`, or sets `knayi = knayi.compat` after the tag.
+- Node 16 to 22.11 stay on knayi 2.x.
+- `knayi-myscript/library/converter` and the other deep paths are gone: `fontConvert` is in `knayi-myscript/compat`.
+- `dist/` holds `knayi-myscript.min.js`, `knayi-myscript.min.mjs` and `knayi-myscript-compat.min.mjs`. `knayi-myscript.js`, `knayi-myscript.mjs` and `knayi-myscript.es.js` are gone.
 
-These paths load without an `exports` map:
+Moving to the 3.0 API, function by function:
 
-- `knayi-myscript`
-- `knayi-myscript/library/converter`
-- `knayi-myscript/dist/knayi-myscript.min.js`
-- `knayi-myscript/dist/knayi-myscript.es.js`
+| 2.x | 3.0 |
+| --- | --- |
+| `fontDetect(text, fallback, options)` | `detectEncoding(text, options)`, which returns `{ encoding, unicode, zawgyi }`; `'none'` where 2.x returned `'en'` |
+| `fontConvert(text, 'unicode', from)` | `toUnicode(text, { from })`, which detects each line, leaves a tie as it is and never trims; `tie: 'zawgyi'` and a `trim()` give 2.x's result |
+| `fontConvert(text, 'zawgyi', 'unicode')` | `toZawgyi(text)` |
+| `fontConvert.debugging` | the `trace` option and `createTrace()`, with stable ids |
+| `syllBreak` | `segmentSyllables` and `syllableBoundaries`, which keep every character; `policy: 'pairs'` for 2.x's breaks |
+| `spellingFix` | `collapseRepeatedMarks`, with no trim, and zero-width characters kept |
+| `truncate` | `truncate`, always a prefix of the text; `undefined` and `null` options take the defaults |
+| `normalize(text)` | `normalize(text, options)`, idempotent |
+| `setGlobalOptions` and snake_case keys | camelCase options per call, and myanmar-tools' detector passed as `zawgyiDetector` |
+| content that is not a string, returned as it is | a `TypeError` with the code `ERR_KNAYI_INVALID_ARG_TYPE` |
 
-## Font names
+## The 2.x API: knayi-myscript/compat
+
+In this part `compat` is the 2.x API: `import compat from 'knayi-myscript/compat'`, or `knayi.compat` in the script build. Its types are `src/compat/index.d.ts`, 2.x's `index.d.ts`. Named imports such as `import { fontConvert } from 'knayi-myscript/compat'` work next to the default import, and the default import compiles with or without `esModuleInterop`. The option types (`DetectorOptions`, `GlobalOptions`, `TruncateOptions`) are exported.
+
+### Font names
 
 `unicode`, `uni`, `zawgyi`, `zaw`, and `win`. `uni` is Unicode. `zaw` is Zawgyi. `win` is the Win Innwa family of legacy fonts, which `fontConvert` converts to Unicode. Any other string is an unknown font.
 
-## Missing content
+### Missing content
 
 `null`, `undefined`, `''`, `0`, `false`, and `NaN` are missing content, as in 2.8.3.
 
@@ -72,19 +183,19 @@ Other values, such as numbers and objects, are returned unchanged the same way, 
 
 `setGlobalOptions({ silent_mode: true })` hides those warnings. The option applies to the copy of the library that received the call.
 
-## fontDetect(content, fallbackFontType?, options?)
+### fontDetect(content, fallbackFontType?, options?)
 
 Returns `'unicode'`, `'zawgyi'`, or the fallback / `'en'`.
 
 When the rule scores tie, including a single consonant such as `က`, the result is the fallback, or `'zawgyi'` if the fallback is omitted.
 
 ```javascript
-knayi.fontDetect('မဂၤလာပါ') // 'zawgyi'
-knayi.fontDetect('မင်္ဂလာပါ') // 'unicode'
-knayi.fontDetect('ကျ') // 'unicode'
-knayi.fontDetect('က') // 'zawgyi'
-knayi.fontDetect('က', 'unicode') // 'unicode'
-knayi.fontDetect(null) // 'en'
+compat.fontDetect('မဂၤလာပါ') // 'zawgyi'
+compat.fontDetect('မင်္ဂလာပါ') // 'unicode'
+compat.fontDetect('ကျ') // 'unicode'
+compat.fontDetect('က') // 'zawgyi'
+compat.fontDetect('က', 'unicode') // 'unicode'
+compat.fontDetect(null) // 'en'
 ```
 
 `options.adapter` chooses the detector for that call. `'rules'` is the built-in scorer and the default. `'myanmartools'` uses the `myanmar-tools` package. Install it only for that adapter, and use 1.1.x: `myanmar-tools` 1.2.0 on npm was published without its built files and cannot be loaded.
@@ -94,8 +205,8 @@ npm install myanmar-tools@1.1.3
 ```
 
 ```javascript
-knayi.fontDetect('မဂၤလာပါ', null, { adapter: 'myanmartools' }) // 'zawgyi'
-knayi.fontDetect('မင်္ဂလာပါ', null, {
+compat.fontDetect('မဂၤလာပါ', null, { adapter: 'myanmartools' }) // 'zawgyi'
+compat.fontDetect('မင်္ဂလာပါ', null, {
   use_myanmartools: true,
   myanmartools_zg_threshold: [0.05, 0.95]
 }) // 'unicode'
@@ -107,7 +218,7 @@ knayi.fontDetect('မင်္ဂလာပါ', null, {
 
 The rule scorer does not count a consonant, `U+1039`, consonant sequence such as `က္က` as Unicode. In Zawgyi, `U+1039` is the visible asat, so `ပ္က` is a common Zawgyi sequence. A lone stack is a tie and returns the fallback. In longer Unicode text such as `ရန်ကုန်တက္ကသိုလ်`, the other signs decide.
 
-## fontConvert(content, targetFontType, originalFontType?)
+### fontConvert(content, targetFontType, originalFontType?)
 
 Returns a string. `targetFontType` is required. When `originalFontType` is omitted, `fontDetect` chooses it.
 
@@ -116,29 +227,29 @@ Name the source font for short text. When the detector's scores tie, it reads th
 The text is trimmed first. Zero-width spaces (`U+200B`) and non-joiners (`U+200C`) are kept, because they mark word breaks. When the two fonts are the same, the trimmed text is returned.
 
 ```javascript
-knayi.fontConvert('မဂၤလာပါ', 'unicode', 'zawgyi') // 'မင်္ဂလာပါ'
-knayi.fontConvert('မဂၤလာပါ', 'unicode') // 'မင်္ဂလာပါ'
-knayi.fontConvert('ဗုဒ္ဓ', 'unicode') // 'ဗုဒ်ဓ'  (a tie, read as Zawgyi)
-knayi.fontConvert('ဗုဒ္ဓ', 'unicode', 'unicode') // 'ဗုဒ္ဓ'
-knayi.fontConvert('မြန်မာ', 'zawgyi', 'unicode') // 'ျမန္မာ'
-knayi.fontConvert('ကျ', 'unicode') // 'ကျ'
-knayi.fontConvert(' ကာာ ', 'unicode', 'unicode') // 'ကာာ'
-knayi.fontConvert('မဂၤလာပါ', 'uni', 'zaw') // 'မင်္ဂလာပါ'
-knayi.fontConvert(null, 'unicode') // ''
-knayi.fontConvert('က') // 'က'  (no target font; warns)
+compat.fontConvert('မဂၤလာပါ', 'unicode', 'zawgyi') // 'မင်္ဂလာပါ'
+compat.fontConvert('မဂၤလာပါ', 'unicode') // 'မင်္ဂလာပါ'
+compat.fontConvert('ဗုဒ္ဓ', 'unicode') // 'ဗုဒ်ဓ'  (a tie, read as Zawgyi)
+compat.fontConvert('ဗုဒ္ဓ', 'unicode', 'unicode') // 'ဗုဒ္ဓ'
+compat.fontConvert('မြန်မာ', 'zawgyi', 'unicode') // 'ျမန္မာ'
+compat.fontConvert('ကျ', 'unicode') // 'ကျ'
+compat.fontConvert(' ကာာ ', 'unicode', 'unicode') // 'ကာာ'
+compat.fontConvert('မဂၤလာပါ', 'uni', 'zaw') // 'မင်္ဂလာပါ'
+compat.fontConvert(null, 'unicode') // ''
+compat.fontConvert('က') // 'က'  (no target font; warns)
 ```
 
 `fontConvert.debugging(content, targetFontType, originalFontType)` returns `{ to, from, matched_patterns, steps }`. `steps` is an array of strings. The last step equals `fontConvert` for the same arguments. From Unicode, `matched_patterns` holds the source of each rule pattern that matched. From Zawgyi or Win, it names each stage that changed the text: `sequences`, `glyphs`, `syllables`, `zero as wa`, `look-alikes`, `typos`, `NFC`.
 
-### Zawgyi to Unicode
+#### Zawgyi to Unicode
 
 Zawgyi stores text in the order the glyphs are drawn: ေ and medial ra before the consonant, kinzi and stacked consonants after it, and the marks in any order. knayi reads each Zawgyi glyph as Unicode characters and writes every syllable in Unicode storage order ([UTN #11](https://www.unicode.org/notes/tn11/)). Win fonts use the same rules.
 
 ```javascript
-knayi.fontConvert('ေယာက္်ား', 'unicode', 'zawgyi') // 'ယောက်ျား'
-knayi.fontConvert('ေစ်း', 'unicode', 'zawgyi') // 'ဈေး'
-knayi.fontConvert('ႏို္င္ငံ', 'unicode', 'zawgyi') // 'နိုင်ငံ'
-knayi.fontConvert('ၿမိဳ ့', 'unicode', 'zawgyi') // 'မြို့'
+compat.fontConvert('ေယာက္်ား', 'unicode', 'zawgyi') // 'ယောက်ျား'
+compat.fontConvert('ေစ်း', 'unicode', 'zawgyi') // 'ဈေး'
+compat.fontConvert('ႏို္င္ငံ', 'unicode', 'zawgyi') // 'နိုင်ငံ'
+compat.fontConvert('ၿမိဳ ့', 'unicode', 'zawgyi') // 'မြို့'
 ```
 
 - **Marks:** a mark typed twice counts once.
@@ -161,15 +272,15 @@ knayi.fontConvert('ၿမိဳ ့', 'unicode', 'zawgyi') // 'မြို့'
 
 Converting from Unicode collapses a mark typed twice in a row, as `spellingFix` does, then applies knayi's pattern rules.
 
-### Win fonts
+#### Win fonts
 
 Win Innwa, Win Researcher, Win Kalaw and the other Win fonts by WinMyanmar Systems (1992–2005) draw Burmese glyphs on the keys that type them. Win text is ASCII and Latin-1: `jrefrm` shows as မြန်မာ in a Win font. Name the source font, because `fontDetect` never returns `win`.
 
 ```javascript
-knayi.fontConvert('jrefrm', 'unicode', 'win') // 'မြန်မာ'
-knayi.fontConvert('ajumifh', 'unicode', 'win') // 'ကြောင့်'
-knayi.fontConvert('ZvGefaps;', 'unicode', 'win') // 'ဇလွန်ဈေး'
-knayi.fontConvert('jrefrm', 'unicode') // 'jrefrm'  (no source font: plain ASCII)
+compat.fontConvert('jrefrm', 'unicode', 'win') // 'မြန်မာ'
+compat.fontConvert('ajumifh', 'unicode', 'win') // 'ကြောင့်'
+compat.fontConvert('ZvGefaps;', 'unicode', 'win') // 'ဇလွန်ဈေး'
+compat.fontConvert('jrefrm', 'unicode') // 'jrefrm'  (no source font: plain ASCII)
 ```
 
 knayi converts Win to Unicode only. Any other target returns the text unchanged, with an error unless silent.
@@ -181,38 +292,38 @@ knayi converts Win to Unicode only. Any other target returns the text unchanged,
 - English typed in another font run is ASCII too. Once the font names are gone, convert only the Win text.
 - Wwin_Burmese and other ASCII fonts use different mappings and are not supported.
 
-## syllBreak(content, fontType?, breakPoint?)
+### syllBreak(content, fontType?, breakPoint?)
 
 Returns one string. The default break character is `U+200B`. This is the current public break, not a split into `မ|င်္ဂ|လာ|ပါ`.
 
 ```javascript
-knayi.syllBreak('မင်္ဂလာပါ', null, '$$') // 'မင်္ဂလာ$$ပါ'
-knayi.syllBreak('မင်္ဂလာပါ') // 'မင်္ဂလာ' + '\u200b' + 'ပါ'
-knayi.syllBreak('မြန်မာ', 'unicode', '|') // 'မြန်|မာ'
-knayi.syllBreak('ထို့ကြောင့်', 'unicode', '|') // 'ထို့|ကြောင့်'
-knayi.syllBreak('က္က', 'unicode', '|') // 'က္က'
-knayi.syllBreak('က္က', 'zawgyi', '|') // 'က္|က'
-knayi.syllBreak('က္က', 'uni', '|') // 'က္က'
-knayi.syllBreak('ကက', 'unicode', '|') // 'ကက'
-knayi.syllBreak('ၾကပါ', 'zawgyi', '|') // 'ၾက|ပါ'
+compat.syllBreak('မင်္ဂလာပါ', null, '$$') // 'မင်္ဂလာ$$ပါ'
+compat.syllBreak('မင်္ဂလာပါ') // 'မင်္ဂလာ' + '\u200b' + 'ပါ'
+compat.syllBreak('မြန်မာ', 'unicode', '|') // 'မြန်|မာ'
+compat.syllBreak('ထို့ကြောင့်', 'unicode', '|') // 'ထို့|ကြောင့်'
+compat.syllBreak('က္က', 'unicode', '|') // 'က္က'
+compat.syllBreak('က္က', 'zawgyi', '|') // 'က္|က'
+compat.syllBreak('က္က', 'uni', '|') // 'က္က'
+compat.syllBreak('ကက', 'unicode', '|') // 'ကက'
+compat.syllBreak('ၾကပါ', 'zawgyi', '|') // 'ၾက|ပါ'
 ```
 
 When `fontType` is omitted, detection runs first. Unknown font names throw.
 
 Zawgyi types ေ and the medial ra before the consonant. A consonant typed after them ends its syllable, as ကြ does in Unicode.
 
-## spellingFix(content, fontType?)
+### spellingFix(content, fontType?)
 
 Collapses a mark repeated two or more times into one mark. It does not reorder marks.
 
 ```javascript
-knayi.spellingFix('မင်္ဂလာာပါါ', 'unicode') // 'မင်္ဂလာပါ'
-knayi.spellingFix('ကိီ', 'unicode') // 'ကိီ'
-knayi.spellingFix('\u1033\u1033', 'zawgyi') // '\u1033'
-knayi.spellingFix('\u1033\u1033', 'zaw') // '\u1033'
+compat.spellingFix('မင်္ဂလာာပါါ', 'unicode') // 'မင်္ဂလာပါ'
+compat.spellingFix('ကိီ', 'unicode') // 'ကိီ'
+compat.spellingFix('\u1033\u1033', 'zawgyi') // '\u1033'
+compat.spellingFix('\u1033\u1033', 'zaw') // '\u1033'
 ```
 
-## normalize(content)
+### normalize(content)
 
 Unicode only, written for Burmese. Puts every syllable in Unicode storage order ([UTN #11](https://www.unicode.org/notes/tn11/)) with the rules of [Zawgyi to Unicode](#zawgyi-to-unicode), makes a few typing fixes, and returns NFC.
 - **What stays the same:** text that is already right, and text normalized a second time. The output of `fontConvert` comes back unchanged too, except where the source has an ေ or medial ra with no consonant after it. The converters leave such a mark where it was typed, and `normalize` may attach it to the syllable before: Zawgyi `ကေျ` converts to `ကေြ`, which `normalize` makes `ကြေ`. This changes 31 of the 10,166 mC4 lines that `fontDetect` calls Zawgyi.
@@ -221,14 +332,14 @@ Unicode only, written for Burmese. Puts every syllable in Unicode storage order 
 It is not the same operation as `spellingFix`.
 
 ```javascript
-knayi.normalize('မိြုင်မိြုင်\nဆိုင်ဆုိင်') // 'မြိုင်မြိုင်\nဆိုင်ဆိုင်'
-knayi.normalize(' မိြုင် ') // ' မြိုင် '
-knayi.normalize('ယောကျ်ား') // 'ယောက်ျား'
-knayi.normalize('လည်းေကာင်း') // 'လည်းကောင်း'
-knayi.normalize('၂ဝ၁၉') // '၂၀၁၉'
-knayi.normalize('ကိီ') // 'ကီ'
-knayi.normalize('ဝ') // 'ဝ'
-knayi.normalize('e\u0301') // '\u00e9'  (no Myanmar letters: NFC only)
+compat.normalize('မိြုင်မိြုင်\nဆိုင်ဆုိင်') // 'မြိုင်မြိုင်\nဆိုင်ဆိုင်'
+compat.normalize(' မိြုင် ') // ' မြိုင် '
+compat.normalize('ယောကျ်ား') // 'ယောက်ျား'
+compat.normalize('လည်းေကာင်း') // 'လည်းကောင်း'
+compat.normalize('၂ဝ၁၉') // '၂၀၁၉'
+compat.normalize('ကိီ') // 'ကီ'
+compat.normalize('ဝ') // 'ဝ'
+compat.normalize('e\u0301') // '\u00e9'  (no Myanmar letters: NFC only)
 ```
 
 - **Order:** marks typed in any order are sorted, and a mark typed twice counts once. Asat goes where UTN #11 puts it (ကျွန်ုပ်, ခ်ျ, ရှ်), and the dot below comes before asat, as NFC requires.
@@ -245,26 +356,26 @@ knayi.normalize('e\u0301') // '\u00e9'  (no Myanmar letters: NFC only)
   - ၄င်း is ၎င်း, ိ with ီ is ီ, ု with ူ is ူ, and ဩော် is ဪ.
 - **Other languages:** Mon, Karen, Pa'o and Shan letters stay as they are, and so do spellings that differ from Burmese (တုဲ, ခရံာ်).
 
-## truncate(content, options?)
+### truncate(content, options?)
 
 Cuts on the current syllable breaks, then on spaces inside a syllable that does not fit. Defaults are `length: 30` and `omission: '...'`. The omission is appended even when the text is shorter than `length`. `options.fontType` accepts the same font names. When omitted, detection runs.
 
 ```javascript
-knayi.truncate('အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇလွန်ဈေးဘေးဗာဒံပင်ထက် အဓိဋ္ဌာန်လျက် ဂဃနဏဖတ်ခဲ့သည်။', { length: 30, omission: '...' })
+compat.truncate('အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇလွန်ဈေးဘေးဗာဒံပင်ထက် အဓိဋ္ဌာန်လျက် ဂဃနဏဖတ်ခဲ့သည်။', { length: 30, omission: '...' })
 // 'အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဈေး...'
-knayi.truncate('က') // 'က...'
-knayi.truncate('') // '...'
-knayi.truncate(null) // ''
+compat.truncate('က') // 'က...'
+compat.truncate('') // '...'
+compat.truncate(null) // ''
 ```
 
 ## Command line
 
-`knayi` runs the 3.0 API over files or standard input, for shell scripts and for data pipelines in any language, Python included. It comes with knayi 3.0 and needs Node.js 22.12 or newer.
+`knayi` runs the 3.0 API over files or standard input, for shell scripts and for data pipelines in any language, Python included. It comes with knayi 3.0, whose prereleases are on npm's `next` tag, and needs Node.js 22.12 or newer.
 
 ```bash
-npm install --global knayi-myscript
+npm install --global knayi-myscript@next
 knayi to-unicode notes.txt > notes.unicode.txt
-npx --package knayi-myscript knayi detect notes.txt
+npx --package knayi-myscript@next knayi detect notes.txt
 ```
 
 ### Synopsis
@@ -374,12 +485,11 @@ $ echo 'aMomf' | knayi to-unicode --from win
 
 ## Build
 
-`dist/` holds the build of the last release, or of the release being prepared, because jsDelivr serves the `dist/` of the main branch. It changes only in a release commit, which also changes the version. `npm run build` writes:
+`dist/` holds the build of the last release, or of the release being prepared, because jsDelivr serves the `dist/` of the main branch. It changes only in a release commit, which also changes the version. `npm run build` writes three minified files for browsers:
 
-- `dist/knayi-myscript.mjs`
-- `dist/knayi-myscript.es.js` (same bytes as the `.mjs` file)
-- `dist/knayi-myscript.js`
-- `dist/knayi-myscript.min.js`
+- `dist/knayi-myscript.min.mjs`: the 3.0 API as one ES module
+- `dist/knayi-myscript-compat.min.mjs`: the 2.x API as one ES module, with the named exports and the default export of 2.x's `knayi-myscript.mjs`
+- `dist/knayi-myscript.min.js`: a script that sets the global `knayi`, the 3.0 API, with the 2.x API as `knayi.compat`
 
 `npm test` runs the tests on a build made in a temporary directory. [ARCHITECTURE.md](ARCHITECTURE.md#running-the-checks) lists every test and check script.
 

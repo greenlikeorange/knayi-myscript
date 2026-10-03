@@ -1,14 +1,14 @@
 {
   "compilerOptions": {
-    "module": "node16",
-    "moduleResolution": "node16",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "target": "ES2022",
-    "lib": ["ES2022"],
+    "lib": ["ES2022", "DOM"],
     "types": [],
     "strict": true,
     "skipLibCheck": false,
     "noEmitOnError": true,
-    "outDir": "out/node16"
+    "outDir": "out/stream"
   },
-  "files": ["esm.mts"]
+  "files": ["stream.mts"]
 }

@@ -1,14 +1,15 @@
 // Checks every regular expression the library ships for super-linear backtracking (ReDoS) with recheck.
 //
-// The regexes come from four places, so that none is missed:
-// - regex literals in library/*.js, found by parsing the files with acorn;
-// - regexes built with RegExp(...), recorded by a hook on the global RegExp while main.js loads and every
-//   public call form runs;
-// - regexes in the modules' exports (win.tables.SEQUENCES);
+// The library is src/ (its spec/ is not shipped: nothing in src/ imports it). The regexes come from four places, so
+// that none is missed:
+// - regex literals in src/**/*.js, found by parsing the files with acorn;
+// - regexes built with RegExp(...), recorded by a hook on the global RegExp while the modules load and every
+//   public call form of the 2.x API (compat) and the 3.0 API runs, and compat's legacyWinTables();
+// - regexes in the modules' exports (the rule rows, the font sequences);
 // - every regex a call form runs, recorded by hooks on RegExp.prototype. This also catches a regex that a
 //   string method builds from a string, such as text.match('...'), which the RegExp hook cannot see.
-// Every RegExp(...) call site in library/ must run while the hooks are on: a regex built from a string that
-// never ran cannot be checked, so an unreached call site fails the check.
+// Every RegExp(...) call site in src/ must run while the hooks are on: a regex built from a string that never
+// ran cannot be checked, so an unreached call site fails the check.
 //
 // recheck must call each distinct pattern safe. A vulnerable verdict, or an unknown one (a timeout or an
 // unsupported pattern), fails unless scripts/redos-allowlist.json lists the pattern with the reason it cannot
@@ -22,25 +23,34 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
 
 const root = path.join(import.meta.dirname, '..');
-const libraryDir = path.join(root, 'library');
+const srcDir = path.join(root, 'src');
 const require = createRequire(import.meta.url);
 const args = process.argv.slice(2);
 const verbose = args.includes('--verbose');
 const jsonOut = args.includes('--json') ? args[args.indexOf('--json') + 1] : null;
 
-// The library files a stack frame may come from: library/*.js and main.js.
-const ownFiles = new Set(fs.readdirSync(libraryDir).filter((name) => name.endsWith('.js'))
-  .map((name) => path.join(libraryDir, name)).concat(path.join(root, 'main.js')));
+// The library files a stack frame may come from: src/**/*.js but spec/.
+function shippedFiles(dir) {
+  const files = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory() && full !== path.join(srcDir, 'spec')) files.push(...shippedFiles(full));
+    else if (entry.isFile() && entry.name.endsWith('.js')) files.push(full);
+  }
+  return files;
+}
+const ownFiles = new Set(shippedFiles(srcDir));
 
 function relative(file) {
   return path.relative(root, file).split(path.sep).join('/');
 }
 
 // The code that built or ran a regex: the first stack frame outside this script, skipping built-ins such as
-// String.prototype.replace. Its site as 'library/x.js:line' when it is a library file, or null when it is
-// not (myanmar-tools, which the detector loads, has regexes of its own).
+// String.prototype.replace. Its site as 'src/x.js:line' when it is a library file, or null when it is not
+// (myanmar-tools, which compat loads, has regexes of its own).
 const FRAME = /\(?((?:file:\/\/)?[^\s()]+\.[cm]?js):(\d+):\d+\)?$/;
 const thisScript = new URL(import.meta.url).pathname;
 function librarySite() {
@@ -75,7 +85,7 @@ function addPattern(source, flags, origin, site) {
 // ---- 1. Hooks on, load the library, run every call form, hooks off.
 
 const NativeRegExp = globalThis.RegExp;
-const builtSites = new Set(); // 'library/x.js:line' of each RegExp(...) call that ran
+const builtSites = new Set(); // 'src/x.js:line' of each RegExp(...) call that ran
 const savedStackLimit = Error.stackTraceLimit;
 Error.stackTraceLimit = 50;
 
@@ -170,16 +180,17 @@ const INPUTS = [
   'မင်္ဂလာပါ ' + ZWSP + 'ကျေးဇူး - (ဗုဒ္ဓ) "ကို" [၁၂၃]', '>ကြ', '“ကြ', '‘ကြ', '—ကြ', '\tကြ\n'
 ];
 
-// Some call forms throw today (syllBreak and truncate with the font name 'win' or an unknown one); the regexes
-// they reach before throwing still count.
+// Some call forms throw (compat's syllBreak and truncate with the font name 'win' or an unknown one, the 3.0 API on
+// an argument it refuses); the regexes they reach before throwing still count.
 function attempt(fn) {
   try {
     fn();
   } catch (error) {
-    if (!(error instanceof TypeError)) throw error;
+    if (!(error instanceof TypeError) && !(error instanceof RangeError)) throw error;
   }
 }
 
+// Every call form of the 2.x API, compat.
 function runCallForms(knayi) {
   knayi.setGlobalOptions({ silent_mode: true });
   const fonts = ['unicode', 'zawgyi', 'win', null, undefined, 'uni', 'zaw', 'other'];
@@ -219,15 +230,44 @@ function runCallForms(knayi) {
   knayi.setGlobalOptions({ detector: { use_myanmartools: false, myanmartools_zg_threshold: [0.05, 0.95] } });
 }
 
+// Every function of the 3.0 API, with each option that takes another path.
+function runApiCallForms(api) {
+  const detector = { getZawgyiProbability: (text) => (text.length % 2 ? 0.99 : 0.01) };
+  for (const text of INPUTS) {
+    api.isNormalized(text);
+    api.normalize(text, { report: true, trace: api.createTrace() });
+    api.explain(text, { zawgyiDetector: detector });
+    api.detectEncoding(text);
+    api.detectEncoding(text, { zawgyiDetector: detector, thresholds: [0.2, 0.8] });
+    for (const from of ['zawgyi', 'win', undefined]) {
+      attempt(() => api.toUnicode(text, { from, offsets: true, trace: api.createTrace() }));
+      attempt(() => api.toUnicode(text, { from, tie: 'zawgyi', zawgyiDetector: detector }));
+    }
+    api.toZawgyi(text, { trace: api.createTrace() });
+    for (const font of ['unicode', 'zawgyi']) {
+      for (const policy of ['pairs', 'chains', 'separate']) {
+        api.segmentSyllables(text, { font, policy });
+        api.syllableBoundaries(text, { font, policy });
+      }
+      api.collapseRepeatedMarks(text, { font });
+      for (const length of [3, 10, 30, 60]) api.truncate(text, { length, font, omission: '' });
+    }
+  }
+  attempt(() => api.normalize(42));
+  attempt(() => api.toUnicode('x', { from: 'Zawgyi' }));
+}
+
+// Loads the library with the hooks on (an import runs each module's top-level code, which builds its table rows),
+// runs every call form, and keeps each module's exports.
 installHooks();
-let knayi;
 const moduleExports = {};
 const realConsole = { warn: console.warn, error: console.error };
 try {
   console.warn = console.error = () => {};
-  knayi = require(path.join(root, 'main.js'));
-  for (const file of ownFiles) moduleExports[relative(file)] = require(file);
-  runCallForms(knayi);
+  for (const file of [...ownFiles].sort()) moduleExports[relative(file)] = await import(pathToFileURL(file).href);
+  runCallForms(moduleExports['src/compat/index.js'].default);
+  runApiCallForms(moduleExports['src/index.js']);
+  moduleExports['src/compat/legacy.js'].legacyWinTables();
 } finally {
   removeHooks();
   console.warn = realConsole.warn;
@@ -268,7 +308,7 @@ function walk(node, visit) {
 
 for (const file of [...ownFiles].sort()) {
   const code = fs.readFileSync(file, 'utf8');
-  const ast = acorn.parse(code, { ecmaVersion: 'latest', sourceType: 'script', locations: true });
+  const ast = acorn.parse(code, { ecmaVersion: 'latest', sourceType: 'module', locations: true });
   walk(ast, (node) => {
     const site = relative(file) + ':' + (node.loc && node.loc.start.line);
     if (node.type === 'Literal' && node.regex) {

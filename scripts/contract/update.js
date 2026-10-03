@@ -1,12 +1,13 @@
 'use strict';
-// Rewrites test/contract/api-matrix.json from main.js: `npm run matrix:update`.
+// Rewrites test/contract/api-matrix.json from main.js at the 2.x reference, scripts/oracle/main.js:
+// `npm run matrix:update`. Run it when a port of the 2.x line moves the reference (docs/next/DESIGN.md §8).
 // `--out <file>` writes the snapshot to another file instead, for comparing runtimes or checkouts.
 //
-// It also runs the dist builds (a fresh build in a temporary directory, or KNAYI_DIST) and compat, and records the
-// cells where they differ from main.js as known build differences. A difference that scripts/contract/matrix.js
-// does not explain stops the update: either a KNAYI_DIST build is stale (rebuild it) or the builds really disagree,
-// which needs a reason in KNOWN_BUILD_DIFFERENCES. compat records none of its own: it must differ exactly where the
-// ES module build does (SHARES_RECORDED_DIFFERENCES).
+// It also runs compat and the 3.0 builds that hold it (a fresh build in a temporary directory, or KNAYI_DIST), and
+// records the cells where compat differs from main.js as known build differences. A difference that
+// scripts/contract/matrix.js does not explain stops the update: either a KNAYI_DIST build is stale (rebuild it) or
+// the builds really disagree, which needs a reason in KNOWN_BUILD_DIFFERENCES. The builds record none of their own:
+// each must differ exactly where compat does (SHARES_RECORDED_DIFFERENCES).
 
 const fs = require('fs');
 const path = require('path');

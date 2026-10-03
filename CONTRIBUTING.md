@@ -26,7 +26,7 @@ For a feature request, say what you are trying to do and why the existing functi
 
 ## Setup
 
-You need Node.js 22 or newer to build and test (`.nvmrc` has 24), [Bun](https://bun.sh) for the Bun checks (CI uses Bun 1.4.2), and Playwright's browsers for the browser tests.
+You need Node.js 22.12 or newer to build and test (`.nvmrc` has 24), [Bun](https://bun.sh) for the Bun checks (CI uses Bun 1.4.2), and Playwright's browsers for the browser tests.
 
 ```bash
 git clone https://github.com/greenlikeorange/knayi-myscript.git
@@ -77,10 +77,10 @@ Structure, speed and behaviour never share a pull request. A refactor changes no
 Knayi's output is used as data, so an unannounced change to it is a bug even when the new output is better.
 
 - **Show that nothing changed:**
-  - `npm run compare -- --base origin/main` reports 0 differences on every call form, including `fontConvert.debugging`;
+  - `npm run compare -- --base origin/main` reports 0 differences on every call form, including `fontConvert.debugging` (in 3.0 it compares the 2.x API, compat, of both copies), and the tests of the 3.0 API pass;
   - the contract matrix (`test/contract/api-matrix.test.js`, part of `npm test` and `npm run test:bun`) shows 0 changed cells;
-  - both hold for `main.js`, the `.mjs` build and `min.js`, under Node and Bun. CI checks all of this.
-- **The matrix records error messages only for errors knayi throws itself.** For a `TypeError` the engine raises by accident, it records only the class, because those messages differ between runtimes and builds. An error knayi throws on purpose carries a string `code` property; that is how the matrix tells the two apart. So throw it as `libraryError(code, message, Ctor)`, a helper in `library/contentGate.js` that the first such pull request adds: `test/unit/errors.test.js` fails on any other `throw` in the library.
+  - both hold for compat and for the two builds that hold it, the script build's `knayi.compat` and `knayi-myscript-compat.min.mjs`, under Node and Bun, and compat still gives the 2.x reference's output (`npm run compare -- --base e5f6e24fa756f8f9c8d790f9a15ede85b135e8ae --head mjs:src/compat/index.js`). CI checks all of this.
+- **The matrix records error messages only for errors knayi throws itself.** For a `TypeError` the engine raises by accident, it records only the class, because those messages differ between runtimes and builds. An error knayi throws on purpose carries a string `code` property; that is how the matrix tells the two apart. So throw it as `libraryError(code, message, Ctor)` from `src/core/errors.js`: `test/next/guards/errors.test.mjs` fails on any other `throw` in `src/`, apart from compat's `legacyTypeError()`, which reproduces 2.x's accidental TypeErrors.
 - **A pull request that changes output on purpose** gets the `DELIBERATE` label and:
   - lists the exact counts it expects in its description, one `--expect form:set=n` per changed cell (a set is a corpus, such as `ksw`, or a generated or fuzz set, such as `generated.rows`), and the matrix cells that change. CI's compare job reads those lines. It skips the counts for sets CI does not read (mC4, the legacy `wikipedia-v1` sample, and every corpus when its cache is cold) and `all` totals; re-run the job after you add the label or change the counts;
   - commits the new matrix written by `npm run matrix:update`;
@@ -98,24 +98,24 @@ Knayi's output is used as data, so an unannounced change to it is a bug even whe
 
 ### Browser floor
 
-The README promises Chrome 49, Edge 14, Firefox 34, Safari 10, Samsung Internet 5 and Opera 36. So the `dist/` builds must:
+The README promises Chrome 51, Edge 15, Firefox 54, Safari 10.1, Samsung Internet 5 and Opera 38: the first versions with all of ES2015 (decision 18). So the `dist/` builds must:
 
-- parse as ES2015 (`test/syntax.test.js`);
-- avoid syntax and built-ins those browsers lack: no `let`, `const`, `for…of` or `class`, and no newer built-in, such as `TypedArray.prototype.fill`, on a path they run (`test/dist-floor.test.js`, whose rules and allowlists are in `scripts/browser/floor.js`). The known exceptions, to be fixed in Phase 1 of the refactor, are listed in `test/dist-floor.test.js`: `globalThis` in all four builds, and `let`, `for…of` and destructuring in the module builds;
+- parse as ES2015 (`test/syntax.test.js`), as `src/` does (`test/next/guards/floor.test.mjs`, with its list of later built-ins);
+- avoid built-ins those browsers lack, such as `globalThis`, `Object.entries` or `String.prototype.padStart`, on a path they run (`test/dist-floor.test.js`, whose rules and allowlists are in `scripts/browser/floor.js`, runs both APIs of the script build without them). A read behind a `typeof` guard, or after an `if (typeof x === 'undefined') return`, is allowed;
 - build no regex from a string that uses lookbehind, named groups, `\p{…}` or the `s` flag, since the syntax test cannot see inside strings (`test/regex-floor.test.js`);
-- give `main.js`'s results in Chromium, Firefox and WebKit (`npm run test:browser`).
+- give the results of the ES module sources in Chromium, Firefox and WebKit (`npm run test:browser`).
 
-### The 2.x API stays stable
+### The public API stays stable
 
-The exports, `index.d.ts`, the `dist/` file names and the `knayi` global, the option keys, the deep path `library/converter`, the shape of `win.tables`, the debug stage names and their order, and the regex-source labels in `matched_patterns` are 2.x API. [ARCHITECTURE.md](ARCHITECTURE.md#stable-surfaces) lists where each is defined.
+The entries of the exports map and what each exports, the types, the error codes, the `dist/` file names and the `knayi` global, the stage and rule ids of traces, and the output, with `OUTPUT_VERSION`, are 3.0's API. In `knayi-myscript/compat`, the 2.x exports and options, the shape of `legacyWinTables()`, the debug stage names and their order, and the regex-source labels in `matched_patterns` are 2.x API, kept as 2.x had them. [ARCHITECTURE.md](ARCHITECTURE.md#stable-surfaces) lists where each is defined.
 
-- New exports and options may come in a minor version, with types, matrix rows and tests.
-- A library file that moves leaves a one-line shim at its old path.
-- Don't rewrite a regex literal in `syllable.js` for style: its `.source` is debugging output.
+- New exports and options may come in a minor version, with types, tests, and matrix rows for compat.
+- A change to what a function returns is a deliberate pull request that raises `OUTPUT_VERSION` (`src/version.js`).
+- Don't rewrite a regex of the Unicode to Zawgyi rows for style: its `.source` is compat's debugging output.
 
 ### Bundle size
 
-Report the size of `knayi-myscript.min.js` from `npm run check:size`, before and after, with its per-module breakdown. The 2.x refactor may add at most 1 KB in total over the 2.10 baseline of 9,830 bytes, and `npm test` fails above 10,854 bytes. The script measures with Node's zlib at level 9, as the baseline was measured; the `gzip` command gives slightly different numbers for the same file, so quote only the script's.
+Report the sizes from `npm run check:size` (each `dist/` file, with its per-module breakdown) and from `node scripts/next/size.mjs` (an import of each entry of the exports map, and of `normalize` alone), before and after. Each has a budget, about 5% above its size when 3.0 was packaged, proposed for the maintainer to confirm (docs/next/DESIGN.md §6.4): `npm test` fails above a `dist/` budget, and CI's `ReDoS, types and size` check above an import's. The scripts measure with Node's zlib at level 9, as 2.x's baseline was measured; the `gzip` command gives slightly different numbers for the same file, so quote only the scripts'.
 
 ### Readable code
 
@@ -163,19 +163,19 @@ knayi is MIT-licensed, and contributions are accepted under the same licence.
 - **Don't add a font to the repository or the site** unless its licence allows redistribution.
 - **Test fixtures are synthetic or hand-written by default.** Short snippets are allowed from sources under CC BY, CC0 or Apache-2.0, listed in a `SOURCES` file next to the fixtures with the source, its licence and where the snippet is used.
 - **Never commit corpus text from other sources, or anything derived from its lines,** Common Crawl text included: no line hashes, output snapshots or per-line counts keyed by text. Whole-file sha256 pins of a download, as in `scripts/eval/datasets.mjs`, are fine: they check the file and cannot rebuild any of it. mC4 and the unlicensed 2018 query log (`queries.tsv`) also stay out of CI: CI's corpus cache holds the other pinned corpora, and compare runs there with `--without mc4`. The eval scripts keep their downloads in `.eval-cache/`, which git ignores.
-- **Dependencies:** no runtime dependencies in 2.x (myanmar-tools stays an optional peer). Dev dependencies are fine when they are pinned to an exact version and their licence is checked.
+- **Dependencies:** no runtime dependencies. myanmar-tools stays an optional peer: the 3.0 API takes its detector as an object, and compat loads it from the working directory, as 2.x's ES module build did. Dev dependencies are fine when they are pinned to an exact version and their licence is checked.
 
 ## Release checklist
 
 For the maintainer. A release is the only commit that changes `dist/`.
 
-The checks block a merge only when the rules for `main` (Settings, Rules) require them. Require a pull request, with these checks passing, by the names GitHub shows: `Node 22`, `Node 24`, `Node 26`, `Bun`, `Smoke on Node 16`, `Smoke on Node 18`, `Smoke on Node 20`, `ReDoS, types and size`, `Browsers`, `Compare`, `Perf` and `dist only in releases`; and require branches to be up to date before merging, so that a pull request is tested on the `main` it lands on. Require review from code owners too (`.github/CODEOWNERS`).
+The checks block a merge only when the rules for `main` (Settings, Rules) require them. Require a pull request, with these checks passing, by the names GitHub shows: `Node 22.12`, `Node 24`, `Node 26`, `Bun`, `ReDoS, types and size`, `Browsers`, `Compare`, `Compat`, `Perf` and `dist only in releases`; and require branches to be up to date before merging, so that a pull request is tested on the `main` it lands on. Require review from code owners too (`.github/CODEOWNERS`). (2.x's rules named `Node 22` and the three `Smoke on Node` checks of Node 16, 18 and 20; 3.0 has neither.)
 
 1. **Check `main`.** CI is green. Every pull request since the last tag that changed output has its line under "Output changes" in the Unreleased section of `CHANGELOG.md`.
 2. **Branch** `release-X.Y.Z` from `main`.
-3. **Bump the version** in `package.json` and `package-lock.json` (`npm version X.Y.Z --no-git-tag-version`), in `main.js` (`const version`), in `test/compat.test.js`, and in the README (the version line and the unpkg URL). `test/package.test.js` checks that `main.js` and `package.json` agree.
+3. **Bump the version** in `package.json` and `package-lock.json` (`npm version X.Y.Z --no-git-tag-version`), in `src/version.js` (`PACKAGE_VERSION`), and in the README (the version line and the unpkg URL). `test/next/codes.test.mjs` checks that `src/version.js` and `package.json` agree, and `test/package.test.js` that every entry reports that version.
 4. **Update `CHANGELOG.md`:** rename Unreleased to `X.Y.Z` with the date, and start a new, empty Unreleased section.
-5. **Rebuild `dist/`** with `npm run build`, check it with `npm run check:dist -- --fresh`, and run `KNAYI_DIST=dist npm test`, `npm run test:bun` and `npm run test:pack`. Note the `min.js` size from `npm run check:size` in the release notes.
+5. **Rebuild `dist/`** with `npm run build`, check it with `npm run check:dist -- --fresh`, and run `KNAYI_DIST=dist npm test`, `npm run test:bun` and `npm run test:pack`. Note the sizes from `npm run check:size` and `node scripts/next/size.mjs` in the release notes.
 6. **Commit** the version bump, `CHANGELOG.md` and `dist/` as `chore(release): X.Y.Z`.
 7. **Rebuild the benchmark page** with `npm run bench:page`, after that commit: the page records the commit it measured and whether the code had uncommitted changes, so run before the commit, it would name the previous commit "with uncommitted changes". Commit `docs/benchmark.html` and `docs/benchmark.json` as `docs(benchmark): results for X.Y.Z`. Open the pull request with both commits, and merge it once CI passes.
 8. **Wait for `main`'s CI, then tag.** The test run of the merge commit on `main` must pass first: its `dist only in releases` job builds `main` and compares the build with `dist/`, which catches a release pull request merged on an older `main`. Then tag the merge commit: `git tag -a vX.Y.Z -m X.Y.Z`, then `git push origin vX.Y.Z`.
@@ -186,6 +186,6 @@ The checks block a merge only when the rules for `main` (Settings, Rules) requir
     curl -sL https://cdn.jsdelivr.net/npm/knayi-myscript@X.Y.Z/dist/knayi-myscript.min.js | openssl dgst -sha384 -binary | openssl base64 -A
     ```
 
-    It must equal the hash of the local build (`openssl dgst -sha384 -binary dist/knayi-myscript.min.js | openssl base64 -A`). Commit as `docs(site): pin the demo to X.Y.Z`.
+    It must equal the hash of the local build (`openssl dgst -sha384 -binary dist/knayi-myscript.min.js | openssl base64 -A`). Commit as `docs(site): pin the demo to X.Y.Z`. The demo calls the 2.x global: pinned to a 3.0 release, it needs `knayi = knayi.compat` after the tag, as `scripts/browser/a11y.spec.js` gives it, until it moves to the 3.0 API.
 11. **Publish the GitHub release** for the tag, with the CHANGELOG section as its notes, and a "Before you upgrade" list when output changed. If a draft release for this version exists, check its target first: a draft made earlier points at an older commit, so set its target to the tag (or make it again from the tag).
 12. **For a security fix,** say so in the CHANGELOG and the release notes, and publish the GitHub security advisory (see [SECURITY.md](SECURITY.md)).

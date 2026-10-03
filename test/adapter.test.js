@@ -1,25 +1,18 @@
-const { describe, it, before, after, afterEach } = require('node:test');
+const { describe, it, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
-const vm = require('vm');
-const Module = require('module');
-const { pathToFileURL } = require('url');
-const knayi = require('../main');
+// The 2.x API: compat, on the 3.0 core.
+const knayi = require('../src/compat/index.js').default;
 const { ZawgyiDetector } = require('myanmar-tools');
-const { loadWithInternals } = require('../scripts/testing/internals');
 
-// The optional myanmar-tools adapter of fontDetect (library/detector.js): the probability thresholds, the
-// options that choose it, and what happens when the package cannot be loaded. myanmar-tools 1.1.3 is a dev
-// dependency; the failures are made with fresh copies of detector.js that load it from a place where it is
-// missing or broken.
+// The optional myanmar-tools adapter of fontDetect, through compat (src/compat/fontDetect.js and zawgyiModel.js): the
+// probability thresholds and the options that choose it, with the real package. myanmar-tools 1.1.3 is a dev
+// dependency, and compat finds it from the working directory, the package root when the tests run. What happens
+// when the package cannot be loaded, and where it is looked up from, is checked with stub loaders in
+// test/next/compat-fontDetect.test.mjs, where the cases this file ran on 2.x's loader moved.
 
 const ZAWGYI = 'မဂၤလာပါ';
 const UNICODE = 'မင်္ဂလာပါ';
 const DEFAULTS = { use_myanmartools: false, myanmartools_zg_threshold: [0.05, 0.95] };
-const NOT_INSTALLED = 'myanmar-tools is not installed; fontDetect used the rule scorer. Install myanmar-tools@1.1.3 to use it.';
-const NOT_AVAILABLE = 'myanmar-tools is not available in this environment; fontDetect used the rule scorer.';
 
 const probability = (text) => new ZawgyiDetector().getZawgyiProbability(text);
 
@@ -136,132 +129,4 @@ describe('myanmar-tools adapter', () => {
       assert.equal(knayi.fontDetect('၁၂၃ abc', 'zawgyi', { adapter: 'rules' }), 'zawgyi');
     });
   });
-
-  describe('when myanmar-tools cannot be loaded', () => {
-    let root;
-    before(() => {
-      root = fs.mkdtempSync(path.join(os.tmpdir(), 'knayi-adapter-'));
-      // 1.2.0 on npm was published without build_node/, so require() fails inside the package.
-      const broken = path.join(root, 'broken', 'node_modules', 'myanmar-tools');
-      fs.mkdirSync(broken, { recursive: true });
-      fs.writeFileSync(path.join(broken, 'package.json'), JSON.stringify({ name: 'myanmar-tools', version: '1.2.0', main: 'index.js' }));
-      fs.writeFileSync(path.join(broken, 'index.js'), "module.exports = require('./build_node/zawgyi_detector.js');\n");
-      const empty = path.join(root, 'empty', 'node_modules', 'myanmar-tools');
-      fs.mkdirSync(empty, { recursive: true });
-      fs.writeFileSync(path.join(empty, 'package.json'), JSON.stringify({ name: 'myanmar-tools', version: '1.1.3', main: 'index.js' }));
-      fs.writeFileSync(path.join(empty, 'index.js'), 'module.exports = {};\n');
-      fs.mkdirSync(path.join(root, 'missing'));
-    });
-    after(() => fs.rmSync(root, { recursive: true, force: true }));
-
-    // A fresh detector.js whose module.require loads packages as a file in root/<place> would.
-    function detectorIn(place) {
-      const requireFrom = Module.createRequire(path.join(root, place, 'app.js'));
-      return loadWithInternals('detector.js', [], { moduleRequire: (id) => requireFrom(id) });
-    }
-
-    // Probes and fallbacks for which the rule scorer decides, and ties.
-    const probes = [[ZAWGYI, undefined], [UNICODE, undefined], ['က္က', 'unicode'], ['က', undefined], ['ကျ', 'zawgyi']];
-
-    function assertRuleScorer(fontDetect) {
-      for (const [text, fallback] of probes) {
-        assert.equal(fontDetect(text, fallback, { adapter: 'myanmartools' }), knayi.fontDetect(text, fallback, { adapter: 'rules' }), text);
-      }
-    }
-
-    it('says it is not installed when the package is missing', () => {
-      assert.throws(() => Module.createRequire(path.join(root, 'missing', 'app.js'))('myanmar-tools'),
-        (error) => /MODULE_NOT_FOUND$/.test(String(error.code)), 'myanmar-tools must not resolve from ' + root);
-      const fontDetect = detectorIn('missing');
-      const run = capture(() => assertRuleScorer(fontDetect));
-      assert.deepEqual(run.messages, [['warn', NOT_INSTALLED]]);
-    });
-
-    it('names the error when the package fails inside', () => {
-      const run = capture(() => assertRuleScorer(detectorIn('broken')));
-      assert.equal(run.messages.length, 1);
-      assert.equal(run.messages[0][0], 'warn');
-      assert.match(run.messages[0][1], /^myanmar-tools could not be loaded \([^\n]*build_node[^\n]*\); fontDetect used the rule scorer\. Install myanmar-tools@1\.1\.3\.$/);
-    });
-
-    it('says the package has no ZawgyiDetector export', () => {
-      const run = capture(() => assertRuleScorer(detectorIn('empty')));
-      assert.deepEqual(run.messages, [['warn', 'myanmar-tools could not be loaded (the package has no ZawgyiDetector export); ' +
-        'fontDetect used the rule scorer. Install myanmar-tools@1.1.3.']]);
-    });
-
-    it('says it is not available outside Node', () => {
-      const messages = [];
-      const context = vm.createContext({ console: { warn: (m) => messages.push(['warn', m]), error: (m) => messages.push(['error', m]) } });
-      const fontDetect = loadWithInternals('detector.js', [], { context: context });
-      assertRuleScorer(fontDetect);
-      assert.deepEqual(messages, [['warn', NOT_AVAILABLE]]);
-    });
-
-    it('tries to load it once, and warns once', () => {
-      let loads = 0;
-      const requireFrom = Module.createRequire(path.join(root, 'missing', 'app.js'));
-      const fontDetect = loadWithInternals('detector.js', [], { moduleRequire: (id) => { loads++; return requireFrom(id); } });
-      const run = capture(() => {
-        for (let i = 0; i < 3; i++) fontDetect(ZAWGYI, null, { adapter: 'myanmartools' });
-      });
-      assert.equal(loads, 1);
-      assert.deepEqual(run.messages, [['warn', NOT_INSTALLED]]);
-    });
-
-    it('warns after silent mode ends if it has not warned yet', () => {
-      const fontDetect = detectorIn('missing');
-      knayi.setGlobalOptions({ silent_mode: true });
-      const silent = capture(() => fontDetect(ZAWGYI, null, { adapter: 'myanmartools' }));
-      assert.equal(silent.value, 'zawgyi');
-      assert.deepEqual(silent.messages, []);
-      knayi.setGlobalOptions({ silent_mode: false });
-      const loud = capture(() => fontDetect(UNICODE, null, { adapter: 'myanmartools' }));
-      assert.equal(loud.value, 'unicode');
-      assert.deepEqual(loud.messages, [['warn', NOT_INSTALLED]]);
-    });
-
-    it('does not load it for the rule scorer', () => {
-      let loads = 0;
-      const fontDetect = loadWithInternals('detector.js', [], { moduleRequire: () => { loads++; throw new Error('unexpected'); } });
-      assert.equal(fontDetect(ZAWGYI, null, { adapter: 'rules' }), 'zawgyi');
-      assert.equal(fontDetect(ZAWGYI), 'zawgyi');
-      assert.equal(loads, 0);
-    });
-  });
-
-  // The ESM build has no module.require, so it loads myanmar-tools with process.getBuiltinModule from the
-  // working directory (refactor plan, section 7 item 15). Run from the package root, it finds the dev
-  // dependency. Node before 20.16 and 22.3 has no process.getBuiltinModule: there the ESM build cannot load
-  // the package and uses the rule scorer. Bun gives ES modules a __filename too, so under Bun the ESM build
-  // resolves the package from its own file instead, and a build outside the package (the temporary build the
-  // tests use) does not find it.
-  it('loads it in the ESM build from the working directory', async (t) => {
-    if (!fs.existsSync(path.join(process.cwd(), 'node_modules', 'myanmar-tools', 'package.json'))) {
-      t.skip('myanmar-tools is not installed in the working directory');
-      return;
-    }
-    const dist = require('../scripts/build').builtDist();
-    const esm = await import(pathToFileURL(path.join(dist, 'knayi-myscript.mjs')).href);
-    const run = capture(() => esm.fontDetect('က္က', 'unicode', { adapter: 'myanmartools', myanmartools_zg_threshold: [0.05, 0.9] }));
-    if (typeof process.getBuiltinModule !== 'function') {
-      assert.equal(run.value, 'unicode');
-      assert.deepEqual(run.messages, [['warn', NOT_AVAILABLE]]);
-    } else if (typeof Bun !== 'undefined' && !resolvableFrom(dist)) {
-      assert.equal(run.value, 'unicode');
-      assert.deepEqual(run.messages, [['warn', NOT_INSTALLED]]);
-    } else {
-      assert.equal(run.value, 'zawgyi');
-      assert.deepEqual(run.messages, []);
-    }
-  });
 });
-
-function resolvableFrom(dir) {
-  try {
-    require.resolve('myanmar-tools', { paths: [dir] });
-    return true;
-  } catch (e) {
-    return false;
-  }
-}

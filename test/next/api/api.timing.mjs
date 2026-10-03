@@ -1,5 +1,6 @@
 // Growth of the 3.0 API (docs/next/DESIGN.md §6.2 item 4, §11): every function in linear time, on the adversarial
-// shapes of SHAPES, the runs of NFC_RUNS (helpers.mjs), and the chains normalize settles in more than one pass. The
+// shapes of SHAPES, the runs of NFC_RUNS (helpers.mjs), the chains normalize settles in more than one pass, and runs
+// of white space in a line that reads as Zawgyi. The
 // method is that of test/next/normalize.timing.mjs: a quick reading at n, 2n and 4n units, and a reading above 1.3
 // is measured three more times, the lowest kept. PUMPS, the single characters repeated, run through normalize,
 // which settles regions, and toUnicode, which detects lines; the core's own timing files run them through the rest.
@@ -46,7 +47,15 @@ const CHAINS = [
   ['e and u, repeated, then aa', (n) => repeatTo('\u1031\u1025', n) + '\u102C']
 ].map(([id, make]) => ({ id, make }));
 
-const ALL = SHAPES.concat(NFC_RUNS, CHAINS);
+// White space inside a line that reads as Zawgyi, then a letter: explain cut the line's span with /\s+$/, which
+// tried again from every position of the run, in quadratic time (40,000 tabs took 1 s).
+const ZAWGYI_WORD = '\u103B\u1019\u1014\u1039\u1019\u102C';
+const WHITE_SPACE_RUNS = ['\t', ' ', '\u00A0', '\u3000'].map((space) => ({
+  id: 'a Zawgyi word, a run of U+' + space.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0') + ', then x',
+  make: (n) => ZAWGYI_WORD + repeatTo(space, n) + 'x'
+}));
+
+const ALL = SHAPES.concat(NFC_RUNS, CHAINS, WHITE_SPACE_RUNS);
 
 const FUNCTIONS = {
   normalize: (text) => normalize(text),

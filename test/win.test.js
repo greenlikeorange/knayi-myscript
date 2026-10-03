@@ -1,6 +1,7 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const knayi = require('../main');
+// The 2.x API: compat, on the 3.0 core.
+const knayi = require('../src/compat/index.js').default;
 
 // Win strings are written by hand from the font's glyphs, in the order Win text is typed.
 const toUnicode = (win) => knayi.fontConvert(win, 'unicode', 'win');

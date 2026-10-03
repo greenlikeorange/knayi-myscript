@@ -39,6 +39,7 @@ Where this spec departs from the plan, §1.4 says so and gives the reason.
 11. [The 3.0 API](#11-the-30-api)
 12. [Streaming](#12-streaming)
 13. [The command line](#13-the-command-line)
+14. [3.0 packaging](#14-30-packaging)
 - [Appendix A: names, 2.x to next](#appendix-a-names-2x-to-next)
 
 ---
@@ -57,12 +58,12 @@ Where this spec departs from the plan, §1.4 says so and gives the reason.
   - myanmar-tools is looked up from the working directory, not from `library/`.
 - **Not here, at first:**
   - the 3.0 public API: `toUnicode`, `toZawgyi`, `detectEncoding`, streaming, lossless segmentation, change reports and the CLI. Two cores of it are built here: lossless segmentation in `rules/segment.js` (§7.5), and the core's `detectEncoding` in `rules/detect.js`, which computes that function's result (§7.6, as built). The public functions, which check and clean their text and take their options, are 3.0's, and are built now (§11), streaming included (§12), and so is the CLI on them (§13);
-  - the package `exports` map and the 3.0 builds;
+  - the package `exports` map and the 3.0 builds, built since (§14);
   - any output change.
 
   §9 lists these and says how the core leaves room for them.
 
-`library/` and `main.js` stay as they are on `next` while the core is built. They are the 2.x reference the tests compare against, and the 2.x test suite keeps running. Nothing in `src/` imports them.
+`library/` and `main.js` stayed as they were on `next` while the core was built. They were the 2.x reference the tests compared against, and nothing in `src/` imports them. 3.0's packaging deleted them (§14): `scripts/oracle/` holds the whole 2.x library at the reference since, and the 2.x test suite runs against compat.
 
 **The reference for byte identity is the library at commit `e5f6e24fa756f8f9c8d790f9a15ede85b135e8ae`** (`e5f6e24`), that is, its `main.js`. This spec calls it "the reference".
 - It was the tip of `safety-net` when this spec was written, and `next` starts from it.
@@ -106,22 +107,22 @@ The recommended option of each decision below is adopted.
 | 6 | (b) Build Phases 1.5, 2 and 3 once, as the 3.0 core | This branch. compat is checked by the 2.x compare and the contract matrix. |
 | 8 | Stage names, their order and the regex-source labels are 2.x API | compat reproduces them exactly (§5.2, C17-C18). Core rows and stages also carry stable `id`s for 3.0, unique within their table or pipeline. |
 | 9 | (b) Accidental TypeErrors count by class only | compat throws a `TypeError` wherever 2.x threw one by accident. The message is free (§5.2, C12). The Phase 1c fixes come later, with the 2.x port (§8). |
-| 10 | Shims for every moved 2.x path | `library/` stays untouched on `next`, so no shim is needed yet. Phase 6 packaging deletes `library/` behind an exports map. |
+| 10 | Shims for every moved 2.x path | `library/` stayed untouched on `next`, so no shim was ever needed. Phase 6 packaging deleted `library/` behind an exports map (§14), and with it the deep paths the shims were for. |
 | 11 | Font-name policy (a coded TypeError for `'win'` and unknown names; case-insensitive names) | A Phase 1c change, ported later. Until then compat reproduces the reference, and core `FONTS` is ready for it. |
 | 12 | `debugging` always returns ConvertDebug in 2.11 | Ported later. compat still returns strings on early exits (C19). |
 | 13 | Keep the `'zawgyi'` tie fallback in 2.x | compat passes `ON_TIE_ASSUME_ZAWGYI` explicitly. Core `decide(evidence, fallback)` takes the fallback as an argument, so 3.0's `tie` option needs no core change. 3.0's `toUnicode` detects each line and leaves a tie as it is unless `tie: 'zawgyi'`; §11.5 recounts the damage on the cached corpora. |
 | 14 | truncate's prefix fix ships in 2.11 as its own pull request; the option changes (`''`, `0`, `== null`) wait for 3.0 | compat keeps 2.10.0's `truncate`, which is not always a prefix (§10 Q5, C23). 3.0's `truncate` is a prefix that stops early, takes `''` as an omission and `0` as a length, and reads `undefined` and `null` as the defaults (§11.7). |
 | 16 | normalize keeps NFC on text with no Myanmar | The no-Myanmar fast path returns `toNfc(text)`. |
-| 18 | (b) Raise the floor to engines with full ES2015 | `src/` uses ES2015 syntax and built-ins only (`TypedArray#fill` is allowed). Checked by a test with a listed denylist (§6.2). The 3.0 release notes state the new floor. |
+| 18 | (b) Raise the floor to engines with full ES2015 | `src/` uses ES2015 syntax and built-ins only (`TypedArray#fill` is allowed). Checked by a test with a listed denylist (§6.2). The 3.0 builds and their floor tests follow it at Chrome 51, Edge 15, Firefox 54 and Safari 10.1, the release with classes (§14), and the 3.0 release notes state the new floor. |
 | 20 | (c) now, (b) in 3.0 | `codes.js` states the Unicode version it matches, and a test checks it against the runtime. Extended-C digits and code-point iteration are a deliberate 3.0 output change, made later. The readers keep reading UTF-16 units and never split a surrogate pair. |
 | 28 | Only the two simple gates | The no-Myanmar fast path and the final-NFC gate (§3.10). No typo or look-alike gates (PR 2.7 is not built). As reviewed (§7.11), Unicode to Zawgyi skips the rows that cannot match (§3.10, gate 3): it couples no rule to another module's trigger bits, since each row names its own `needs`, and it was measured end to end, 2.5-2.7x per word. The font pipeline's final NFC is gated too (gate 4): decision 28 asked for a fused prototype that beats the ungated pipeline on one big string, and this one costs one OR per glyph written whole, reads 0.97 of the ungated pipeline on one string and 0.87-0.89 per line and word. |
 | 29 | Accept the V8 atom wrap, exactly U+1000-U+1010 | It applies to the Unicode to Zawgyi rows, whose `re` may wrap its first unit while the `label` keeps the 2.x source. A lint test enforces the exact range. The detector no longer uses regexes. |
 | 30 | No single-pass GLYPH_MAP alternation for Unicode to Zawgyi | The alternation is not built: it changes the output of a stack on a stack. The generated writer of Phase 6 #5 (§3.9, §7.12) writes GLYPHS in one pass from left to right only where that equals the rows in order, and runs the rows one by one on a text with a stack on a stack, so the output and the debug log stay 2.x's. |
-| 31 | ESM-only sources; minimum Node 22.12 for `require(esm)` | `src/package.json` has `"type": "module"`, and `library/` stays CommonJS for the transition. The `engines` field and the exports map come in Phase 6 packaging. |
-| 32 | (b) A CLI | `bin/knayi.js` (§13). The core never reads the working directory or loads code (§4), so a CLI on it is safe (§10.2 of the plan); the command loads only myanmar-tools, only when asked, and only from where knayi is installed. |
+| 31 | ESM-only sources; minimum Node 22.12 for `require(esm)` | `src/package.json` has `"type": "module"`, and `library/` stayed CommonJS for the transition. Phase 6 packaging (§14) gives the package `"type": "module"`, `engines` node `>=22.12` and the exports map, and deletes `library/`. |
+| 32 | (b) A CLI | `bin/knayi.js` (§13), the package's `bin` since the packaging (§14). The core never reads the working directory or loads code (§4), so a CLI on it is safe (§10.2 of the plan); the command loads only myanmar-tools, only when asked, and only from where knayi is installed. |
 | 33 | (b) `OUTPUT_VERSION` | `src/version.js`. It was 1 for the output of 2.10.0 at the reference, which compat keeps, and is 2 since 3.0's normalize settles (§11.2). |
 | 34 | Lossless segmentation tokens | `forEachBreak` reports positions. The 2.x pairwise rule is one named predicate (`legacyBareConsonantPair`), and `BARE_CONSONANTS` names the policies: `PAIRS` (2.x), `CHAINS` and `SEPARATE`. `rules/segment.js` builds the lossless core, `segmentSyllables` and `syllableBoundaries`: the pieces join to the text, ZWNJ is kept and nothing is reordered. The 3.0 API's default is `SEPARATE`, chosen from the counts of §11.6. |
-| 35 | Delete parseUnicode and serializeUnicode | Not ported. |
+| 35 | Delete parseUnicode and serializeUnicode | Not ported; deleted with `library/` (§14). The frozen copy of `syllable.js` in `scripts/oracle/` keeps them, unused. |
 | 36 | normalize idempotent by construction in 3.0 | 3.0's `normalize`: two targeted fixes, then a bounded fixpoint on the regions the first pass changed (§11.2). compat stays non-idempotent, exactly like 2.x. |
 
 Decisions 5 and 17 are not adopted. §1.4 says what this spec does instead (D6 and D3).
@@ -148,7 +149,7 @@ Decisions 5 and 17 are not adopted. §1.4 says what this spec does instead (D6 a
 | D16 | **Top-level code is free of side effects** (§2.4). Data is frozen through one helper, `deepFreeze` (`src/freeze.js`), called with a `/* @__PURE__ */` annotation. So are the compiled fonts, the built tables and the scratch objects. `deepFreeze` freezes plain objects and arrays, and leaves RegExps and typed arrays as they are. | With esbuild 0.25.12 and `"sideEffects": false`, an unused `Object.freeze({...})`, an unannotated call or `new`, and a literal that reads a property (`{a: CP.KA}`) all stay in the bundle, with and without minify. An unannotated top-level `compileFont(TABLE)` keeps the table and `compileFont` in a normalize-only bundle, and a `FONT_STAGES` frozen with a bare `Object.freeze` keeps `readFont` and every stage function with it. Annotated calls whose arguments are identifiers or literals, and plain literals, are dropped. A frozen RegExp has a read-only `lastIndex`, so `replace`, `search`, `match` and `test` throw a TypeError on it (Node 26 and Bun 1.4.2). |
 | D17 | **Rule rows carry no prose at run time.** A row has `id`, `re`, `to`, `repeat`, `needs` where gate 3 of §3.10 skips it (the Unicode to Zawgyi rows and `zg.lagaung.1`), and `label` only where the 2.x source differs from `re.source`. A row's `why` is a comment above it, its section is the named array it sits in, and its `example` is in the module's test table. The typo rules are documented in `spec/typoRows.js`. | About 75 rows would otherwise ship a sentence and an example each, in compat and in every 3.0 entry, and nobody had measured them against the size targets. The 3.0 trace needs only the `id`. |
 | D18 | **The 2.x reference is the commit `e5f6e24`**, not the branch `safety-net` (§1.1). | A branch can move, and byte identity needs a fixed reference. A bare branch name does not resolve in CI. |
-| D19 | **Module tests reach 2.x private code only through `scripts/oracle/`**, frozen at the reference. W0 adds byte-for-byte copies of `library/syllable.js` and `library/contentGate.js` there, and a `dir` option to `loadWithInternals`. compat's tests compare with the live `library/`. | §8 merges `main` into `next`, and the 2.x speed wins rewrite `library/`'s private code (for example PR 1.4's glyph array and PR 1.6's mark bit set). A module test that read `library/` would then break, or quietly test a different engine. compat follows the 2.x line port by port, so it is compared with the live library, and with the reference only through public functions: compare and the matrix. |
+| D19 | **Module tests reach 2.x private code only through `scripts/oracle/`**, frozen at the reference. W0 adds byte-for-byte copies of `library/syllable.js` and `library/contentGate.js` there, and a `dir` option to `loadWithInternals`. compat's tests compare with the live `library/`. | §8 merges `main` into `next`, and the 2.x speed wins rewrite `library/`'s private code (for example PR 1.4's glyph array and PR 1.6's mark bit set). A module test that read `library/` would then break, or quietly test a different engine. compat follows the 2.x line port by port, so it is compared with the live library, and with the reference only through public functions: compare and the matrix. (As packaged, §14: `library/` is gone, `scripts/oracle/` holds all 13 of its files and its `main.js`, and compat's tests compare with them; a port moves them to the new reference, §8.) |
 | D20 | **`core/nfc.js` may keep one memo, `NFC_MEMO`**, of facts about the runtime's Unicode data: which code points start or continue a run of non-starters, their decompositions and their combining classes. The stateless guard exempts it by name. | The 2.x line's linear NFC helper (d170cd8, ported by W1, §7.3) reads combining classes from `String#normalize` with probes, and keeps them, because JavaScript has no table of them. Building the table eagerly would probe every code point at import. The memo is deterministic and bounded (§3.11): it never holds a result of a call, so outputs still depend only on the arguments and the runtime's NFC data (§4 rule 6). |
 | D21 | **The myanmar-tools loader is built by a factory**, `createZawgyiModelLoader(requireFn)`. compat uses one shared instance, which holds the loaded model, the load error and the warned flag. `fontDetectCore` takes the loader as an optional last argument. | An ES module cannot be loaded fresh the way the 2.x adapter tests reload `detector.js`. In Node, `import('x.js?copy=N')` runs only that file again, and its imports stay shared; in Bun 1.4.2 a second `?copy=` import returns the same instance. `bun test ./test` runs every test file in one process, so per-process state would leak between files. Tests build their own loaders with stub requires instead. |
 | D22 | **The binding speed check is: no Node row slower than the reference, and every growth exponent ≤ 1.3** under Node and Bun. The ratios of §6.4 are goals, reported with their margins. Rows marked "estimate" never block. | Several goals sit 1-3% from their evidence, inside perf's A/A noise of about ±2.5%. The evidence was timed on 32k corpus lines, while perf times 400 FLORES lines, and on prototypes that kept their hot state in closure locals rather than in this spec's buffer objects and stage runner. |
@@ -198,14 +199,15 @@ src/
   api/encoding.js            L4          detectEncoding (§11.5)
   api/convert.js             L4          toUnicode, toZawgyi (§11.5)
   api/segment.js             L4          segmentSyllables, syllableBoundaries, truncate, collapseRepeatedMarks (§11.6, §11.7)
-  stream.js                  L4          the 3.0 streams, the entry knayi-myscript/stream (§12)
+  stream.js                  L4          the 3.0 streams, the './stream' entry of the exports map (§12, §14)
   api/lines.js               L4          mapLines, and the LineMapper every stream runs on (§12)
   api/stream.js              L4          lineTransform, createNormalizer, createConverter: TransformStreams (§12)
   spec/detectorSignatures.js  (spec)     the 29 detector signature rows: the scanner's readable oracle
   spec/breakRules.js          (spec)     the 15 break rule rows: the scanners' readable oracle
   spec/typoRows.js            (spec)     the 4 typo rules, documented: fixTypos's readable oracle
 test/next/                   module tests (*.test.mjs), fuzz (*.fuzz.test.mjs), timing (*.timing.mjs), guards/, helpers.mjs
-scripts/next/size.mjs        bundle size report and tree-shaking check for compat and a normalize-only import (W0)
+scripts/next/size.mjs        bundle size report and tree-shaking check for compat and a normalize-only import (W0);
+                             since §14, an import of each entry of the exports map against its budget (§6.4)
 scripts/oracle/              gains syllable.js and contentGate.js, copies of library/ at the reference (D19)
 ```
 
@@ -1361,7 +1363,7 @@ So in a working directory that cannot resolve the package, `main.js` scores with
 - **No contract fixes.** Phase 1c (PRs 4.3-4.5) and PRs 4.1-4.2 are not applied.
 - **No output change.** Phase 4 is not applied.
 - **No deep paths.** `knayi-myscript/library/converter` remains `library/`'s.
-- **No browser build.** That is Phase 6 packaging.
+- **No browser build of its own.** Phase 6 packaging (§14) builds `knayi-myscript-compat.min.mjs`, and `knayi.compat` in the script build, from compat's sources.
 
 The 2.x line brings each of these, and they reach compat through §8.
 
@@ -1384,7 +1386,7 @@ The 2.x line brings each of these, and they reach compat through §8.
 - **`test/next/helpers.mjs`** provides these, through `createRequire` for the CommonJS files and `import` for the `.mjs` ones:
   - `oracle` (`scripts/oracle`);
   - `internals(file, names)`, which is `loadWithInternals(file, names, { dir: ORACLE })`. It reaches 2.x private functions such as `order`, `arrange`, `font`, `glyphsInTypedOrder`, `zeroAsWa`, `BREAK_RULES`, `COLLAPSE` and `convertRules`, always in the frozen copies of `scripts/oracle/`, never in `library/` (D19);
-  - `library(name)` for the live `library/*.js`, for compat's tests only;
+  - `library(name)` for the live `library/*.js`, for compat's tests only (as packaged, §14: the frozen copy in `scripts/oracle/`);
   - `arb` (`scripts/testing/arbitraries.js`);
   - `fuzz` (`SEED`, `LONG_RUN`, `runs`, `check` of `scripts/testing/fuzz-settings.js`);
   - `tableProbes()` (`test/fixtures/tables.json`);
@@ -1579,6 +1581,22 @@ Other targets:
   | normalize-only (`normalizeText`) | ≤ 4,300 B (infra-8 measured 4,268 B for the prototype) | ≤ 4,850 B. The helper added 543 B gzip to 2.x's `min.js` (1,212 B minified). |
 
   The report also lists each module's bytes from the metafile. Before this revision, the sizes left out two things: the prose of about 75 rule rows, now gone (D17), and the NFC helper, now counted above.
+
+  **3.0's budgets** (proposed with 3.0's packaging, **for the maintainer to confirm**). Both targets above were missed: compat grew to 17,624 B and the normalize-only bundle to 6,804 B with the gates of §7.11, the one-pass writer of §7.12 and the edit logs of §11.3 (§7.11 and §7.12 recorded the misses for the maintainer's decision). The packaging replaces them with a budget for each import of each entry of the exports map and for each dist file. Each `measured` is the size when the exports map was added, and each limit about 5% above it, rounded up to 100 B: room for the 2.x ports (§8), the stream entry and Extended-C (decision 20b), but not for a mistake such as a table pulled in twice. They bind in every pull request: `scripts/next/size.mjs` in CI's `checks` job for the imports, `scripts/check-size.js` after `npm test` for the dist files.
+
+  | Bundle | Measured | Limit |
+  |---|---|---|
+  | `import * from 'knayi-myscript'` (api) | 21,109 B | 22,200 B |
+  | `'knayi-myscript/compat'` (compat) | 17,624 B | 18,600 B |
+  | `'knayi-myscript/stream'` (stream), set when the streams joined the packaging (§14.7) | 16,082 B | 16,900 B |
+  | `import { normalize } from 'knayi-myscript'` | 9,158 B | 9,700 B |
+  | `import { createNormalizer } from 'knayi-myscript/stream'` | 10,315 B | 10,900 B |
+  | the core's `normalizeText` alone (normalize-only) | 6,804 B | 7,200 B |
+  | `dist/knayi-myscript.min.mjs` (the 3.0 API) | 20,890 B | 22,000 B |
+  | `dist/knayi-myscript-compat.min.mjs` (the 2.x API) | 17,408 B | 18,300 B |
+  | `dist/knayi-myscript.min.js` (both, as the global `knayi`) | 23,782 B | 25,000 B |
+
+  For comparison, 2.10's `min.js` was 9,830 B with a limit of 10,854 B.
 
 The techniques, in order of measured value (§6 of the plan):
 1. No quadratic paths. Every run is read once, and the mask answers "has a vowel" in O(1).
@@ -1973,6 +1991,8 @@ The 2.x line moves on `main`: the linear NFC helper, Phase 1c, Phase 1 speed win
 3. **Run the gate against the new 2.x reference.** That is the sha of the `main` commit just merged, pinned as in §1.1, never `--base main`. It must show 0 differences. A Phase 4 output change also bumps `OUTPUT_VERSION`.
 4. **Update this spec**: §1.1's reference, §5.2 and §1.3, and the sizes of §6.4 when the port adds code.
 
+**After 3.0's packaging (§14)** `next` has no `library/` and no `main.js`, so the merge of step 1 meets them deleted: the port resolves each such conflict by keeping the deletion, and moves the reference instead. It copies `main.js` and the files of `library/` of the pinned `main` commit into `scripts/oracle/` (the copies byte for byte, `main.js` with its requires of `./library/` made `./`), records their blob ids in `test/next/helpers.mjs`, where `guards/oracle.test.mjs` checks them, rewrites `test/contract/api-matrix.json` with `npm run matrix:update`, and changes the reference commit in the CI's `Compat` job, in §1.1 and in the README of `scripts/eval`. The 2.x tests the merge brings are pointed at compat, as `test/*.test.js` are. compat's tests then compare with the new reference, and a module test that read a changed private function of the oracle follows it as above.
+
 **The NFC port** was done by W1 (§7.3): `core/nfc.js` is linear, the stateless test runs its warm-against-cold memo check, and the "after" column of §6.4 binds. The merge of `main` brings the helper's ten run shapes into `scripts/eval/lib/inputs.mjs`, and with them into `SHAPES`, so every module growth check then times them too.
 
 **Module tests after a port (D19).** The core's module tests read the 2.x engine only in `scripts/oracle/`, so a port that changes `library/`'s private code (PR 1.4's glyph array, PR 1.6's mark bit set) changes nothing for them. compat's tests compare with the live `library/` and follow it. A port that changes output on purpose (a Phase 4 fix, labelled DELIBERATE on `main`) does what `main` did:
@@ -1985,11 +2005,10 @@ A 2.x speed win that the core already has, such as the atom wrap or the one-rege
 
 ## 9. Not in this build
 
-These are the rest of Phase 6. The core is shaped so that they need no core change. The 3.0 API itself, with lossless segmentation, a prefix truncate, the change report, `isNormalized`, `explain` and an idempotent normalize, is built: §11. So are its streams, `createNormalizer`, `createConverter`, `lineTransform` and `mapLines`: §12; and the command line on both: §13.
+These are the rest of Phase 6. The core is shaped so that they need no core change. The 3.0 API itself, with lossless segmentation, a prefix truncate, the change report, `isNormalized`, `explain` and an idempotent normalize, is built: §11. So are its streams, `createNormalizer`, `createConverter`, `lineTransform` and `mapLines`: §12; the command line on both: §13; and the packaging, with the exports map, `engines`, the browser builds and `library/` deleted: §14.
 
 - **Streaming to Zawgyi,** which waits for the fix of §10 Q10 (§12.2).
 - **Extended-C and code-point iteration** (decision 20b).
-- **Packaging:** the exports map (`'.'` for `src/index.js`, `'./compat'`, `'./stream'` for `src/stream.js`, `'./package.json'`), the `engines` field (Node 22.12 or later), `src/index.d.ts` and `src/stream.d.ts` as the types of `'.'` and `'./stream'`, the 3.0 builds with the dist floor checks and the Playwright smoke run, deleting `library/` and its shims, and the import sizes per entry, which `scripts/next/size.mjs` reports for `src/index.js` already (§11.1).
 
 ---
 
@@ -2014,7 +2033,7 @@ compat must give the reference's output on every input (§1.2 rule 1), so the co
 
 ## 11. The 3.0 API
 
-`src/index.js` is the 3.0 public API, on the core of §2-§4: Phase 6 #3 and #4 of the plan, the check-only functions and offset maps of its §10.4, and decisions 13, 14, 33, 34 and 36. compat (§5) stays the 2.x API with 2.x's output, and the two import neither each other nor each other's files (`guards/layers.test.mjs`). The packaging of Phase 6 (the exports map, `engines`, the builds) is not built (§9).
+`src/index.js` is the 3.0 public API, on the core of §2-§4: Phase 6 #3 and #4 of the plan, the check-only functions and offset maps of its §10.4, and decisions 13, 14, 33, 34 and 36. compat (§5) stays the 2.x API with 2.x's output, and the two import neither each other nor each other's files (`guards/layers.test.mjs`). The packaging of Phase 6 (the exports map, `engines`, the builds) is §14.
 
 ### 11.1 Entry, arguments and types
 
@@ -2037,7 +2056,7 @@ The files are `index.js`, which re-exports, and `api/`: `args.js` (the checks), 
 
 **Types.** `src/index.d.ts` is hand-written. `typecheck/next/api.ts` compiles code against it in `npm test`, with an `@ts-expect-error` line for each kind of call the functions refuse; `test/next/api/types.test.mjs` checks that it declares exactly what `src/index.js` exports; and the sources of `api/` carry JSDoc types and `// @ts-check`, which the same `tsc` run checks against `index.d.ts`. `normalize` and `toUnicode` have an overload for the options that change what they return.
 
-**Sizes** (`scripts/next/size.mjs`, as §6.4 measures, gzip level 9): the whole API is 21,107 B (20,557 B before the one-pass Unicode to Zawgyi writer of §7.12 joined it), and an import of `normalize` alone 9,158 B. The tree-shaking check of §2.4 runs on that import too: no byte of the fonts, detection, segmentation, Unicode to Zawgyi or the other modules of `api/`. Neither has a target yet.
+**Sizes** (`scripts/next/size.mjs`, as §6.4 measures, gzip level 9): the whole API is 21,107 B (20,557 B before the one-pass Unicode to Zawgyi writer of §7.12 joined it), and an import of `normalize` alone 9,158 B. The tree-shaking check of §2.4 runs on that import too: no byte of the fonts, detection, segmentation, Unicode to Zawgyi or the other modules of `api/`. Neither had a target when the API was built; the packaging gave both a budget (§6.4, §14).
 
 ### 11.2 normalize, idempotent by construction (decision 36)
 
@@ -2168,7 +2187,7 @@ On fuzz and on every line of FLORES, Wikipedia v2 and Okell that does not read a
 
 ## 12. Streaming
 
-`src/stream.js` is the 3.0 streams, Phase 6 #2 of the plan: the entry the exports map will name `'./stream'` (§9). Text arrives in chunks, strings or UTF-8 bytes, and is cut into lines at `\n`; each line goes through a function, and the result goes out with the line's ending. It stands apart from `src/index.js`, so an import of `normalize` alone carries no stream code.
+`src/stream.js` is the 3.0 streams, Phase 6 #2 of the plan: the entry `'./stream'` of the exports map (§14). Text arrives in chunks, strings or UTF-8 bytes, and is cut into lines at `\n`; each line goes through a function, and the result goes out with the line's ending. It stands apart from `src/index.js`, so an import of `normalize` alone carries no stream code.
 
 ### 12.1 The functions
 
@@ -2228,7 +2247,7 @@ The plan left open whether to cut such a line at a syllable boundary or to raise
 
 **Speed.** On FLORES, Okell and mC4, each as one document in 64 KB chunks, a stream takes about the time of its function on the whole text: 0.74-1.02 of `normalize`'s, 1.01-1.12 of `toUnicode`'s from Zawgyi and 1.03-1.26 of its detecting each line (median of 5 interleaved rounds, Node 26.5). UTF-8 bytes cost 0.02-0.18 more than strings, the share of decoding; `mapLines` alone reads 0.75-1.10.
 
-**Sizes** (`scripts/next/size.mjs`, as §6.4 measures, gzip level 9): all the streams are 16,082 B, and an import of `createNormalizer` alone 10,315 B: the 9,200 B of `normalize` alone from `src/index.js`, and 1,115 B of the line cutter and the stream. The tree-shaking check of §2.4 runs on that import too: no byte of the fonts, detection, conversion or segmentation. The two error codes of §12.3 and §12.4 add 43 B to compat and to the 3.0 API, which share `ERR`.
+**Sizes** (`scripts/next/size.mjs`, as §6.4 measures, gzip level 9): all the streams are 16,082 B, and an import of `createNormalizer` alone 10,315 B: the 9,200 B of `normalize` alone from `src/index.js`, and 1,115 B of the line cutter and the stream. The tree-shaking check of §2.4 runs on that import too: no byte of the fonts, detection, conversion or segmentation. The two error codes of §12.3 and §12.4 add 43 B to compat and to the 3.0 API, which share `ERR`. Both stream bundles have had a budget since the merge with the packaging (§6.4, §14.7).
 
 ---
 
@@ -2236,7 +2255,7 @@ The plan left open whether to cut such a line at a syllable boundary or to raise
 
 `bin/knayi.js` is the command of decision 32 (b): the 3.0 API over files or standard input, line by line, as plain text or JSON Lines, for shell scripts and pipelines in other languages, Python first. It is the package's `"bin"`, named `knayi`. README.md, "Command line", is its manual, and `knayi --help` its summary; this section records how it is built and why.
 
-It lies outside `src/`: it is Node-only (22.12 or later, decision 31), uses Node's modules and syntax past ES2015, and is in no browser build, so the floor (D14), layer (§2.2) and stateless (§4) guards do not read it. `bin/package.json` makes `bin/` ES modules, as `src/package.json` does `src/`, and `"files"` holds `bin` and `src`, which the command needs once packed.
+It lies outside `src/`: it is Node-only (22.12 or later, decision 31), uses Node's modules and syntax past ES2015, and is in no browser build, so the floor (D14), layer (§2.2) and stateless (§4) guards do not read it. `bin/package.json` makes `bin/` ES modules, as `src/package.json` does `src/`, whatever the root's `type` (the root's is `"module"` since §14), and `"files"` holds `bin` and `src`, which the command needs once packed.
 
 ### 13.1 Files
 
@@ -2277,6 +2296,89 @@ It lies outside `src/`: it is Node-only (22.12 or later, decision 31), uses Node
 - `readme.test.mjs`: every example of README.md, "Command line", run, with its output exact.
 
 The files pass under Node 26.5 and Bun 1.4.2 (`bun test ./test/next/cli`, which runs the command under Bun). compat is unchanged: compare reports 0 differences on 2,771,318 comparisons against `e5f6e24`, and the contract matrix all 3,523 cells.
+
+---
+
+## 14. 3.0 packaging
+
+Phase 6 #1 and #6 of the plan, and decisions 10, 18, 31 and 35: the package ships the ES module sources of `src/` behind an exports map, for Node 22.12 and later, with browser builds of both APIs, and `library/`, `main.js` and 2.x's deep paths are gone. Built on `next-pack`, from `next` at cd0b287, beside the streams (§12) and the command line (§13), and merged into `next` after them (§14.7). compat's output is unchanged: compare and the contract matrix still show 0 differences against the reference.
+
+### 14.1 package.json
+
+| Field | Value | Why |
+|---|---|---|
+| `type` | `"module"` | The sources are ES modules (decision 31). `scripts/` and `test/` have a `package.json` of `{"type": "commonjs"}`, so their `.js` files stay CommonJS; `src/package.json` keeps `"sideEffects": false` for the sources. |
+| `exports` | `'.'` → `src/index.js`, `'./compat'` → `src/compat/index.js`, `'./stream'` → `src/stream.js`, `'./package.json'`; each code entry `{ types, default }`, types first | One entry per API (Phase 6 #1). `default` serves `import` and, from Node 22.12, `require`. No other path loads, so the deep paths the shims of decision 10 were for are gone with them. |
+| `main`, `types` | the 3.0 API | For tools that read no exports map, such as TypeScript's `node10` resolution. |
+| `engines` | `node >=22.12` | The first 22 where `require` loads an ES module without a flag (decision 31). |
+| `bin` | `knayi` → `bin/knayi.js` | The command line (§13), which runs the 3.0 API and the streams from `src/`. |
+| `files` | `bin`, `src` but `src/spec`, and the three `dist/` files | `spec/` is the scanners' readable oracle; nothing in `src/` imports it (§2.2). |
+| `sideEffects` | `["./dist/knayi-myscript.min.js"]` | The script build sets a global; nothing else has a side effect at load (§2.4). |
+
+`version` becomes `3.0.0-next.0` in a release commit of its own, which also commits the fresh `dist/` that the rule of `scripts/check-dist.js` asks of a version change. `package-lock.json` is left as it was: the packaging changes no dependency, and `npm version` updates its two version fields when the maintainer cuts a release.
+
+**The `'./stream'` entry** is `src/stream.js`, L4 beside the 3.0 API (§2.1), with the streams of §12 and their types in `src/stream.d.ts`. The streams were built on a branch of their own, so the packaging first shipped the entry empty, with types that said so, and the exports map, `check:types` and the size report covered it from the start; the merge into `next` filled it (§14.7).
+
+### 14.2 Types
+
+Each entry has its own hand-written types: `src/index.d.ts` (§11.1), `src/compat/index.d.ts` (2.x's `index.d.ts`, moved) and `src/stream.d.ts`. `test/package.test.js` checks that each declares exactly what its entry exports. `npm test` compiles `typecheck/` against the 2.x types, with and without `esModuleInterop`, and against the 3.0 types. `npm run check:types` packs the package and compiles `typecheck/packed/` against the tarball: an ES module consumer of all three entries under `node16`, `node20` and `nodenext`, a CommonJS one under `node20` and `nodenext` (TypeScript allows `require` of an ES module there, as Node 22.12 does), and a bundler one; each runs. @arethetypeswrong/cli 0.18.5 then reads the tarball's entries and reports five problems, all of them choices, listed with their reasons in `KNOWN_PROBLEMS`:
+
+- `CJSResolvesToESM` under `node16-cjs`, for each entry: the package is ES modules only;
+- `NoResolution` under `node10`, for `./compat` and `./stream`: `node10` reads no exports map, and `'.'` resolves there through `main` and `types`.
+
+### 14.3 The browser builds
+
+`scripts/build.js` makes three files for browsers, minified, at ES2015; `src/` ships for anyone who wants to read the code.
+
+| File | Holds |
+|---|---|
+| `dist/knayi-myscript.min.mjs` | the 3.0 API, as one ES module |
+| `dist/knayi-myscript-compat.min.mjs` | the 2.x API, as one ES module: the named exports and the default export of 2.x's `knayi-myscript.mjs`, so a 2.x module user changes only the file name |
+| `dist/knayi-myscript.min.js` | a script whose global `knayi` is the 3.0 API, with the 2.x API as `knayi.compat` |
+
+**The global.** The plan's 2.x users of the global need a path, and one global can hold one API by name. The 3.0 API has the name, as everywhere else in 3.0, and the 2.x object hangs off it as `compat`, the name of its entry. A page written for 2.x keeps working with `knayi = knayi.compat` after the tag, the line the demo's accessibility test adds while the demo is pinned to 2.x. One file for both is 23,782 B gzip, 2,892 B more than the 3.0 API's module build (20,890 B); two script files could not both be loaded on one page, since each would set `knayi`. The builds hold no streams: their TransformStreams need browsers well above the floor (Safari 14.1, Firefox 102; §12.1), and a page that wants them bundles `knayi-myscript/stream`.
+
+**Strict code.** esbuild's script output is not strict, and the sources were written and tested as strict modules, so the script build says `"use strict"` itself. One effect shows in `knayi.compat`: a detached `fontConvert` never reads a global `debug`, as in compat. The contract matrix records those 10 cells once, under compat, and both builds share them (`SHARES_RECORDED_DIFFERENCES`). 2.x's `knayi-myscript.js`, `.mjs` and `.es.js`, and the `module` field, are gone.
+
+**The floor** (decision 18) is the first versions with all of ES2015. `scripts/browser/floor.js` takes its versions from MDN's browser-compat-data, which gives Safari 10.1 for classes, and the core has four (`EditLog`, `CodeBuffer`, `SyllableBuffer`, `CopyThroughWriter`), so README states Chrome 51, Edge 15, Firefox 54 and Safari 10.1 (iOS 10.3), with Samsung Internet 5 and Opera 38. At that floor the builds use nothing the browsers lack, and the known exceptions of 2.x are gone. The checker learned three things on the way: a read after `if (typeof x === 'undefined' || ...) return`, and through a chain of `||`, is guarded (compat's myanmar-tools lookup has that shape); `Uint16Array.from` is named by a rule, so it is not an unlisted static; and the emulation keeps what a rule names and the floor has (Symbol, Reflect). `test/dist-floor.test.js` runs both APIs of the script build with every later built-in deleted, against the sources in Node; `test/regex-floor.test.js` records the 42 regexes `src/` builds, in a process of its own, and finds the same 38 in the script build; `npm run test:browser` runs both module builds and the script build in Chromium, Firefox and WebKit.
+
+### 14.4 What was deleted, and what the tests read instead
+
+- `library/` and `main.js`, the 2.x reference while the core was built. `scripts/oracle/` holds all 13 files of `library/` at the reference, byte for byte, and its `main.js` with its requires pointed at them (`guards/oracle.test.mjs` checks the blob ids). The contract matrix records its cells from that `main.js`; compat's tests compare with it; the 2.x tests of `test/*.test.js` run against compat.
+- `test/unicode.test.js`, `test/unit/errors.test.js` and `test/unit/layers.test.js`, which checked `library/`'s tables, throws and layers; `test/next/unicode.test.mjs` and the guards check `src/`.
+- `parseUnicode` and `serializeUnicode` (decision 35), with `library/syllable.js`.
+- `scripts/smoke.js` and CI's smoke jobs on Node 16, 18 and 20, which 3.0 does not support.
+
+The tools follow: compare, perf, eval and bench load a 3.0 copy's compat through its exports map (`scripts/eval/lib/knayi.mjs`), `check:redos` reads `src/` (it found the quadratic `/\s+$/` of `explain`, fixed before this), and `scripts/eval/win-glyphs.mjs` reads the Win table through `legacyWinTables()`.
+
+### 14.5 Sizes and CI
+
+§6.4 lists the budgets this packaging proposes, for the maintainer to confirm: each `dist/` file and an import of each entry, about 5% over their size here. CI runs Node 22.12, 24 and 26 and Bun; its `Compat` job still compares compat with the reference, e5f6e24, under Node and Bun, with the matrix; the `Perf` job's growth check times compat, since `.` is compat in a 3.0 checkout.
+
+### 14.6 Checks
+
+On `next-pack` (Node 26.5, Bun 1.4.2):
+- `npm test`, on a fresh build and on the committed `dist/` of 3.0.0-next.0 (`KNAYI_DIST=dist`): 1,738 pass, 3 skipped, and the 62 timing tests; the test files pass on Node 24.12 too; `npm run test:bun`: 1,738 pass; `npm run test:pack`; `npm run check:types`; `npm run check:redos` (84 patterns, all safe); `npm run test:browser` (15 passed); `npm run check:dist -- --fresh`; the dist and import sizes within their budgets. Node 22.12 itself runs in CI only.
+- The contract matrix: 3,523 cells match for compat, the compat module build, the script build's `knayi.compat` and the reference's `main.js`, under Node and Bun.
+- `npm run compare -- --base e5f6e24fa756f8f9c8d790f9a15ede85b135e8ae --head mjs:src/compat/index.js`, with every corpus cached and pinned, mC4 included: 0 differences in 2,773,918 comparisons under Node and under Bun, and 0 in 8,960,356 with `--fuzz 200000 --seed 7`. With the head `.`, compat through the exports map, 0 (`--offline`); compat against the script build (`min:.`) and against `next`: 0.
+- `npm run perf -- --base . --offline`: 0 of 2,264 growth cells above 1.3 under Node (highest 1.21) and under Bun (highest 1.25).
+
+### 14.7 On `next`, with the streams and the command line
+
+The three branches fork from `next` at cd0b287 and merge in this order: `next-stream`, then `next-cli`, which builds on it, then `next-pack`, which moves files. The streams and the command line read none of the files the packaging moved: they import `src/` only, and their tests compare with the 3.0 API, not with `library/`. What the merge decided:
+
+- **`src/stream.js` is the streams'**, and its types `src/stream.d.ts`; the packaging's empty entry gave way, as §14.1 meant it to. The packed checks follow: `scripts/check-packed.mjs` checks the entry's four exports and runs `mapLines` and the installed `knayi` command; `typecheck/packed/stream.mts` compiles the streams under `nodenext` and runs them. Their types name the global `TransformStream`, so its project adds TypeScript's DOM library, and the others keep only ES2022, which shows that `'.'` and `'./compat'` need no DOM or Node types. README says that the stream types need the DOM library or `@types/node`.
+- **`package.json`** keeps the packaging's fields and the command's `bin`, and `files` lists `bin` first; `test/package.test.js` checks both.
+- **Budgets for the stream bundles**, set as §6.4 set the others: 16,082 B for `'knayi-myscript/stream'` (limit 16,900 B) and 10,315 B for `createNormalizer` alone (limit 10,900 B). The tree-shaking check covers the second, with the two normalize-only bundles.
+- **`dist/` is built again.** On `next`'s first-parent history the version changes at this merge, from 2.10.0 to 3.0.0-next.0, so `scripts/check-dist.js` asks that `dist/` equal a fresh build here; the build of 1cb5b5b, the release commit of `next-pack`, did not, since the streams' branch added two error codes to `ERR` and made `toUnicode` read each line apart (§11.5). The fresh build is 21,072 B for the 3.0 module build, 17,455 B for compat's and 23,951 B for the script build, all within §6.4's budgets. 3.0.0-next.0 is not published, so the CHANGELOG lists the streams and the command line under it.
+- **Sections:** the streams are §12 and the command line §13, as on their branches, and the packaging, §12 on its branch, is §14 here.
+
+Checks on the merged tree (Node 26.5, Bun 1.4.2):
+- `npm test`: 1,830 tests, 1,827 pass, 3 skipped (the gate-only checks), then 64 timing tests, `tsc` on the three `typecheck/` projects and the dist budgets. The test files pass on Node 24.12 too. `npm run test:bun`: the contract scripts, 1,827 pass and 3 skipped, and 64 timing tests.
+- The command line and the streams alone (`test/next/cli/`, `lines.test.mjs`, `stream.test.mjs`): 86 tests, under Node and under Bun; `lines.timing.mjs` passes.
+- `npm run test:pack`, `npm run check:types` (five projects; seven outputs run; @arethetypeswrong/cli reports the five known problems), `npm run check:redos` (84 patterns, all safe), `npm run test:browser` (15 passed) and `npm run check:dist -- --fresh`.
+- `node scripts/next/size.mjs`: the 3.0 API 21,291 B, compat 17,671 B, the streams 16,082 B, `normalize` alone 9,200 B, `createNormalizer` alone 10,315 B, the core's normalize-only 6,804 B; all within their budgets, and the tree-shaking check passes for the three normalize-only bundles.
+- compat is the reference's: `npm run compare -- --base e5f6e24fa756f8f9c8d790f9a15ede85b135e8ae --head mjs:src/compat/index.js` reports 0 differences in 2,773,918 comparisons under Node and under Bun, and 0 in 8,960,356 with `--fuzz 200000 --seed 7`; the contract matrix matches all 3,523 cells for `scripts/oracle/main.js`, compat, the compat module build and the script build's `knayi.compat`, under Node and Bun.
 
 ---
 

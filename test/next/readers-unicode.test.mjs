@@ -8,13 +8,16 @@
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import fc from 'fast-check';
-import {
-  UNICODE_READING, STABLE_UNICODE_READING, SEEN, reorderUnicode, unicodeReaderScratchUnits
-} from '../../src/engine/unicodeReader.js';
-import { SyllableBuffer, CodeBuffer } from '../../src/engine/syllable.js';
+import { UNICODE_READING, STABLE_UNICODE_READING, SEEN, reorderUnicode } from '../../src/engine/unicodeReader.js';
+import { SyllableBuffer } from '../../src/engine/syllable.js';
 import { ZW } from '../../src/script/codes.js';
 import { oracle, arb, fuzz } from './helpers.mjs';
+
+// The scratch check after long calls, run in a process of its own.
+const SCRATCH_PROBE = fileURLToPath(new URL('./readers-unicode.scratch.mjs', import.meta.url));
 
 const hex = (text) => Array.from(text, (ch) => ch.charCodeAt(0).toString(16).toUpperCase()).join(' ');
 
@@ -180,15 +183,9 @@ describe('what reorderUnicode returns', () => {
   });
 
   it('leaves no scratch buffer larger than its first size after an 8.9M-unit call', () => {
-    const firstSizes = new SyllableBuffer().capacity() + new CodeBuffer().capacity();
-    // Each part grows one buffer far past 65,536 units: held spaces (and the syllable written with them), a stack,
-    // and a run of e waiting for its base.
-    const text = '\u1000' + ' '.repeat(3000000) + 'x' + '\u1000' + '\u1039\u1000'.repeat(1500000) + 'x' +
-      '\u1031'.repeat(2900000) + '\u1000';
-    assert.ok(text.length > 8900000);
-    reorderUnicode(text);
-    assert.equal(unicodeReaderScratchUnits(), firstSizes);
-    reorderUnicode('\u1000\u102C '.repeat(100000));
-    assert.equal(unicodeReaderScratchUnits(), firstSizes);
+    // In a process of its own, whose reader no earlier call has used: a call keeps a buffer of up to 65,536 units
+    // (\u00A73.11), and `bun test` runs every test file in one process, where the 2.x tests call compat first.
+    const out = execFileSync(process.execPath, [SCRATCH_PROBE], { encoding: 'utf8' });
+    assert.deepEqual(JSON.parse(out), { afterLong: 'first sizes', afterLines: 'first sizes' });
   });
 });

@@ -1,19 +1,27 @@
-// The frozen 2.x engine of scripts/oracle/ (docs/next/DESIGN.md §6.1, D18, D19). The module tests of test/next
-// compare with these copies, so each must stay byte-identical to library/ at the reference, commit e5f6e24.
+// The frozen 2.x library of scripts/oracle/ (docs/next/DESIGN.md §6.1, D18, D19). The module tests of test/next and
+// compat's tests compare with these copies, so each must stay byte-identical to library/ at the reference, commit
+// e5f6e24, and scripts/oracle/main.js to the reference's main.js but for its header and paths.
 //
-// Each copy is hashed as git hashes a blob, and compared with the blob id of `git rev-parse e5f6e24:library/<file>`,
-// recorded below, so the check needs no git history in CI.
+// Each copy is hashed as git hashes a blob, and compared with the blob id of `git rev-parse e5f6e24:library/<file>`
+// (or `e5f6e24:main.js`), recorded in test/next/helpers.mjs, so the check needs no git history in CI.
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { ORACLE, ORACLE_REFERENCE_BLOBS as REFERENCE_BLOBS } from '../helpers.mjs';
+import { ORACLE, ORACLE_REFERENCE_BLOBS as REFERENCE_BLOBS, ORACLE_MAIN_BLOB } from '../helpers.mjs';
 
 // The id git gives a file's bytes as a blob: sha1 of "blob <size>\0" and the bytes.
 function gitBlobId(bytes) {
   return crypto.createHash('sha1').update('blob ' + bytes.length + '\0').update(bytes).digest('hex');
+}
+
+// scripts/oracle/main.js as the reference wrote it: without the comment lines and the blank line that open it, and
+// with each require of a sibling copy pointed back at library/.
+function asReferenceMain(text) {
+  const body = text.replace(/^(\/\/[^\n]*\n)+\n/, '');
+  return body.replace(/require\('\.\/(\w+)'\)/g, "require('./library/$1')");
 }
 
 describe('scripts/oracle/ (DESIGN.md D19)', () => {
@@ -23,4 +31,10 @@ describe('scripts/oracle/ (DESIGN.md D19)', () => {
         'scripts/oracle/' + file + ' changed; restore it with git show e5f6e24:library/' + file);
     });
   }
+
+  it('main.js is main.js at e5f6e24, with its header and its requires of the copies next to it', () => {
+    const text = fs.readFileSync(path.join(ORACLE, 'main.js'), 'utf8');
+    assert.equal(gitBlobId(Buffer.from(asReferenceMain(text))), ORACLE_MAIN_BLOB,
+      'scripts/oracle/main.js changed; it is git show e5f6e24:main.js with ./library/ made ./, under a header');
+  });
 });

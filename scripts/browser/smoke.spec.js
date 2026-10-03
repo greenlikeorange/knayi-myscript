@@ -1,30 +1,30 @@
 // The browser builds in Chromium, Firefox and WebKit: README.md's examples, more call forms and generated inputs
-// (scripts/browser/examples.js) must give main.js's results under Node. Run with `npm run test:browser`.
+// (scripts/browser/examples.js) must give the results of the ES module sources under Node, the 2.x calls on the 2.x
+// API and the 3.0 calls on the 3.0 API. Run with `npm run test:browser`.
 const path = require('path');
 const { execFileSync } = require('child_process');
 const { test, expect } = require('@playwright/test');
 const examples = require('./examples');
-const knayi = require('../../main.js');
 
-const calls = examples.allCalls();
+const calls = { compat: examples.allCalls(), api: examples.apiCalls() };
 let nodeResults = null;
 let pageErrors = [];
 
 function expected() {
   if (!nodeResults) {
-    nodeResults = JSON.parse(execFileSync(process.execPath, [path.join(__dirname, 'node-results.js')], { maxBuffer: 1 << 26 }));
+    nodeResults = JSON.parse(execFileSync(process.execPath, [path.join(__dirname, 'node-results.js')], { maxBuffer: 1 << 27 }));
   }
   return nodeResults;
 }
 
-// A browser has no require, so the adapter examples warn this where Node with myanmar-tools missing says
+// A browser has no `process`, so compat's adapter examples warn this where Node with myanmar-tools missing says
 // "is not installed". The return values are the same.
 const BROWSER_ADAPTER_WARNING = 'warn: myanmar-tools is not available in this environment; fontDetect used the rule scorer.';
 const NODE_ADAPTER_WARNING = /^warn: myanmar-tools is not installed;/;
 
-function compare(actual) {
+function compareCompat(actual) {
   let adapterWarnings = 0;
-  const diffs = examples.differences(calls, actual, expected(), {
+  const diffs = examples.differences(calls.compat, actual, expected().compat, {
     same(i, a, b) {
       const browser = (a.console || []).map((line) => line === BROWSER_ADAPTER_WARNING ? 'adapter warning' : line);
       const node = (b.console || []).map((line) => NODE_ADAPTER_WARNING.test(line) ? 'adapter warning' : line);
@@ -36,13 +36,25 @@ function compare(actual) {
   expect(adapterWarnings, 'the adapter warning appears once').toBe(1);
 }
 
-// Runs the shared call list in the page against `target`: 'global' for window.knayi, or a module URL.
-function runInPage(page, target) {
+function compareApi(actual) {
+  const diffs = examples.differences(calls.api, actual, expected().api);
+  expect(diffs, diffs.join('\n')).toEqual([]);
+}
+
+// Runs a call list in the page against `target`: 'knayi' or 'knayi.compat' for the script build's global, or
+// { module, part } for a module build's namespace ('*') or default export ('default').
+function runInPage(page, target, list) {
   return page.evaluate(async ({ source, list, target }) => {
     const run = new Function('return ' + source)();
-    const lib = target === 'global' ? window.knayi : (await import(target)).default;
+    let lib;
+    if (target === 'knayi') lib = window.knayi;
+    else if (target === 'knayi.compat') lib = window.knayi.compat;
+    else {
+      const namespace = await import(target.module);
+      lib = target.part === 'default' ? namespace.default : namespace;
+    }
     return run(lib, list);
-  }, { source: examples.runCalls.toString(), list: calls, target });
+  }, { source: examples.runCalls.toString(), list, target });
 }
 
 test.beforeEach(async ({ page, browser }, testInfo) => {
@@ -56,18 +68,24 @@ test.afterEach(() => {
   expect(pageErrors, 'uncaught errors in the page').toEqual([]);
 });
 
-test('the script build sets the knayi global with every main.js export', async ({ page }) => {
-  const keys = await page.evaluate(() => typeof window.knayi === 'object' ? Object.keys(window.knayi) : null);
-  expect(keys).toEqual(Object.keys(knayi));
-  expect(await page.evaluate(() => window.knayi.fontConvert('မဂၤလာပါ', 'unicode', 'zawgyi'))).toBe('မင်္ဂလာပါ');
+test('the script build sets knayi to the 3.0 API, with the 2.x API as knayi.compat', async ({ page }) => {
+  const names = await page.evaluate(async () => ({
+    global: Object.keys(window.knayi).sort(),
+    api: Object.keys(await import('/dist/knayi-myscript.min.mjs')).sort(),
+    compat: Object.keys(window.knayi.compat)
+  }));
+  expect(names.global).toEqual(names.api.concat('compat').sort());
+  expect(names.compat).toEqual(['version', 'setGlobalOptions', 'fontDetect', 'fontConvert', 'syllBreak', 'spellingFix',
+    'truncate', 'normalize']);
+  expect(await page.evaluate(() => window.knayi.compat.fontConvert('မဂၤလာပါ', 'unicode', 'zawgyi'))).toBe('မင်္ဂလာပါ');
 });
 
-test('the script build gives main.js results', async ({ page }) => {
-  compare(JSON.parse(await runInPage(page, 'global')));
+test('the script build gives the results of the sources', async ({ page }) => {
+  compareCompat(JSON.parse(await runInPage(page, 'knayi.compat', calls.compat)));
+  compareApi(JSON.parse(await runInPage(page, 'knayi', calls.api)));
 });
 
-test('the module build has every main.js export by name and gives main.js results', async ({ page }) => {
-  const names = await page.evaluate(async () => Object.keys(await import('/dist/knayi-myscript.mjs')).sort());
-  expect(names).toEqual(Object.keys(knayi).concat('default').sort());
-  compare(JSON.parse(await runInPage(page, '/dist/knayi-myscript.mjs')));
+test('the module builds give the results of the sources', async ({ page }) => {
+  compareCompat(JSON.parse(await runInPage(page, { module: '/dist/knayi-myscript-compat.min.mjs', part: 'default' }, calls.compat)));
+  compareApi(JSON.parse(await runInPage(page, { module: '/dist/knayi-myscript.min.mjs', part: '*' }, calls.api)));
 });

@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "module": "node16",
+    "module": "node20",
     "moduleResolution": "node16",
     "target": "ES2022",
     "lib": ["ES2022"],
@@ -8,7 +8,7 @@
     "strict": true,
     "skipLibCheck": false,
     "noEmitOnError": true,
-    "outDir": "out/node16"
+    "outDir": "out/node20"
   },
-  "files": ["esm.mts"]
+  "files": ["esm.mts", "cjs.cts"]
 }

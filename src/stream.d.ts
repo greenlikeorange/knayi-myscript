@@ -7,6 +7,10 @@
 // with 'ERR_KNAYI_INVALID_ARG_VALUE', or, for a line longer than maxLineLength, 'ERR_KNAYI_LINE_TOO_LONG'; with no
 // TransformStream, or bytes and no TextDecoder, an Error with 'ERR_KNAYI_UNSUPPORTED_RUNTIME'. A stream that throws
 // is errored: its readable side rejects, and stream.pipeline calls back with the error.
+//
+// The streams are the runtime's TransformStream, so these types name the global TransformStream type, which a
+// project has from TypeScript's DOM library or from @types/node (typecheck/packed/stream.mts compiles with the
+// first). The types of '.' and './compat' need neither.
 
 import type { DetectorOptions, SourceFont } from './index.js';
 

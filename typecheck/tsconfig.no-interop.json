@@ -10,7 +10,7 @@
     "skipLibCheck": false,
     "baseUrl": "..",
     "paths": {
-      "knayi-myscript": ["index.d.ts"]
+      "knayi-myscript/compat": ["src/compat/index.d.ts"]
     }
   },
   "files": ["require-style.ts", "default-import.ts", "named-import.ts"]

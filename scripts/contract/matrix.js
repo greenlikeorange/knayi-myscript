@@ -1,9 +1,9 @@
 'use strict';
-// The API contract matrix: every public function and call form, run on fixed synthetic probes. Each call is one
-// cell, which records the value the call returned and its type, the error it threw and what it wrote to the
-// console. test/contract/api-matrix.test.js (Node) and scripts/bun-matrix.js (Bun) check main.js, the dist builds
-// and compat (the 2.x API on the 3.0 core) against test/contract/api-matrix.json, and `npm run matrix:update`
-// rewrites that file from main.js.
+// The API contract matrix of the 2.x API: every public function and call form, run on fixed synthetic probes. Each
+// call is one cell, which records the value the call returned and its type, the error it threw and what it wrote to
+// the console. test/contract/api-matrix.test.js (Node) and scripts/bun-matrix.js (Bun) check compat (the 2.x API on
+// the 3.0 core), the 3.0 builds that hold it and main.js at the 2.x reference against test/contract/api-matrix.json,
+// and `npm run matrix:update` rewrites that file from that main.js.
 //
 // Errors. The library throws no error of its own today: every throw in the matrix is an accident of the code,
 // such as a TypeError from reading a property of undefined. The wording of those messages belongs to the
@@ -19,30 +19,35 @@ const { pathToFileURL } = require('url');
 const ROOT = path.join(__dirname, '..', '..');
 const SNAPSHOT = path.join(ROOT, 'test', 'contract', 'api-matrix.json');
 
-// The builds the matrix runs on. main.js is the source of truth; the dist files come from a fresh build of this
-// checkout in a temporary directory, or from KNAYI_DIST when it is set (`KNAYI_DIST=dist` checks the committed
-// release build); see builtDist() in scripts/build.js. `compat` is the 2.x API on the 3.0 core, src/compat/index.js
-// (docs/next/DESIGN.md §5), imported as the ES module it is.
-const BUILDS = ['main.js', 'knayi-myscript.mjs', 'knayi-myscript.min.js', 'compat'];
+// The builds the matrix runs on. main.js is the source of truth: 2.x's main.js at the reference, commit e5f6e24,
+// frozen with the 2.x library in scripts/oracle/ (docs/next/DESIGN.md §1.1, D19). `compat` is the 2.x API on the 3.0
+// core, src/compat/index.js (§5), imported as the ES module it is. The 3.0 dist files that hold the 2.x API come from
+// a fresh build of this checkout in a temporary directory, or from KNAYI_DIST when it is set (`KNAYI_DIST=dist`
+// checks the committed release build); see builtDist() in scripts/build.js: the compat module build, imported, and
+// the script build, whose knayi.compat runs in a vm.
+const BUILDS = ['main.js', 'compat', 'knayi-myscript-compat.min.mjs', 'knayi-myscript.min.js'];
 
-// src/compat/index.js, the module the `compat` build imports.
+// The module of each build that is not a dist file.
+const REFERENCE_MAIN = path.join(ROOT, 'scripts', 'oracle', 'main.js');
 const COMPAT = path.join(ROOT, 'src', 'compat', 'index.js');
 
 // A build whose known differences are exactly those of another build, so the snapshot records them once, under
-// that build. compat is a strict ES module, like the 2.x ES module build, and differs from main.js in the same
-// cells, the same way (docs/next/DESIGN.md §5.4, D2). `npm run matrix:update` checks that this still holds.
-const SHARES_RECORDED_DIFFERENCES = { compat: 'knayi-myscript.mjs' };
+// that build, which comes before it in BUILDS. The 3.0 builds are made from compat's sources and are strict like
+// them, so they differ from main.js in the same cells, the same way (docs/next/DESIGN.md §5.4, D2).
+// `npm run matrix:update` checks that this still holds.
+const SHARES_RECORDED_DIFFERENCES = { 'knayi-myscript-compat.min.mjs': 'compat', 'knayi-myscript.min.js': 'compat' };
 
 // Cells in which a build is expected to differ from main.js, with the reason. `npm run matrix:update` refuses to
 // record a build difference that no entry here explains.
 const KNOWN_BUILD_DIFFERENCES = [
   {
     name: 'debug flag read from this',
-    builds: ['knayi-myscript.mjs', 'compat'],
+    builds: ['compat', 'knayi-myscript-compat.min.mjs', 'knayi-myscript.min.js'],
     matches: (id) => id.indexOf('detached fontConvert(') === 0,
-    reason: 'fontConvert reads its debug flag from `this` (library/converter.js). A detached call in sloppy code ' +
-      '(CommonJS main.js and the script builds) reads the global object, so a global `debug` variable turns on ' +
-      'the debugging output. The ES module build is strict: `this` is undefined there, and the call returns text.'
+    reason: 'fontConvert reads its debug flag from `this` (2.x converter.js fontConvert). A detached call in ' +
+      'sloppy code (2.x\'s CommonJS main.js) reads the global object, so a global `debug` variable turns on the ' +
+      'debugging output. compat is a strict ES module, and its 3.0 builds are strict too: `this` is undefined ' +
+      'there, and the call returns text.'
   }
 ];
 
@@ -263,8 +268,7 @@ function runtimeName() {
 async function loadBuild(name) {
   const logs = [];
   if (name === 'main.js') {
-    const knayi = require(path.join(ROOT, 'main.js'));
-    return hostBuild(name, 'main.js', knayi, logs);
+    return hostBuild(name, path.relative(ROOT, REFERENCE_MAIN), require(REFERENCE_MAIN), logs);
   }
   if (name === 'compat') {
     const module = await import(pathToFileURL(COMPAT).href);
@@ -274,12 +278,13 @@ async function loadBuild(name) {
   const relative = path.relative(ROOT, file);
   const label = relative && relative.indexOf('..') !== 0 ? relative
     : process.env.KNAYI_DIST ? file : name + ' (temporary build)';
-  if (name === 'knayi-myscript.mjs') {
+  if (name === 'knayi-myscript-compat.min.mjs') {
     const module = await import(pathToFileURL(file).href);
     return hostBuild(name, label, module.default, logs);
   }
   if (name === 'knayi-myscript.min.js') {
-    // As a browser runs it: a classic script in its own global object, with no `process` or `require`.
+    // As a browser runs it: a classic script in its own global object, with no `process` or `require`. Its global
+    // `knayi` is the 3.0 API, and knayi.compat the 2.x API.
     const consoleObject = {};
     for (const method of CONSOLE_METHODS) {
       consoleObject[method] = function () { logs.push(consoleLine(method, arguments)); };
@@ -291,7 +296,7 @@ async function loadBuild(name) {
     return {
       name: name,
       label: label + ' (in a vm)',
-      knayi: sandbox.knayi,
+      knayi: sandbox.knayi.compat,
       global: sandbox,
       make: copier(realm),
       logs: logs,
@@ -436,7 +441,8 @@ function readSnapshot(file) {
 function formatSnapshot(cells, known) {
   const lines = [
     '{',
-    '  "about": ' + JSON.stringify('API contract matrix. Generated by `npm run matrix:update` from main.js; ' +
+    '  "about": ' + JSON.stringify('API contract matrix of the 2.x API. Generated by `npm run matrix:update` from ' +
+      'main.js at the 2.x reference (scripts/oracle/main.js); ' +
       'checked by test/contract/api-matrix.test.js and scripts/bun-matrix.js. Probes are synthetic.') + ',',
     '  "errors": ' + JSON.stringify('An accidental error is recorded by class only; an error the library ' +
       'throws on purpose has a string `code` and is recorded with its code and message.') + ',',

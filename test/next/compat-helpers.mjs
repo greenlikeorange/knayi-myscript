@@ -1,8 +1,8 @@
-// Shared by compat's tests (test/next/compat-*.test.mjs, docs/next/DESIGN.md §7.10): the live 2.x library and
-// compat side by side, and a console recorder.
+// Shared by compat's tests (test/next/compat-*.test.mjs, docs/next/DESIGN.md §7.10): the 2.x library at the
+// reference and compat side by side, and a console recorder.
 //
-// compat's tests compare with the live main.js and library/, not with scripts/oracle/: compat follows the 2.x line
-// port by port (D19). Byte identity with the reference commit itself is compare's and the matrix's job.
+// compat's tests compare with the frozen 2.x library of scripts/oracle/, main.js included, which a port of the 2.x
+// line moves to the new reference (DESIGN.md §8). Byte identity on every input is compare's and the matrix's job.
 
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
@@ -10,8 +10,8 @@ import compat from '../../src/compat/index.js';
 
 const require = createRequire(import.meta.url);
 
-// main.js of this checkout: the 2.x API compat reproduces.
-export const reference = require('../../main.js');
+// main.js at the reference (scripts/oracle/main.js): the 2.x API compat reproduces.
+export const reference = require('../../scripts/oracle/main.js');
 export { compat };
 
 const CONSOLE_METHODS = ['log', 'info', 'warn', 'error', 'debug', 'trace'];

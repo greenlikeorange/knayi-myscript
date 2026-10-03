@@ -20,10 +20,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # npm test: the unit, table, README, fuzz, property, adapter, layering, growth and Unicode tests, the API
-  # contract matrix on main.js, on the .mjs and min.js builds and on compat (src/compat/), the tests of the 3.0 core
-  # (test/next/), and the browser floor and RegExp checks of the builds. The builds are made in a temporary
-  # directory; dist/ is not touched.
+  # npm test: the 2.x tests against compat (src/compat/), the package and its exports map, the API contract matrix on
+  # compat, on the 3.0 builds that hold it and on 2.x's main.js frozen in scripts/oracle/, the tests of the 3.0 core
+  # and API (test/next/), the browser floor and RegExp checks of the builds, and the size budgets of the dist files.
+  # The builds are made in a temporary directory; dist/ is not touched. 22.12 is the oldest Node 3.0 supports
+  # (package.json engines): the first 22 where require() loads an ES module without a flag.
   node:
     name: Node ${{ matrix.node }}
     runs-on: ubuntu-latest
@@ -31,7 +32,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [22, 24, 26]
+        node: ['22.12', 24, 26]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -45,10 +46,10 @@ jobs:
       - run: npm test
       # test/syntax.test.js is the ES2015 gate for every dist file (one test each); it must run, not be skipped.
       - name: Check the syntax test ran
-        run: node scripts/check-tests-ran.mjs --min 4 test/syntax.test.js
+        run: node scripts/check-tests-ran.mjs --min 3 test/syntax.test.js
 
-  # The same tests under Bun, including the contract matrix on main.js, the two builds and compat in a process of its
-  # own, and the packed tarball installed with Bun.
+  # The same tests under Bun, including the contract matrix in a process of its own, and the packed tarball installed
+  # with Bun and loaded through each entry of the exports map.
   bun:
     name: Bun
     runs-on: ubuntu-latest
@@ -68,35 +69,9 @@ jobs:
       - run: npm run test:bun
       - run: npm run test:pack
 
-  # README says knayi runs on Node 16 or newer, but the test suite needs Node 22. Build on Node 22, then run the
-  # plain-Node smoke script on the older versions, against main.js and the fresh build.
-  smoke:
-    name: Smoke on Node ${{ matrix.node }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    strategy:
-      fail-fast: false
-      matrix:
-        node: [16, 18, 20]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: node scripts/build.js "$RUNNER_TEMP/dist"
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: ${{ matrix.node }}
-      - run: node scripts/smoke.js "$RUNNER_TEMP/dist"
-
-  # Static checks that need Node 20.11 or newer: every regex the library ships through recheck, the types as
-  # users get them from the packed tarball, and the min.js size with a per-module breakdown. On next, also the
-  # sizes of the 3.0 core's compat and normalize-only bundles, and its tree-shaking check (docs/next/DESIGN.md
-  # §2.4, §6.4).
+  # Static checks: every regex src/ ships through recheck, the types of every entry of the exports map as users get
+  # them from the packed tarball, the dist sizes with a per-module breakdown, and the size of an import of each entry
+  # against its budget, with the tree-shaking check (docs/next/DESIGN.md §2.4, §6.4).
   checks:
     name: ReDoS, types and size
     runs-on: ubuntu-latest
@@ -115,11 +90,12 @@ jobs:
       - run: npm run check:size
       - run: node scripts/next/size.mjs
 
-  # The script and module builds in Chromium, Firefox and WebKit against main.js, and axe on the demo and
-  # benchmark pages. The browsers are cached by Playwright's version and the runner image: Playwright ships
-  # separate builds for each Ubuntu release under the same directory names, and skips a browser whose directory
-  # is complete, so a cache keyed on the lockfile alone would bring 24.04 builds to a 26.04 runner (and download
-  # 1.1 GB again on every lockfile change). The install step then only adds the system packages they need.
+  # The script and module builds in Chromium, Firefox and WebKit against the ES module sources in Node, the 2.x calls
+  # on the 2.x API and the 3.0 calls on the 3.0 API, and axe on the demo and benchmark pages. The browsers are
+  # cached by Playwright's version and the runner image: Playwright ships separate builds for each Ubuntu release
+  # under the same directory names, and skips a browser whose directory is complete, so a cache keyed on the lockfile
+  # alone would bring 24.04 builds to a 26.04 runner (and download 1.1 GB again on every lockfile change). The install
+  # step then only adds the system packages they need.
   browser:
     name: Browsers
     runs-on: ubuntu-latest
@@ -151,12 +127,14 @@ jobs:
           path: test-results/browser
           retention-days: 7
 
-  # Output identity (CONTRIBUTING.md): every call form on two copies of knayi.
+  # Output identity (CONTRIBUTING.md): every call form of the 2.x API on two copies of knayi (scripts/eval/lib/knayi.mjs
+  # loads a 3.0 copy's compat, through its exports map).
   # - A pull request is compared with its base branch under Node and Bun. With the DELIBERATE label, the
   #   `--expect form:set=n` lines of its description are the differences it may show (CI skips `all` totals and the
   #   sets it does not read). The label and the description are read from the API when the step runs, not from
   #   the event, so after adding the label or editing the counts, re-run this job.
-  # - Every run compares main.js with the min.js and .mjs builds made from it.
+  # - Every run compares compat with the two builds made from it that hold the 2.x API: the script build's
+  #   knayi.compat (min:) and the compat module build (mjs:).
   # The corpus cache holds every pinned corpus but mC4 (decision 22) and never queries.tsv. It is keyed on
   # scripts/eval/datasets.mjs, which holds every pin, and only a push to the default branch or the nightly fuzz
   # workflow (.github/workflows/fuzz.yml, which also keeps it from expiring after 7 days unused) fills it. Every run
@@ -259,7 +237,7 @@ jobs:
           args=()
           while IFS= read -r arg; do args+=("$arg"); done < "$RUNNER_TEMP/compare-args"
           bun scripts/eval/compare.mjs "${args[@]}"
-      - name: Compare main.js with the min.js and .mjs builds
+      - name: Compare compat with the builds that hold it
         env:
           FLAGS: ${{ steps.inputs.outputs.flags }}
         run: |
@@ -268,10 +246,10 @@ jobs:
           bun scripts/eval/compare.mjs --base . --head min:. $FLAGS
 
   # compat, the 2.x API on the 3.0 core (docs/next/DESIGN.md §5, §6.3): byte identity with the 2.x reference, the
-  # commit e5f6e24, under Node and Bun; the contract matrix with compat among its builds; and the growth of compat's
-  # readers and scanners. The reference is named by its full sha: CI has origin/safety-net, not a local branch. The
-  # corpus flags are those of the Compare job: --without mc4 with the corpus cache, --offline without it (mC4 stays
-  # out of CI, decision 22). The Perf job times only main.js, which next does not change.
+  # commit e5f6e24, under Node and Bun, and the contract matrix, whose cells are that commit's main.js. The reference
+  # is named by its full sha: CI has origin/safety-net, not a local branch. The corpus flags are those of the Compare
+  # job: --without mc4 with the corpus cache, --offline without it (mC4 stays out of CI, decision 22). The Perf job
+  # times compat's growth, since `.` is compat in a 3.0 checkout.
   compat:
     name: Compat
     runs-on: ubuntu-latest
@@ -324,8 +302,6 @@ jobs:
         run: |
           node --test test/contract/api-matrix.test.js
           bun scripts/bun-matrix.js
-      - name: Growth exponents of compat under Node and Bun
-        run: npm run perf -- --base . --head mjs:src/compat/index.js --offline
 
   # Speed (CONTRIBUTING.md). Blocking: a growth exponent above 1.3 on the adversarial inputs, under Node and Bun,
   # which needs no corpus. On a pull request with the corpus cache, also a Node row more than 20% slower than the

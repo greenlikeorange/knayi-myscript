@@ -1,8 +1,8 @@
 // The two versions that compat and the 3.0 API export (DESIGN.md D8). Layer L0: imports nothing.
 
-// The npm package version. It equals package.json's "version" (test/next/codes.test.mjs checks it), and stays
-// at the 2.x release while the 3.0 core is built on next.
-export const PACKAGE_VERSION = '2.10.0';
+// The npm package version. It equals package.json's "version" (test/next/codes.test.mjs checks it); a release
+// commit changes both (CONTRIBUTING.md, release checklist).
+export const PACKAGE_VERSION = '3.0.0-next.0';
 
 // The version of knayi's output (decision 33). Each deliberate output change adds 1, so a cache keyed on it knows
 // when stored results are stale:

@@ -1,4 +1,4 @@
-import knayi from "knayi-myscript";
+import knayi from "knayi-myscript/compat";
 
 const converted: string = knayi.fontConvert("မဂၤလာပါ", "unicode");
 const version: string = knayi.version;

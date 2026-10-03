@@ -22,12 +22,13 @@ The comparison packages (`knayi-myscript@<baseline>`, `myanmar-tools@1.1.3`, `ra
 
 ## Comparing two copies
 
-`npm run compare` runs two copies of knayi side by side and reports every call whose output differs. A refactor must show 0 differences; a change made on purpose states its exact counts.
+`npm run compare` runs two copies of knayi side by side and reports every call whose output differs. A refactor must show 0 differences; a change made on purpose states its exact counts. It calls the 2.x API: `main.js` of a 2.x copy, and of a 3.0 copy `knayi-myscript/compat`, the file its exports map names (`src/compat/index.js`).
 
 ```bash
 npm run compare                                   # this working tree against origin/main
 npm run compare -- --base origin/main --head .    # the same, spelled out
-npm run compare -- --base . --head min:.          # main.js against the min.js built from it, run in a vm
+npm run compare -- --base . --head min:.          # compat against the script build made from it (knayi.compat), in a vm
+npm run compare -- --base e5f6e24fa756f8f9c8d790f9a15ede85b135e8ae --head mjs:src/compat/index.js   # compat against the 2.x reference
 npm run compare -- --offline                      # generated and fuzz inputs only: no corpus cache, no network
 npm run compare -- --without mc4                  # every corpus but mC4, as CI runs it
 npm run compare -- --expect normalize:ksw=15 --expect normalize:all=66
@@ -113,11 +114,11 @@ Rows whose labels or expected outputs came from Google's tools favour myanmar-to
 - **Licensed data only.** Every result row names its sources. `report.mjs` refuses any row whose source isn't openly licensed in `datasets.mjs`, and any run made with `--with-unlicensed`.
 - **Aggregate numbers only.** It publishes percentages and timings, never the text itself, and lists every source with its size and license.
 - **Rebuild on release.** Run `npm run bench:page` before a release and commit the two files. The page says which machine produced the timings and lists the limits of the evaluation.
-- **Named code and data.** `run.mjs` and `bench.mjs` record the code they measured as `code`: the commit, `dirty` when `main.js`, `library/`, `scripts/` or `package.json` have uncommitted changes, and `libraryHash`, the sha256 of `main.js` and every file under `library/`. `report.mjs` refuses results from two different code states, shows the commit on the page and writes `code` at the top of `benchmark.json`. Each data set in the eval results carries the sha256 it is pinned to.
+- **Named code and data.** `run.mjs` and `bench.mjs` record the code they measured as `code`: the commit, `dirty` when `main.js`, `library/`, `src/`, `scripts/` or `package.json` have uncommitted changes, and `libraryHash`, the sha256 of the library code: `main.js` and every file under `library/` in 2.x, every file under `src/` in 3.0. In 3.0 they measure compat, the 2.x API. `report.mjs` refuses results from two different code states, shows the commit on the page and writes `code` at the top of `benchmark.json`. Each data set in the eval results carries the sha256 it is pinned to.
 
 ## Win glyph table
 
-`library/win.js` maps each code point of the Win fonts to the Unicode characters it stands for. Check the table against the font:
+`src/fonts/win.js` maps each code point of the Win fonts to the Unicode characters it stands for; the page reads it through compat's `legacyWinTables()`, in 2.x's shape. Check the table against the font:
 
 ```bash
 node scripts/eval/win-glyphs.mjs path/to/WININNWA.TTF          # writes .eval-cache/win-glyphs.html

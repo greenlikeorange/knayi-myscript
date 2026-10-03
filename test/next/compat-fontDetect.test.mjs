@@ -134,13 +134,14 @@ describe('compat: the myanmar-tools adapter (C13, C26)', () => {
   });
 });
 
-// The second known build difference (§5.4): main.js looks myanmar-tools up from library/, compat from the working
-// directory. Each run is a child process, so the shared loader of this process is never touched.
+// The second known build difference (§5.4): main.js looks myanmar-tools up from the directory of its detector.js
+// (library/ in the package; here the frozen copy in scripts/oracle/), compat from the working directory. Each run is
+// a child process, so the shared loader of this process is never touched.
 describe('compat: where myanmar-tools is looked up from (§5.4)', () => {
   const script = [
     'import { createRequire } from \'node:module\';',
     'const require = createRequire(' + JSON.stringify(path.join(ROOT, 'package.json')) + ');',
-    'const main = require(' + JSON.stringify(path.join(ROOT, 'main.js')) + ');',
+    'const main = require(' + JSON.stringify(path.join(ROOT, 'scripts', 'oracle', 'main.js')) + ');',
     'const compat = (await import(' + JSON.stringify(new URL('../../src/compat/index.js', import.meta.url).href) +
       ')).default;',
     'const warnings = [];',
