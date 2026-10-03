@@ -165,6 +165,51 @@ describe('forEachBreak', () => {
     for (const policy of Object.values(BARE_CONSONANTS)) assert.deepEqual(breaksOf(loneE, 'zawgyi', policy), [], policy);
   });
 });
+describe('the font and the policy are checked, the same way for both fonts', () => {
+  const invalid = (what) => (error) => error instanceof RangeError && error.code === 'ERR_KNAYI_INVALID_ARG_VALUE' &&
+    error.message.indexOf(what) !== -1;
+  const fontNames = [null, undefined, 'Zawgyi', 'Unicode', 'win', 'foo', 1, ['zawgyi'], {}];
+  const policies = [null, 'Separate', 'PAIRS', 'foo', 1, true, {}];
+  const three = KA + KA + KA;
+  const calls = {
+    prepareBreakText: (text, font) => prepareBreakText(text, font),
+    forEachBreak: (text, font, policy) => forEachBreak(text, font, () => {}, policy),
+    breakParts: (text, font) => breakParts(text, font),
+    breakString: (text, font) => breakString(text, font, '|'),
+    segmentSyllables: (text, font, policy) => segmentSyllables(text, font, policy),
+    syllableBoundaries: (text, font, policy) => syllableBoundaries(text, font, policy),
+    collapseRepeatedMarks: (text, font) => collapseRepeatedMarks(text, font)
+  };
+
+  for (const [name, call] of Object.entries(calls)) {
+    it(name + ' throws a coded RangeError for a font that is not \'unicode\' or \'zawgyi\', on any text', () => {
+      for (const font of fontNames) {
+        for (const text of [three, '\u1031' + KA + KA, '']) {
+          assert.throws(() => call(text, font), invalid('the font'), name + ' ' + String(font));
+        }
+      }
+    });
+  }
+
+  for (const name of ['forEachBreak', 'segmentSyllables', 'syllableBoundaries']) {
+    it(name + ' throws a coded RangeError for a policy outside BARE_CONSONANTS, in both fonts', () => {
+      for (const font of FONTS) {
+        for (const policy of policies) {
+          for (const text of [three, '']) {
+            assert.throws(() => calls[name](text, font, policy), invalid('bareConsonants'), font + ' ' + String(policy));
+          }
+        }
+      }
+    });
+  }
+
+  it('an undefined policy is PAIRS, in both fonts', () => {
+    for (const font of FONTS) {
+      assert.deepEqual(segmentSyllables(three, font, undefined), [KA + KA, KA], font);
+      assert.deepEqual(syllableBoundaries(three, font, undefined), [2], font);
+    }
+  });
+});
 
 describe('the 2.x quirks the scanners keep', () => {
   it('row U1: the break text has dot below before asat, as 2.x returns it', () => {

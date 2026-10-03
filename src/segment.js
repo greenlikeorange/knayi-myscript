@@ -8,7 +8,9 @@
 // Nothing is inserted, split or joined to find the breaks.
 //
 // forEachBreak, breakParts and breakString keep the precondition of 2.x: the text has no U+200B or U+200C (2.x
-// always cleans it first, DESIGN.md C9). segmentSyllables and syllableBoundaries take any text.
+// always cleans it first, DESIGN.md C9). segmentSyllables and syllableBoundaries take any text. Every function
+// takes the font as 'unicode' or 'zawgyi' and the bare-consonant policy as a value of BARE_CONSONANTS, and throws a
+// coded RangeError for any other value, so that both fonts never read an unknown value two different ways.
 //
 // Linear time: the loop reads each unit once, and a decision looks at most at a run of tone marks after one
 // consonant (rows U5 and Z5) or at four e and medial ra glyphs (row Z8). A run of tone marks follows one
@@ -16,6 +18,7 @@
 
 import { CP, isBurmeseConsonant, isZawgyiPrebase, isZawgyiMedialRa, isZawgyiKinzi } from './script/codes.js';
 import { deepFreeze } from './freeze.js';
+import { ERR, libraryError } from './core/errors.js';
 
 // How a bare consonant (one with no mark after it) joins the syllable after it: rows U7 and Z8, decision 34.
 //   PAIRS     2.x. It joins, but a consonant that has just been joined to the one before it is not bare any more,
@@ -29,6 +32,24 @@ export const BARE_CONSONANTS = /* @__PURE__ */ deepFreeze({ PAIRS: 'pairs', CHAI
 // 2.x joinParts puts U+200B between the parts when no separator is given (syllable.js:272-275).
 const ZWSP_TEXT = '\u200B';
 
+// The font every function reads: 'unicode' or 'zawgyi'. compat resolves 2.x's other names first (DESIGN.md C12);
+// any other value here is a caller's mistake, and reading it as Unicode would break the text in the wrong font.
+function requireBreakFont(font) {
+  if (font !== 'unicode' && font !== 'zawgyi') {
+    throw libraryError(ERR.INVALID_ARG_VALUE, 'knayi.segment: the font must be \'unicode\' or \'zawgyi\'', RangeError);
+  }
+}
+
+// The bare-consonant policy: a value of BARE_CONSONANTS. A default parameter covers only undefined, so null and
+// other values land here.
+function requireBareConsonants(bareConsonants) {
+  if (bareConsonants !== BARE_CONSONANTS.PAIRS && bareConsonants !== BARE_CONSONANTS.CHAINS &&
+    bareConsonants !== BARE_CONSONANTS.SEPARATE) {
+    throw libraryError(ERR.INVALID_ARG_VALUE,
+      'knayi.segment: bareConsonants must be \'pairs\', \'chains\' or \'separate\'', RangeError);
+  }
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // Preparing the text (row U1).
 
@@ -38,6 +59,7 @@ const ZWSP_TEXT = '\u200B';
 const ASAT_THEN_DOT_BELOW = /\u103A\u1037/g;
 
 export function prepareBreakText(text, font) {
+  requireBreakFont(font);
   if (font === 'zawgyi' || text.indexOf('\u103A\u1037') === -1) return text;
   return text.replace(ASAT_THEN_DOT_BELOW, '\u1037\u103A');
 }
@@ -48,6 +70,8 @@ export function prepareBreakText(text, font) {
 // Calls onBreak(index) at every break of the prepared text, in increasing order, never at 0, and stops when
 // onBreak returns false. A break at i means a piece ends before the unit at i.
 export function forEachBreak(prepared, font, onBreak, bareConsonants = BARE_CONSONANTS.PAIRS) {
+  requireBreakFont(font);
+  requireBareConsonants(bareConsonants);
   if (font === 'zawgyi') forEachZawgyiBreak(prepared, bareConsonants, onBreak);
   else forEachUnicodeBreak(prepared, bareConsonants, onBreak);
 }
@@ -97,14 +121,13 @@ export function syllableBoundaries(text, font, bareConsonants = BARE_CONSONANTS.
 
 // The syllables of the text, in order; [] for ''. Every piece is non-empty, and they join to the text.
 export function segmentSyllables(text, font, bareConsonants = BARE_CONSONANTS.PAIRS) {
-  if (text.length === 0) return [];
   const syllables = [];
   let start = 0;
   forEachBreak(prepareBreakText(text, font), font, (index) => {
     syllables.push(text.slice(start, index));
     start = index;
   }, bareConsonants);
-  syllables.push(text.slice(start));
+  if (text.length > 0) syllables.push(text.slice(start));
   return syllables;
 }
 
@@ -303,7 +326,8 @@ function startsKinziSyllable(text, i) {
 // Row Z8: what the bare consonant before i takes of what starts at i, where rows Z1-Z7 left a break. A consonant
 // typed after e or a medial ra already has its marks, like ကြ in Unicode: the row's first branch takes it whole,
 // so it takes nothing (ကၾက|ပါ; b982c98). A lone e or medial ra joins the consonant before it under every policy,
-// unless 2.x's pairs have just taken that consonant.
+// unless 2.x's pairs have just taken that consonant. A syllable joins as the policy says, read by
+// bareConsonantJoins as row U7 reads it.
 function zawgyiBareConsonantTakes(text, i, kinziRuleOn, bareConsonants, pairedAt) {
   if (!isBurmeseConsonant(text.charCodeAt(i - 1)) || isZawgyiPrebase(text.charCodeAt(i - 2))) return TAKES_NOTHING;
   if (bareConsonants === BARE_CONSONANTS.PAIRS && !legacyBareConsonantPair(i, pairedAt)) return TAKES_NOTHING;
@@ -313,7 +337,7 @@ function zawgyiBareConsonantTakes(text, i, kinziRuleOn, bareConsonants, pairedAt
   } else if (!isBurmeseConsonant(code)) {
     return TAKES_NOTHING;
   }
-  return bareConsonants === BARE_CONSONANTS.SEPARATE ? TAKES_NOTHING : TAKES_SYLLABLE;
+  return bareConsonantJoins(bareConsonants, i, pairedAt) ? TAKES_SYLLABLE : TAKES_NOTHING;
 }
 
 // Row Z8: whether the e or medial ra at i starts a run of them that reaches a base with no break inside. A base
@@ -332,6 +356,7 @@ function startsBaseWithPrebase(text, i, kinziRuleOn) {
 // makes a run of another mark, so one pass that collapses every run gives the same text. The text itself comes
 // back when there is nothing to collapse.
 export function collapseRepeatedMarks(text, font) {
+  requireBreakFont(font);
   const isRepeatable = font === 'zawgyi' ? isRepeatableZawgyiMark : isRepeatableUnicodeMark;
   let out = '';
   let copyFrom = 0;

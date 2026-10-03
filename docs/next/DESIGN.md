@@ -583,7 +583,7 @@ export function looksLikeSgawKaren(text: string): boolean   // row Z6's switch: 
 export function collapseRepeatedMarks(text: string, font: BreakFont): string   // 2.x collapseMarks for a known font
 ```
 
-The precondition for the break functions (`forEachBreak`, `breakParts`, `breakString`) is that `text` has no U+200B or U+200C. 2.x always cleans the text first. `font` is one of the two names. compat resolves every other value (§5.2, C12).
+The precondition for the break functions (`forEachBreak`, `breakParts`, `breakString`) is that `text` has no U+200B or U+200C. 2.x always cleans the text first. `font` is one of the two names. compat resolves every other value (§5.2, C12), and every function of `segment.js` throws `libraryError(ERR.INVALID_ARG_VALUE, …, RangeError)` for any other font, and for a policy outside `BARE_CONSONANTS` (`null` and `'Separate'` included), so that the two fonts never read an unknown value two different ways (as reviewed, §7.11).
 
 The policies of `BARE_CONSONANTS`: `PAIRS` is 2.x (`legacyBareConsonantPair`: a consonant that has just been joined to the one before it joins nothing, so ကကက breaks as ကက|က); `CHAINS` joins every bare consonant, as the comment of 2.x syllable.js:239 says; `SEPARATE` joins none, so each bare consonant is a syllable of its own (UTN #11). In Zawgyi text an e or medial ra with no base after it joins the consonant before it under every policy. `segmentSyllables` and `syllableBoundaries` default to `PAIRS` until decision 34 picks the 3.0 default.
 
