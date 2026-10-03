@@ -4,7 +4,11 @@
 // A stream cuts its text into lines at '\n'; a '\r' right before it belongs to the line's ending. Each line goes
 // through a function without its ending, and the ending goes out after the result as it came. A bad argument, chunk
 // or result throws a KnayiError (src/index.d.ts): a TypeError with the code 'ERR_KNAYI_INVALID_ARG_TYPE', a RangeError
-// with 'ERR_KNAYI_INVALID_ARG_VALUE', or, for a line longer than maxLineLength, 'ERR_KNAYI_LINE_TOO_LONG'.
+// with 'ERR_KNAYI_INVALID_ARG_VALUE', or, for a line longer than maxLineLength, 'ERR_KNAYI_LINE_TOO_LONG'; with no
+// TransformStream, or bytes and no TextDecoder, an Error with 'ERR_KNAYI_UNSUPPORTED_RUNTIME'. A stream that throws
+// is errored: its readable side rejects, and stream.pipeline calls back with the error.
+
+import type { DetectorOptions, SourceFont } from './index.js';
 
 /**
  * A chunk of a stream's text: a string, or UTF-8 bytes (an ArrayBuffer, or a view of one such as a Uint8Array or a
@@ -30,3 +34,30 @@ export interface LineMapper {
 
 /** A line cutter with no stream class: for a Node Transform, a loop, or a runtime with no TransformStream. */
 export declare function mapLines(fn: (line: string) => string, options?: LineOptions | number | null): LineMapper;
+
+/**
+ * A TransformStream that gives each line to fn and writes what it returns, then the line's ending. Node's
+ * stream.pipeline takes it between Node streams. Throws 'ERR_KNAYI_UNSUPPORTED_RUNTIME' with no TransformStream.
+ */
+export declare function lineTransform(
+  fn: (line: string) => string,
+  options?: LineOptions | number | null
+): TransformStream<Chunk, string>;
+
+/** A TransformStream that normalizes each line: it gives what normalize gives for the whole text. */
+export declare function createNormalizer(options?: LineOptions | number | null): TransformStream<Chunk, string>;
+
+export interface ConverterOptions extends DetectorOptions, LineOptions {
+  /** The font of the text. Not given: each line is detected alone, as toUnicode detects it. */
+  from?: SourceFont | null;
+  /**
+   * What to convert to: 'unicode', the default. 'zawgyi' throws 'ERR_KNAYI_INVALID_ARG_VALUE': the Unicode to Zawgyi
+   * rules move e and medial ra across line breaks, so a stream cannot convert line by line to Zawgyi.
+   */
+  to?: 'unicode' | null;
+  /** How a line whose detection ties is read: 'unicode' (left as it is, the default) or 'zawgyi'. */
+  tie?: 'unicode' | 'zawgyi' | null;
+}
+
+/** A TransformStream that converts each line to Unicode: it gives what toUnicode gives for the whole text. */
+export declare function createConverter(options?: ConverterOptions | number | null): TransformStream<Chunk, string>;

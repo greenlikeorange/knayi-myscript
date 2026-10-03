@@ -6,7 +6,8 @@
 // - toUnicode never trims, and with no `from` it detects each line on its own. A line whose evidence ties is left
 //   as it is, unless tie: 'zawgyi' asks for 2.x's reading (decision 13): 2.x read every tie as Zawgyi, which changed
 //   hundreds of Unicode lines of each corpus (§11.5 has the counts).
-// - toUnicode converts a text as it converts each of its lines alone (§11.5).
+// - toUnicode converts a text as it converts each of its lines alone (§11.5), so a stream can convert it line by
+//   line (api/stream.js createConverter; §12.2).
 // - A trace option takes a trace from createTrace() and fills it with stable ids, and toUnicode's offsets option
 //   maps each unit of the output to the unit of the input it came from, for span annotation (§11.3).
 
@@ -65,16 +66,27 @@ export function toUnicode(text, options) {
 }
 
 // The options that say what toUnicode reads a text as, checked: from, tie, and with no `from`, zawgyiDetector and
-// thresholds.
+// thresholds. createConverter reads them once for its whole stream (api/stream.js).
 /**
  * @param {string} api
  * @param {Options} settings
  * @returns {UnicodeReading}
  */
-function readUnicodeReading(api, settings) {
+export function readUnicodeReading(api, settings) {
   const from = readChoice(api, settings, 'from', SOURCES, null);
   const tie = readChoice(api, settings, 'tie', TIE_READINGS, 'unicode');
   return { from: from, tie: tie, detector: from === null ? readDetector(api, settings) : null };
+}
+
+// The text in Unicode, read as `reading` says: what toUnicode returns with no trace and no offsets. createConverter
+// converts each line with it.
+/**
+ * @param {string} text
+ * @param {UnicodeReading} reading
+ * @returns {string}
+ */
+export function convertToUnicode(text, reading) {
+  return convertPieces(text, piecesToConvert(text, reading));
 }
 
 // toZawgyi(text, options?): Unicode text in Zawgyi. options.trace, a trace from createTrace(), gets the text after

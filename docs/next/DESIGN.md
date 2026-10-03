@@ -54,7 +54,7 @@ Where this spec departs from the plan, §1.4 says so and gives the reason.
   - a detached `fontConvert` call never reads a global `debug`;
   - myanmar-tools is looked up from the working directory, not from `library/`.
 - **Not here, at first:**
-  - the 3.0 public API: `toUnicode`, `toZawgyi`, `detectEncoding`, streaming, lossless segmentation, change reports and the CLI. Two cores of it are built here: lossless segmentation in `rules/segment.js` (§7.5), and the core's `detectEncoding` in `rules/detect.js`, which computes that function's result (§7.6, as built). The public functions, which check and clean their text and take their options, are 3.0's, and are built now, all but streaming and the CLI (§11);
+  - the 3.0 public API: `toUnicode`, `toZawgyi`, `detectEncoding`, streaming, lossless segmentation, change reports and the CLI. Two cores of it are built here: lossless segmentation in `rules/segment.js` (§7.5), and the core's `detectEncoding` in `rules/detect.js`, which computes that function's result (§7.6, as built). The public functions, which check and clean their text and take their options, are 3.0's, and are built now, all but the CLI (§11), streaming included (§12);
   - the package `exports` map and the 3.0 builds;
   - any output change.
 
@@ -1983,12 +1983,12 @@ A 2.x speed win that the core already has, such as the atom wrap or the one-rege
 
 ## 9. Not in this build
 
-These are the rest of Phase 6. The core is shaped so that they need no core change. The 3.0 API itself, with lossless segmentation, a prefix truncate, the change report, `isNormalized`, `explain` and an idempotent normalize, is built: §11.
+These are the rest of Phase 6. The core is shaped so that they need no core change. The 3.0 API itself, with lossless segmentation, a prefix truncate, the change report, `isNormalized`, `explain` and an idempotent normalize, is built: §11. So are its streams, `createNormalizer`, `createConverter`, `lineTransform` and `mapLines`: §12.
 
-- **Streaming:** `createNormalizer`, `createConverter`, `mapLines`, `lineTransform`. The core functions are stateless and line-local on the proven boundary (Phase 6 #2 of the plan); `toUnicode` already converts each line as it would alone (§11.5).
+- **Streaming to Zawgyi,** which waits for the fix of §10 Q10 (§12.2).
 - **Extended-C and code-point iteration** (decision 20b).
 - **The CLI** (decision 32).
-- **Packaging:** the exports map (`'.'` for `src/index.js`, `'./compat'`, `'./stream'`, `'./package.json'`), the `engines` field (Node 22.12 or later), `src/index.d.ts` as the types of `'.'`, the 3.0 builds with the dist floor checks and the Playwright smoke run, deleting `library/` and its shims, and the import sizes per entry, which `scripts/next/size.mjs` reports for `src/index.js` already (§11.1).
+- **Packaging:** the exports map (`'.'` for `src/index.js`, `'./compat'`, `'./stream'` for `src/stream.js`, `'./package.json'`), the `engines` field (Node 22.12 or later), `src/index.d.ts` and `src/stream.d.ts` as the types of `'.'` and `'./stream'`, the 3.0 builds with the dist floor checks and the Playwright smoke run, deleting `library/` and its shims, and the import sizes per entry, which `scripts/next/size.mjs` reports for `src/index.js` already (§11.1).
 
 ---
 
@@ -2213,6 +2213,18 @@ The plan left open whether to cut such a line at a syllable boundary or to raise
 - **A cut changes the output.** A stream's one promise is the output of the whole text (§12.2), and a cut makes it depend on where the input was cut. Cut at its middle syllable break, each line of the cached corpora that has one (62,626 lines) gives another `normalize` result on 1,416 lines (the look-alikes read across a syllable break: a wa after a digit is a zero) and another detected `toUnicode` on 3,687 (each piece is detected alone).
 - **No cut is safe for every function.** A cut at a region start of §11.2 would keep `normalize`'s output, but none keeps a detected line's, and a run of marks has no region start, so the error would still be needed.
 - **The limit is for memory,** against untrusted input (SECURITY.md); it is not a way to split text. A caller whose lines are longer passes a larger limit, or `Infinity`.
+
+### 12.5 Verification
+
+- `test/next/api/lines.test.mjs`: the lines, chunks, bytes and limits of `mapLines` (§12.1, §12.3, §12.4).
+- `test/next/api/stream.test.mjs`:
+  - every cached corpus, all ten sets with mC4, through `createNormalizer`, `createConverter({from: 'zawgyi'})` and `createConverter()`, as strings joined by `\n` with no final line break and as UTF-8 bytes joined by `\r\n` with one, cut into seeded chunks of 1 to 16,384 units or bytes, so that most byte cuts fall inside a character: each gives exactly what `normalize` or `toUnicode` gives for the whole text;
+  - `pipeThrough`, Node's `stream.pipeline` and `Duplex.fromWeb`; `tie` and an injected `zawgyiDetector`; the errors of a long line, a bad chunk and a function that throws, which reject the stream; the options' errors, which name the function; a runtime with no `TransformStream` or no `TextDecoder`, made by removing the global for the test;
+  - §10 Q10: its example, which fails once Q10 is fixed, and its corpus counts, recorded.
+- `test/next/api/lines.timing.mjs`, `types.test.mjs` and `typecheck/next/stream.ts` (§12.1, §12.3).
+- The files pass under Node 24 and 26 and Bun 1.4.2.
+
+**Speed.** On FLORES, Okell and mC4, each as one document in 64 KB chunks, a stream takes about the time of its function on the whole text: 0.74-1.02 of `normalize`'s, 1.01-1.12 of `toUnicode`'s from Zawgyi and 1.03-1.26 of its detecting each line (median of 5 interleaved rounds, Node 26.5). UTF-8 bytes cost 0.02-0.18 more than strings, the share of decoding; `mapLines` alone reads 0.75-1.10.
 
 ---
 

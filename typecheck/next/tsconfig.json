@@ -11,5 +11,6 @@
   },
   "files": ["api.ts", "stream.ts", "../../src/index.d.ts", "../../src/stream.d.ts", "../../src/api/args.js",
     "../../src/api/normalize.js", "../../src/api/explain.js", "../../src/api/encoding.js", "../../src/api/convert.js",
-    "../../src/api/segment.js", "../../src/api/lines.js"]
+    "../../src/api/segment.js", "../../src/api/lines.js",
+    "../../src/api/stream.js"]
 }

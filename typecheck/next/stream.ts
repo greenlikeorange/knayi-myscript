@@ -27,3 +27,20 @@ try {
 } catch (error) {
   const code: string = (error as KnayiError).code;
 }
+
+// The TransformStreams: lineTransform, createNormalizer and createConverter.
+import { lineTransform, createNormalizer, createConverter } from '../../src/stream.js';
+import type { ConverterOptions } from '../../src/stream.js';
+
+const upper: TransformStream<Chunk, string> = lineTransform((line) => line.toUpperCase());
+const normalizer: TransformStream<Chunk, string> = createNormalizer({ maxLineLength: 65536 });
+const fromZawgyi: TransformStream<Chunk, string> = createConverter({ from: 'zawgyi', to: 'unicode' });
+const detecting: TransformStream<Chunk, string> = createConverter({ tie: 'zawgyi', thresholds: [0.1, 0.9] });
+const options: ConverterOptions = { from: null, to: null, maxLineLength: null };
+const text: ReadableStream<string> = new ReadableStream<Chunk>().pipeThrough(createNormalizer());
+// @ts-expect-error: a stream does not convert to Zawgyi
+createConverter({ to: 'zawgyi' });
+// @ts-expect-error: from is a font name
+createConverter({ from: 'Zawgyi' });
+// @ts-expect-error: fn returns a string
+lineTransform((line: string) => [line]);
