@@ -109,11 +109,11 @@ function scoreWithMyanmarTools(content, fallback, threshold) {
 
 var warnedMissingMyanmarTools = false;
 
-// The adapter a call names, 'rules' or 'myanmartools', or else the one use_myanmartools picks. An adapter name is
-// read like a font name (gate.fontName): a string other than '', or a String object's string; any other value names
+// The adapter a call names, 'rules' or 'myanmartools', or else the one use_myanmartools picks. The adapter is read
+// with gate.givenName, as a font name is: a string other than '', or a String object's string; any other value names
 // no adapter. A name other than those two warns, unless silent.
 function chooseAdapter(requested, use_myanmartools) {
-  requested = gate.fontName(requested);
+  requested = gate.givenName(requested);
   if (requested === 'rules' || requested === 'myanmartools') return requested;
   if (requested && !globalOptions.isSilentMode()) {
     console.warn('Unknown adapter ' + JSON.stringify(requested) + ' on knayi.fontDetect.');
@@ -130,7 +130,7 @@ function chooseAdapter(requested, use_myanmartools) {
 function fontDetect(content, fallback_font_type, options){
   // The fallback is a string other than '' (a String object counts as its string), returned as given. Any other
   // value, such as the index Array#map passes, is no fallback: the call returns 'en' or 'zawgyi', as if omitted.
-  fallback_font_type = gate.fontName(fallback_font_type);
+  fallback_font_type = gate.givenName(fallback_font_type);
   content = gate.toText(content);
   if (gate.isMissing(content)) {
     if (!globalOptions.isSilentMode()) console.warn('Content must be specified on knayi.fontDetect.');

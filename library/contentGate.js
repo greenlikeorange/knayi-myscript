@@ -44,18 +44,19 @@ function libraryError(code, message, Ctor) {
   return error;
 }
 
-// The font name a call was given, or null for none. A name is a string other than ''; a String object counts as
-// its string. Anything else (undefined, null, '', or a number such as the index Array#map passes) means "detect".
-// fontDetect reads its fallback (returned as given) and its adapter name the same way.
-function fontName(fontType) {
-  fontType = toText(fontType);
-  return typeof fontType === 'string' && fontType !== '' ? fontType : null;
+// The name a call was given, or null for none. A name is a string other than '', or a String object's string, and
+// comes back as it is. It reads a font name, fontDetect's fallback (which is not a font name) and an adapter name.
+// Any other value (undefined, null, '', or a number such as the index Array#map passes) names nothing: the font is
+// detected, and the fallback or adapter is left out.
+function givenName(value) {
+  value = toText(value);
+  return typeof value === 'string' && value !== '' ? value : null;
 }
 
 // The font syllBreak and truncate break text in: 'unicode', 'zawgyi', or null to detect it. The break rules exist
 // for those two fonts only, so 'win' and unknown names throw a TypeError.
 function breakFont(fontType, apiName) {
-  var name = fontName(fontType);
+  var name = givenName(fontType);
   var font = resolveFont(name);
   if (name === null || font === 'unicode' || font === 'zawgyi') return font;
   throw libraryError('ERR_KNAYI_INVALID_FONT',
@@ -72,7 +73,7 @@ module.exports = {
   toText,
   hasMyanmar,
   resolveFont,
-  fontName,
+  givenName,
   breakFont,
   libraryError,
   cleanText

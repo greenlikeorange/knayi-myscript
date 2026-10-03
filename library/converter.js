@@ -30,7 +30,7 @@ function fontConvert(content, to, from) {
 
   // Zero-width spaces and non-joiners mark word breaks, so they stay.
   content = content.trim();
-  var source = gate.fontName(from);
+  var source = gate.givenName(from);
   to = gate.resolveFont(to);
   from = gate.resolveFont(from);
 
