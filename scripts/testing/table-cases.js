@@ -193,14 +193,16 @@ function main() {
   stale.forEach((id) => console.log('stale     ' + id));
   const tables = {};
   for (const row of rows) {
-    const t = tables[row.table] || (tables[row.table] = { rows: 0, cases: 0, call: 0 });
+    const t = tables[row.table] || (tables[row.table] = { rows: 0, cases: 0, call: 0, reach: false });
     t.rows++;
+    if (row.reach) t.reach = true;
     if (cases[row.id]) t.cases++;
-    if (cases[row.id] && cases[row.id].reach !== 'pattern') t.call++;
+    if (cases[row.id] && cases[row.id].reach === 'call') t.call++;
   }
   for (const name of Object.keys(tables)) {
     const t = tables[name];
-    console.log(name.padEnd(22) + t.cases + '/' + t.rows + ' rows have a case; ' + t.call + ' fire inside the public call');
+    console.log(name.padEnd(22) + t.cases + '/' + t.rows + ' rows have a case' +
+      (t.reach ? '; ' + t.call + ' fire inside the public call' : ''));
   }
   if (write) {
     fs.writeFileSync(FIXTURE, stringify({

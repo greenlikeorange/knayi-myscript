@@ -45,13 +45,16 @@ describe('table rows', () => {
     assert.deepEqual(stale, [], 'cases without a row; run ' + UPDATE);
   });
 
+  // Only the Unicode to Zawgyi rows measure whether their rule fires inside the public call (reach); the other
+  // rows are exercised at their turn by construction, and are reported as pinned.
   it('reports row reach', (t) => {
     for (const table of tables) {
       const inTable = rows.filter((row) => row.table === table);
       const pinned = inTable.filter((row) => cases[row.id] && row.exercises(cases[row.id].probe));
-      const inCall = pinned.filter((row) => !row.reach || row.reach(cases[row.id].probe) === 'call');
-      t.diagnostic(table + ': ' + pinned.length + '/' + inTable.length + ' rows pinned, ' + inCall.length +
-        ' fire inside the public call');
+      const measured = inTable.filter((row) => row.reach);
+      const inCall = pinned.filter((row) => row.reach && row.reach(cases[row.id].probe) === 'call');
+      t.diagnostic(table + ': ' + pinned.length + '/' + inTable.length + ' rows pinned' +
+        (measured.length ? ', ' + inCall.length + ' fire inside the public call' : ''));
       assert.equal(pinned.length, inTable.length);
     }
   });
