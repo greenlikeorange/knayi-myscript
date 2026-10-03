@@ -52,7 +52,7 @@ Where this spec departs from the plan, §1.4 says so and gives the reason.
   - a detached `fontConvert` call never reads a global `debug`;
   - myanmar-tools is looked up from the working directory, not from `library/`.
 - **Not here:**
-  - the 3.0 public API: `toUnicode`, `toZawgyi`, `detectEncoding`, streaming, lossless segmentation, change reports and the CLI;
+  - the 3.0 public API: `toUnicode`, `toZawgyi`, `detectEncoding`, streaming, lossless segmentation, change reports and the CLI. The core's `detectEncoding` in `detect.js` computes that function's result (§7.6, as built); the public function, which checks and cleans its text and takes a model, is 3.0's;
   - the package `exports` map and the 3.0 builds;
   - any output change.
 
@@ -170,7 +170,7 @@ src/
   engine/unicodeReader.js    L3 engine   UNICODE_READING, SEEN, reorderUnicode
   engine/fontReader.js       L3 engine   FONT_READING, compileFont, readFont, glyphsInTypedOrder
   engine/typingFixes.js      L3 rules    typos, look-alikes, zero as wa, isInNumber
-  detect.js                  L3 rules    countEvidence, decide, scoreByZawgyiModel, detectFont
+  detect.js                  L3 rules    countEvidence, decide, scoreByZawgyiModel, detectFont, detectEncoding
   segment.js                 L3 rules    break scanners, forEachBreak, breakParts, breakString, collapseRepeatedMarks
   unicodeToZawgyi.js         L3 rules    Unicode to Zawgyi rule rows, unicodeToZawgyi, traceUnicodeToZawgyi
   engine/normalizeStages.js  L3 stages   NORMALIZE_STAGES, normalizeText, traceNormalizeText
@@ -546,9 +546,15 @@ export function decide<T>(evidence: Evidence, fallback: T): 'unicode' | 'zawgyi'
 export function scoreByZawgyiModel<T>(text: string, model: ZawgyiModel, thresholds: readonly [number, number], fallback: T): 'unicode' | 'zawgyi' | T
 // options: { fallback = 'zawgyi', zawgyiModel = null, thresholds = DEFAULTS.detector.thresholds }
 export function detectFont<T>(text: string, options?: object): 'unicode' | 'zawgyi' | T
+// The rule evidence and what it says (plan Phase 5 #1). encoding is 'none' when text has no unit of U+1000-U+109F
+// (2.x fontDetect's gate; both counts are then 0), 'unknown' on a tie, else the side with more evidence.
+type Encoding = { encoding: 'unicode' | 'zawgyi' | 'unknown' | 'none', unicode: number, zawgyi: number }
+export function detectEncoding(text: string): Encoding
 ```
 
 The precondition is that `text` has been cleaned: trimmed, with no U+200B or U+200C. The anchored signatures (`^`, `$`) apply to the start and end of that cleaned text.
+
+2.x `fontDetect` with the rule scorer is `detectEncoding(cleaned).encoding`, with the fallback in place of `'none'` (`fallback || 'en'`) and of `'unknown'` (`fallback || 'zawgyi'`). 3.0's public `detectEncoding` is the core one after `requireText` and cleaning, with a model when one is injected.
 
 #### `src/segment.js` (L3 rules)
 
@@ -1279,7 +1285,9 @@ The 2.x line brings each of these, and they reach compat through §8.
 | `typingFixes.fuzz.test.mjs` | `fixTypos`, `fixLookAlikes`, `zeroAsWa`, targeted strings | 200k | 4M (PR 2.6 of the plan) |
 | `segment.fuzz.test.mjs` | `breakParts`, `breakString`, both fonts | 200k | 1M |
 | | `collapseRepeatedMarks`, both fonts | 300k | 1M |
-| `detect.fuzz.test.mjs` | `countEvidence` | 200k | 2M, plus every string of length ≤ 4 (5,884,901) |
+| `detect.fuzz.test.mjs` | `countEvidence` | 200k, plus every string of length ≤ 3 (120,100) | 2M, plus every string of length ≤ 4 (5,884,901) |
+| | `decide` against `scoreWithRules`, and the rule path against `oracle.fontDetect` | 50k | 500k |
+| | `countEvidence` and the rule path on every line of every cached corpus, raw and cleaned | all | all |
 | `syllable.fuzz.test.mjs` | `orderSyllable` on records | 200k | 2M |
 | `readers-unicode.fuzz.test.mjs` | `reorderUnicode` | 200k | 1M, plus 400k random strings |
 | `normalize.fuzz.test.mjs` | `normalizeText`, both gate settings | 100k | 1M |
@@ -1553,9 +1561,10 @@ W8 compat              after all of them; its option, input and legacy files nee
 ### 7.6 W4: detect
 
 - **Owns:** `src/detect.js`, `src/spec/detectorSignatures.js`, `test/next/detect.test.mjs`.
-- **May assume:** W0, W1 (`DEFAULTS`, `NO_OPTIONS`, `optionsObject`).
+- **May assume:** W0, W1 (`DEFAULTS`, `NO_OPTIONS`, `optionsObject`, `hasMyanmarBlockChar`).
 - **Done:**
   - The spec rows equal `scripts/oracle/signatures.js`, in source and side. Each row has its `why`, `source` and `example`.
+  - `detectEncoding` is `'none'` exactly where 2.x `fontDetect` returns before counting, `'unknown'` on a tie, and the side of `decide` otherwise, with both counts.
   - `countEvidence` equals the per-side sums of `String#match` counts, including the non-overlapping count of U+1031 U+1031 (row Z15) and the `^` and `$` anchors:
     - exhaustively over every string of length ≤ 3 on a boundary alphabet: every unit named in a signature, both edges of each range, the five detector whitespace units, U+000B (which is not one of them) and `a`;
     - length ≤ 4 nightly, when `LONG_RUN` is true (5,884,901 strings, `SCR/api-verify` P1);
@@ -1565,6 +1574,18 @@ W8 compat              after all of them; its option, input and legacy files nee
   - `detectFont` honours its per-call options (the two-configuration test).
   - Growth ≤ 1.3.
   - Start from `SCR/api-verify/v-scorer/library/detector.js`, which returns a difference. `countEvidence` returns both counts, as Phase 5's `detectEncoding` needs.
+- **As built**, where the build settles what this section leaves open or departs from it:
+  - **`detectEncoding(text)` is a core export** (§2.3), which the spec had left to the 3.0 API. The work order for W4 asked for it, and the result is the core's concern: `'none'` must be 2.x's block gate and `'unknown'` the tie, so that 2.x `fontDetect` is its `encoding` with the fallback in their place, and 3.0's public function only checks, cleans and injects. It reads W1's `hasMyanmarBlockChar`. compat does not use it, so no bundle carries it yet.
+  - **The scan has one step per kind of unit**: `matchesAtConsonant`, `matchesAtOtherUnit` (one switch over the literal rows of both sides) and `matchesBeforeConsonant` (Z08, Z14), with Z03 and Z15 in the loop and the anchored rows before it. A step returns both sides in one number (`ONE_UNICODE` = 1, `ONE_ZAWGYI` = 0x100); a position starts at most one Unicode and two Zawgyi matches. Past the end the window holds `END` (-1), not charCodeAt's NaN, which would make the window doubles. Interleaved in one process on Node 26.5 (400 cleaned FLORES lines, the same lines in Zawgyi, and 400 mC4 lines; the median of 41 rounds):
+    - the prototype's single 45-line loop (`SCR/api/scorer.js` `scoreDiff`) is 5-19% faster than these steps, which keep every function under 40 lines;
+    - separate Unicode and Zawgyi steps, each with its own switch, were 36-47% slower than the prototype, and were dropped;
+    - against 2.x `scoreWithRules` on the same cleaned text, `decide(countEvidence(text))` takes 0.15-0.19 of the time per line (5.4-6.6x faster), 0.07-0.08 per word and 0.21-0.25 on one long string. With the 2.x gate and cleaning in front, as compat's `fontDetect` will have them, the ratios are 0.17-0.21 per line, 0.10 per word and 0.24-0.26 on one string;
+    - Node 24.12: 0.16-0.21 per line, 0.10 per word and 0.20-0.24 on one string, and 0.17-0.22, 0.12-0.13 and 0.23-0.25 with the gate and cleaning;
+    - Bun 1.4.2, where 2.x's regexes are about twice as fast as on Node: faster than 2.x on every row, by 1.35-2.3x on one long string, 1.65-1.7x on mC4 lines and 2.9-4.1x on the other rows.
+  - **The boundary alphabet has 49 units** (`SCR/api-verify/scanner-fuzz.js`): the units the rows name, the ends of each range with the units just outside them, the whitespace class with U+000B, U+0000, `a`, U+00A0 and a lone surrogate. Every string of up to 3 units is 120,100 strings, and of up to 4 units 5,884,901.
+  - **`detect.fuzz.test.mjs` also reads the corpora.** Every line of every corpus in `.eval-cache`, raw and cleaned, against the 2.x regexes, and the rule path against `oracle.fontDetect`: 259,944 calls on a full cache, 0 differences, 3 s. It reads only corpora whose cached files match their pins, so it never downloads, and it skips in CI's test job, which has no cache. The nightly counts of the whole file took 22.5 s on Node 26.5.
+  - **`spec/detectorSignatures.js` returns its rows from a function**, `/* @__PURE__ */ detectorSignatures()`: the guard of §2.4 rule 2 reads `spec/` too, and the rows' prose is joined with `+` over several lines.
+  - **The 2.x behaviour kept, as found:** U11's consonant and U+103C also matches Zawgyi's consonant with medial wa, and Z06 also matches Unicode text that types the vowel u for nya before a stack. Each row's `why` says so where it applies.
 
 ### 7.7 W5: engine-unicode
 
