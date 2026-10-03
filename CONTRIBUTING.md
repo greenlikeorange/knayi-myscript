@@ -90,7 +90,8 @@ Knayi's output is used as data, so an unannounced change to it is a bug even whe
 
 - Run `npm run perf -- --base origin/main` and paste the ratios from a run on a quiet machine. Quote ratios, never absolute times from another run.
 - A Node row more than 5% slower needs a written reason. A Bun row more than 10% slower needs one too.
-- CI blocks a pull request only when an adversarial input's growth exponent goes above 1.3 under Node or Bun, or when a Node row is slower than the base branch by more than the CI threshold. The threshold is 20% for now; an A/A run on GitHub's runners will set it between 15 and 20%. Smaller differences are noise on shared runners.
+- CI blocks a pull request only when an adversarial input's growth exponent goes above 1.3 under Node or Bun, or when a Node row is slower than the base branch by more than the CI threshold. The threshold is 20% for now. The `perf A/A` workflow (`.github/workflows/perf-aa.yml`, run by hand from the Actions tab) times the same copy against itself on GitHub's runners and prints the spread of the ratios and the highest growth exponent; its result will set the threshold, between 15 and 20%, and is recorded here. Smaller differences are noise on shared runners.
+- A pull request that is slower on purpose, such as a correctness fix, gets the `SLOWER` label and says in its description why the cost is worth it. CI then lets a Node row take up to twice the base's time. Growth exponents still block.
 - Every input must run in linear time. Super-linear time on any input is treated as a security bug (see [SECURITY.md](SECURITY.md)).
 
 ### Browser floor
@@ -127,6 +128,7 @@ Keep functions short (about 40 lines in the engine), and name helpers for what t
 | Label | Use |
 | --- | --- |
 | `DELIBERATE` | The pull request changes output on purpose, with counts (above). |
+| `SLOWER` | The pull request is slower on purpose, with the reason (above). |
 | `bug` | The code or the documentation does not do what it is meant to. |
 | `enhancement` | A new feature, or a change to behaviour that works as designed. |
 | `dependencies` | Updates a dependency. |
