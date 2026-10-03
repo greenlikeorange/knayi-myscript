@@ -11,14 +11,14 @@ const version = '2.10.0';
 const setGlobalOptions = globalOptions.setOptions;
 
 module.exports = {
-	version,
-	setGlobalOptions,
-	fontDetect,
-	fontConvert,
-	syllBreak,
-	spellingFix,
-	truncate,
-	normalize,
+  version,
+  setGlobalOptions,
+  fontDetect,
+  fontConvert,
+  syllBreak,
+  spellingFix,
+  truncate,
+  normalize,
 };
 
 // TypeScript without esModuleInterop compiles `import knayi from` to `require(...).default`.

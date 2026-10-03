@@ -82,6 +82,10 @@ describe('Zawgyi', () => {
       assert.equal(toUnicode('၎င္းတို႔'), '၎င်းတို့');
       assert.equal(toUnicode('၎တို႔'), '၎င်းတို့');
       assert.equal(toUnicode('၁၄ ရက္'), '၁၄ ရက်');
+      // A four after any digit, zero to nine, stays a digit; after any other character it is lagaung.
+      assert.equal(toUnicode('၀၄င္း'), '၀၄င်း');
+      assert.equal(toUnicode('၉၄င္း'), '၉၄င်း');
+      assert.equal(toUnicode('၊၄င္း'), '၊၎င်း');
     });
 
     it('reads u with a stacked consonant, asat or aa as nya', () => {
@@ -128,6 +132,27 @@ describe('Zawgyi', () => {
       assert.deepEqual(log.matched_patterns, ['glyphs', 'syllables']);
       assert.equal(log.steps[0], 'ေက်ာ္');
       assert.equal(log.steps[log.steps.length - 1], 'ကျော်');
+    });
+
+    // The stage names and their order are 2.x API (ARCHITECTURE.md, Stable surfaces): one input that goes through
+    // all seven.
+    it('names all seven stages in their order', () => {
+      const c = (...codes) => String.fromCharCode(...codes);
+      const input = [
+        c(0x1044, 0x1004, 0x1039, 0x1038), // sequences: the digit four typed for lagaung
+        c(0x1031, 0x1000), // syllables: e typed before ka
+        c(0x1000, 0x1040, 0x1004, 0x103A), // zero as wa: a zero inside a word
+        c(0x1041, 0x101B, 0x1041), // look-alikes: ra between digits
+        c(0x1000, 0x102D, 0x102E), // typos: i with ii
+        c(0x1025, 0x102E) // NFC: u and ii compose to U+1026
+      ].join(' ');
+      const log = knayi.fontConvert.debugging(input, 'unicode', 'zawgyi');
+      assert.deepEqual(log.matched_patterns, ['sequences', 'glyphs', 'syllables', 'zero as wa', 'look-alikes', 'typos', 'NFC']);
+      assert.equal(log.steps.length, 8);
+      assert.equal(log.steps[7], [
+        c(0x104E, 0x1004, 0x103A, 0x1038), c(0x1000, 0x1031), c(0x1000, 0x101D, 0x1004, 0x103B),
+        c(0x1041, 0x1047, 0x1041), c(0x1000, 0x102E), c(0x1026)
+      ].join(' '));
     });
   });
 });

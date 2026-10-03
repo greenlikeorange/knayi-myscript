@@ -1,0 +1,40 @@
+version: 2
+updates:
+  # Development tools only: the package has no runtime dependencies, and myanmar-tools is an optional peer.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    allow:
+      - dependency-type: development
+    # Keep exact pins exact and move ranges up, instead of widening them.
+    versioning-strategy: increase
+    # Wait a week after a release before proposing it, so a bad or hijacked release is likely pulled first.
+    cooldown:
+      default-days: 7
+    groups:
+      dev-dependencies:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # myanmar-tools 1.2.0 on npm ships without build_node/, so require() fails inside it, and the peer range
+      # stops below it.
+      - dependency-name: myanmar-tools
+        versions:
+          - ">=1.2.0"
+    commit-message:
+      prefix: chore(deps)
+
+  # The workflows pin each action to a commit SHA with the version in a comment; updates move both.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: ci(deps)

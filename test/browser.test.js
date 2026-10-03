@@ -3,10 +3,11 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const { builtDist } = require('../scripts/build');
 
 describe('browser file', () => {
   it('exposes knayi and converts the Zawgyi greeting', () => {
-    const source = fs.readFileSync(path.join(__dirname, '..', 'dist', 'knayi-myscript.min.js'), 'utf8');
+    const source = fs.readFileSync(path.join(builtDist(), 'knayi-myscript.min.js'), 'utf8');
     const sandbox = { console };
     vm.createContext(sandbox);
     vm.runInContext(source, sandbox);
@@ -17,7 +18,7 @@ describe('browser file', () => {
 
   it('sets the global when a bundler wraps the file in a module scope', () => {
     for (const file of ['knayi-myscript.js', 'knayi-myscript.min.js']) {
-      const source = fs.readFileSync(path.join(__dirname, '..', 'dist', file), 'utf8');
+      const source = fs.readFileSync(path.join(builtDist(), file), 'utf8');
       const sandbox = { console };
       vm.createContext(sandbox);
       vm.runInContext('(function () {\n' + source + '\n})();', sandbox);

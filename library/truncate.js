@@ -8,7 +8,7 @@ function truncate(content, options) {
   var fontType = options.fontType;
   var length = options.length || 30;
   var omission = options.omission || '...';
-  
+
   var absoulteLength = length - omission.length;
 
   content = gate.toText(content);
@@ -38,7 +38,7 @@ function truncate(content, options) {
         curr += syll;
       } else {
         var spaceBreak = syll.split(/\s/);
-        
+
         curr += spaceBreak.reduce(function (_curr, word) {
           if (word.length + 1 <= left - _curr.length) {
             _curr += word + ' ';

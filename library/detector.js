@@ -130,11 +130,11 @@ function fontDetect(content, fallback_font_type, options = {}){
     return fallback_font_type || 'en';
   }
 
-	if (!gate.hasMyanmar(content))
-		return fallback_font_type || 'en';
+  if (!gate.hasMyanmar(content))
+    return fallback_font_type || 'en';
 
-	content = gate.cleanText(content, true);
-	fallback_font_type = fallback_font_type || 'zawgyi';
+  content = gate.cleanText(content, true);
+  fallback_font_type = fallback_font_type || 'zawgyi';
 
   var requestedAdapter = options.adapter;
   options = globalOptions.detector(options);

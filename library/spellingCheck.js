@@ -10,16 +10,16 @@ function spellingFix(content, fontType){
     return '';
   }
 
-	if (!gate.hasMyanmar(content))
-		return content;
+  if (!gate.hasMyanmar(content))
+    return content;
 
-	if (!fontType)
-		fontType = fontDetect(content);
-	else
-		fontType = gate.resolveFont(fontType) || fontType;
+  if (!fontType)
+    fontType = fontDetect(content);
+  else
+    fontType = gate.resolveFont(fontType) || fontType;
 
-	content = gate.cleanText(content, true);
-	return syllable.collapseMarks(content, fontType);
+  content = gate.cleanText(content, true);
+  return syllable.collapseMarks(content, fontType);
 }
 
 module.exports = spellingFix;
