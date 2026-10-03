@@ -214,3 +214,24 @@ export declare function segmentSyllables(text: string, options?: SyllableOptions
 
 /** Where each syllable after the first starts. */
 export declare function syllableBoundaries(text: string, options?: SyllableOptions | number | null): number[];
+
+// ---------------------------------------------------------------------------------------------------------------
+// truncate and collapseRepeatedMarks
+
+export interface TruncateOptions extends SyllableOptions {
+  /** The most units of the result, the omission included. Default 30. */
+  length?: number | null;
+  /** What marks the cut. Default '...'. */
+  omission?: string | null;
+}
+
+/** The text, or its longest prefix cut at a syllable break that fits with the omission, then the omission. */
+export declare function truncate(text: string, options?: TruncateOptions | number | null): string;
+
+export interface CollapseOptions {
+  /** Whose marks to collapse. Default 'unicode'. */
+  font?: BreakFont | null;
+}
+
+/** Each run of one mark typed several times in a row, as one. Never trims; zero-width characters stay. */
+export declare function collapseRepeatedMarks(text: string, options?: CollapseOptions | number | null): string;

@@ -1,16 +1,19 @@
-// segmentSyllables and syllableBoundaries of the 3.0 API (docs/next/DESIGN.md §11.6; decision 34).
+// segmentSyllables, syllableBoundaries, truncate and collapseRepeatedMarks of the 3.0 API (docs/next/DESIGN.md
+// §11.6, §11.7; decision 34).
 //
 // - Lossless: the syllables join back to the text under every policy and font, ZWNJ and all.
 // - 'pairs' is 2.x syllBreak's reading; 'separate', the default, gives the syllables of UTN #11.
 // - The counts decision 34 chose the default from, recounted on the cached corpora and recorded.
+// - truncate always returns a prefix of the text, then the omission, within `length`.
+// - collapseRepeatedMarks is 2.x spellingFix without its trim and its removal of zero-width characters.
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import fc from 'fast-check';
 import { arb, fuzz } from '../helpers.mjs';
 import { units, cachedCorpora } from './helpers.mjs';
-import { segmentSyllables, syllableBoundaries } from '../../../src/index.js';
-import { syllBreak } from '../../../src/compat/index.js';
+import { segmentSyllables, syllableBoundaries, truncate, collapseRepeatedMarks } from '../../../src/index.js';
+import { syllBreak, spellingFix } from '../../../src/compat/index.js';
 
 const FIRST = '\u1015\u1011\u1019\u1006\u102F\u1036\u1038'; // ပထမဆုံး, first
 const POLICIES = ['separate', 'chains', 'pairs'];
@@ -126,3 +129,83 @@ function piecesHoldingSeveral(pieces, boundaries) {
   }
   return count;
 }
+
+describe('truncate (DESIGN.md §11.7)', () => {
+  // The README's pangram, which 2.x truncate cuts into text that is no prefix of it (DESIGN.md §10 Q5).
+  const PANGRAM = '\u101E\u102E\u101F\u102D\u102F\u1020\u103A\u1000\u1031\u102C\u1004\u103A\u1038\u1000\u102C\u1038' +
+    ' \u1012\u1031\u102C\u1004\u103A\u1038\u1001\u101B\u1019\u1038\u1006\u1004\u1037\u103A \u1019\u1031\u101C\u1000' +
+    '\u103B\u1004\u103A \u1007\u101C\u103D\u1014\u103A \u1005\u102C\u1000\u102D\u102F \u1008\u1031\u1038';
+
+  it('returns the text when it fits, else a prefix cut at a syllable, then the omission', () => {
+    assert.equal(truncate('short'), 'short');
+    assert.equal(truncate(FIRST + FIRST, { length: 6, omission: '.' }), '\u1015\u1011\u1019.');
+    assert.equal(truncate(FIRST + FIRST, { length: 6, omission: '.', policy: 'pairs' }), '\u1015\u1011.');
+    const cut = truncate(PANGRAM, { length: 30 });
+    assert.ok(cut.length <= 30 && cut.endsWith('...'));
+    assert.ok(PANGRAM.startsWith(cut.slice(0, -3)), 'a prefix');
+    assert.equal(truncate('hello world', { length: 8 }), 'hello...', 'no white space before the omission');
+  });
+
+  it('reads undefined and null as the defaults, 30 and \'...\', and takes an empty omission', () => {
+    const long = FIRST.repeat(10);
+    assert.equal(truncate(long), truncate(long, { length: 30, omission: '...' }));
+    assert.equal(truncate(long, { length: null, omission: null }), truncate(long));
+    assert.equal(truncate(long, { length: 7, omission: '' }), long.slice(0, 7));
+    assert.equal(truncate('abc', { length: 0, omission: '' }), '');
+  });
+
+  it('never splits a surrogate pair or cuts before a combining mark', () => {
+    assert.equal(truncate('\uD83D\uDE00\uD83D\uDE00', { length: 3, omission: '' }), '\uD83D\uDE00');
+    assert.equal(truncate('ae\u0301b', { length: 2, omission: '' }), 'a');
+  });
+
+  it('always gives a prefix, then the omission, within the length', () => {
+    const text = fc.oneof(arb.unicodeText(24), arb.burmeseText, arb.codeUnits, fc.string());
+    const options = fc.record({ length: fc.integer({ min: 3, max: 40 }), omission: fc.constantFrom('...', '', '\u2026'),
+      policy: fc.constantFrom(...POLICIES) });
+    fuzz.check(fc.property(text, options, (x, settings) => {
+      const out = truncate(x, settings);
+      assert.ok(out.length <= settings.length, units(x));
+      if (out === x) return;
+      assert.ok(out.endsWith(settings.omission));
+      const kept = out.slice(0, out.length - settings.omission.length);
+      assert.ok(x.startsWith(kept), units(x) + ' gives ' + units(out));
+    }), 30000, [[PANGRAM, { length: 30, omission: '...', policy: 'separate' }]], 600000);
+  });
+
+  it('throws coded errors for bad options', () => {
+    const rangeError = { name: 'RangeError', code: 'ERR_KNAYI_INVALID_ARG_VALUE' };
+    const typeError = { name: 'TypeError', code: 'ERR_KNAYI_INVALID_ARG_TYPE' };
+    assert.throws(() => truncate('abc', { length: 2 }), rangeError, 'no room for the omission');
+    assert.throws(() => truncate('abc', { length: -1 }), rangeError);
+    assert.throws(() => truncate('abc', { length: 2.5, omission: '' }), rangeError);
+    assert.throws(() => truncate('abc', { length: '5' }), typeError);
+    assert.throws(() => truncate('abc', { omission: 1 }), typeError);
+    assert.throws(() => truncate(5), typeError);
+    const lines = [FIRST.repeat(10), 'abc'];
+    assert.deepEqual(lines.map(truncate), lines.map((line) => truncate(line)));
+  });
+});
+
+describe('collapseRepeatedMarks (DESIGN.md §11.6)', () => {
+  it('collapses a run of one mark, and keeps white space and zero-width characters', () => {
+    assert.equal(collapseRepeatedMarks(' \u1000\u102C\u102C\u102C\u200B '), ' \u1000\u102C\u200B ');
+    assert.equal(collapseRepeatedMarks('\u1000\u102C\u102C', { font: 'zawgyi' }), '\u1000\u102C');
+    assert.equal(collapseRepeatedMarks('\u1000\u1060\u1060'), '\u1000\u1060\u1060', 'not a Unicode mark');
+    assert.equal(collapseRepeatedMarks('\u1000\u1060\u1060', { font: 'zawgyi' }), '\u1000\u1060');
+  });
+
+  it('is 2.x spellingFix on the text 2.x cleaned', () => {
+    fuzz.check(fc.property(arb.unicodeText(16), arb.zawgyiText(16), (unicode, zawgyi) => {
+      for (const [text, font] of [[cleaned(unicode), 'unicode'], [cleaned(zawgyi), 'zawgyi']]) {
+        if (!/[\u1000-\u109F]/.test(text)) continue;
+        assert.equal(collapseRepeatedMarks(text, { font }), spellingFix(text, font), font + ': ' + units(text));
+      }
+    }), 30000, [], 600000);
+  });
+
+  it('throws coded errors for bad options', () => {
+    assert.throws(() => collapseRepeatedMarks('a', { font: 'win' }), { code: 'ERR_KNAYI_INVALID_ARG_VALUE' });
+    assert.throws(() => collapseRepeatedMarks({}), { code: 'ERR_KNAYI_INVALID_ARG_TYPE' });
+  });
+});

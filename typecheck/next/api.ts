@@ -80,3 +80,12 @@ const boundaries: number[] = syllableBoundaries(lines[0]);
 const pieces: string[][] = lines.map(segmentSyllables);
 // @ts-expect-error: the policies are separate, chains and pairs
 segmentSyllables('x', { policy: 'words' });
+
+// truncate and collapseRepeatedMarks
+import { truncate, collapseRepeatedMarks } from '../../src/index.js';
+
+const cut: string = truncate(lines[0], { length: 10, omission: '\u2026', policy: 'separate' });
+const cutDefault: string = truncate(lines[0], { length: null, omission: null });
+const collapsed: string = collapseRepeatedMarks(lines[0], { font: 'zawgyi' });
+// @ts-expect-error: length is a number
+truncate('x', { length: '30' });

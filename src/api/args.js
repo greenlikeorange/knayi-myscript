@@ -82,6 +82,42 @@ export function readFlag(api, options, name) {
   throw libraryError(ERR.INVALID_ARG_TYPE, wrongType(api, 'options.' + name, 'a boolean', value), TypeError);
 }
 
+// options[name] as a whole number of at least 0, or `fallback` when it is undefined or null.
+/**
+ * @param {string} api
+ * @param {Options} options
+ * @param {string} name
+ * @param {number} fallback
+ * @returns {number}
+ */
+export function readCount(api, options, name, fallback) {
+  const value = options[name];
+  if (value === undefined || value === null) return fallback;
+  if (typeof value !== 'number') {
+    throw libraryError(ERR.INVALID_ARG_TYPE, wrongType(api, 'options.' + name, 'a number', value), TypeError);
+  }
+  if (!isWholeNumber(value)) {
+    throw libraryError(ERR.INVALID_ARG_VALUE, where(api, 'options.' + name + ' must be a whole number of 0 or more'),
+      RangeError);
+  }
+  return value;
+}
+
+// options[name] as a string, or `fallback` when it is undefined or null.
+/**
+ * @param {string} api
+ * @param {Options} options
+ * @param {string} name
+ * @param {string} fallback
+ * @returns {string}
+ */
+export function readText(api, options, name, fallback) {
+  const value = options[name];
+  if (value === undefined || value === null) return fallback;
+  if (typeof value === 'string') return value;
+  throw libraryError(ERR.INVALID_ARG_TYPE, wrongType(api, 'options.' + name, 'a string', value), TypeError);
+}
+
 // options.trace: a trace made by createTrace(), which the call fills, or null.
 /**
  * @param {string} api
@@ -152,6 +188,11 @@ export function where(api, what) {
  */
 function wrongType(api, name, wanted, value) {
   return where(api, name + ' must be ' + wanted + ', not ' + describe(value));
+}
+
+/** @param {number} value */
+function isWholeNumber(value) {
+  return value >= 0 && value <= 0x1FFFFFFFFFFFFF && Math.floor(value) === value;
 }
 
 // 'a', 'a or b', 'a, b or c', each quoted.

@@ -9,7 +9,8 @@ import assert from 'node:assert/strict';
 import { growthExponent } from '../../../scripts/eval/lib/timing.mjs';
 import { SHAPES, PUMPS, NFC_RUNS } from '../helpers.mjs';
 import {
-  normalize, isNormalized, explain, detectEncoding, toUnicode, toZawgyi, segmentSyllables, syllableBoundaries
+  normalize, isNormalized, explain, detectEncoding, toUnicode, toZawgyi, segmentSyllables, syllableBoundaries,
+  truncate, collapseRepeatedMarks
 } from '../../../src/index.js';
 
 const LIMIT = 1.3;
@@ -57,7 +58,9 @@ const FUNCTIONS = {
   'toUnicode, offsets': (text) => toUnicode(text, { from: 'zawgyi', offsets: true }),
   toZawgyi: (text) => toZawgyi(text),
   segmentSyllables: (text) => segmentSyllables(text),
-  syllableBoundaries: (text) => syllableBoundaries(text, { policy: 'pairs' })
+  syllableBoundaries: (text) => syllableBoundaries(text, { policy: 'pairs' }),
+  truncate: (text) => truncate(text, { length: text.length >> 1 }),
+  collapseRepeatedMarks: (text) => collapseRepeatedMarks(text)
 };
 
 describe('growth of the 3.0 API (DESIGN.md §6.2)', () => {
