@@ -135,6 +135,56 @@ describe('library against the 2.10 oracle', () => {
     }
   });
 
+  // order tells which marks a syllable has from one number with the bit 1 << rank of each
+  // (library/storageOrder.js); 2.10 searched the marks. Every run of up to three of the 16 marks it sorts, on
+  // each kind of base it treats apart, through normalize; and the same runs, with two marks outside its table,
+  // through a made-up font whose glyphs are the marks themselves, a stacked consonant, kinzi, a ligature base,
+  // and e and medial ra drawn first.
+  it('every run of up to three marks', () => {
+    const MARKS = '\u103B\u103C\u103D\u103E\u1031\u102D\u102E\u102F\u1030\u102B\u102C\u1032\u1036\u1037\u103A\u1038';
+    const OTHER = '\u1033\u0301'; // a Mon vowel sign and a combining acute, which MARK_ORDER does not have
+    const runsOf = (marks) => {
+      let runs = [''];
+      let last = [''];
+      for (let length = 1; length <= 3; length++) {
+        last = last.flatMap((run) => marks.map((mark) => run + mark));
+        runs = runs.concat(last);
+      }
+      return runs;
+    };
+    const bases = [
+      '\u1000', '\u1005', '\u1025', '\u1047', // ka, ca, u, seven
+      '\u1000\u1039\u1000', '\u1000\u1039\u1005', // ka with a stacked ka, with a stacked ca
+      '\u1004\u103A\u1039\u1002', '\u101C\u1032\u1025' // kinzi on ga, u after a vowel sign
+    ];
+    for (const run of runsOf(MARKS.split(''))) {
+      for (const base of bases) same(knayi.normalize(base + run), oracle.normalize(base + run), base + run);
+    }
+
+    const table = {
+      '\uE000': ['stack', '\u1039\u1000'],
+      '\uE001': ['stack', '\u1039\u1005'],
+      '\uE002': ['kinzi', '\u1004\u103A\u1039'],
+      '\uE003': ['base', '\u100B\u1039\u100C'],
+      '\uE004': ['pre', '\u1031'],
+      '\uE005': ['pre', '\u103C']
+    };
+    for (const mark of MARKS + OTHER) table[mark] = ['mark', mark];
+    const library = require('../library/storageOrder');
+    const font = library.font(table, []);
+    const frozen = oracle.storageOrder.font(table, []);
+    const starts = [
+      '\u1000', '\u1005', '\u1025', '\u1047', // ka, ca, u, seven
+      '\u1000\uE000', '\u1000\uE001', '\u1002\uE002', '\uE003', // a stacked ka, a stacked ca, kinzi, a ligature
+      '\uE004\u1000', '\uE005\u1005' // e before ka, medial ra before ca
+    ];
+    for (const run of runsOf((MARKS + OTHER).split(''))) {
+      for (const start of starts) {
+        same(library.toUnicode(start + run, font), oracle.storageOrder.toUnicode(start + run, frozen), start + run);
+      }
+    }
+  });
+
   // A generator that stopped reaching the readers would let every comparison above pass. About 28% of the
   // Unicode strings change under normalize, over 90% of the Zawgyi and Win strings convert to something else,
   // and detection gives each font and ties.

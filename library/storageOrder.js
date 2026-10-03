@@ -38,16 +38,9 @@ const AI_ANUSVARA = 8; // MARK_ORDER index of ai and anusvara
 const FIRST_VOWEL = 5; // MARK_ORDER index of i and ii: vowels and finals from here on
 const ASAT = '\u103A';
 const VIRAMA = '\u1039';
-const VISARGA = '\u1038';
-const AA = '\u102B\u102C'; // aa, tall aa
 const AA_TALL = '\u102B';
 const AA_SHORT = '\u102C';
 const ANUSVARA = '\u1036';
-const LOWER_VOWELS = '\u102F\u1030';
-const E_AA = '\u1031\u102B\u102C'; // e, aa, tall aa
-const I = '\u102D\u102E'; // i, ii
-const DOT_BELOW = '\u1037';
-const MEDIALS = '\u103B\u103C\u103D\u103E';
 const MEDIAL_YA = '\u103B';
 const MEDIAL_HA = '\u103E';
 const CA = '\u1005';
@@ -74,11 +67,27 @@ function rank(mark) {
   return index === undefined ? MARK_ORDER.length : index;
 }
 
-// Whether any of the first `end` marks (all of them by default) is in `set`.
-function hasAny(marks, set, end) {
-  var stop = end === undefined ? marks.length : end;
-  for (var i = 0; i < stop; i++) {
-    if (set.indexOf(marks[i]) >= 0) return true;
+// order keeps the ranks of a syllable's marks in one number, with the bit 1 << rank for each, and tests that
+// number instead of searching the marks. Each mark it looks for has a rank of its own, or shares it only with
+// marks it looks for along with it (i and ii, the lower vowels, aa and tall aa). The ranks are written out as
+// numbers, so that the build holds each bit as a constant; test/unit/mark-ranks.test.js checks them against
+// MARK_ORDER.
+const MEDIAL_YA_BIT = 1 << 0;
+const MEDIAL_BITS = 1 << 0 | 1 << 1 | 1 << 2 | 1 << 3; // medial ya, ra, wa and ha
+const MEDIAL_HA_BIT = 1 << 3;
+const E_AA_BITS = 1 << 4 | 1 << 7; // e, aa, tall aa
+const I_BIT = 1 << 5; // i, ii
+const LOWER_VOWEL_BIT = 1 << 6;
+const AA_BIT = 1 << 7; // aa, tall aa
+const DOT_BELOW_BIT = 1 << 9;
+const ASAT_BIT = 1 << 10;
+const VISARGA_BIT = 1 << 11;
+
+// Whether e or aa was typed before the mark at `end`. The order the marks were typed in counts here, so this
+// reads them one by one.
+function isEOrAaBefore(marks, end) {
+  for (var i = 0; i < end; i++) {
+    if ((1 << rank(marks[i])) & E_AA_BITS) return true;
   }
   return false;
 }
@@ -105,8 +114,17 @@ function order(syllable) {
   if (!syllable.marks.length && !stack) return syllable.kinzi + base;
   var stacked = stack !== '' || base.indexOf(VIRAMA) > 0; // a ligature base such as tta + ttha has one too
   var marks = [];
+  // The bit 1 << rank of each mark typed. Taking asat or medial ya out of marks below leaves it as it is, so
+  // the one later test for either, asat for u, reads marks.
+  var present = 0;
   for (var m = 0; m < syllable.marks.length; m++) {
-    if (marks.indexOf(syllable.marks[m]) < 0) marks.push(syllable.marks[m]); // a mark typed twice counts once
+    var typed = syllable.marks[m];
+    var bit = 1 << rank(typed);
+    // A mark typed twice counts once. It can be there already only if a mark of its rank is.
+    if (!(present & bit) || marks.indexOf(typed) < 0) {
+      marks.push(typed);
+      present |= bit;
+    }
   }
 
   // Where the asat goes (Unicode Technical Note #11). It is stored last when typed after e or aa (kyaw), and
@@ -117,23 +135,23 @@ function order(syllable) {
   // consonant's asat, and is dropped.
   var early = false;
   var afterMedials = false;
-  var asat = marks.indexOf(ASAT);
-  var hasAa = hasAny(marks, AA);
-  if (asat >= 0) {
-    var dotBelow = marks.indexOf(DOT_BELOW) >= 0;
-    var slip = !hasAa && (hasAny(marks, I) || (stacked && !dotBelow));
-    var last = dotBelow || hasAny(marks, E_AA, asat) || (hasAa && !hasAny(marks, MEDIALS));
+  var hasAa = present & AA_BIT;
+  if (present & ASAT_BIT) {
+    var asat = marks.indexOf(ASAT);
+    var dotBelow = present & DOT_BELOW_BIT;
+    var slip = !hasAa && ((present & I_BIT) || (stacked && !dotBelow));
+    var last = dotBelow || isEOrAaBefore(marks, asat) || (hasAa && !(present & MEDIAL_BITS));
     if (slip) {
       marks.splice(asat, 1);
     } else if (!last) {
       marks.splice(asat, 1);
-      if (marks.indexOf(MEDIAL_HA) >= 0) afterMedials = true;
+      if (present & MEDIAL_HA_BIT) afterMedials = true;
       else early = true;
     }
   }
 
   // Letters the fonts draw alike.
-  var ya = marks.indexOf(MEDIAL_YA);
+  var ya = (present & MEDIAL_YA_BIT) ? marks.indexOf(MEDIAL_YA) : -1;
   if (ya >= 0 && stack.slice(-1) === CA) {
     stack = stack.slice(0, -1) + JHA; // stacked ca with medial ya is stacked jha
     marks.splice(ya, 1);
@@ -144,7 +162,7 @@ function order(syllable) {
   if (base === U && !syllable.keepU && (stacked || early || afterMedials || marks.indexOf(ASAT) >= 0 || hasAa)) {
     base = NYA; // the vowel u never takes a stacked consonant, asat or aa: it is nya
   }
-  var marksBesidesVisarga = marks.length - (marks.indexOf(VISARGA) >= 0 ? 1 : 0);
+  var marksBesidesVisarga = marks.length - ((present & VISARGA_BIT) ? 1 : 0);
   if (base === SEVEN && (early || afterMedials || marksBesidesVisarga > 0)) {
     base = RA; // a digit takes no vowel sign or medial: seven is ra. After digits, visarga is a colon (7:30).
   }
@@ -152,7 +170,7 @@ function order(syllable) {
   // ai and anusvara come after a lower vowel and aa. With no lower vowel, either can also be typed before aa
   // to sit on the consonant, as Mon and Karen write it (khr-anusvara-aa, Christ): it stays there, except
   // anusvara before tall aa, which UTN #11 does not allow.
-  var lower = hasAny(marks, LOWER_VOWELS);
+  var lower = present & LOWER_VOWEL_BIT;
   var ranks = RANKS; // reused: order never runs inside itself
   for (var r = 0; r < marks.length; r++) {
     var markRank = rank(marks[r]);
