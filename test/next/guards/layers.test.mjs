@@ -9,7 +9,8 @@
 //   compat's files import each other one way only (§5.1).
 // - The two public APIs stand apart: the 3.0 API (index.js, stream.js and api/) and compat import neither each
 //   other nor the other's files (§11.1).
-// - No file loads code at run time, except compat/zawgyiModel.js (D3).
+// - No file loads code at run time. compat/zawgyiModel.js, which loaded myanmar-tools, was the one exception until
+//   the port of 2.11, after which compat loads no package (D3).
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -94,9 +95,6 @@ const COMPAT_IMPORTS = {
 
 // The files of the 3.0 API: index.js, stream.js and api/ (§11.1, §12).
 const isApiFile = (file) => file === 'index.js' || file === 'stream.js' || file.startsWith('api/');
-
-// The one file that may load code: myanmar-tools, for the 2.x API (D3).
-const LOADER = 'compat/zawgyiModel.js';
 
 const SOURCES = parsedSources();
 
@@ -233,13 +231,10 @@ describe('layers of src/ (DESIGN.md §2.2)', () => {
     assert.deepEqual(cycles, []);
   });
 
-  it('no file loads code at run time, except ' + LOADER + ' (D3)', () => {
+  it('no file loads code at run time (D3)', () => {
     const bad = [];
     for (const { file, ast } of SOURCES) {
-      for (const [node, what] of codeLoadingSites(ast)) {
-        const allowed = file === LOADER && what !== 'import()' && what !== 'import.meta';
-        if (!allowed) bad.push(where(file, node) + ' uses ' + what);
-      }
+      for (const [node, what] of codeLoadingSites(ast)) bad.push(where(file, node) + ' uses ' + what);
     }
     assert.deepEqual(bad, []);
   });
