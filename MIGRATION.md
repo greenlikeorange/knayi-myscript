@@ -99,7 +99,7 @@ and 2.x returns a text with no character of U+1000–U+109F as it is, untrimmed,
 
 ### Output changes, counted
 
-What a 2.x user sees who replaces each 2.x call with its plain 3.0 call. The counts are distinct lines of the corpora that `npm run eval` downloads ([scripts/eval/README.md](scripts/eval/README.md)), and of the fuzz sets of `npm run compare` (seed 20261003, 20,000 strings per generator, made distinct); "Wikipedia" is the 4,812-line sample. They were taken with compat at 2.10.0's output, and are taken again as compat takes 2.11's changes: `truncate`'s prefix, the typing fixes in `normalize`'s order, and the rule for stacked ဈ change the `truncate`, Win and Unicode to Zawgyi rows.
+What a 2.x user sees who replaces each 2.x call with its plain 3.0 call. The counts are distinct lines of the corpora that `npm run eval` downloads ([scripts/eval/README.md](scripts/eval/README.md)), and of the fuzz sets of `npm run compare` (seed 20261003, 20,000 strings per generator, made distinct); "Wikipedia" is the 4,812-line sample. They are taken with compat at 2.11.0's output. Of 2.11's changes, `truncate`'s prefix brings compat closer to the 3.0 `truncate`, and its row is lower than with 2.10.0's; the typing fixes in `normalize`'s order and the rule for stacked ဈ change the core, so both APIs alike, and no row shows them ([below](#since-300-next0)).
 
 | 2.x call → 3.0 call | FLORES 2,009 | Wikipedia 4,812 | Okell 16,924 | mC4 14,304 | WaitZar 2,390 | Shan 9,923 | Mon 2,270 | S'gaw Karen 673 | Pa'o 770 | Fuzz |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -113,7 +113,7 @@ What a 2.x user sees who replaces each 2.x call with its plain 3.0 call. The cou
 | `syllBreak(t, 'zawgyi')` → `segmentSyllables(t, { from: 'zawgyi' })` | 2,009 | 4,667 | 16,330 | 13,784 | 57 | 7,894 | 2,207 | 645 | 723 | 10,525 of 35,452 |
 | `syllBreak(t)` → `segmentSyllables(t, { from })`, `from` detected | 2,009 | 4,520 | 16,049 | 13,748 | 178 | 7,782 | 2,209 | 645 | 703 | 14,965 of 35,452 |
 | `spellingFix(t, font)` → `collapseRepeatedMarks(t, { from: font })` | 6 | 188 | 1,068 | 159 | 0 | 48 | 0 | 1 | 3 | 6,306 of 35,452 |
-| `truncate(t, { length: 30 })` → `truncate(t, { length: 30 })` | 1,117 | 3,102 | 10,576 | 10,419 | 2,390 | 6,876 | 1,501 | 386 | 531 | 35,452 of 35,452 |
+| `truncate(t, { length: 30 })` → `truncate(t, { length: 30 })` | 392 | 2,075 | 6,903 | 8,828 | 2,390 | 3,335 | 1,021 | 279 | 388 | 35,452 of 35,452 |
 
 Why each changes:
 
@@ -123,7 +123,7 @@ Why each changes:
 - **`detectEncoding`** names two answers that 2.x folded into its fallback: every changed corpus line is a tie, `'unknown'` where 2.x said `'zawgyi'` (or the fallback). No corpus line has no Myanmar character, which 3.0 calls `'none'` and 2.x `'en'`.
 - **`segmentSyllables`** reads a bare consonant as a syllable of its own by default, starts a piece at a syllable after white space, keeps every character (2.x trimmed the text and removed U+200B and U+200C), returns the pieces instead of a joined string, does not swap an asat typed before a dot below, and detects nothing ([research/segmentation.md](research/segmentation.md)).
 - **`collapseRepeatedMarks`** keeps zero-width spaces and non-joiners, and white space at the ends: every changed corpus line holds U+200B or U+200C.
-- **`truncate`** returns a text that fits as it is, where 2.x appended the omission (every WaitZar word, and 1,184 of the 3,102 changed Wikipedia lines, are at most 30 units long); cuts a text that does not fit to a prefix, where 2.10.0 could keep a later word after a skipped one (2.11's is a prefix too, and these counts change with it); and cuts at the syllable breaks of `bareConsonants: 'separate'`. compare counts lengths 10, 60 and 120 too: on Wikipedia, they change 2,609, 4,035 and 4,120 lines.
+- **`truncate`** returns a text that fits as it is, where 2.x appended the omission (every WaitZar word, and 1,184 of the 2,075 changed Wikipedia lines, are at most 30 units long), and cuts at the syllable breaks of `bareConsonants: 'separate'`. Both cut a text that does not fit to a prefix, 2.11's since 2.11.0; 2.10.0's could keep a later word after a skipped one, and changed 3,102 Wikipedia lines here. compare counts lengths 10, 60 and 120 too: on Wikipedia, they change 1,197, 3,504 and 3,677 lines.
 
 #### Since 3.0.0-next.0
 

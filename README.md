@@ -424,7 +424,7 @@ knayi.OUTPUT_VERSION // 3
 | --- | --- |
 | 1 | 2.10.0's, which `knayi-myscript/compat` kept until 3 |
 | 2 | 3.0's `normalize` settles: it is idempotent, and reads ဥ, ၀ and ၇ after a virama or under a kinzi as ဉ, ဝ and ရ |
-| 3 | 2.x's output fixes of 2.11, in both APIs: Zawgyi and Win conversion make the typo fixes before the look-alikes, as `normalize` does, and Unicode to Zawgyi writes stacked ဈ as U+1069 |
+| 3 | 2.x's output fixes of 2.11, in both APIs: Zawgyi and Win conversion make the typo fixes before the look-alikes, as `normalize` does, and Unicode to Zawgyi writes stacked ဈ as U+1069. `knayi-myscript/compat` gives 2.11.0's output. |
 
 [CHANGELOG.md](CHANGELOG.md) lists every output change under "Output changes", with the lines of each corpus it changes.
 
