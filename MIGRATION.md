@@ -53,7 +53,7 @@ import { normalize, toUnicode } from 'knayi-myscript'
 | --- | --- |
 | Missing content (`null`, `undefined`, `''`, `0`, `false`, `NaN`) prints a warning and returns `''`, or the fallback or `'en'` for `fontDetect` | `''` is a text like any other, and gives its result; every value that is not a string throws a `TypeError` with the code `ERR_KNAYI_INVALID_ARG_TYPE` |
 | Other non-strings come back unchanged; `String` objects work like their strings | They throw the same `TypeError` |
-| Font names `unicode`, `uni`, `zawgyi`, `zaw`, `win`, in any letter case; an unknown name is detected, with a warning, or thrown on with the code `ERR_KNAYI_INVALID_FONT`, by function | One name each, exactly as written: `'unicode'`, `'zawgyi'`, `'win'`; any other is a `RangeError` with the code `ERR_KNAYI_INVALID_ARG_VALUE` |
+| Font names `unicode`, `uni`, `zawgyi`, `zaw`, `win`, in any letter case. An unknown name is detected, with a warning, as `fontConvert`'s source; returns the text, with an error, as its target; throws a `TypeError` with the code `ERR_KNAYI_INVALID_FONT` in `syllBreak` and `truncate`; and collapses the Unicode marks in `spellingFix`, with no warning | One name each, exactly as written: `'unicode'`, `'zawgyi'`, `'win'`; any other is a `RangeError` with the code `ERR_KNAYI_INVALID_ARG_VALUE` |
 | `setGlobalOptions` stores `silent_mode` and the detector options for later calls | Every option is an argument of the call that uses it; nothing is kept, and nothing is written to the console |
 | `use_myanmartools`, `adapter: 'myanmartools'`: the detector passed as `zawgyiDetector`, or else the package, which only 2.x's `main.js` loads | `zawgyiDetector`: you pass the detector object; knayi loads no code |
 | `myanmartools_zg_threshold` | `thresholds` |
@@ -125,12 +125,6 @@ Why each changes:
 - **`collapseRepeatedMarks`** keeps zero-width spaces and non-joiners, and white space at the ends: every changed corpus line holds U+200B or U+200C.
 - **`truncate`** returns a text that fits as it is, where 2.x appended the omission (every WaitZar word, and 1,184 of the 2,075 changed Wikipedia lines, are at most 30 units long), and cuts at the syllable breaks of `bareConsonants: 'separate'`. Both cut a text that does not fit to a prefix, 2.11's since 2.11.0; 2.10.0's could keep a later word after a skipped one, and changed 3,102 Wikipedia lines here. compare counts lengths 10, 60 and 120 too: on Wikipedia, they change 1,197, 3,504 and 3,677 lines.
 
-#### Since 3.0.0-next.0
-
-The 3.0 API takes the fixes of 2.11.0 that lie in the core, as compat does, so none of them changes a row above; `OUTPUT_VERSION` is 3 for them, in both APIs. Counted against the 3.0 API of 3.0.0-next.0 with `npm run compare -- --base api:<3.0.0-next.0> --head api:.`, on every corpus above and on the generated and fuzz sets:
-
-- **`toUnicode` from Win and Zawgyi makes the typo fixes before the look-alikes,** as `normalize` does: a ra before the digit four of a lagaung stays ra, and the four is lagaung (`toUnicode('&4if;', { from: 'win' })` is `'ရ၎င်း'`, where it was `'၇၄င်း'`). No corpus line changes; 18 generated strings do, the two strings of that example read as Win, alone and next to their neighbours. A `toUnicode` trace records `typos` before `look-alikes`.- **`toZawgyi` writes stacked ဈ as U+1069,** Zawgyi's stacked ဈ, where its virama stayed U+1039, which Zawgyi reads as an asat (`toZawgyi('မဇ္ဈိမ')` converts back to `'မဇ္ဈိမ'`, where it came back as `'မဇ်ဈိမ'`). 8 Wikipedia lines change (12 of the older sample), 13 Okell, 14 mC4, 1 Shan and 1 Pa'o, a string of Google's pairs, and 23 generated and 5 fuzz strings; each output is the old one with U+1039 U+1008 written as U+1069. The rule is the trace row `uz.glyphs.24`, and the ids of the rows after it are one higher than in 3.0.0-next.0.
-
 With the options that keep 2.x's output, every row above but `normalize` and `truncate` drops to 0 on every corpus and fuzz set, except these (WaitZar, Mon and Pa'o: 0):
 
 | 2.x call → the 3.0 call that keeps its output | FLORES | Wikipedia | Okell | mC4 | Shan | S'gaw Karen | Fuzz | Why |
@@ -149,6 +143,27 @@ npm run compare -- --base mjs:src/compat/index.js --head mjs:scripts/next/migrat
 ```
 
 `scripts/next/migration/plain.mjs` makes each 2.x call form with the plain 3.0 call of the first table, and `as-2x.mjs` with the call that keeps 2.x's output. compare also reads its generated inputs, which include the strings of these documents' examples, and, where the cache still holds it, Wikipedia's older sample of 10,732 lines. The debugging forms are left out: a trace is not the shape of 2.x's debug object.
+
+#### Since 3.0.0-next.0
+
+The 3.0 API takes the fixes of 2.11.0 that lie in the core, as compat does, so none of them changes a row above; `OUTPUT_VERSION` is 3 for them, in both APIs. Counted against the 3.0 API of 3.0.0-next.0 with `npm run compare -- --base api:<3.0.0-next.0> --head api:.`, on every corpus above and on the generated and fuzz sets:
+
+- **`toUnicode` from Win and Zawgyi makes the typo fixes before the look-alikes,** as `normalize` does: a ra before the digit four of a lagaung stays ra, and the four is lagaung (`toUnicode('&4if;', { from: 'win' })` is `'ရ၎င်း'`, where it was `'၇၄င်း'`). No corpus line changes; 18 generated strings do, the two strings of that example read as Win, alone and next to their neighbours. A `toUnicode` trace records `typos` before `look-alikes`.
+- **`toZawgyi` writes stacked ဈ as U+1069,** Zawgyi's stacked ဈ, where its virama stayed U+1039, which Zawgyi reads as an asat (`toZawgyi('မဇ္ဈိမ')` converts back to `'မဇ္ဈိမ'`, where it came back as `'မဇ်ဈိမ'`). 8 Wikipedia lines change (12 of the older sample), 13 Okell, 14 mC4, 1 Shan and 1 Pa'o, a string of Google's pairs, and 23 generated and 5 fuzz strings; each output is the old one with U+1039 U+1008 written as U+1069. The rule is the trace row `uz.glyphs.24`, and the ids of the rows after it are one higher than in 3.0.0-next.0.
+
+The other changes of 2.11.0 are to the 2.x API, and compat takes each of them ([CHANGELOG.md](CHANGELOG.md#unreleased)). The 3.0 API does not: it covers each in a design of its own, which it had in 3.0.0-next.0, so none changes what it returns. 2.11.0's linear NFC (d170cd8) and its speed wins were in the core already, in both APIs; the rest of 2.11.0 is tests and documentation.
+
+| 2.11.0, with its 2.x commits | What the 3.0 API does instead | Why |
+| --- | --- | --- |
+| Font names follow one policy, with a `TypeError` with the code `ERR_KNAYI_INVALID_FONT` from `syllBreak` and `truncate`, and are read in any letter case (24f81c6, 579be3d) | `from` takes `'unicode'`, `'zawgyi'` or `'win'` exactly as written (`'unicode'` or `'zawgyi'` where text is broken or its marks collapsed), and `undefined` or `null` for the default. Any other string, `'Zawgyi'`, `'uni'` and `'zaw'` included, is a `RangeError` with the code `ERR_KNAYI_INVALID_ARG_VALUE`, and a value that is not a string a `TypeError` with `ERR_KNAYI_INVALID_ARG_TYPE` | The 3.0 API checks every argument and throws on a wrong one: a name has one spelling, and no name is read as another or detected in its place |
+| `fontDetect` ignores a fallback that is not a string (86f0040) | No fallback: `detectEncoding` answers `'unknown'` for a tie and `'none'` for text with no Myanmar character, and `toUnicode` leaves a tie as it is unless `tie: 'zawgyi'` | The answer names the case itself, so there is nothing to fall back on |
+| `null` options are no options, and the threshold pair must be two finite numbers in order (fb6594d) | `null` options are no options in every function. `thresholds` must be two numbers, `[low, high]` with 0 ≤ low ≤ high ≤ 1: anything else throws a coded `RangeError` or `TypeError`, where 2.11.0 writes an error and uses the stored pair | Options are arguments of the call, checked as they are read, and nothing is stored to fall back on |
+| The `zawgyiDetector` option, and no package loaded by name in `dist/` (840c8c5, 649b2b4, 51f1683) | `zawgyiDetector` since 3.0.0-next.0, and nothing is loaded by name anywhere. A value with no `getZawgyiProbability` method is a `TypeError` with `ERR_KNAYI_INVALID_ARG_TYPE` | The core never loads code: the caller makes the detector and passes it |
+| `detectEncoding(content)` (31eb6b1) | Its own `detectEncoding(text, options)`, since 3.0.0-next.0: the same result for a string, with `zawgyiDetector` and `thresholds` | 2.11.0's reads one argument and always the rule scorer, as compat's does; the 3.0 one takes the detector options of every call that detects |
+| `fontConvert` reads no debug flag from `this`, and `fontConvert.debugging` returns a report on every exit with text (d20027a, b6cbfca, 21df0ed) | No function reads its receiver, and the sources are strict code. The `trace` option records a call: where it returns early, the trace's `start` is the input, and it has no `records` | A trace is an argument, not a mode, with one shape on every path |
+| `truncate` returns the start of the text (41984eb) | `truncate` has returned a prefix since 3.0.0-next.0. It also returns a text that fits as it is, takes `0` as a length and `''` as an omission, and never splits a surrogate pair | 2.x keeps its options: `length: 0` and `omission: ''` still give its defaults |
+| Types for font names and `fontDetect`'s result, and `Array#map` overloads for `fontDetect`, `spellingFix` and `truncate` (1e0d592, e200d70, 3ec0619) | `src/index.d.ts` types each `from` with its names, and each result. Every function that takes a text is safe as an `Array#map` callback, as `lines.map(truncate)`: a number in the place of the options, map's index, is no options, and map's array is not read | Each function reads its text and its options, and nothing else, so map's arguments set nothing |
+| The comments on zero-width characters (538be78, b2392da) | The core's comments say the same | Comments only |
 
 ## The 2.x API, call by call
 
