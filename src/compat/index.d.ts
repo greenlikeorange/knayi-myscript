@@ -1,6 +1,9 @@
 // Types of knayi-myscript/compat, src/compat/index.js: the 2.x API on the 3.0 core (docs/next/DESIGN.md §5). They
 // are 2.x's index.d.ts, which 3.0 moved here from the package root; test/package.test.js checks that they declare
-// exactly what compat exports, and typecheck/ compiles 2.x code against them.
+// exactly what compat exports, and typecheck/ compiles 2.x code against them. The declarations are those of the
+// 2.x reference, 8923365, byte for byte. The JSDoc, which editors show, is compat's where compat differs from 2.x's
+// main.js: compat loads no package by name, so the myanmar-tools adapter needs a detector (docs/next/DESIGN.md
+// §5.4), and 3.0 ships other files than 2.x (MIGRATION.md, "Keep 2.x's output").
 //
 // Array#map calls a function with the line, its index and the array. fontDetect, spellingFix and truncate read that
 // index and array as setting nothing, so each has an overload that takes them, and `lines.map(knayi.truncate)`
@@ -37,10 +40,9 @@ export interface ZawgyiDetectorLike {
 /** Detector settings that setGlobalOptions stores. A fontDetect call may set them for itself too. */
 export interface GlobalDetectorOptions {
   /**
-   * Detect with the myanmar-tools package instead of knayi's rule scorer: with the detector passed as
-   * `zawgyiDetector`, or else with the package, which only main.js loads, in Node and Bun. Install
-   * `myanmar-tools@1.1.3` for it. Where there is no detector and the package is not installed, cannot be loaded or is
-   * not loaded (as in the builds in dist/), fontDetect uses the rule scorer and warns once. Default `false`.
+   * Detect with myanmar-tools instead of knayi's rule scorer, through the detector passed as `zawgyiDetector`, such
+   * as `new ZawgyiDetector()` of `myanmar-tools@1.1.3`. knayi-myscript/compat loads no package by name, so with no
+   * detector fontDetect uses the rule scorer and warns once that myanmar-tools is not available. Default `false`.
    */
   use_myanmartools?: boolean;
   /**
@@ -51,11 +53,11 @@ export interface GlobalDetectorOptions {
    */
   myanmartools_zg_threshold?: [number, number];
   /**
-   * The detector the myanmar-tools adapter uses, such as `new ZawgyiDetector()` from myanmar-tools. With it, knayi
-   * does not load the package itself, which only main.js does, in Node and Bun, so the adapter also works in
-   * browsers, in Deno, in bundles and through the builds in dist/, which load no package by name. It does not choose
-   * the adapter: set `use_myanmartools`, or a call's `adapter`, too. `null` is no detector, and main.js loads the
-   * package. So is `undefined` when the key is there, as in a spread of options that holds it: it drops a stored
+   * The detector the myanmar-tools adapter uses, such as `new ZawgyiDetector()` from myanmar-tools. The adapter
+   * needs it: knayi-myscript/compat loads no package by name, so it works wherever your code can load myanmar-tools,
+   * in Node, Bun, Deno, browsers and bundles, and through the builds in dist/. It does not choose the adapter: set
+   * `use_myanmartools`, or a call's `adapter`, too. `null` is no detector: the adapter uses the rule scorer and warns
+   * once. So is `undefined` when the key is there, as in a spread of options that holds it: it drops a stored
    * detector for the call, and setGlobalOptions removes the stored one. Leave the key out to keep it. For a value
    * without a `getZawgyiProbability` method, knayi uses the stored detector and writes an error that starts with
    * `[ERR_KNAYI_INVALID_DETECTOR]`, unless silent. Default `null`.
@@ -66,10 +68,10 @@ export interface GlobalDetectorOptions {
 /** Detector settings for a single fontDetect call. Settings it leaves out come from setGlobalOptions. */
 export interface DetectorOptions extends GlobalDetectorOptions {
   /**
-   * The detector for this call: `'rules'`, knayi's rule scorer and the default, or `'myanmartools'`, the
-   * myanmar-tools package, or the detector from it passed as `zawgyiDetector`. It wins over `use_myanmartools`. Any
-   * other name warns unless silent, and the call uses the detector `use_myanmartools` picks. setGlobalOptions does
-   * not store it.
+   * The detector for this call: `'rules'`, knayi's rule scorer and the default, or `'myanmartools'`, the detector
+   * of the myanmar-tools package passed as `zawgyiDetector` (with none, the rule scorer, and a warning). It wins over
+   * `use_myanmartools`. Any other name warns unless silent, and the call uses the detector `use_myanmartools` picks.
+   * setGlobalOptions does not store it.
    */
   adapter?: 'rules' | 'myanmartools';
 }
@@ -135,7 +137,7 @@ export interface ConvertDebug {
   steps: string[];
 }
 
-/** The version of this copy of knayi, such as `'2.10.0'`. */
+/** The version of the package, such as `'3.0.0'`: compat's is the package's. */
 export declare const version: string;
 
 /**
@@ -143,8 +145,8 @@ export declare const version: string;
  * `detector` sets the detector settings; a later call that sets only `use_myanmartools` keeps the stored threshold
  * and `zawgyiDetector`. `null`, like `undefined`, sets nothing.
  *
- * In Node, `require` and `import` share one copy, main.js. A bundler that follows the `module` field loads
- * dist/knayi-myscript.es.js instead, a second copy with options of its own.
+ * In Node and Bun, every import of knayi-myscript/compat, by `import` or `require`, shares one module, and so one
+ * copy of the options. Each file in dist/ holds a copy of its own, with options of its own.
  */
 export declare function setGlobalOptions(options?: GlobalOptions | null): void;
 
@@ -379,7 +381,7 @@ export declare function normalize(content: string | null | undefined): string;
 
 /** Everything knayi exports, as one object: the default export. */
 export interface Knayi {
-  /** The version of this copy of knayi, such as `'2.10.0'`. */
+  /** The version of the package, such as `'3.0.0'`. */
   version: typeof version;
   /** Sets options for this copy of knayi: silent mode and the detector settings. */
   setGlobalOptions: typeof setGlobalOptions;
@@ -399,6 +401,6 @@ export interface Knayi {
   normalize: typeof normalize;
 }
 
-/** Everything knayi exports, as one object, for `import knayi from 'knayi-myscript'`. */
+/** Everything knayi exports, as one object, for `import knayi from 'knayi-myscript/compat'`. */
 declare const knayi: Knayi;
 export default knayi;
