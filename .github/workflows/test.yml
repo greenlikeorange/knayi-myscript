@@ -262,12 +262,14 @@ jobs:
           npm run compare -- --base . --head mjs:. $FLAGS
           bun scripts/eval/compare.mjs --base . --head min:. $FLAGS
 
-  # Speed (CONTRIBUTING.md). Blocking: a growth exponent above 1.3 on the adversarial inputs, under Node and Bun,
-  # which needs no corpus. On a pull request with the corpus cache, also a Node row more than 20% slower than the
-  # base branch: a provisional threshold until the A/A workflow (perf-aa.yml) run on these runners sets it. A
-  # pull request labelled SLOWER, which is slower on purpose (a correctness fix, say) and says why in its
-  # description, passes the row check with up to twice the base's time; the label is read when the step runs, so
-  # re-run the job after adding it.
+  # Speed (CONTRIBUTING.md). Blocking: super-linear growth on the adversarial inputs, under Node and Bun, which
+  # needs no corpus: a screen reading above 1.3 that a confirmation from N to 8N units puts at 1.5 or more, or a
+  # call over a second (scripts/testing/growth.js, with the runner evidence for these numbers); readings the
+  # confirmation does not uphold are listed in the log. On a pull request with the corpus cache, also a Node row
+  # more than 20% slower than the base branch: a provisional threshold until the A/A workflow (perf-aa.yml) run on
+  # these runners sets it. A pull request labelled SLOWER, which is slower on purpose (a correctness fix, say) and
+  # says why in its description, passes the row check with up to twice the base's time; the label is read when the
+  # step runs, so re-run the job after adding it.
   perf:
     name: Perf
     runs-on: ubuntu-latest
@@ -315,12 +317,14 @@ jobs:
           fi
           npm run perf -- --base "origin/$BASE_REF" --runtimes node --growth none "${limit[@]}"
 
-  # jsDelivr serves main's dist/ to @master links, so dist/ changes only in a release commit, which also changes
-  # the version in package.json; then dist/ must equal a fresh build. Pull requests compare with their base,
-  # pushes with the previous commit of the branch. Every other run also checks that dist/ equals the dist/ of the
-  # last release (the tag v<version>, or the commit that set the version while there is no tag), so a dist/ edited
-  # in one push still fails in the next. The job also checks that the commits .git-blame-ignore-revs names are in
-  # the history: a squash or rebase merge gives them new hashes, and the file then ignores nothing.
+  # jsDelivr serves main's dist/ to @master links, so dist/ changes only in a release: a change of the version in
+  # package.json, or, while the version has no tag v<version> yet, its release commit (subject
+  # `chore(release): <version>`); then dist/ must equal a fresh build. Pull requests compare with their base,
+  # pushes with the previous commit of the branch. Once the version is tagged, a run that does not change dist/ also
+  # checks that dist/ equals the tag's, so a dist/ edited in one push still fails in the next; while it is not, there
+  # is no released dist/ to compare with, and the run passes (scripts/check-dist.js). The job also checks that the
+  # commits .git-blame-ignore-revs names are in the history: a squash or rebase merge gives them new hashes, and the
+  # file then ignores nothing.
   dist:
     name: dist only in releases
     runs-on: ubuntu-latest
