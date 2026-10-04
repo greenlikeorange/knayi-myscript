@@ -42,7 +42,7 @@ export class EditLog {
   addChange(start, before, outStart, after) {
     if (before === after) return;
     const ends = sharedEnds(before.length, after.length, (k) => before[k] === after[k],
-      (k) => before[before.length - 1 - k] === after[after.length - 1 - k]);
+      (k) => before[before.length - 1 - k] === after[after.length - 1 - k], (k) => before.charCodeAt(k));
     this.add(start + ends.head, start + before.length - ends.tail, outStart + ends.head,
       outStart + after.length - ends.tail);
   }
@@ -63,14 +63,29 @@ export class EditLog {
 // How many units two different texts share at the start (head) and at the end (tail), counted only while each text
 // keeps at least one unit between them: a replacement stays a replacement, so the units it wrote still map to a unit
 // of its input (outputToInputOffsets). An empty side stays empty. sameAtStart(k) and sameAtEnd(k) compare the k-th
-// unit from the start and from the end.
-export function sharedEnds(beforeLength, afterLength, sameAtStart, sameAtEnd) {
+// unit from the start and from the end; beforeUnitAt(k) is the k-th unit of the first text.
+//
+// A surrogate pair is never cut: the edit takes the whole pair when a shared end would stop between its halves.
+// NFC changes supplementary characters that share a high or a low surrogate (U+11131 U+11127 compose to U+1112E,
+// and musical symbols reorder), and an edit that began at a low surrogate gave a change report, and explain, lone
+// surrogates for well-formed text. The shared units are the same in both texts, so the first text tells.
+export function sharedEnds(beforeLength, afterLength, sameAtStart, sameAtEnd, beforeUnitAt) {
   const keep = beforeLength > 0 && afterLength > 0 ? 1 : 0;
   let head = 0;
   while (head < beforeLength - keep && head < afterLength - keep && sameAtStart(head)) head++;
+  if (head > 0 && isHighSurrogate(beforeUnitAt(head - 1))) head--;
   let tail = 0;
   while (tail < beforeLength - head - keep && tail < afterLength - head - keep && sameAtEnd(tail)) tail++;
+  if (tail > 0 && isLowSurrogate(beforeUnitAt(beforeLength - tail))) tail--;
   return { head: head, tail: tail };
+}
+
+function isHighSurrogate(code) {
+  return code >= 0xD800 && code <= 0xDBFF;
+}
+
+function isLowSurrogate(code) {
+  return code >= 0xDC00 && code <= 0xDFFF;
 }
 
 // ---------------------------------------------------------------------------------------------------------------

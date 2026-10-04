@@ -52,7 +52,22 @@ function assertAligns(input, output, edits, what) {
   }
   assert.equal(input.slice(inputAt), output.slice(outputAt), what + ': the tail is copied');
   assert.equal(applyEdits(input, edits, output), output, what + ': the edits make the output');
+  if (input.isWellFormed()) assertWholePairs(input, output, edits, what);
 }
+
+// No edit of well-formed text starts or ends between the two halves of a surrogate pair, in its input or its output,
+// so a change it describes is well-formed text.
+function assertWholePairs(input, output, edits, what) {
+  const cutsPair = (text, at) => at > 0 && at < text.length && isHighSurrogate(text.charCodeAt(at - 1)) &&
+    isLowSurrogate(text.charCodeAt(at));
+  for (const edit of edits) {
+    assert.ok(!cutsPair(input, edit.start) && !cutsPair(input, edit.end), what + ': an input pair cut');
+    assert.ok(!cutsPair(output, edit.outStart) && !cutsPair(output, edit.outEnd), what + ': an output pair cut');
+  }
+}
+
+const isHighSurrogate = (code) => code >= 0xD800 && code <= 0xDBFF;
+const isLowSurrogate = (code) => code >= 0xDC00 && code <= 0xDFFF;
 
 // A random pass over text: random spans replaced by random text, in order. [output, edits].
 const randomPass = (text, cuts, rule) => {
@@ -103,6 +118,24 @@ describe('composeEdits (DESIGN.md §11.3)', () => {
     assert.ok(log.isEmpty());
     log.addChange(4, 'abcd', 6, 'abXd');
     assert.deepEqual(log.edits, [{ start: 6, end: 7, outStart: 8, outEnd: 9, rules: ['r'] }]);
+  });
+
+  it('keeps a surrogate pair whole, where the texts share one half of it', () => {
+    // U+11131 U+11127 compose to U+1112E under NFC: the three share the high surrogate U+D804.
+    const chakma = new EditLog('nfc');
+    chakma.addChange(0, 'a\uD804\uDD31\uD804\uDD27', 0, 'a\uD804\uDD2E');
+    assert.deepEqual(chakma.edits, [{ start: 1, end: 5, outStart: 1, outEnd: 3, rules: ['nfc'] }]);
+    // U+1D16D U+1D165 are put in canonical order, U+1D165 U+1D16D: both halves are shared at one end only.
+    const music = new EditLog('nfc');
+    music.addChange(0, 'x\uD834\uDD6D\uD834\uDD65', 0, 'x\uD834\uDD65\uD834\uDD6D');
+    assert.deepEqual(music.edits, [{ start: 1, end: 5, outStart: 1, outEnd: 5, rules: ['nfc'] }]);
+    // A shared low surrogate at the end stays with its high one.
+    const tail = new EditLog('r');
+    tail.addChange(0, 'a\uD800\uDC00', 0, 'b\uD801\uDC00');
+    assert.deepEqual(tail.edits, [{ start: 0, end: 3, outStart: 0, outEnd: 3, rules: ['r'] }]);
+    const kept = new EditLog('r');
+    kept.addChange(0, '\uD800\uDC00a', 0, '\uD800\uDC00b');
+    assert.deepEqual(kept.edits, [{ start: 2, end: 3, outStart: 2, outEnd: 3, rules: ['r'] }], 'a whole pair is shared');
   });
 
   it('maps every output unit to the input it came from, never backwards', () => {

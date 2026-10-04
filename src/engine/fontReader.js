@@ -473,7 +473,7 @@ function addSpan(spans, sink, start, end, output) {
   const outEnd = sink.length;
   if (isWrittenAsTyped(text, start, end, sink, output)) return;
   const ends = sharedEnds(end - start, outEnd - output, (k) => text.charCodeAt(start + k) === sink.codeAt(output + k),
-    (k) => text.charCodeAt(end - 1 - k) === sink.codeAt(outEnd - 1 - k));
+    (k) => text.charCodeAt(end - 1 - k) === sink.codeAt(outEnd - 1 - k), (k) => text.charCodeAt(start + k));
   spans.log.add(start + ends.head, end - ends.tail, output + ends.head, outEnd - ends.tail);
 }
 

@@ -117,8 +117,19 @@ describe('explain covers exactly what normalize changes', () => {
       if (!notZawgyi(text)) return;
       const issues = explain(text);
       assert.equal(units(applyFixes(text, issues)), units(normalize(text)), units(text));
-      for (const issue of issues) assert.equal(text.slice(issue.start, issue.end), issue.text);
-    }), 20000, [['\u1031\u1000\u102C\u102C'], ['\u1010\u102B\u1039\u1040'], ['\u102D\u102E\u102D']], 400000);
+      for (const issue of issues) {
+        assert.equal(text.slice(issue.start, issue.end), issue.text);
+        // Well-formed text gives well-formed issues: none starts or ends inside a surrogate pair.
+        if (text.isWellFormed()) assert.ok(issue.text.isWellFormed() && issue.fix.isWellFormed(), units(text));
+      }
+    }), 20000, [['\u1031\u1000\u102C\u102C'], ['\u1010\u102B\u1039\u1040'], ['\u102D\u102E\u102D'],
+      ['a\uD804\uDD31\uD804\uDD27'], ['x\uD834\uDD6D\uD834\uDD65']], 400000);
+  });
+
+  it('keeps a surrogate pair whole in an issue that NFC raises', () => {
+    // U+11131 U+11127 compose to U+1112E: the issue covers both characters, and its fix is the whole U+1112E.
+    assert.deepEqual(explain('a\uD804\uDD31\uD804\uDD27'), [{ kind: 'nfc', rule: 'nfc.order', start: 1, end: 5,
+      text: '\uD804\uDD31\uD804\uDD27', fix: '\uD804\uDD2E' }]);
   });
 
   it('on the cached Unicode corpora, does the same, line by line', async (t) => {

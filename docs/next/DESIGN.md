@@ -487,8 +487,9 @@ export class EditLog {             // the edits of one pass, in order; `rule` na
 export function composeEdits(first: readonly Edit[], second: readonly Edit[]): Edit[]  // X to T, then T to U: X to U
 export function shiftEdits(edits: readonly Edit[], inputShift: number, outputShift: number): Edit[]
 export function outputToInputOffsets(edits: readonly Edit[], outputLength: number): number[]
+// beforeUnitAt(k): the k-th unit of the first text; a shared end never stops inside a surrogate pair (§11.3)
 export function sharedEnds(beforeLength: number, afterLength: number, sameAtStart: (k: number) => boolean,
-  sameAtEnd: (k: number) => boolean): { head: number, tail: number }
+  sameAtEnd: (k: number) => boolean, beforeUnitAt: (k: number) => number): { head: number, tail: number }
 ```
 
 The 3.0 additions of the other modules, each described in §11: `core/rules.js` `applyRuleRowsLogged` and `runStagesLogged`; `core/nfc.js` `logNfcEdits`; `rules/detect.js` `decideByProbability`; `rules/typingFixes.js` `settleTypos` and the logged twins; `engine/unicodeReader.js` `STABLE_UNICODE_READING`, and `reorderUnicode(text, reading?, log?)`; `engine/fontReader.js` `readFontLogged`; `stages/normalize.js` `STABLE_NORMALIZE_STAGES`, `STABLE_NORMALIZE_LOGGED_RUNS`, `MOST_NORMALIZE_PASSES`, `normalizeTextStable`, `traceNormalizeTextStable` and `normalizeTextStableLogged`; `stages/fonts.js` `fontToUnicodeLogged`.
@@ -2088,7 +2089,7 @@ The evidence (Node 26.5):
 
 ### 11.3 Edit lists: the change report and the offsets
 
-`core/edits.js` (L1) holds an `EditLog`, the edits one pass records, `{start, end, outStart, outEnd, rules}` each: `input[start, end)` became `output[outStart, outEnd)`, the units between edits are copied, and `rules` are the ids of the stages that made the edit. `composeEdits(first, second)` sweeps the output ranges of `first` and the input ranges of `second` together on the middle text, joins the ranges that overlap (or an empty one strictly inside another) into one edit, and gives the edits of both passes; `outputToInputOffsets` turns edits into the index of the input unit each output unit came from; `sharedEnds` cuts an edit down to the units that differ, but leaves at least one unit on each side of a replacement, so that the units it wrote still map to a unit of its input (Zawgyi's lagaung, one unit, writes four).
+`core/edits.js` (L1) holds an `EditLog`, the edits one pass records, `{start, end, outStart, outEnd, rules}` each: `input[start, end)` became `output[outStart, outEnd)`, the units between edits are copied, and `rules` are the ids of the stages that made the edit. `composeEdits(first, second)` sweeps the output ranges of `first` and the input ranges of `second` together on the middle text, joins the ranges that overlap (or an empty one strictly inside another) into one edit, and gives the edits of both passes; `outputToInputOffsets` turns edits into the index of the input unit each output unit came from; `sharedEnds` cuts an edit down to the units that differ, but leaves at least one unit on each side of a replacement, so that the units it wrote still map to a unit of its input (Zawgyi's lagaung, one unit, writes four), and never stops inside a surrogate pair: NFC changes supplementary characters that share a surrogate (Chakma U+11131 U+11127 compose to U+1112E, and musical symbols reorder), and an edit cut at the shared high surrogate gave the report, `explain` and `knayi check --jsonl` lone surrogates for well-formed text, which Python cannot encode. The edits of well-formed text start and end at whole characters: `core-edits.test.mjs` checks every writer's, and the fuzz of the report and of `explain` checks that their texts are well-formed, with these four characters in the fuzz alphabet.
 
 The writers record where they write something new, and only when given a log:
 - the Unicode reader, in `CopyThroughWriter.endSyllable`;

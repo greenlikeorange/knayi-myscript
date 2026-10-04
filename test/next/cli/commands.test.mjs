@@ -167,6 +167,15 @@ describe('knayi --jsonl', () => {
       text: '\u1004\u103A\u103A\u1038', fix: '\u1004\u103A\u1038' }]);
     assert.deepEqual(records[1], { text: 'abc', issues: [] });
   });
+
+  it('check writes the text and fix of an issue as whole characters, never half a surrogate pair', () => {
+    // U+11131 U+11127, which NFC composes to U+1112E: Python reads the record and can encode both fields.
+    const run = spawnKnayi(['check', '--jsonl'], { input: '{"text":"a\uD804\uDD31\uD804\uDD27"}\n' });
+    assert.equal(run.status, 1);
+    assert.doesNotMatch(run.stdout, /\\ud[89a-f]/i, 'no lone surrogate escaped');
+    assert.deepEqual(JSON.parse(run.stdout).issues, [{ kind: 'nfc', rule: 'nfc.order', start: 1, end: 3,
+      text: '\uD804\uDD31\uD804\uDD27', fix: '\uD804\uDD2E' }]);
+  });
 });
 
 describe('knayi --report, --help and --version', () => {

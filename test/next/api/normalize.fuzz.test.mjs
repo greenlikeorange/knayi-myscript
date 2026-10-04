@@ -124,11 +124,14 @@ describe('normalize\'s report (DESIGN.md §11.3)', () => {
         assert.equal(change.start - copied, change.outputStart - output, 'copied units line up');
         assert.equal(x.slice(change.start, change.end), change.before);
         assert.equal(report.text.slice(change.outputStart, change.outputEnd), change.after);
+        if (x.isWellFormed()) {
+          assert.ok(change.before.isWellFormed() && change.after.isWellFormed(), 'a pair cut: ' + units(x));
+        }
         rebuilt += x.slice(copied, change.start) + change.after;
         copied = change.end;
         output = change.outputEnd;
       }
       assert.equal(rebuilt + x.slice(copied), report.text, units(x));
-    }), 30000, REGRESSIONS, 600000);
+    }), 30000, REGRESSIONS.concat([['a\uD804\uDD31\uD804\uDD27'], ['x\uD834\uDD6D\uD834\uDD65']]), 600000);
   });
 });
