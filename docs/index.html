@@ -587,8 +587,14 @@ mark { background: var(--mark); color: var(--mark-text); border-radius: 3px; }
 
   // The encoding the library picks when no font is given: a tie falls back to Zawgyi.
   const detectFont = (text) => (MYANMAR.test(text) ? knayi.fontDetect(text) : 'unicode');
-  // Like detectFont, but tells a tie apart from a decision.
-  const detectInfo = (text) => (MYANMAR.test(text) ? knayi.fontDetect(text, 'tie') : 'none');
+  // What the detector found: 'unicode', 'zawgyi', 'tie', or 'none' for text with no Myanmar letters. detectEncoding
+  // tells the four apart in one call. A release without it, such as the 2.9.1 this page loads until the next release
+  // is pinned, gives the same through fontDetect with the fallback 'tie'.
+  const detectInfo = (text) => {
+    if (typeof knayi.detectEncoding !== 'function') return MYANMAR.test(text) ? knayi.fontDetect(text, 'tie') : 'none';
+    const { encoding } = quiet(() => knayi.detectEncoding(text));
+    return encoding === 'unknown' ? 'tie' : encoding;
+  };
   const fontOf = (id, text) => value(id) || detectFont(text);
 
   function setFont(el, font) {
