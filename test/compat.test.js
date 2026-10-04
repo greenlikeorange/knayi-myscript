@@ -1,6 +1,5 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const { pendingPort } = require('../scripts/testing/pending-port');
 const fs = require('fs');
 const path = require('path');
 const { createRequire } = require('module');
@@ -16,7 +15,7 @@ const zawgyiGreeting = 'မဂၤလာပါ';
 const unicodeGreeting = 'မင်္ဂလာပါ';
 
 describe('runtime contract', () => {
-  it('exposes the public functions and the package version', pendingPort('31eb6b1', () => {
+  it('exposes the public functions and the package version', () => {
     assert.equal(knayi.version, pkg.version);
     assert.equal(typeof knayi.setGlobalOptions, 'function');
     assert.equal(typeof knayi.fontDetect, 'function');
@@ -27,7 +26,7 @@ describe('runtime contract', () => {
     assert.equal(typeof knayi.spellingFix, 'function');
     assert.equal(typeof knayi.truncate, 'function');
     assert.equal(typeof knayi.normalize, 'function');
-  }));
+  });
 
   it('converts the published Zawgyi greeting through compat and through the 3.0 API', () => {
     assert.equal(knayi.fontConvert(zawgyiGreeting, 'unicode', 'zawgyi'), unicodeGreeting);

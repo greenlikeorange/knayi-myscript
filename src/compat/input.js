@@ -20,6 +20,7 @@ export const ON_TIE_ASSUME_ZAWGYI = 'zawgyi';
 //   Every other function returns such a value as it is (fontDetect returns its fallback instead).
 export const INPUT_POLICY = /* @__PURE__ */ deepFreeze({
   fontDetect: { emptyIsMissing: true, stringifyOther: false },
+  detectEncoding: { emptyIsMissing: true, stringifyOther: false },
   fontConvert: { emptyIsMissing: true, stringifyOther: false },
   syllBreak: { emptyIsMissing: true, stringifyOther: false },
   spellingFix: { emptyIsMissing: true, stringifyOther: false },

@@ -186,7 +186,7 @@ describe('no call form throws', () => {
   };
   // The forms include detectEncoding (31eb6b1), and debugging returns a report on every exit (b6cbfca).
   for (const [kind, text] of Object.entries(strings)) {
-    it('on ' + kind + ', and returns text', pendingPort(['31eb6b1', 'b6cbfca'], () => {
+    it('on ' + kind + ', and returns text', pendingPort('b6cbfca', () => {
       check(fc.property(text, (x) => {
         for (const [name, call] of forms) returnsText(name, call(x));
       }), 400, [[''], [' '], ['\u200B'], ['\uD800'], ['\u1031'.repeat(3)]]);
@@ -204,19 +204,19 @@ describe('no call form throws', () => {
       return false;
     }
   }
-  it('on other values', pendingPort('31eb6b1', () => {
+  it('on other values', () => {
     check(fc.property(fc.anything().filter(convertible), (x) => {
       for (const [, call] of forms) call(x);
     }), 400, [[null], [undefined], [0], [NaN], [false], [123], [{}], [[]], [new String('\u1000')]]);
-  }));
+  });
 
   // Pinned: fails once truncate stops throwing, so the values move to the property above.
-  it('known failure: truncate throws on an object String() cannot convert', pendingPort('31eb6b1', () => {
+  it('known failure: truncate throws on an object String() cannot convert', () => {
     for (const value of [Object.create(null), { toString: undefined }]) {
       assert.throws(() => knayi.truncate(value), TypeError);
       for (const [name, call] of forms) {
         if (!/^truncate/.test(name)) call(value);
       }
     }
-  }));
+  });
 });

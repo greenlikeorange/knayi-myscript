@@ -4,6 +4,7 @@ import * as knayi from "knayi-myscript";
 import { normalize, toUnicode, createTrace, VERSION } from "knayi-myscript";
 import type { NormalizeReport, Trace } from "knayi-myscript";
 import compat, {
+  detectEncoding,
   fontConvert,
   fontDetect,
   setGlobalOptions,
@@ -67,15 +68,9 @@ check(fonts.join() === "zawgyi,unicode,en", "lines.map(fontDetect)");
 const unicodeDetector: ZawgyiDetectorLike = { getZawgyiProbability: () => 0 };
 check(fontDetect(zawgyi, null, { adapter: "myanmartools", zawgyiDetector: unicodeDetector }) === "unicode",
   "zawgyiDetector");
-
-// Calls of the 2.x API that compile against its types, but run only once compat has the 2.x changes they need
-// (scripts/testing/pending-port.js): detectEncoding (31eb6b1). Its port moves the call up, to run, and
-// detectEncoding then joins the named imports above (an import of a name compat does not export fails before any
-// code runs).
-function untilPorted(): void {
-  const evidence: EncodingDetection = compat.detectEncoding(zawgyi);
-  check(evidence.encoding === "zawgyi" && evidence.zawgyi > evidence.unicode, "detectEncoding");
-}
+const evidence: EncodingDetection = detectEncoding(zawgyi);
+check(evidence.encoding === "zawgyi" && evidence.zawgyi > evidence.unicode, "detectEncoding");
+check(compat.detectEncoding === detectEncoding, "detectEncoding on the default export");
 
 // './stream' is stream.mts's: its types name the runtime's TransformStream, which this project's lib leaves out, so
 // that '.' and './compat' are shown to need no DOM or Node types.
@@ -94,4 +89,4 @@ function typeErrors(): void {
   check(wrong === 0 && notWin === "win", "never runs");
 }
 
-export { typeErrors, untilPorted };
+export { typeErrors };

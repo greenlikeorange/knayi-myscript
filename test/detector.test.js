@@ -1,6 +1,5 @@
 const { describe, it, before, after, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
-const { pendingPort } = require('../scripts/testing/pending-port');
 const { inspect } = require('util');
 // The 2.x API: compat, on the 3.0 core.
 var knayi = require('../src/compat/index.js').default;
@@ -203,28 +202,28 @@ describe('detectEncoding', () => {
     });
   });
 
-  it('counts the matches of each side\'s signatures', pendingPort('31eb6b1', () => {
+  it('counts the matches of each side\'s signatures', () => {
     assert.deepEqual(knayi.detectEncoding('မဂၤလာပါ'), result('zawgyi', 0, 1));
     assert.deepEqual(knayi.detectEncoding('မြန်မာ'), result('unicode', 2, 0));
     assert.deepEqual(knayi.detectEncoding('ကျ'), result('unicode', 1, 0));
     assert.deepEqual(knayi.detectEncoding('ျမန္မာ'), result('zawgyi', 0, 1));
-  }));
+  });
 
-  it('reads the text as fontDetect does: trimmed, without zero-width spaces and non-joiners', pendingPort('31eb6b1', () => {
+  it('reads the text as fontDetect does: trimmed, without zero-width spaces and non-joiners', () => {
     // Cleaned, the text starts with a consonant and medial ra, which a Unicode signature anchored at the start counts.
     assert.deepEqual(knayi.detectEncoding(' ' + ZWSP + 'မြန်မာ '), result('unicode', 2, 0));
     assert.deepEqual(knayi.detectEncoding(new String('ျမန္မာ')), result('zawgyi', 0, 1));
-  }));
+  });
 
-  it('tells a tie apart from text with no Myanmar letters', pendingPort('31eb6b1', () => {
+  it('tells a tie apart from text with no Myanmar letters', () => {
     assert.deepEqual(knayi.detectEncoding('က'), result('unknown', 0, 0));
     assert.deepEqual(knayi.detectEncoding('ဗုဒ္ဓ'), result('unknown', 0, 0));
     assert.deepEqual(knayi.detectEncoding('ျမန္မာ မြန်မာ'), result('unknown', 1, 1));
     assert.deepEqual(knayi.detectEncoding('abc'), result('none', 0, 0));
     assert.deepEqual(knayi.detectEncoding('jrefrm'), result('none', 0, 0));
-  }));
+  });
 
-  it('gives none for missing content, with a warning unless silent, and for other values', pendingPort('31eb6b1', () => {
+  it('gives none for missing content, with a warning unless silent, and for other values', () => {
     const warnings = [];
     const warn = console.warn;
     console.warn = (message) => warnings.push(message);
@@ -241,18 +240,18 @@ describe('detectEncoding', () => {
       console.warn = warn;
     }
     assert.deepEqual(warnings, Array(6).fill('Content must be specified on knayi.detectEncoding.'));
-  }));
+  });
 
-  it('scores with the rules whatever the detector settings, and reads one argument', pendingPort('31eb6b1', () => {
+  it('scores with the rules whatever the detector settings, and reads one argument', () => {
     const texts = ['မဂၤလာပါ', 'မြန်မာ', 'က္က', 'abc'];
     const expected = texts.map((text) => knayi.detectEncoding(text));
     knayi.setGlobalOptions({ detector: { use_myanmartools: true, myanmartools_zg_threshold: [0.05, 0.9] } });
     assert.deepEqual(texts.map((text) => knayi.detectEncoding(text)), expected);
     assert.deepEqual(texts.map((text) => knayi.detectEncoding(text, 'unicode', { adapter: 'myanmartools' })), expected);
     assert.deepEqual(texts.map(knayi.detectEncoding), expected);
-  }));
+  });
 
-  it('returns a new object from each call', pendingPort('31eb6b1', () => {
+  it('returns a new object from each call', () => {
     for (const text of ['abc', 'မြန်မာ']) {
       const first = knayi.detectEncoding(text);
       first.encoding = 'changed';
@@ -260,9 +259,9 @@ describe('detectEncoding', () => {
       assert.notEqual(knayi.detectEncoding(text).encoding, 'changed');
       assert.notEqual(knayi.detectEncoding(text), knayi.detectEncoding(text));
     }
-  }));
+  });
 
-  it('gives fontDetect\'s answer, read through the fallback', pendingPort('31eb6b1', () => {
+  it('gives fontDetect\'s answer, read through the fallback', () => {
     const answer = (found, fallback) => (found.encoding === 'unicode' || found.encoding === 'zawgyi' ? found.encoding
       : fallback || (found.encoding === 'none' ? 'en' : 'zawgyi'));
     knayi.setGlobalOptions({ silent_mode: true });
@@ -274,7 +273,7 @@ describe('detectEncoding', () => {
           inspect([text, fallback]));
       }
     }
-  }));
+  });
 });
 
 after(function () {

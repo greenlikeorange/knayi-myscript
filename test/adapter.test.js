@@ -13,7 +13,6 @@ const { storedDetectorOptions } = require('../src/compat/globalOptions.js');
 const { fontDetectCore } = require('../src/compat/fontDetect.js');
 const { createNoDetectorNotice } = require('../src/compat/zawgyiModel.js');
 const { ZawgyiDetector } = require('myanmar-tools');
-const { pendingPort } = require('../scripts/testing/pending-port');
 
 // The optional myanmar-tools adapter of fontDetect, through compat (src/compat/fontDetect.js and zawgyiModel.js): the
 // probability thresholds, the options that choose it, a detector passed as zawgyiDetector, and what loads the
@@ -285,7 +284,7 @@ describe('myanmar-tools adapter', () => {
       assert.ok(run.messages.every((message) => /^\[ERR_KNAYI_INVALID_THRESHOLD\]/.test(message[1])));
     });
 
-    it('asks it about the text fontDetect scores, once a call, and only for the adapter', pendingPort('31eb6b1', () => {
+    it('asks it about the text fontDetect scores, once a call, and only for the adapter', () => {
       const unicode = fixed(0);
       assert.equal(knayi.fontDetect(' \u200b' + ZAWGYI + '\u200c ', null, { adapter: 'myanmartools', zawgyiDetector: unicode }), 'unicode');
       assert.deepEqual(unicode.asked, [ZAWGYI]);
@@ -297,7 +296,7 @@ describe('myanmar-tools adapter', () => {
       assert.equal(knayi.fontDetect(null), 'en');
       assert.deepEqual(knayi.detectEncoding(ZAWGYI), { encoding: 'zawgyi', unicode: 0, zawgyi: 1 });
       assert.deepEqual(unicode.asked, [ZAWGYI]);
-    }));
+    });
 
     it('is stored by setGlobalOptions for every function that detects a font', () => {
       const unicode = fixed(0);

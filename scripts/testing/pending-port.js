@@ -17,33 +17,21 @@
 const PENDING = Object.freeze({
   'd20027a': 'fontConvert reads no debug flag from this (PR 4.1)',
   'b6cbfca': 'fontConvert.debugging reports every exit with text (PR 4.2)',
-  '41984eb': 'truncate returns a start of the text, and breaks only that start (PR 4.9)',
-  '31eb6b1': 'the detectEncoding export (Phase 5 item 1)'
+  '41984eb': 'truncate returns a start of the text, and breaks only that start (PR 4.9)'
 });
 
-// The changes that change cells of the contract matrix (test/contract/api-matrix.json): debugging's reports,
-// truncate's prefix and detectEncoding. test/contract/api-matrix.test.js and scripts/bun-matrix.js check compat and its
-// builds against the matrix as waiting for them.
-const MATRIX_CHANGES = Object.freeze(['b6cbfca', '41984eb', '31eb6b1']);
+// The changes that change cells of the contract matrix (test/contract/api-matrix.json): debugging's reports and
+// truncate's prefix. test/contract/api-matrix.test.js and scripts/bun-matrix.js check compat and its builds against
+// the matrix as waiting for them.
+const MATRIX_CHANGES = Object.freeze(['b6cbfca', '41984eb']);
 
 // The examples of the 2.x API in the documents that show a change compat does not have yet, by file and code (as
 // scripts/testing/readme-examples.js reads them), with the commit each waits for. test/readme.test.js and
 // test/next/compat-index.test.mjs run them as waiting for it.
 const PENDING_EXAMPLES = Object.freeze({
-  "MIGRATION.md compat.detectEncoding('မဂၤလာပါ')": '31eb6b1',
-  "MIGRATION.md compat.detectEncoding('မြန်မာ')": '31eb6b1',
-  "MIGRATION.md compat.detectEncoding('က')": '31eb6b1',
-  "MIGRATION.md compat.detectEncoding('ျမန္မာ မြန်မာ')": '31eb6b1',
-  "MIGRATION.md compat.detectEncoding('abc')": '31eb6b1',
-  "MIGRATION.md compat.detectEncoding(null)": '31eb6b1',
-  "MIGRATION.md ['မြန်မာ', 'ျမန္မာ', 'abc'].map(compat.detectEncoding)": '31eb6b1',
   "MIGRATION.md compat.fontConvert.debugging(' ကျ ', 'unicode', 'unicode')": 'b6cbfca',
   "MIGRATION.md compat.fontConvert.debugging('abc', 'unicode')": 'b6cbfca',
   "MIGRATION.md compat.truncate('အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇလွန်ဈေးဘေးဗာဒံပင်ထက် အဓိဋ္ဌာန်လျက် ဂဃနဏဖတ်ခဲ့သည်။', { length: 30, omission: '...' })": '41984eb',
-  "src/compat/index.d.ts compat.detectEncoding('မဂၤလာပါ')": '31eb6b1',
-  "src/compat/index.d.ts compat.detectEncoding('မြန်မာ')": '31eb6b1',
-  "src/compat/index.d.ts compat.detectEncoding('က')": '31eb6b1',
-  "src/compat/index.d.ts compat.detectEncoding('abc')": '31eb6b1',
   "src/compat/index.d.ts compat.fontConvert.debugging(' ကျ ', 'unicode', 'unicode')": 'b6cbfca'
 });
 

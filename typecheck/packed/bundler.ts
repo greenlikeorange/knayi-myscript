@@ -2,7 +2,7 @@
 // tarball installed, under bundler resolution, then bundles it with esbuild, which follows the exports map, and runs
 // the bundle in Node.
 import { normalize, segmentSyllables, toUnicode } from "knayi-myscript";
-import compat, { fontConvert, fontDetect, setGlobalOptions, syllBreak, version } from "knayi-myscript/compat";
+import compat, { detectEncoding, fontConvert, fontDetect, setGlobalOptions, syllBreak, version } from "knayi-myscript/compat";
 import type { ConvertDebug, DetectorOptions, Knayi } from "knayi-myscript/compat";
 
 function check(ok: boolean, what: string): void {
@@ -29,15 +29,10 @@ check(fontDetect(unicode, null, options) === "unicode", "fontDetect");
 check([zawgyi, unicode].map(fontDetect).join() === "zawgyi,unicode", "lines.map(fontDetect)");
 check(syllBreak(unicode, "unicode", "|") === "မင်္ဂလာ|ပါ", "syllBreak");
 check(version === compat.version, "version");
-
-// A call of the 2.x API that compiles against its types, but runs only once compat has detectEncoding (2.x commit
-// 31eb6b1, scripts/testing/pending-port.js); its port moves it up, to run.
-function untilPorted(): void {
-  check(compat.detectEncoding(unicode).encoding === "unicode", "detectEncoding");
-}
+check(detectEncoding(unicode).encoding === "unicode", "detectEncoding");
 
 // The types are the package's own, not any.
 // @ts-expect-error syllBreak returns a string
 const wrong: string[] = syllBreak(unicode);
 
-export { wrong, untilPorted };
+export { wrong };

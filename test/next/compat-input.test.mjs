@@ -83,7 +83,7 @@ describe('compat: the 2.x preamble (C5-C11)', () => {
 describe('compat: enter() and INPUT_POLICY (C6, C7)', () => {
   it('has a policy for each public function that takes content', () => {
     assert.deepEqual(Object.keys(INPUT_POLICY).sort(),
-      ['fontConvert', 'fontDetect', 'normalize', 'spellingFix', 'syllBreak', 'truncate']);
+      ['detectEncoding', 'fontConvert', 'fontDetect', 'normalize', 'spellingFix', 'syllBreak', 'truncate']);
     assert.ok(Object.isFrozen(INPUT_POLICY));
   });
 
@@ -111,6 +111,7 @@ describe('compat: enter() and INPUT_POLICY (C6, C7)', () => {
     const calls = [
       ['fontDetect', (k, c) => k.fontDetect(c)],
       ['fontDetect with a fallback', (k, c) => k.fontDetect(c, 'unicode')],
+      ['detectEncoding', (k, c) => k.detectEncoding(c)],
       ['fontConvert', (k, c) => k.fontConvert(c, 'unicode')],
       ['fontConvert from Win', (k, c) => k.fontConvert(c, 'unicode', 'win')],
       ['syllBreak', (k, c) => k.syllBreak(c)],

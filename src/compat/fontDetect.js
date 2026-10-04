@@ -1,4 +1,4 @@
-// compat: 2.x fontDetect on the core (DESIGN.md §5.1, C13, C14). Layer L4. Owner: W8 (compat).
+// compat: 2.x fontDetect and detectEncoding on the core (DESIGN.md §5.1, C13, C14). Layer L4. Owner: W8 (compat).
 //
 // 2.x fontDetect (library/detection.js) counts the matches of 29 signature regexes per side and calls the
 // side with more; the core's countEvidence finds the same counts in one pass (rules/detect.js). With myanmar-tools
@@ -6,7 +6,7 @@
 
 import { hasMyanmarBlockChar } from '../core/input.js';
 import { NO_OPTIONS } from '../core/options.js';
-import { countEvidence, decide, scoreByZawgyiModel } from '../rules/detect.js';
+import { countEvidence, decide, scoreByZawgyiModel, detectEncoding as evidenceOf } from '../rules/detect.js';
 import { enter, cleanText, givenName, ON_TIE_ASSUME_ZAWGYI } from './input.js';
 import { report, mergeDetectorOptions, MESSAGES } from './globalOptions.js';
 import { noDetectorNotice } from './zawgyiModel.js';
@@ -23,6 +23,17 @@ export function fontDetect(content, fallback, options) {
   const input = enter('fontDetect', content);
   if (input.kind !== 'text' || !hasMyanmarBlockChar(input.value)) return given || 'en';
   return fontDetectCore(input.value, given || ON_TIE_ASSUME_ZAWGYI, options);
+}
+
+// detectEncoding(content) (2.11, 31eb6b1): the rule scorer's evidence, { encoding, unicode, zawgyi }, a new object
+// each call. encoding is 'unicode' or 'zawgyi' for the side with more matches and 'unknown' for a tie (core
+// rules/detect.js detectEncoding, on the cleaned text, as fontDetect counts); missing content (which warns, unless
+// silent), a value that is not a string and text with no unit of U+1000-U+109F give 'none' and two zeros. It scores
+// with the rules whatever the detector options say, and reads one argument, so lines.map(detectEncoding) works.
+export function detectEncoding(content) {
+  const input = enter('detectEncoding', content);
+  if (input.kind !== 'text' || !hasMyanmarBlockChar(input.value)) return { encoding: 'none', unicode: 0, zawgyi: 0 };
+  return evidenceOf(cleanText(input.value));
 }
 
 // The detection itself, on text with a Myanmar-block unit (2.x fontDetect past its gate). The adapter is read before

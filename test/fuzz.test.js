@@ -120,7 +120,7 @@ describe('compat against the 2.10 oracle', () => {
   // detectEncoding's counts are the rule scorer's, and fontDetect reads the same result through its fallback:
   // 'unicode' and 'zawgyi' as they are, a tie ('unknown') as the fallback or 'zawgyi', and 'none' as the fallback
   // or 'en'. Random code units seldom hold a Myanmar letter, and give 'none'. '' is missing content, which warns.
-  it('detectEncoding, and fontDetect read from it', pendingPort('31eb6b1', () => {
+  it('detectEncoding, and fontDetect read from it', () => {
     const fallback = fc.constantFrom(undefined, 'unicode', 'tie');
     const answer = (result, fb) => (result.encoding === 'unicode' || result.encoding === 'zawgyi' ? result.encoding
       : fb || (result.encoding === 'none' ? 'en' : 'zawgyi'));
@@ -131,7 +131,7 @@ describe('compat against the 2.10 oracle', () => {
       same(knayi.fontDetect(content, fb, { adapter: 'rules' }), answer(result, fb), content);
     }), COUNT.encoding, [[' \u200B ', 'tie'], ['\u1000', undefined],
       ['\u1031\u1031 \u103B\u1000', 'unicode']]);
-  }));
+  });
 
   it('the debugging stages of Zawgyi and Win', pendingPort('b6cbfca', () => {
     const text = fc.oneof(zawgyi.map((t) => ['zawgyi', t]), win.map((t) => ['win', t]));
