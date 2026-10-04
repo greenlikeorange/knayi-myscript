@@ -133,8 +133,11 @@ jobs:
   #   `--expect form:set=n` lines of its description are the differences it may show (CI skips `all` totals and the
   #   sets it does not read). The label and the description are read from the API when the step runs, not from
   #   the event, so after adding the label or editing the counts, re-run this job.
-  # - Every run compares compat with the two builds made from it that hold the 2.x API: the script build's
-  #   knayi.compat (min:) and the compat module build (mjs:).
+  # - A pull request into a branch with the 3.0 API also compares the 3.0 API of both copies on the same call forms
+  #   (api:), under Node and Bun, with `--expect-api form:set=n` lines for a DELIBERATE one, and checks that a
+  #   difference comes with an OUTPUT_VERSION above that of the last release (scripts/next/output-version.mjs).
+  # - Every run compares compat with the builds made from it that hold the 2.x API: the script build with 2.x's
+  #   name and global (min:) and the compat module build (mjs:).
   # The corpus cache holds every pinned corpus but mC4 (decision 22) and never queries.tsv. It is keyed on
   # scripts/eval/datasets.mjs, which holds every pin, and only a push to the default branch or the nightly fuzz
   # workflow (.github/workflows/fuzz.yml, which also keeps it from expiring after 7 days unused) fills it. Every run
@@ -237,6 +240,38 @@ jobs:
           args=()
           while IFS= read -r arg; do args+=("$arg"); done < "$RUNNER_TEMP/compare-args"
           bun scripts/eval/compare.mjs "${args[@]}"
+      # The steps above compare compat, which cannot see a change to the 3.0 layer (src/api/, src/index.js). This
+      # one compares the 3.0 API of the base and of the head on the same call forms, each made by the copy's own
+      # scripts/next/migration/plain.mjs (api:, scripts/eval/lib/knayi.mjs), under Node and Bun, and skips a base
+      # with no 3.0 API. A DELIBERATE pull request lists its counts here as `--expect-api form:set=n` lines. Any
+      # difference also needs OUTPUT_VERSION above that of the last release (scripts/next/output-version.mjs).
+      - name: Compare the 3.0 API with the base branch
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          FLAGS: ${{ steps.inputs.outputs.flags }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! git cat-file -e "origin/$BASE_REF:scripts/next/migration/plain.mjs" 2>/dev/null; then
+            echo "origin/$BASE_REF has no 3.0 API: nothing to compare"
+            exit 0
+          fi
+          pr=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER")
+          DELIBERATE=$(printf '%s' "$pr" | jq -r '[.labels[].name] | index("DELIBERATE") != null')
+          PR_BODY=$(printf '%s' "$pr" | jq -r '.body // ""')
+          # The debugging forms are left out: a 3.0 trace is not the shape of 2.x's debug object.
+          forms='normalize,fontConvert.*,fontDetect*,syllBreak.*,spellingFix.*,truncate.*'
+          args=(--base "api:origin/$BASE_REF" --head api:. --forms "$forms" $FLAGS --skip-missing-sets)
+          if [ "$DELIBERATE" = "true" ]; then
+            entries=$(printf '%s\n' "$PR_BODY" | grep -oE -- '--expect-api [A-Za-z0-9._-]+:[A-Za-z0-9._-]+=[0-9]+' \
+              | cut -d' ' -f2 | grep -vE ':all=' || true)
+            for entry in $entries; do args+=(--expect "$entry"); done
+          fi
+          echo "npm run compare -- ${args[*]}"
+          npm run compare -- "${args[@]}" --json "$RUNNER_TEMP/api-compare.json"
+          bun scripts/eval/compare.mjs "${args[@]}"
+          node scripts/next/output-version.mjs --base "origin/$BASE_REF" --compare "$RUNNER_TEMP/api-compare.json"
       - name: Compare compat with the builds that hold it
         env:
           FLAGS: ${{ steps.inputs.outputs.flags }}

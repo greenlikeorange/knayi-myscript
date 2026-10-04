@@ -1,7 +1,8 @@
 // Loads one copy of knayi, so that two copies can be compared (compare.mjs) or timed (perf.mjs) in one process.
 //
-// What is loaded is always the 2.x API: main.js of a 2.x copy, or of a 3.0 copy the './compat' export of its
-// package.json (src/compat/index.js, the 2.x API on the 3.0 core, an ES module). A spec names the copy:
+// What is loaded answers the 2.x API's call forms: main.js of a 2.x copy, or of a 3.0 copy the './compat' export of
+// its package.json (src/compat/index.js, the 2.x API on the 3.0 core, an ES module); or, with api:, a 3.0 copy's
+// 3.0 API, each call form made by the 3.0 call MIGRATION.md gives for it. A spec names the copy:
 //   .  or a path            a checkout or package directory (its 2.x API, as above), or a CommonJS or .mjs file
 //   git:<ref>  or  <ref>    a commit, unpacked read-only with `git archive` into a temporary directory
 //   npm:<version>           a published version, only if it is already installed (node_modules/knayi-myscript, or the
@@ -12,6 +13,10 @@
 //                           (an npm package's own dist file is used as shipped)
 //   mjs:<file>, mjs:<spec>  the same for the ES module build of the 2.x API (3.0: knayi-myscript-compat.min.mjs),
 //                           which is imported
+//   api:<spec>              the 3.0 API of a 3.0 copy (a path, git:<ref> or a bare ref): its src/ with its own
+//                           scripts/next/migration/plain.mjs, which makes each call form with the plain 3.0 call. So
+//                           compare sees a change to the 3.0 layer (src/api/, src/index.js) that compat cannot, and
+//                           each copy is read with the option names of its own time.
 //
 // prepareKnayi() does the git and build work and returns a plain descriptor. instantiate() turns a descriptor into a
 // library, so worker threads and a Bun child process load the very same copy without repeating that work.
@@ -220,9 +225,23 @@ function buildDist(source) {
   return path.join(dir, 'dist');
 }
 
+// The file of a 3.0 copy that makes compare's call forms with its 3.0 API (api:<spec>).
+const API_FORMS = path.join('scripts', 'next', 'migration', 'plain.mjs');
+
+// A descriptor for api:<spec>: the copy's src/ and scripts/ (git refs are unpacked with them), and its plain.mjs,
+// imported as an ES module whose default export answers the call forms.
+function prepareApi(spec, inner) {
+  const source = prepareSource(inner || '.', { withBuild: true });
+  const file = path.join(source.dir, API_FORMS);
+  if (!fs.existsSync(file)) throw new Error(source.label + ' has no ' + API_FORMS + ', so no 3.0 API to compare');
+  return { spec, kind: 'esm', file, label: 'the 3.0 API of ' + source.label + ' (' + API_FORMS + ')', ...source.state };
+}
+
 // Returns a descriptor: { spec, kind: 'cjs' | 'vm' | 'esm', file, label, commit, dirty, version, libraryHash, fileHash }.
 export function prepareKnayi(spec) {
   if (typeof spec !== 'string' || spec === '') throw new Error('a knayi copy needs a spec, such as . or origin/main');
+  const api = /^api:(.*)$/.exec(spec);
+  if (api) return prepareApi(spec, api[1]);
   const m = /^(min|mjs):(.*)$/.exec(spec);
   if (!m) {
     const source = prepareSource(spec);

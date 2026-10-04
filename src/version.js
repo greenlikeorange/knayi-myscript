@@ -10,4 +10,7 @@ export const PACKAGE_VERSION = '3.0.0-next.0';
 // 2  3.0's normalize settles: it repeats its pass until it changes nothing (decision 36), and reads u, zero and
 //    seven after a virama or under a kinzi as nya, wa and ra (DESIGN.md §11.2). It differs from 1 on no line of the
 //    Unicode corpora, and on 199 of 14,304 raw mC4 lines, mostly Zawgyi.
+// A dataset holds only released output, so changes between two releases share one number: the first change after
+// a release raises it (scripts/next/output-version.mjs checks this in CI). The 3.0 API's other changes before 3.0.0,
+// such as white space ending a syllable (DESIGN.md §11.6), are part of 2.
 export const OUTPUT_VERSION = 2;

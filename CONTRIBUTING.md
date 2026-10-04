@@ -78,11 +78,12 @@ Knayi's output is used as data, so an unannounced change to it is a bug even whe
 
 - **Show that nothing changed:**
   - `npm run compare -- --base origin/main` reports 0 differences on every call form, including `fontConvert.debugging` (in 3.0 it compares the 2.x API, compat, of both copies), and the tests of the 3.0 API pass;
+  - `npm run compare -- --base api:origin/main --head api:. --forms 'normalize,fontConvert.*,fontDetect*,syllBreak.*,spellingFix.*,truncate.*'` reports 0 differences too: it compares the 3.0 API of both copies on the same call forms, each made by the copy's own `scripts/next/migration/plain.mjs`, so it sees a change to `src/api/` or `src/index.js` that compat cannot;
   - the contract matrix (`test/contract/api-matrix.test.js`, part of `npm test` and `npm run test:bun`) shows 0 changed cells;
   - both hold for compat and for the three builds that hold it, `knayi.compat` of `knayi.min.js`, the global of `knayi-myscript.min.js` and `knayi-myscript-compat.min.mjs`, under Node and Bun, and compat still gives the 2.x reference's output (`npm run compare -- --base e5f6e24fa756f8f9c8d790f9a15ede85b135e8ae --head mjs:src/compat/index.js`). CI checks all of this.
 - **The matrix records error messages only for errors knayi throws itself.** For a `TypeError` the engine raises by accident, it records only the class, because those messages differ between runtimes and builds. An error knayi throws on purpose carries a string `code` property; that is how the matrix tells the two apart. So throw it as `libraryError(code, message, Ctor)` from `src/core/errors.js`: `test/next/guards/errors.test.mjs` fails on any other `throw` in `src/`, apart from compat's `legacyTypeError()`, which reproduces 2.x's accidental TypeErrors.
 - **A pull request that changes output on purpose** gets the `DELIBERATE` label and:
-  - lists the exact counts it expects in its description, one `--expect form:set=n` per changed cell (a set is a corpus, such as `ksw`, or a generated or fuzz set, such as `generated.rows`), and the matrix cells that change. CI's compare job reads those lines. It skips the counts for sets CI does not read (mC4, the legacy `wikipedia-v1` sample, and every corpus when its cache is cold) and `all` totals; re-run the job after you add the label or change the counts;
+  - lists the exact counts it expects in its description, one `--expect form:set=n` per changed cell of compat (a set is a corpus, such as `ksw`, or a generated or fuzz set, such as `generated.rows`), one `--expect-api form:set=n` per changed cell of the 3.0 API, and the matrix cells that change. CI's compare job reads those lines. It skips the counts for sets CI does not read (mC4, the legacy `wikipedia-v1` sample, and every corpus when its cache is cold) and `all` totals; re-run the job after you add the label or change the counts;
   - commits the new matrix written by `npm run matrix:update`;
   - changes nothing else;
   - adds a line under "Output changes" in [CHANGELOG.md](CHANGELOG.md);
@@ -110,7 +111,7 @@ The README promises Chrome 51, Edge 15, Firefox 54, Safari 10.1, Samsung Interne
 The entries of the exports map and what each exports, the types, the error codes, the `dist/` file names and the `knayi` global, the stage and rule ids of traces, and the output, with `OUTPUT_VERSION`, are 3.0's API. In `knayi-myscript/compat`, the 2.x exports and options, the shape of `legacyWinTables()`, the debug stage names and their order, and the regex-source labels in `matched_patterns` are 2.x API, kept as 2.x had them. [ARCHITECTURE.md](ARCHITECTURE.md#stable-surfaces) lists where each is defined.
 
 - New exports and options may come in a minor version, with types, tests, and matrix rows for compat.
-- A change to what a function returns is a deliberate pull request that raises `OUTPUT_VERSION` (`src/version.js`).
+- A change to what a function returns is a deliberate pull request that raises `OUTPUT_VERSION` (`src/version.js`) above that of the last release, with a line on what changed: a dataset can hold only released output, so changes between two releases share one number. CI's compare job checks it when the 3.0 API's output changes (`scripts/next/output-version.mjs`).
 - Don't rewrite a regex of the Unicode to Zawgyi rows for style: its `.source` is compat's debugging output.
 
 ### Bundle size
