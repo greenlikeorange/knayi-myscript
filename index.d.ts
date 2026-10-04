@@ -152,9 +152,6 @@ export declare function setGlobalOptions(options?: GlobalOptions | null): void;
 /**
  * fontDetect as an Array#map callback: `lines.map(knayi.fontDetect)` gives each line what `fontDetect(line)` gives.
  * The index map passes is no fallback, and the array sets no option. The other signature has the details.
- *
- * @deprecated Use detectEncoding: `lines.map(knayi.detectEncoding)` gives each line's encoding with its evidence.
- * fontDetect keeps working through 2.x and prints no warning.
  */
 export declare function fontDetect(
   content: string | null | undefined,
@@ -176,11 +173,6 @@ export declare function fontDetect(
  * `ReturnType<typeof fontDetect>`. For `'unicode' | 'zawgyi' | 'en'`, write
  * `lines.map((line) => knayi.fontDetect(line))`.
  *
- * @deprecated Use detectEncoding, which gives the rule scorer's answer with its evidence: an `encoding` of
- * `'unicode'` or `'zawgyi'` is what fontDetect returns, `'unknown'` (a tie) is where it returns the fallback or
- * `'zawgyi'`, and `'none'` (no Myanmar letters) where it returns the fallback or `'en'`. fontDetect keeps working
- * through 2.x and prints no warning. detectEncoding always uses the rule scorer, so for the myanmar-tools detector
- * (`adapter`, `use_myanmartools`) fontDetect is still the call.
  * @param content The text.
  * @param fallbackFontType What to return when the text does not decide. It is returned as given. A value that is not
  * a string, such as the index Array#map passes, is no fallback, and neither is `''`.
@@ -390,10 +382,7 @@ export interface Knayi {
   version: typeof version;
   /** Sets options for this copy of knayi: silent mode and the detector settings. */
   setGlobalOptions: typeof setGlobalOptions;
-  /**
-   * Tells whether text is Unicode or Zawgyi.
-   * @deprecated Use detectEncoding, which gives the evidence too. fontDetect keeps working through 2.x.
-   */
+  /** Tells whether text is Unicode or Zawgyi. */
   fontDetect: typeof fontDetect;
   /** Tells whether text is Unicode or Zawgyi, with the evidence. */
   detectEncoding: typeof detectEncoding;

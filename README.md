@@ -37,7 +37,7 @@ import knayi from 'knayi-myscript'
 import knayi from 'knayi-myscript'
 ```
 
-TypeScript types are `index.d.ts`, with documentation for every export that editors show. Named imports such as `import { fontConvert } from 'knayi-myscript'` work in Node and in bundlers, next to the default import. The default import compiles with or without `esModuleInterop`. The option types (`DetectorOptions`, `GlobalDetectorOptions`, `GlobalOptions`, `TruncateOptions`, `ZawgyiDetectorLike`), `ConvertDebug`, `EncodingDetection` and `FontName` are exported. A font parameter takes any string, and editors suggest the names in `FontName`. `fontDetect`'s result type is `'unicode' | 'zawgyi' | 'en'`, with the fallback's type in place of `'en'` when you pass a fallback. `fontDetect` is marked `@deprecated`, for `detectEncoding` ([fontDetect](#fontdetectcontent-fallbackfonttype-options)).
+TypeScript types are `index.d.ts`, with documentation for every export that editors show. Named imports such as `import { fontConvert } from 'knayi-myscript'` work in Node and in bundlers, next to the default import. The default import compiles with or without `esModuleInterop`. The option types (`DetectorOptions`, `GlobalDetectorOptions`, `GlobalOptions`, `TruncateOptions`, `ZawgyiDetectorLike`), `ConvertDebug`, `EncodingDetection` and `FontName` are exported. A font parameter takes any string, and editors suggest the names in `FontName`. `fontDetect`'s result type is `'unicode' | 'zawgyi' | 'en'`, with the fallback's type in place of `'en'` when you pass a fallback.
 
 `fontDetect`, `detectEncoding`, `spellingFix`, `truncate` and `normalize` type-check as `Array#map` callbacks, as in `lines.map(knayi.truncate)`. `Array#map` passes each line's index and the array too, which these functions read as setting nothing, so each line gives what the function gives the line alone. TypeScript types `lines.map(knayi.fontDetect)` as `string[]`; write `lines.map((line) => knayi.fontDetect(line))` for `'unicode' | 'zawgyi' | 'en'`. The types take map's array as a required third argument, so a call such as `knayi.truncate(text, 20)` is still an error, and so is `Array.from(iterable, knayi.truncate)`: write `Array.from(iterable, (line) => knayi.truncate(line))`. `syllBreak` reads the array as its break point and `fontConvert` the index as its target font (see [syllBreak](#syllbreakcontent-fonttype-breakpoint)), so their types refuse `lines.map(knayi.syllBreak)` and `lines.map(knayi.fontConvert)`: pass the line alone, as in `lines.map((line) => knayi.syllBreak(line))`.
 
@@ -93,8 +93,6 @@ Other values, such as numbers and objects, are returned unchanged the same way (
 `setGlobalOptions({ silent_mode: true })` hides those warnings. The option applies to the copy of the library that received the call.
 
 ## fontDetect(content, fallbackFontType?, options?)
-
-**Deprecated:** use [detectEncoding](#detectencodingcontent), which gives the rule scorer's answer with its evidence, and tells a tie apart from text with no Myanmar letters; its section says which `encoding` gives which `fontDetect` result. `fontDetect` keeps working through 2.x and prints no warning. `index.d.ts` marks it `@deprecated`, so editors strike it through. `detectEncoding` always uses the rule scorer, so for the [myanmar-tools detector](#the-myanmar-tools-detector) `fontDetect` is still the call.
 
 Returns `'unicode'`, `'zawgyi'`, or the fallback / `'en'`.
 
