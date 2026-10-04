@@ -29,6 +29,7 @@ const OPTION_TYPES = Object.freeze({
   jsonl: { type: 'boolean' },
   field: { type: 'string' },
   into: { type: 'string' },
+  invalid: { type: 'string' },
   encoding: { type: 'string' },
   'max-line-length': { type: 'string' },
   report: { type: 'boolean' },
@@ -51,9 +52,11 @@ const COMMAND_CHOICES = Object.freeze({
   separator: { segment: null } // any text
 });
 
-// convert's --to, and the input encodings every command reads.
+// convert's --to, the input encodings every command reads, and what --jsonl does with a line that is no record it
+// can read (records.js invalidRecord).
 const TARGETS = Object.freeze(['unicode', 'zawgyi']);
 const ENCODINGS = Object.freeze(['utf-8', 'windows-1252']);
+const INVALID_RECORDS = Object.freeze(['error', 'keep', 'skip']);
 
 // What a command line asks for: { kind: 'help' }, { kind: 'version' }, or { kind: 'run', command, settings, files },
 // where command is never 'convert' (its --to has chosen) and files are the paths to read in turn, '-' being
@@ -112,13 +115,17 @@ function checkCommandOptions(command, label, values) {
   if (values['max-line-length'] !== undefined) readLineLimit(values['max-line-length']);
 }
 
-// --field and --into name the fields of a JSON Lines record, so they need --jsonl, and a name.
+// --field and --into name the fields of a JSON Lines record, so they need --jsonl, and a name; --invalid says what
+// to do with a record knayi cannot read, so it needs --jsonl too.
 function checkJsonlOptions(values) {
   for (const name of ['field', 'into']) {
     if (values[name] === undefined) continue;
     if (!values.jsonl) throw usageError('--' + name + ' names a field of a record, and needs --jsonl');
     if (values[name] === '') throw usageError('--' + name + ' needs a field name');
   }
+  if (values.invalid === undefined) return;
+  if (!values.jsonl) throw usageError('--invalid says what to do with a record that cannot be read, and needs --jsonl');
+  checkChoice('--invalid', values.invalid, INVALID_RECORDS, '--jsonl');
 }
 
 function checkChoice(option, value, choices, command) {
@@ -138,6 +145,7 @@ function readSettings(values) {
     jsonl: values.jsonl === true,
     field: values.field === undefined ? 'text' : values.field,
     into: orNull(values.into),
+    invalid: values.invalid === undefined ? 'error' : values.invalid,
     encoding: values.encoding === undefined ? 'utf-8' : values.encoding,
     maxLineLength: values['max-line-length'] === undefined ? DEFAULT_MAX_LINE_LENGTH
       : readLineLimit(values['max-line-length']),

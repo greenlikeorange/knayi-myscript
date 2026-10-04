@@ -15,15 +15,12 @@ export function plainLine(command, line, where) {
 }
 
 // The output for one line of JSON Lines, without the line break. A line of white space alone is passed through as a
-// blank line, and is no record.
+// blank line, and is no record. A line that is no record knayi can read goes to invalidRecord.
 export function jsonLine(command, line, where, settings) {
   if (isBlank(line)) return { result: null, text: null, output: line };
-  const record = parseRecord(line, where);
-  const text = record[settings.field];
-  if (typeof text !== 'string') {
-    throw inputError(where.name + ':' + where.line, 'the record has no string field ' +
-      JSON.stringify(settings.field) + ' (it is ' + describe(text) + '); --field names the field that holds the text');
-  }
+  const read = readRecordText(line, settings.field);
+  if (read.problem !== null) return invalidRecord(line, where, read.problem, settings.invalid);
+  const text = read.text;
   const result = command.run(text);
   const into = settings.into !== null ? settings.into : command.resultField || settings.field;
   const value = command.jsonValue(result, text);
@@ -31,17 +28,32 @@ export function jsonLine(command, line, where, settings) {
   return { result: result, text: text, output: unchanged ? line : withField(line, into, value) };
 }
 
-function parseRecord(line, where) {
+// A line that is not a JSON object, or a record whose --field is missing or not a string. Real datasets have such
+// records (a null text), so --invalid says what to do with one: error (the default) stops the run with an input
+// error that names the line; keep writes the line as it came; skip writes nothing of it, not even its line break.
+// --report counts kept and skipped records as invalid.
+function invalidRecord(line, where, problem, invalid) {
+  if (invalid === 'error') throw inputError(where.name + ':' + where.line, problem);
+  return { result: null, text: null, output: invalid === 'keep' ? line : '', invalid: true,
+    skipped: invalid === 'skip' };
+}
+
+// { text, problem }: the string of the record's field, or what keeps the line from being a record with one.
+function readRecordText(line, field) {
   let record;
   try {
     record = JSON.parse(line);
   } catch (error) {
-    throw inputError(where.name + ':' + where.line, 'not JSON (' + error.message + ')');
+    return { text: null, problem: 'not JSON (' + error.message + ')' };
   }
   if (record === null || typeof record !== 'object' || Array.isArray(record)) {
-    throw inputError(where.name + ':' + where.line, 'a record must be a JSON object, not ' + describe(record));
+    return { text: null, problem: 'a record must be a JSON object, not ' + describe(record) };
   }
-  return record;
+  const text = record[field];
+  if (typeof text === 'string') return { text: text, problem: null };
+  return { text: null, problem: 'the record has no string field ' + JSON.stringify(field) + ' (it is ' +
+    describe(text) + '); --field names the field that holds the text, and --invalid keep or skip passes such ' +
+    'a record on' };
 }
 
 function describe(value) {

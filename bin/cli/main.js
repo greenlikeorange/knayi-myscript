@@ -38,16 +38,25 @@ async function run(request, io) {
 }
 
 // The handler lines.js gives each line to: map(line, where) is the command's output for the line, tallied for
-// --report, and written(mapped) what to write of what mapLines made of a chunk's lines. A command that writes one
-// line for each line writes that, each line with its ending; check's plain text is a report of whole lines, none for
-// a clean line, so its map collects them and returns '', and the endings mapLines puts after each '' are dropped.
+// --report; written(mapped) what to write of what mapLines made of a chunk's lines; and dropped() whether the line
+// just mapped is to be left out, ending and all (a record --invalid skip drops). A command that writes one line for
+// each line writes that, each line with its ending; check's plain text is a report of whole lines, none for a clean
+// line, so its map collects them and returns '', and the endings mapLines puts after each '' are dropped.
 function lineHandler(command, settings, summary) {
+  let drop = false;
   const map = (line, where) => {
     const done = settings.jsonl ? jsonLine(command, line, where, settings) : plainLine(command, line, where);
-    if (done.text !== null) summary.add(done.text, done.result);
+    if (done.invalid) summary.addInvalid();
+    else if (done.text !== null) summary.add(done.text, done.result);
+    drop = done.skipped === true;
     return done.output;
   };
-  if (settings.jsonl || command.writesLines) return { map: map, written: (mapped) => mapped };
+  const dropped = () => {
+    const was = drop;
+    drop = false;
+    return was;
+  };
+  if (settings.jsonl || command.writesLines) return { map: map, written: (mapped) => mapped, dropped: dropped };
   let report = '';
   return {
     map: (line, where) => {
@@ -58,7 +67,8 @@ function lineHandler(command, settings, summary) {
       const lines = report;
       report = '';
       return lines;
-    }
+    },
+    dropped: dropped
   };
 }
 

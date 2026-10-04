@@ -86,4 +86,53 @@ describe('knayi input errors exit with 3, naming the input and the line', () => 
   it('check stops with 3, not 1, when an input error follows an issue', () => {
     assertStops(['check', '--jsonl'], 3, /<stdin>:2: not JSON/, '{"text":"\u1000\u102D\u102D"}\nnot json\n');
   });
+
+  it('writes every line before the one it names, though they came in the same chunk', () => {
+    const records = '{"id":1,"text":"\u1031\u1000"}\n{"id":2,"text":null}\n{"id":3,"text":"a"}\n';
+    const run = assertStops(['normalize', '--jsonl'], 3, /<stdin>:2: the record has no string field "text"/, records);
+    assert.equal(run.stdout, '{"id":1,"text":"\u1000\u1031"}\n', 'record 1, and nothing of 2 or after');
+    const long = assertStops(['normalize', '--max-line-length', '3'], 3, /<stdin>:3: the line is longer/,
+      'ab\r\nabc\nabcd\nab\n');
+    assert.equal(long.stdout, 'ab\r\nabc\n');
+    const check = assertStops(['check', '--jsonl'], 3, /<stdin>:2: not JSON/, '{"text":"\u1000\u102D\u102D"}\nx\n');
+    assert.equal(JSON.parse(check.stdout).issues.length, 1, 'the issue of record 1');
+  });
+});
+
+describe('knayi --invalid: what --jsonl does with a line that is no record it can read', () => {
+  // Record 2 has a null text, record 4 no text, line 5 is not JSON and line 6 not an object; 1 and 3 are records.
+  const LINES = ['{"id":1,"text":"\u1031\u1000"}', '{"id":2,"text":null}', '{"id":3,"text":"\u1000\u102D\u102D"}',
+    '{"id":4}', 'not json', '[1]'];
+  const input = LINES.join('\r\n') + '\n';
+
+  it('error, the default, stops at the first such line with status 3', () => {
+    assertStops(['normalize', '--jsonl'], 3, /<stdin>:2: the record has no string field "text" \(it is null\)/, input);
+    assertStops(['normalize', '--jsonl', '--invalid', 'error'], 3, /<stdin>:2: /, input);
+  });
+
+  it('keep writes each such line as it came, ending and all; --report counts them as invalid', () => {
+    const run = spawnKnayi(['normalize', '--jsonl', '--invalid', 'keep', '--report'], { input });
+    assert.equal(run.status, 0, run.stderr);
+    assert.equal(run.stdout, ['{"id":1,"text":"\u1000\u1031"}', LINES[1], '{"id":3,"text":"\u1000\u102D"}', LINES[3],
+      LINES[4], LINES[5]].join('\r\n') + '\n');
+    const report = JSON.parse(run.stderr);
+    assert.equal(report.records, 6);
+    assert.equal(report.invalid, 4);
+    assert.equal(report.changed, 2);
+  });
+
+  it('skip writes nothing of such a line, not even its line break', () => {
+    const run = spawnKnayi(['segment', '--jsonl', '--invalid', 'skip', '--report'], { input: input + '{"id":7}' });
+    assert.equal(run.status, 0, run.stderr);
+    assert.match(run.stdout, /^\{"id":1,[^\n]*\}\r\n\{"id":3,[^\n]*\}\r\n$/, 'records 1 and 3, each with its ending');
+    assert.equal(JSON.parse(run.stderr).invalid, 5);
+    const check = spawnKnayi(['check', '--jsonl', '--invalid', 'skip'], { input });
+    assert.equal(check.status, 1, 'record 3 has an issue');
+    assert.equal(check.stdout.split('\n').filter((line) => line !== '').length, 2);
+  });
+
+  it('needs --jsonl, and is error, keep or skip', () => {
+    assertStops(['normalize', '--invalid', 'keep'], 2, /--invalid .*needs --jsonl/);
+    assertStops(['normalize', '--jsonl', '--invalid', 'drop'], 2, /--invalid must be 'error', 'keep' or 'skip'/);
+  });
 });

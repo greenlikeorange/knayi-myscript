@@ -42,6 +42,9 @@ Options:
   --field <name>         --jsonl: the field that holds the text (default: text)
   --into <name>          --jsonl: the field the result is written to (default:
                          --field for text; encoding, syllables or issues)
+  --invalid <what>       --jsonl: a line that is not an object with a string
+                         --field stops the run (error, the default), is
+                         written as it came (keep), or is dropped (skip)
   --encoding <name>      the bytes of the input: utf-8 (the default) or
                          windows-1252; the output is always UTF-8
   --max-line-length <n>  the longest line read, in UTF-16 units (default:
@@ -57,7 +60,8 @@ Exit status:
      take, or a detector that is not installed
   3  an input error: a file that cannot be read, bytes not valid in --encoding,
      a line over --max-line-length, or a JSON Lines line that is not an object
-     with a string --field
+     with a string --field (unless --invalid keep or skip); every line before
+     it is written
   4  any other failure, such as an output that cannot be written
 `;
 

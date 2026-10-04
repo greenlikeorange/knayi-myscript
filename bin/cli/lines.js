@@ -6,9 +6,9 @@
 // handler without its ending, and the ending goes out after the result as it came. A line is held only until its
 // line break, and one longer than --max-line-length stops the run (§12.4), so memory stays bounded on any input.
 //
-// A run that stops on an input error has written nothing of the line it names, nor of any line after it. Lines
-// before it in the same chunk may be missing too, since mapLines gives a chunk's lines at once, but not before bytes
-// that do not decode: the text before them goes through first.
+// A run that stops on an input error has written every line before the one it names, and nothing of that line or
+// of any line after it: the text goes to mapLines a line at a time (mapLineByLine), so an error on a line leaves the
+// output of the lines before it, and the text before bytes that do not decode goes through first.
 
 import fs from 'node:fs';
 import { mapLines } from '../../src/stream.js';
@@ -19,7 +19,7 @@ import { ChunkDecoder } from './decoding.js';
 const CHUNK_BYTES = 64 * 1024;
 
 // Reads every input in turn, gives each line to handler.map(line, where), and writes handler.written(mapped) for
-// what mapLines makes of each chunk (main.js lineHandler). where is { name, line }: the input's name, and the line's
+// what mapLines makes of each chunk, without the lines handler.dropped() names (main.js lineHandler). where is { name, line }: the input's name, and the line's
 // number from 1. The last line of an input that does not end with a line feed is ended with one when another input
 // follows, so that the next input starts a line; the last input's ends as it did. Stops early when the output has
 // closed.
@@ -48,7 +48,7 @@ async function readInput(input, settings, isLastInput, handler, output) {
   }
   await writeText(reader, reader.decoder.decode(undefined), output);
   if (!isLastInput && reader.unended) await writeText(reader, { text: '\n', valid: true }, output);
-  await output.write(handler.written(mapping(reader, () => reader.lines.flush())));
+  await writeMapped(reader, mapStep(reader, () => reader.lines.flush()), output);
 }
 
 // { decoder, lines, where, unended, settings, handler }: unended says whether the text so far ends inside a line.
@@ -73,23 +73,52 @@ function createReader(input, settings, handler) {
 async function writeText(reader, decoded, output) {
   const text = decoded.text;
   if (text !== '') reader.unended = text.charCodeAt(text.length - 1) !== 0x0A;
-  await output.write(reader.handler.written(mapping(reader, () => reader.lines.transform(text))));
+  await writeMapped(reader, mapLineByLine(reader, text), output);
   if (decoded.valid) return;
   throw inputError(reader.where.name + ':' + (reader.where.line + 1), 'the input is not valid ' +
     reader.settings.encoding + ' (text saved in Windows-1252, as Win font text often is, needs --encoding ' +
     'windows-1252)');
 }
 
-// What a step of mapLines gives. A line over the limit is an input error naming it, as soon as it passes the limit,
-// also while it waits for its line break; mapLines has given every line before it to the handler.
-function mapping(reader, step) {
-  try {
-    return step();
-  } catch (error) {
-    if (!error || error.code !== 'ERR_KNAYI_LINE_TOO_LONG') throw error;
-    throw inputError(reader.where.name + ':' + (reader.where.line + 1), 'the line is longer than ' +
-      reader.settings.maxLineLength + ' UTF-16 units, the limit --max-line-length sets');
+// Writes what the lines gave ({ text, error }, mapStep), then throws the error that stopped them, if one did.
+async function writeMapped(reader, mapped, output) {
+  await output.write(reader.handler.written(mapped.text));
+  if (mapped.error !== null) throw mapped.error;
+}
+
+// The text through mapLines a line at a time, each step ending at a line break, so that a step completes one line
+// at most: { text, error }. An error on a line stops there, and `text` keeps the output of every line before it,
+// which one step for the whole chunk would lose with the error.
+function mapLineByLine(reader, text) {
+  let mapped = '';
+  for (let start = 0; start < text.length;) {
+    const lineBreak = text.indexOf('\n', start);
+    const end = lineBreak === -1 ? text.length : lineBreak + 1;
+    const step = mapStep(reader, () => reader.lines.transform(text.slice(start, end)));
+    if (step.error !== null) return { text: mapped, error: step.error };
+    mapped += step.text;
+    start = end;
   }
+  return { text: mapped, error: null };
+}
+
+// One step of mapLines: { text, error }. The text is empty when the handler dropped the line the step completed
+// (--invalid skip), its ending included. A line over the limit is an input error naming it, as soon as it passes
+// the limit, also while it waits for its line break.
+function mapStep(reader, step) {
+  let text;
+  try {
+    text = step();
+  } catch (error) {
+    return { text: '', error: asLineError(reader, error) };
+  }
+  return { text: reader.handler.dropped() ? '' : text, error: null };
+}
+
+function asLineError(reader, error) {
+  if (!error || error.code !== 'ERR_KNAYI_LINE_TOO_LONG') return error;
+  return inputError(reader.where.name + ':' + (reader.where.line + 1), 'the line is longer than ' +
+    reader.settings.maxLineLength + ' UTF-16 units, the limit --max-line-length sets');
 }
 
 // A file that cannot be read (missing, a directory, not readable) is an input error naming it.

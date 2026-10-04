@@ -5,8 +5,9 @@
 
 import { VERSION, OUTPUT_VERSION } from '../../src/index.js';
 
-// { add(text, result), counts, json() } for a command from commands.js. records counts the lines of plain text, or
-// the records of JSON Lines (a blank line is none); the command adds its own counts:
+// { add(text, result), addInvalid(), counts, json() } for a command from commands.js. records counts the lines of
+// plain text, or the records of JSON Lines (a blank line is none), and invalid the records --invalid keep or skip
+// passed on (records.js), when there are any; the command adds its own counts:
 //   normalize, to-unicode, to-zawgyi   changed: the texts the command changed
 //   detect                             encodings: the texts of each encoding
 //   segment                            syllables: how many syllables in all
@@ -14,14 +15,20 @@ import { VERSION, OUTPUT_VERSION } from '../../src/index.js';
 export function createSummary(name, command) {
   const counts = command.newCounts();
   let records = 0;
+  let invalid = 0;
   return {
     counts: counts,
     add(text, result) {
       records++;
       command.tally(counts, text, result);
     },
+    addInvalid() {
+      records++;
+      invalid++;
+    },
     json() {
       const head = { command: name, version: VERSION, outputVersion: OUTPUT_VERSION, records: records };
+      if (invalid > 0) head.invalid = invalid;
       return JSON.stringify(Object.assign(head, sortedRules(counts)));
     }
   };

@@ -536,6 +536,7 @@ knayi --version
 | `--jsonl` | all | Read and write JSON Lines. |
 | `--field <name>` | all, with `--jsonl` | The field that holds the text. Default `text`. |
 | `--into <name>` | all, with `--jsonl` | The field the result is written to. Default: `--field` for text, else `encoding` (`detect`), `syllables` (`segment`) or `issues` (`check`). |
+| `--invalid <what>` | all, with `--jsonl` | What to do with a line that is not a JSON object with a string `--field`, such as a record whose text is `null`: `error` (the default) stops the run with status 3; `keep` writes the line as it came; `skip` writes nothing of it, not even its line break. |
 | `--encoding <name>` | all | The input's encoding: `utf-8` (the default) or `windows-1252`. |
 | `--max-line-length <n>` | all | The longest line read, in UTF-16 units: from 1 to 268,435,456. Default 16,777,216. |
 | `--report` | all | When the input is read, write a summary to standard error as one JSON line. |
@@ -546,7 +547,7 @@ Names are exact: `--from Zawgyi` is a usage error, as in the 3.0 API. An option 
 
 ### JSON Lines
 
-With `--jsonl`, every line is a JSON object, and a blank line is passed through. `knayi` reads the text from `--field`, which must hold a string, and writes the result to `--into`. Every other byte of the line stays as it was: the order of the fields, their spacing and escapes, and numbers JavaScript cannot hold exactly, such as an id of 20 digits. A record whose text the command leaves as it is comes out byte for byte.
+With `--jsonl`, every line is a JSON object, and a blank line is passed through. `knayi` reads the text from `--field`, which must hold a string, and writes the result to `--into`. A line that is not an object with a string `--field` stops the run, unless `--invalid keep` passes it through byte for byte or `--invalid skip` drops it; either way `--report` counts it as `invalid`. Every other byte of the line stays as it was: the order of the fields, their spacing and escapes, and numbers JavaScript cannot hold exactly, such as an id of 20 digits. A record whose text the command leaves as it is comes out byte for byte.
 
 ```console
 $ echo '{"id":12345678901234567890,"text":"ေကာင္း"}' | knayi to-unicode --jsonl
@@ -559,7 +560,7 @@ $ echo '{"id":7,"text":"မြန်မာ"}' | knayi segment --jsonl
 
 ### Report
 
-`--report` writes one JSON line to standard error when the run has read all of its input: the command, `version`, `outputVersion`, the number of `records` (lines, or JSON Lines records), and what the command counts: `changed` (`normalize`, `to-unicode`, `to-zawgyi`), `encodings` (`detect`), `syllables` (`segment`), or `issues`, `recordsWithIssues` and `rules` (`check`). `outputVersion` changes with every deliberate change to knayi's output, so a dataset that records it knows when to run `knayi` again.
+`--report` writes one JSON line to standard error when the run has read all of its input: the command, `version`, `outputVersion`, the number of `records` (lines, or JSON Lines records), the records `--invalid keep` or `skip` passed on as `invalid` when there are any, and what the command counts: `changed` (`normalize`, `to-unicode`, `to-zawgyi`), `encodings` (`detect`), `syllables` (`segment`), or `issues`, `recordsWithIssues` and `rules` (`check`). `outputVersion` changes with every deliberate change to knayi's output, so a dataset that records it knows when to run `knayi` again.
 
 For the three lines of the `detect` example below, `knayi to-unicode --report` writes:
 
@@ -574,7 +575,7 @@ For the three lines of the `detect` example below, `knayi to-unicode --report` w
 | 0 | Done, and `check` found no issue. |
 | 1 | `check` found an issue. |
 | 2 | A usage error: an unknown command or option, a value the command does not take, or a detector that is not installed. Nothing is read. |
-| 3 | An input error: a file that cannot be read, bytes not valid in `--encoding`, a line longer than `--max-line-length`, or a JSON Lines line that is not an object with a string `--field`. The message names the file and the line. Nothing of that line or after it is written, and lines just before it may be missing too, since the input is read a chunk at a time. |
+| 3 | An input error: a file that cannot be read, bytes not valid in `--encoding`, a line longer than `--max-line-length`, or a JSON Lines line that is not an object with a string `--field` (with `--invalid error`, the default). The message names the file and the line. Every line before it is written, and nothing of that line or after it, so a run can resume from the line it names. |
 | 4 | Any other failure, such as an output that cannot be written. |
 
 An error writes one line to standard error, `knayi: <what is wrong>`. When the reader of the output goes away, as `head` does, `knayi` stops with status 0.
