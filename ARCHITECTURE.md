@@ -58,7 +58,7 @@ Each `dist/` file holds a copy of the code of its own. Imports of `knayi-myscrip
 | L4 public | `index.js` and `api/`, `stream.js`; `compat/` | the 3.0 API and its streams; the 2.x API |
 | spec | `spec/` | the detector signatures, break rules and typo rows as readable tables: the oracle the scanners are tested against; nothing in `src/` imports them |
 
-The 3.0 API and compat import neither each other nor each other's files. compat reproduces 2.x's public layer in `compat/`: its input checks and font names (`input.js`), the `syllBreak` separator and the 2.x shape of the Win tables (`legacy.js`), the option store and the console (`globalOptions.js`), myanmar-tools loading (`zawgyiModel.js`), and one file per group of functions (`fontDetect.js`, `fontConvert.js`, `text.js`).
+The 3.0 API and compat import neither each other nor each other's files. compat reproduces 2.x's public layer in `compat/`: its input checks and font names (`input.js`), the `syllBreak` separator and the 2.x shape of the Win tables (`legacy.js`), the option store and the console (`globalOptions.js`), the warning for a myanmar-tools adapter with no detector (`zawgyiModel.js`), and one file per group of functions (`fontDetect.js`, `fontConvert.js`, `text.js`).
 
 Two copies of 2.x's library sit in `scripts/`, and neither is shipped:
 
