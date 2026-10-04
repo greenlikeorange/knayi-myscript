@@ -73,6 +73,14 @@ describe('package.json', () => {
       [entry.slice(2), [ENTRIES[entry].types]])) });
   });
 
+  it('serves the 3.0 script build to a CDN link that names no file (unpkg, jsDelivr)', () => {
+    // Without the fields, a link such as cdn.jsdelivr.net/npm/knayi-myscript@3 serves main, src/index.js, an ES
+    // module with relative imports that cannot run as a script. The 2.x global keeps its own file name.
+    assert.equal(pkg.unpkg, './dist/knayi.min.js');
+    assert.equal(pkg.jsdelivr, './dist/knayi.min.js');
+    assert.equal(require('../scripts/build').SOURCE_TYPES['knayi.min.js'], 'script');
+  });
+
   it('ships the command, the sources, their types and the browser builds, and no spec, tests or scripts', () => {
     assert.deepEqual(pkg.files,
       ['bin', 'src', '!src/spec'].concat(require('../scripts/build').FILES.map((f) => 'dist/' + f)));
@@ -86,8 +94,8 @@ describe('package.json', () => {
     assert.equal(require('../bin/package.json').type, 'module');
   });
 
-  it('marks only the script build as having side effects', () => {
-    assert.deepEqual(pkg.sideEffects, ['./dist/knayi-myscript.min.js']);
+  it('marks only the script builds as having side effects', () => {
+    assert.deepEqual(pkg.sideEffects, ['./dist/knayi.min.js', './dist/knayi-myscript.min.js']);
     assert.equal(require('../src/package.json').sideEffects, false);
   });
 

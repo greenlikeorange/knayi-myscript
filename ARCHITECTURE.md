@@ -28,15 +28,16 @@ The package is ES modules only (`"type": "module"`), for Node 22.12 and later, w
 | `knayi-myscript/compat` | `src/compat/index.js`: the 2.x API, its eight exports and a non-enumerable `default` that points back at them | `src/compat/index.d.ts`, 2.x's `index.d.ts` |
 | `knayi-myscript/package.json` | `package.json` | |
 
-No other path of the package can be imported. `main` and `types` name the 3.0 API for tools that read no exports map. `bin` maps the `knayi` command to `bin/knayi.js`. The package ships `bin/`, `src/` but `src/spec/`, and the three `dist/` files.
+No other path of the package can be imported. `main` and `types` name the 3.0 API for tools that read no exports map. `bin` maps the `knayi` command to `bin/knayi.js`. The package ships `bin/`, `src/` but `src/spec/`, and the four `dist/` files.
 
-`scripts/build.js` bundles the sources with esbuild at `target: 'es2015'`, minified, for browsers:
+`scripts/build.js` bundles the sources with esbuild at `target: 'es2015'`, minified, for browsers; `unpkg` and `jsdelivr` in `package.json` serve `knayi.min.js` to a CDN link that names no file:
 
 | File | Format | Holds |
 | --- | --- | --- |
 | `dist/knayi-myscript.min.mjs` | ES module | the 3.0 API |
 | `dist/knayi-myscript-compat.min.mjs` | ES module | the 2.x API: the named exports and the default of 2.x's `knayi-myscript.mjs` |
-| `dist/knayi-myscript.min.js` | script (IIFE), `"use strict"` | sets the global `knayi`: the 3.0 API, with the 2.x API as `knayi.compat`; also sets the global when a bundler wraps the file in a module scope |
+| `dist/knayi.min.js` | script (IIFE in a strict function) | sets the global `knayi`: the 3.0 API, with the 2.x API as `knayi.compat`; also sets the global when a bundler wraps the file in a module scope |
+| `dist/knayi-myscript.min.js` | script (IIFE in a strict function) | sets the global `knayi` to the 2.x API, as 2.x's file of that name did, for pages that load it from `@master` or an unversioned CDN link |
 
 The builds hold no streams. The committed `dist/` is the build of the last release, or of the release being prepared: jsDelivr serves `main`'s `dist/` to `@master` links, so it changes only in a release commit (`scripts/check-dist.js`). Everything else builds into a temporary directory: `builtDist()` in `scripts/build.js` builds once per process and removes the directory on exit, or returns `KNAYI_DIST` when that is set.
 
@@ -377,7 +378,7 @@ Setup is `npm ci` in each clone or worktree; see [CONTRIBUTING.md](CONTRIBUTING.
 
 | Command | What it runs | CI check |
 | --- | --- | --- |
-| `npm run build` | Writes the three `dist/` files. Only a release commit runs it. | — |
+| `npm run build` | Writes the four `dist/` files. Only a release commit runs it. | — |
 | `npm test` | `node --test` on `test/**/*.test.js` and `test/**/*.test.mjs`, then the timing tests alone (`*.timing.js`, `*.timing.mjs`), then `tsc` on `typecheck/` (the 2.x types with and without `esModuleInterop`, and the 3.0 API's), then the dist size budgets (`posttest`). The tests read the dist files from a temporary build. Among them: the 2.x tests against compat; the tests of each module of the core, of the 3.0 API and of its streams, and the guards of `test/next/guards/` (layers, the stateless core, tree-shaking, the ES2015 floor of `src/`, function sizes, error codes, citations and the frozen oracle); the package and its exports map; the `knayi` command, run as a process (`test/next/cli/`); the contract matrix (`test/contract/`); a probe for every table row (`test/tables.test.js`); every example in README.md, MIGRATION.md and this file, with their number pinned, and README's prose examples (`test/readme.test.js`); differential fuzz against the frozen 2.10 engine in `scripts/oracle/`; property tests; the browser floor checks of the builds (`test/syntax.test.js`, `test/dist-floor.test.js`, `test/regex-floor.test.js`); and the Unicode version check. The timing tests check that time grows linearly on adversarial and random structured input; they run after the others so that they do not compete with them for the CPU. | Node 22.12, Node 24, Node 26 |
 | `npm run test:bun` | `scripts/bun-contract.js`, `scripts/bun-esm.mjs` and `scripts/bun-matrix.js` (the contract matrix in a process of its own), then `bun test ./test` and the timing tests. | Bun |
 | `npm run test:pack` | Packs the package with a fresh build (`scripts/pack-fresh.mjs`), installs it with Bun in a temporary app, and loads each entry of the exports map through `require` and `import`. | Bun |

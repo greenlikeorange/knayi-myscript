@@ -1,7 +1,7 @@
 'use strict';
 // One list of calls for every place that runs a build outside Node's ES module sources: the browsers
 // (scripts/browser/smoke.spec.js), the floor emulation (test/dist-floor.test.js) and the RegExp check
-// (test/regex-floor.test.js). allCalls() calls the 2.x API (compat, and knayi.compat in the script build): the
+// (test/regex-floor.test.js). allCalls() calls the 2.x API (compat, knayi.compat in knayi.min.js, and knayi in knayi-myscript.min.js): the
 // examples of README.md and MIGRATION.md, a few more call forms, and generated inputs over the Myanmar block and
 // Latin-1 (synthetic only, decision 22). apiCalls() calls the 3.0 API on the same generated inputs.
 

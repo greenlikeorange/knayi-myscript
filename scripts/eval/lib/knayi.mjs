@@ -7,7 +7,7 @@
 //   npm:<version>           a published version, only if it is already installed (node_modules/knayi-myscript, or the
 //                           eval cache's knayi-baseline from scripts/eval/engines.mjs). Nothing is downloaded.
 //   min:<file>              a script build such as dist/knayi-myscript.min.js, run in a vm context like a <script>;
-//                           a 3.0 script build's global holds the 2.x API as knayi.compat
+//                           its global is the 2.x API, or holds it as knayi.compat (3.0's knayi.min.js)
 //   min:<spec>              the script build of that copy, built by its own scripts/build.js in a temporary directory
 //                           (an npm package's own dist file is used as shipped)
 //   mjs:<file>, mjs:<spec>  the same for the ES module build of the 2.x API (3.0: knayi-myscript-compat.min.mjs),
@@ -264,8 +264,9 @@ function requireFresh(file) {
   return lib;
 }
 
-// A script build sets the `knayi` global, as in a browser. Builds from 2.8.x set window.knayi. In a 3.0 build the
-// global is the 3.0 API, and its `compat` the 2.x API.
+// A script build sets the `knayi` global, as in a browser. Builds from 2.8.x set window.knayi. 3.0's
+// knayi-myscript.min.js sets the 2.x API, as 2.x did (and 3.0.0-next.0's set the 3.0 API, with the 2.x API as its
+// `compat`, as 3.0's knayi.min.js does).
 function runScript(file) {
   const context = vm.createContext({ console });
   vm.runInContext('this.window = this; this.self = this;', context);

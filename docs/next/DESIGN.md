@@ -1364,7 +1364,7 @@ So in a working directory that cannot resolve the package, `main.js` scores with
 - **No contract fixes.** Phase 1c (PRs 4.3-4.5) and PRs 4.1-4.2 are not applied.
 - **No output change.** Phase 4 is not applied.
 - **No deep paths.** `knayi-myscript/library/converter` remains `library/`'s.
-- **No browser build of its own.** Phase 6 packaging (§14) builds `knayi-myscript-compat.min.mjs`, and `knayi.compat` in the script build, from compat's sources.
+- **No browser build of its own.** Phase 6 packaging (§14) builds `knayi-myscript-compat.min.mjs`, `knayi.compat` in the 3.0 script build, and the 2.x script build `knayi-myscript.min.js`, from compat's sources.
 
 The 2.x line brings each of these, and they reach compat through §8.
 
@@ -1595,7 +1595,8 @@ Other targets:
   | the core's `normalizeText` alone (normalize-only) | 6,804 B | 7,200 B |
   | `dist/knayi-myscript.min.mjs` (the 3.0 API) | 20,890 B | 22,000 B |
   | `dist/knayi-myscript-compat.min.mjs` (the 2.x API) | 17,408 B | 18,300 B |
-  | `dist/knayi-myscript.min.js` (both, as the global `knayi`) | 23,782 B | 25,000 B |
+  | `dist/knayi.min.js` (both, as the global `knayi`), named `knayi-myscript.min.js` when the budget was set | 23,782 B | 25,000 B |
+  | `dist/knayi-myscript.min.js` (the 2.x API as the global `knayi`, §14.3), set when it took that content | 17,778 B | 18,700 B |
 
   For comparison, 2.10's `min.js` was 9,830 B with a limit of 10,854 B.
 
@@ -2321,8 +2322,9 @@ Phase 6 #1 and #6 of the plan, and decisions 10, 18, 31 and 35: the package ship
 | `typesVersions` | `compat` → `./src/compat/index.d.ts`, `stream` → `./src/stream.d.ts` | TypeScript's `node10` resolution, the default of `module: commonjs`, reads no exports map, so without it a CommonJS project could not resolve `knayi-myscript/compat`, the path MIGRATION.md gives 2.x's TypeScript users. Resolutions that read the exports map ignore it. |
 | `engines` | `node >=22.12` | The first 22 where `require` loads an ES module without a flag (decision 31). |
 | `bin` | `knayi` → `bin/knayi.js` | The command line (§13), which runs the 3.0 API and the streams from `src/`. |
-| `files` | `bin`, `src` but `src/spec`, and the three `dist/` files | `spec/` is the scanners' readable oracle; nothing in `src/` imports it (§2.2). |
-| `sideEffects` | `["./dist/knayi-myscript.min.js"]` | The script build sets a global; nothing else has a side effect at load (§2.4). |
+| `files` | `bin`, `src` but `src/spec`, and the four `dist/` files | `spec/` is the scanners' readable oracle; nothing in `src/` imports it (§2.2). |
+| `sideEffects` | `["./dist/knayi.min.js", "./dist/knayi-myscript.min.js"]` | The script builds set a global; nothing else has a side effect at load (§2.4). |
+| `unpkg`, `jsdelivr` | `./dist/knayi.min.js` | A CDN link that names no file, `cdn.jsdelivr.net/npm/knayi-myscript@3`, would serve `main`, `src/index.js`, an ES module with relative imports that cannot run as a script (§14.3). |
 
 `version` becomes `3.0.0-next.0` in a release commit of its own, which also commits the fresh `dist/` that the rule of `scripts/check-dist.js` asks of a version change. `package-lock.json` is left as it was: the packaging changes no dependency, and `npm version` updates its two version fields when the maintainer cuts a release.
 
@@ -2336,19 +2338,20 @@ As first packaged, `node10` resolved only `'.'`, through `main` and `types`, and
 
 ### 14.3 The browser builds
 
-`scripts/build.js` makes three files for browsers, minified, at ES2015; `src/` ships for anyone who wants to read the code.
+`scripts/build.js` makes four files for browsers, minified, at ES2015; `src/` ships for anyone who wants to read the code.
 
 | File | Holds |
 |---|---|
 | `dist/knayi-myscript.min.mjs` | the 3.0 API, as one ES module |
 | `dist/knayi-myscript-compat.min.mjs` | the 2.x API, as one ES module: the named exports and the default export of 2.x's `knayi-myscript.mjs`, so a 2.x module user changes only the file name |
-| `dist/knayi-myscript.min.js` | a script whose global `knayi` is the 3.0 API, with the 2.x API as `knayi.compat` |
+| `dist/knayi.min.js` | a script whose global `knayi` is the 3.0 API, with the 2.x API as `knayi.compat` |
+| `dist/knayi-myscript.min.js` | a script whose global `knayi` is the 2.x API, as 2.x's file of that name set it |
 
-**The global.** The plan's 2.x users of the global need a path, and one global can hold one API by name. The 3.0 API has the name, as everywhere else in 3.0, and the 2.x object hangs off it as `compat`, the name of its entry. A page written for 2.x keeps working with `knayi = knayi.compat` after the tag, the line the demo's accessibility test adds while the demo is pinned to 2.x. One file for both is 23,782 B gzip, 2,892 B more than the 3.0 API's module build (20,890 B); two script files could not both be loaded on one page, since each would set `knayi`. The builds hold no streams: their TransformStreams need browsers well above the floor (Safari 14.1, Firefox 102; §12.1), and a page that wants them bundles `knayi-myscript/stream`.
+**The globals.** One global can hold one API by name. In the 3.0 script build, `knayi.min.js`, the 3.0 API has the name, as everywhere else in 3.0, and the 2.x object hangs off it as `compat`, the name of its entry: 24,507 B gzip, 2,867 B more than the 3.0 API's module build. As first packaged, that build took 2.x's file name, `knayi-myscript.min.js`, and the 2.x object was only `knayi.compat`. But 2.x's users of the global cannot all change their pages: the plan counts 1,740 requests a year to `cdn.jsdelivr.net/gh/greenlikeorange/knayi-myscript@master/dist/knayi-myscript.min.js`, which follows `main` and cannot pin a version (decision 3 keeps 3.0 off `main` to protect them only until 3.0 merges), and unpkg and jsDelivr links with no version follow npm's `latest`. In a vm, the global of that build had no `fontConvert`, `fontDetect`, `syllBreak` or `version`, `knayi.normalize(null)` threw `ERR_KNAYI_INVALID_ARG_TYPE`, and `knayi.truncate('abc', {length: 2})` threw: every such page would have failed at its first call the day 3.0 reached `main` or `latest`, against CONTRIBUTING.md's rule about `@master`. So `knayi-myscript.min.js` keeps 2.x's name and global: the 2.x API on the 3.0 core, 17,778 B gzip, whose output `npm run compare -- --base e5f6e24... --head min:.` finds equal to the reference's on every call form and input (0 differences in 2,786,338 comparisons), and the 3.0 global has a name of its own. Two script files that both set `knayi` are not meant for one page. The builds hold no streams: their TransformStreams need browsers well above the floor (Safari 14.1, Firefox 102; §12.1), and a page that wants them bundles `knayi-myscript/stream`.
 
-**Strict code.** esbuild's script output is not strict, and the sources were written and tested as strict modules, so the script build says `"use strict"` itself. One effect shows in `knayi.compat`: a detached `fontConvert` never reads a global `debug`, as in compat. The contract matrix records those 10 cells once, under compat, and both builds share them (`SHARES_RECORDED_DIFFERENCES`). 2.x's `knayi-myscript.js`, `.mjs` and `.es.js`, and the `module` field, are gone.
+**Strict code.** esbuild's script output is not strict, and the sources were written and tested as strict modules, so each script build runs its code in a strict function: `(function () {"use strict"; var knayi = ...; <global>.knayi = ...; })();`. One effect shows in the 2.x API: a detached `fontConvert` never reads a global `debug`, as in compat. The contract matrix records those 10 cells once, under compat, and the three builds that hold compat share them (`SHARES_RECORDED_DIFFERENCES`). As first packaged, the script build began with a `"use strict"` directive of its own, and a directive at the start of a classic script makes the whole script strict, so an asset pipeline that joins vendor files (Sprockets, gulp-concat, the WordPress and Django compressors) made every file after knayi strict: in a vm, the build followed by `legacyCounter = 1;` threw a ReferenceError, where 2.10's ran. `test/browser.test.js` runs each script build followed by such a line in one script. 2.x's `knayi-myscript.js`, `.mjs` and `.es.js`, and the `module` field, are gone.
 
-**The floor** (decision 18) is the first versions with all of ES2015. `scripts/browser/floor.js` takes its versions from MDN's browser-compat-data, which gives Safari 10.1 for classes, and the core has four (`EditLog`, `CodeBuffer`, `SyllableBuffer`, `CopyThroughWriter`), so README states Chrome 51, Edge 15, Firefox 54 and Safari 10.1 (iOS 10.3), with Samsung Internet 5 and Opera 38. At that floor the builds use nothing the browsers lack, and the known exceptions of 2.x are gone. The checker learned three things on the way: a read after `if (typeof x === 'undefined' || ...) return`, and through a chain of `||`, is guarded (compat's myanmar-tools lookup has that shape); `Uint16Array.from` is named by a rule, so it is not an unlisted static; and the emulation keeps what a rule names and the floor has (Symbol, Reflect). `test/dist-floor.test.js` runs both APIs of the script build with every later built-in deleted, against the sources in Node; `test/regex-floor.test.js` records the 42 regexes `src/` builds, in a process of its own, and finds the same 38 in the script build; `npm run test:browser` runs both module builds and the script build in Chromium, Firefox and WebKit.
+**The floor** (decision 18) is the first versions with all of ES2015. `scripts/browser/floor.js` takes its versions from MDN's browser-compat-data, which gives Safari 10.1 for classes, and the core has four (`EditLog`, `CodeBuffer`, `SyllableBuffer`, `CopyThroughWriter`), so README states Chrome 51, Edge 15, Firefox 54 and Safari 10.1 (iOS 10.3), with Samsung Internet 5 and Opera 38. At that floor the builds use nothing the browsers lack, and the known exceptions of 2.x are gone. The checker learned three things on the way: a read after `if (typeof x === 'undefined' || ...) return`, and through a chain of `||`, is guarded (compat's myanmar-tools lookup has that shape); `Uint16Array.from` is named by a rule, so it is not an unlisted static; and the emulation keeps what a rule names and the floor has (Symbol, Reflect). `test/dist-floor.test.js` runs both APIs of the script builds with every later built-in deleted, against the sources in Node; `test/regex-floor.test.js` records the 42 regexes `src/` builds, in a process of its own, and finds the same 38 in the 3.0 script build; `npm run test:browser` runs both module builds and both script builds in Chromium, Firefox and WebKit.
 
 ### 14.4 What was deleted, and what the tests read instead
 

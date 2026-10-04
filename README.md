@@ -82,10 +82,10 @@ print([json.loads(line) for line in cleaned.stdout.splitlines()])
 
 ### In the browser
 
-The script build sets the global `knayi`:
+The script build `knayi.min.js` sets the global `knayi`:
 
 ```html
-<script src="https://unpkg.com/knayi-myscript@3.0.0-next.0/dist/knayi-myscript.min.js"></script>
+<script src="https://unpkg.com/knayi-myscript@3.0.0-next.0/dist/knayi.min.js"></script>
 <script>
   document.body.textContent = knayi.toUnicode('မဂၤလာပါ', { from: 'zawgyi' })
 </script>
@@ -619,15 +619,18 @@ No other path loads: 2.x's `knayi-myscript/library/converter` and its `dist/` im
 
 ### Browsers
 
-Browsers load one of three files in `dist/`, from a CDN such as unpkg or jsDelivr, or from a copy:
+Browsers load one of four files in `dist/`, from a CDN such as unpkg or jsDelivr, or from a copy:
 
 | File | Holds | Gzipped |
 | --- | --- | --- |
-| `knayi-myscript.min.js` | a script that sets the global `knayi`: the 3.0 API, with the 2.x API as `knayi.compat` | 23,951 B |
-| `knayi-myscript.min.mjs` | the 3.0 API as one ES module | 21,072 B |
-| `knayi-myscript-compat.min.mjs` | the 2.x API as one ES module, with the named exports and the default export of 2.x's `knayi-myscript.mjs` | 17,455 B |
+| `knayi.min.js` | a script that sets the global `knayi`: the 3.0 API, with the 2.x API as `knayi.compat` | 24,507 B |
+| `knayi-myscript.min.mjs` | the 3.0 API as one ES module | 21,640 B |
+| `knayi-myscript-compat.min.mjs` | the 2.x API as one ES module, with the named exports and the default export of 2.x's `knayi-myscript.mjs` | 17,557 B |
+| `knayi-myscript.min.js` | a script that sets the global `knayi` to the 2.x API, as 2.x's file of that name does | 17,778 B |
 
-They are ES2015. They run in Chrome 51, Edge 15, Firefox 54, Safari 10.1 (iOS 10.3), Samsung Internet 5 and Opera 38, or newer: the first versions with all of ES2015. Older browsers need knayi 2.x, and Internet Explorer knayi 2.8.3. The tests run the three files in Chromium, Firefox and WebKit, and run the script build with every built-in newer than those browsers removed.
+`knayi-myscript.min.js` keeps 2.x's file name and global for the pages that load it without a version, from jsDelivr's `@master` or from an unpkg or jsDelivr link with no version, which follow the newest release: they go on working when 3.0 ships. A link to the package that names no file, such as `https://cdn.jsdelivr.net/npm/knayi-myscript@3`, serves `knayi.min.js`. Each script build runs its own code in a strict function, so a script an asset pipeline joins after it stays as strict or sloppy as it was.
+
+They are ES2015. They run in Chrome 51, Edge 15, Firefox 54, Safari 10.1 (iOS 10.3), Samsung Internet 5 and Opera 38, or newer: the first versions with all of ES2015. Older browsers need knayi 2.x, and Internet Explorer knayi 2.8.3. The tests run the four files in Chromium, Firefox and WebKit, and run the script builds with every built-in newer than those browsers removed.
 
 The builds hold no streams: a TransformStream needs Safari 14.1 or Firefox 102. A page that wants them bundles `knayi-myscript/stream`, and on an older browser uses `mapLines`. Each `dist/` file is a copy of the library of its own, so the 2.x `setGlobalOptions` called on one does not reach another, nor `knayi-myscript/compat` loaded from npm.
 
@@ -646,7 +649,7 @@ compat.fontConvert('ေကာင္း', 'unicode', 'zawgyi') // 'ကောင�
 const compat = require('knayi-myscript/compat').default
 ```
 
-In the script build it is `knayi.compat`: a page written for 2.x's global sets `knayi = knayi.compat` after the tag. [MIGRATION.md](MIGRATION.md) documents every 2.x function, how to keep 2.x's behaviour, and how to move each call to the 3.0 API, with the output changes counted.
+In a page, `dist/knayi-myscript.min.js` sets the global `knayi` to it, as 2.x did, so a page written for 2.x's global needs no change; `dist/knayi.min.js` holds it as `knayi.compat`. [MIGRATION.md](MIGRATION.md) documents every 2.x function, how to keep 2.x's behaviour, and how to move each call to the 3.0 API, with the output changes counted.
 
 ## Build
 

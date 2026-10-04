@@ -24,8 +24,11 @@ const SNAPSHOT = path.join(ROOT, 'test', 'contract', 'api-matrix.json');
 // core, src/compat/index.js (§5), imported as the ES module it is. The 3.0 dist files that hold the 2.x API come from
 // a fresh build of this checkout in a temporary directory, or from KNAYI_DIST when it is set (`KNAYI_DIST=dist`
 // checks the committed release build); see builtDist() in scripts/build.js: the compat module build, imported, and
-// the script build, whose knayi.compat runs in a vm.
-const BUILDS = ['main.js', 'compat', 'knayi-myscript-compat.min.mjs', 'knayi-myscript.min.js'];
+// the two script builds, run in a vm: knayi.compat of knayi.min.js, and knayi of knayi-myscript.min.js, 2.x's name.
+const BUILDS = ['main.js', 'compat', 'knayi-myscript-compat.min.mjs', 'knayi.min.js', 'knayi-myscript.min.js'];
+
+// The 2.x API in the global of each script build (scripts/build.js).
+const SCRIPT_COMPAT = { 'knayi.min.js': (knayi) => knayi.compat, 'knayi-myscript.min.js': (knayi) => knayi };
 
 // The module of each build that is not a dist file.
 const REFERENCE_MAIN = path.join(ROOT, 'scripts', 'oracle', 'main.js');
@@ -35,14 +38,16 @@ const COMPAT = path.join(ROOT, 'src', 'compat', 'index.js');
 // that build, which comes before it in BUILDS. The 3.0 builds are made from compat's sources and are strict like
 // them, so they differ from main.js in the same cells, the same way (docs/next/DESIGN.md §5.4, D2).
 // `npm run matrix:update` checks that this still holds.
-const SHARES_RECORDED_DIFFERENCES = { 'knayi-myscript-compat.min.mjs': 'compat', 'knayi-myscript.min.js': 'compat' };
+const SHARES_RECORDED_DIFFERENCES = {
+  'knayi-myscript-compat.min.mjs': 'compat', 'knayi.min.js': 'compat', 'knayi-myscript.min.js': 'compat'
+};
 
 // Cells in which a build is expected to differ from main.js, with the reason. `npm run matrix:update` refuses to
 // record a build difference that no entry here explains.
 const KNOWN_BUILD_DIFFERENCES = [
   {
     name: 'debug flag read from this',
-    builds: ['compat', 'knayi-myscript-compat.min.mjs', 'knayi-myscript.min.js'],
+    builds: ['compat', 'knayi-myscript-compat.min.mjs', 'knayi.min.js', 'knayi-myscript.min.js'],
     matches: (id) => id.indexOf('detached fontConvert(') === 0,
     reason: 'fontConvert reads its debug flag from `this` (2.x converter.js fontConvert). A detached call in ' +
       'sloppy code (2.x\'s CommonJS main.js) reads the global object, so a global `debug` variable turns on the ' +
@@ -282,9 +287,10 @@ async function loadBuild(name) {
     const module = await import(pathToFileURL(file).href);
     return hostBuild(name, label, module.default, logs);
   }
-  if (name === 'knayi-myscript.min.js') {
-    // As a browser runs it: a classic script in its own global object, with no `process` or `require`. Its global
-    // `knayi` is the 3.0 API, and knayi.compat the 2.x API.
+  if (SCRIPT_COMPAT[name]) {
+    // As a browser runs it: a classic script in its own global object, with no `process` or `require`. The global
+    // `knayi` of knayi.min.js is the 3.0 API, and knayi.compat the 2.x API; that of knayi-myscript.min.js the 2.x
+    // API, as in 2.x.
     const consoleObject = {};
     for (const method of CONSOLE_METHODS) {
       consoleObject[method] = function () { logs.push(consoleLine(method, arguments)); };
@@ -296,7 +302,7 @@ async function loadBuild(name) {
     return {
       name: name,
       label: label + ' (in a vm)',
-      knayi: sandbox.knayi.compat,
+      knayi: SCRIPT_COMPAT[name](sandbox.knayi),
       global: sandbox,
       make: copier(realm),
       logs: logs,

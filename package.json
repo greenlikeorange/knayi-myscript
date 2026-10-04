@@ -20,6 +20,8 @@
   },
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
+  "unpkg": "./dist/knayi.min.js",
+  "jsdelivr": "./dist/knayi.min.js",
   "typesVersions": {
     "*": {
       "compat": [
@@ -37,6 +39,7 @@
     "node": ">=22.12"
   },
   "sideEffects": [
+    "./dist/knayi.min.js",
     "./dist/knayi-myscript.min.js"
   ],
   "files": [
@@ -45,6 +48,7 @@
     "!src/spec",
     "dist/knayi-myscript.min.mjs",
     "dist/knayi-myscript-compat.min.mjs",
+    "dist/knayi.min.js",
     "dist/knayi-myscript.min.js"
   ],
   "scripts": {

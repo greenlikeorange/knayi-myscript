@@ -17,10 +17,9 @@ const KNOWN = {
 
 // The demo loads a pinned knayi from jsDelivr with an integrity hash. The tests run offline, so the page gets
 // the local build in its place; the hash pins the CDN bytes, so the tag loses it. The demo is written for the 2.x
-// global and pinned to a 2.x release, so the page then takes the 2.x API from 3.0's global, as README tells 2.x
-// script users to (`knayi = knayi.compat`). Nothing else in the page changes.
+// global, which 3.0's dist/knayi-myscript.min.js keeps under its 2.x name. Nothing else in the page changes.
 const CDN_TAG = /<script src="https:\/\/cdn\.jsdelivr\.net\/npm\/knayi-myscript@[^"]+\/dist\/knayi-myscript\.min\.js"[^>]*><\/script>/g;
-const LOCAL_TAGS = '<script src="/dist/knayi-myscript.min.js"></script><script>knayi = knayi.compat;</script>';
+const LOCAL_TAGS = '<script src="/dist/knayi-myscript.min.js"></script>';
 
 const PAGES = [
   { name: 'demo', path: '/docs/index.html', scheme: 'light' },

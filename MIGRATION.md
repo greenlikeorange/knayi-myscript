@@ -21,10 +21,10 @@ knayi 3.0 has two APIs on one new core:
 | `import { fontConvert } from 'knayi-myscript'` | `import { fontConvert } from 'knayi-myscript/compat'` |
 | `const knayi = require('knayi-myscript')` | `const knayi = require('knayi-myscript/compat').default` |
 | `require('knayi-myscript/library/converter')`, which was `fontConvert` | `require('knayi-myscript/compat').fontConvert` |
-| The script build's global `knayi` | `knayi.compat`, or `knayi = knayi.compat` after the `<script>` tag |
-| `dist/knayi-myscript.min.js` | the same file name, whose global is now the 3.0 API, with the 2.x API as `knayi.compat` |
+| The script build's global `knayi`, from `dist/knayi-myscript.min.js` | the same file and the same global: 3.0's `dist/knayi-myscript.min.js` sets `knayi` to the 2.x API, on the 3.0 core, so a page that loads it from `@master` or an unversioned CDN link keeps working |
+| The 3.0 API in a page | `dist/knayi.min.js`, whose global `knayi` is the 3.0 API, with the 2.x API as `knayi.compat` |
 | `dist/knayi-myscript.mjs`, `dist/knayi-myscript.es.js` | `dist/knayi-myscript-compat.min.mjs`, with the same named exports and default export |
-| `dist/knayi-myscript.js` | `dist/knayi-myscript.min.js`, as above |
+| `dist/knayi-myscript.js` | `dist/knayi-myscript.min.js`, the same global, minified |
 | `import 'knayi-myscript/dist/knayi-myscript.min.js'` in a bundler | load the file from a CDN or a copy: the exports map serves no `dist/` path |
 | TypeScript: `index.d.ts` at the package root | `src/compat/index.d.ts`, the same declarations, found through `knayi-myscript/compat` under every `moduleResolution`, `node` (node10, the default of `module: commonjs`) included: `require('knayi-myscript/compat').default` compiles as it is |
 

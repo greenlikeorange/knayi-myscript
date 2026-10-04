@@ -212,9 +212,10 @@ describe('floor checker', () => {
 });
 
 describe('floor emulation', () => {
-  // The script build runs in a vm context with every built-in the floor lacks deleted (globalThis, Object.entries,
+  // Each script build runs in a vm context with every built-in the floor lacks deleted (globalThis, Object.entries,
   // String#padStart, Array#values, ...), on the README examples, more call forms and generated inputs: the 2.x calls
-  // through knayi.compat, the 3.0 calls through knayi. Their results must equal those of the ES module sources in
+  // through knayi.compat of knayi.min.js and knayi of knayi-myscript.min.js, the 3.0 calls through knayi of
+  // knayi.min.js. Their results must equal those of the ES module sources in
   // Node (scripts/browser/node-results.js). This catches a use the AST check cannot type, such as Array#values
   // against Map#values. The module builds hold the same code in another wrapper, so the check above covers them.
   const calls = { compat: examples.allCalls(), api: examples.apiCalls() };
@@ -225,8 +226,8 @@ describe('floor emulation', () => {
   const NODE_ADAPTER_WARNING = /^warn: myanmar-tools is not installed;/;
   const FLOOR_ADAPTER_WARNING = 'warn: myanmar-tools is not available in this environment; fontDetect used the rule scorer.';
 
-  // A vm context with the post-floor built-ins removed and the script build run in it.
-  function floorContext() {
+  // A vm context with the post-floor built-ins removed and the script build `file` run in it.
+  function floorContext(file) {
     const context = vm.createContext({});
     vm.runInContext('var console = { log: function () {}, warn: function () {}, error: function () {} };', context);
     const removed = vm.runInContext(floor.removalScript(), context);
@@ -236,7 +237,7 @@ describe('floor emulation', () => {
     // What no rule names goes too: the allowlists leave these out.
     assert.equal(vm.runInContext('[typeof Intl.Segmenter, typeof Object.groupBy, typeof [].at, typeof Iterator, ' +
       'typeof WeakRef, typeof Error.captureStackTrace].join()', context), 'undefined,undefined,undefined,undefined,undefined,undefined');
-    vm.runInContext(fs.readFileSync(path.join(DIST, 'knayi-myscript.min.js'), 'utf8'), context, { filename: 'knayi-myscript.min.js' });
+    vm.runInContext(fs.readFileSync(path.join(DIST, file), 'utf8'), context, { filename: file });
     return context;
   }
 
@@ -245,8 +246,8 @@ describe('floor emulation', () => {
       JSON.stringify(JSON.stringify(list)) + '))', context));
   }
 
-  it('knayi.compat in knayi-myscript.min.js gives compat\'s results without the post-floor built-ins', () => {
-    const actual = runIn(floorContext(), 'knayi.compat', calls.compat);
+  // The 2.x API's results, the adapter warning once at the first adapter call.
+  function checkCompat(actual) {
     let adapterWarnings = 0;
     const diffs = examples.differences(calls.compat, actual, expected.compat, {
       same(i, a, b) {
@@ -259,10 +260,18 @@ describe('floor emulation', () => {
     });
     assert.deepEqual(diffs, [], diffs.join('\n'));
     assert.equal(adapterWarnings, 1, 'the adapter warning appears once, at the first adapter call');
+  }
+
+  it('knayi.compat in knayi.min.js gives compat\'s results without the post-floor built-ins', () => {
+    checkCompat(runIn(floorContext('knayi.min.js'), 'knayi.compat', calls.compat));
   });
 
-  it('knayi in knayi-myscript.min.js gives the 3.0 API\'s results without the post-floor built-ins', () => {
-    const actual = runIn(floorContext(), 'knayi', calls.api);
+  it('knayi in knayi-myscript.min.js, 2.x\'s file name, gives compat\'s results without them', () => {
+    checkCompat(runIn(floorContext('knayi-myscript.min.js'), 'knayi', calls.compat));
+  });
+
+  it('knayi in knayi.min.js gives the 3.0 API\'s results without the post-floor built-ins', () => {
+    const actual = runIn(floorContext('knayi.min.js'), 'knayi', calls.api);
     const diffs = examples.differences(calls.api, actual, expected.api);
     assert.deepEqual(diffs, [], diffs.join('\n'));
   });

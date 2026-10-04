@@ -41,7 +41,7 @@ function compareApi(actual) {
   expect(diffs, diffs.join('\n')).toEqual([]);
 }
 
-// Runs a call list in the page against `target`: 'knayi' or 'knayi.compat' for the script build's global, or
+// Runs a call list in the page against `target`: 'knayi' or 'knayi.compat' for a script build's global, or
 // { module, part } for a module build's namespace ('*') or default export ('default').
 function runInPage(page, target, list) {
   return page.evaluate(async ({ source, list, target }) => {
@@ -68,7 +68,7 @@ test.afterEach(() => {
   expect(pageErrors, 'uncaught errors in the page').toEqual([]);
 });
 
-test('the script build sets knayi to the 3.0 API, with the 2.x API as knayi.compat', async ({ page }) => {
+test('knayi.min.js sets knayi to the 3.0 API, with the 2.x API as knayi.compat', async ({ page }) => {
   const names = await page.evaluate(async () => ({
     global: Object.keys(window.knayi).sort(),
     api: Object.keys(await import('/dist/knayi-myscript.min.mjs')).sort(),
@@ -80,9 +80,16 @@ test('the script build sets knayi to the 3.0 API, with the 2.x API as knayi.comp
   expect(await page.evaluate(() => window.knayi.compat.fontConvert('မဂၤလာပါ', 'unicode', 'zawgyi'))).toBe('မင်္ဂလာပါ');
 });
 
-test('the script build gives the results of the sources', async ({ page }) => {
+test('knayi.min.js gives the results of the sources', async ({ page }) => {
   compareCompat(JSON.parse(await runInPage(page, 'knayi.compat', calls.compat)));
   compareApi(JSON.parse(await runInPage(page, 'knayi', calls.api)));
+});
+
+test('knayi-myscript.min.js, 2.x\'s file name, sets knayi to the 2.x API and gives its results', async ({ page }) => {
+  await page.goto('/scripts/browser/page-2x.html');
+  expect(await page.evaluate(() => Object.keys(window.knayi))).toEqual(['version', 'setGlobalOptions', 'fontDetect',
+    'fontConvert', 'syllBreak', 'spellingFix', 'truncate', 'normalize']);
+  compareCompat(JSON.parse(await runInPage(page, 'knayi', calls.compat)));
 });
 
 test('the module builds give the results of the sources', async ({ page }) => {

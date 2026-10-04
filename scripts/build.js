@@ -1,12 +1,18 @@
 // The browser builds of 3.0 (decision 18: engines with full ES2015 support). Node, Bun and bundlers load the ES
 // module sources through the exports map of package.json, and the package ships them (src/) for anyone who wants
-// to read the code; these files are for browsers, from a CDN or a copy, so all three are minified:
+// to read the code; these files are for browsers, from a CDN or a copy, so all four are minified:
 //
 //   dist/knayi-myscript.min.mjs         the 3.0 API ('.', src/index.js) as one ES module
 //   dist/knayi-myscript-compat.min.mjs  the 2.x API ('./compat', src/compat/index.js) as one ES module: the named
 //                                       exports and the default export of 2.x's knayi-myscript.mjs
-//   dist/knayi-myscript.min.js          a script that sets the global `knayi`: the 3.0 API, and as knayi.compat
-//                                       the 2.x API, the object 2.x's script build set as `knayi`
+//   dist/knayi.min.js                   a script that sets the global `knayi`: the 3.0 API, and as knayi.compat
+//                                       the 2.x API
+//   dist/knayi-myscript.min.js          a script that sets the global `knayi` to the 2.x API, as 2.x's script
+//                                       build of that name did
+//
+// 2.x's script build keeps its name and its global: pages load it from jsDelivr's @master, which follows main, and
+// from unversioned CDN links, which follow npm's latest; they cannot pin a version, so a new global under the old
+// name would break them the day 3.0 reached main (docs/next/DESIGN.md §14.3). The 3.0 global has a name of its own.
 //
 // The tracked dist/ holds the build of the last release and changes only in release commits, because jsDelivr
 // serves main's dist/ to `@master` links (scripts/check-dist.js checks this in CI). `npm run build` writes dist/
@@ -19,12 +25,13 @@ const path = require('path');
 
 const root = path.join(__dirname, '..');
 
-const FILES = ['knayi-myscript.min.mjs', 'knayi-myscript-compat.min.mjs', 'knayi-myscript.min.js'];
+const FILES = ['knayi-myscript.min.mjs', 'knayi-myscript-compat.min.mjs', 'knayi.min.js', 'knayi-myscript.min.js'];
 
 // How a browser loads each file: as an ES module, or as a classic script.
 const SOURCE_TYPES = {
   'knayi-myscript.min.mjs': 'module',
   'knayi-myscript-compat.min.mjs': 'module',
+  'knayi.min.js': 'script',
   'knayi-myscript.min.js': 'script'
 };
 
@@ -34,13 +41,27 @@ const ENTRIES = {
   compat: './src/compat/index.js'
 };
 
-// The script build's entry: the 3.0 API's exports, and the 2.x export object as `compat`.
-const SCRIPT_ENTRY = {
-  contents:
-    "export * from '" + ENTRIES.api + "';\n" +
-    "export { default as compat } from '" + ENTRIES.compat + "';\n",
-  resolveDir: root,
-  sourcefile: 'script-entry.js'
+// The entries of the script builds. The 3.0 build's global is its exports: the 3.0 API, and the 2.x export object
+// as `compat`. The 2.x build's global is that object itself, compat's default export, as 2.x's main.js exported it.
+const SCRIPT_ENTRIES = {
+  'knayi.min.js': {
+    contents:
+      "export * from '" + ENTRIES.api + "';\n" +
+      "export { default as compat } from '" + ENTRIES.compat + "';\n",
+    resolveDir: root,
+    sourcefile: 'script-entry.js'
+  },
+  'knayi-myscript.min.js': {
+    contents: "export { default } from '" + ENTRIES.compat + "';\n",
+    resolveDir: root,
+    sourcefile: 'script-entry-2x.js'
+  }
+};
+
+// What each script build sets as the global `knayi`, from esbuild's `var knayi`, its entry's exports.
+const SCRIPT_GLOBALS = {
+  'knayi.min.js': 'knayi',
+  'knayi-myscript.min.js': 'knayi.default'
 };
 
 // Without a target, esbuild writes the newest syntax when it minifies (`??`, `catch {}`), and browsers older than
@@ -55,16 +76,32 @@ const shared = {
   target: 'es2015'
 };
 
-// The sources are ES modules, which are strict. esbuild's script output is not, so the script build says
-// "use strict" itself: the code runs as it was written and tested. One consequence shows in knayi.compat: a
-// detached fontConvert call never reads a global `debug`, as in compat's module (docs/next/DESIGN.md §5.4).
-const strictScript = { js: '"use strict";' };
+// The sources are ES modules, which are strict. esbuild's script output is not, so a script build runs its code in
+// a strict function: the code runs as it was written and tested. One consequence shows in the 2.x API: a detached
+// fontConvert call never reads a global `debug`, as in compat's module (docs/next/DESIGN.md §5.4). The directive
+// stays inside the function: a "use strict" at the start of a classic script would make strict every script an
+// asset pipeline concatenates after it, code that knayi does not own.
+const strictFunction = { js: '(function () {"use strict";' };
 
-// `var knayi` is only global in a classic <script>. When a bundler wraps the file in a module scope, it is module
-// scoped, so the script build also sets the global itself, as 2.x's did.
-const browserGlobal = {
-  js: '(typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : window).knayi = knayi;'
-};
+// The function's `var knayi` is not a global, so the build sets the global itself, as 2.x's did: in a classic
+// <script>, and also when a bundler wraps the file in a module scope.
+function browserGlobal(file) {
+  return { js: '(typeof globalThis !== "undefined" ? globalThis : typeof self !== "undefined" ? self : window).knayi = ' +
+    SCRIPT_GLOBALS[file] + ';\n})();' };
+}
+
+// The esbuild options of a script build.
+function scriptConfig(file, outDir) {
+  return Object.assign({}, shared, {
+    stdin: SCRIPT_ENTRIES[file],
+    format: 'iife',
+    platform: 'browser',
+    globalName: 'knayi',
+    banner: strictFunction,
+    footer: browserGlobal(file),
+    outfile: path.join(outDir, file)
+  });
+}
 
 // esbuild options for each file it writes into outDir, by file name.
 function configs(outDir) {
@@ -81,15 +118,8 @@ function configs(outDir) {
       platform: 'neutral',
       outfile: path.join(outDir, 'knayi-myscript-compat.min.mjs')
     }),
-    'knayi-myscript.min.js': Object.assign({}, shared, {
-      stdin: SCRIPT_ENTRY,
-      format: 'iife',
-      platform: 'browser',
-      globalName: 'knayi',
-      banner: strictScript,
-      footer: browserGlobal,
-      outfile: path.join(outDir, 'knayi-myscript.min.js')
-    })
+    'knayi.min.js': scriptConfig('knayi.min.js', outDir),
+    'knayi-myscript.min.js': scriptConfig('knayi-myscript.min.js', outDir)
   };
 }
 

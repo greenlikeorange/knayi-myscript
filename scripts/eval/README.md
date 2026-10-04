@@ -27,7 +27,7 @@ The comparison packages (`knayi-myscript@<baseline>`, `myanmar-tools@1.1.3`, `ra
 ```bash
 npm run compare                                   # this working tree against origin/main
 npm run compare -- --base origin/main --head .    # the same, spelled out
-npm run compare -- --base . --head min:.          # compat against the script build made from it (knayi.compat), in a vm
+npm run compare -- --base . --head min:.          # compat against its 2.x script build, knayi-myscript.min.js, in a vm
 npm run compare -- --base e5f6e24fa756f8f9c8d790f9a15ede85b135e8ae --head mjs:src/compat/index.js   # compat against the 2.x reference
 npm run compare -- --offline                      # generated and fuzz inputs only: no corpus cache, no network
 npm run compare -- --without mc4                  # every corpus but mC4, as CI runs it

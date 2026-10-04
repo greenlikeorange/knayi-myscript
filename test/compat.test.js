@@ -36,9 +36,9 @@ describe('runtime contract', () => {
     assert.equal(knayi.syllBreak(unicodeGreeting, null, '|'), 'မင်္ဂလာ|ပါ');
   });
 
-  it('keeps the name of the script build, and names the module builds for what they hold', () => {
+  it('keeps the name and the global of 2.x\'s script build, and names the others for what they hold', () => {
     const dist = builtDist();
     assert.deepEqual(fs.readdirSync(dist).sort(),
-      ['knayi-myscript-compat.min.mjs', 'knayi-myscript.min.js', 'knayi-myscript.min.mjs']);
+      ['knayi-myscript-compat.min.mjs', 'knayi-myscript.min.js', 'knayi-myscript.min.mjs', 'knayi.min.js']);
   });
 });

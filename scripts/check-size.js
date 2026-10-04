@@ -20,11 +20,14 @@ const { FILES, builtDist, configs } = require('./build');
 // §6.4): `measured` is the size when the builds were first made from src/ (3.0.0-next.0's sources), and `limit`
 // about 5% above it, rounded up to 100 B, so the 2.x ports, the stream entry and Extended-C fit while a mistake
 // such as a table pulled in twice does not. 2.x's min.js was 9,830 B at 2.10, with a limit of 10,854 B; the 3.0
-// script build holds both APIs.
+// script build, knayi.min.js, holds both APIs (its budget is the one the script build had when it was named
+// knayi-myscript.min.js), and knayi-myscript.min.js now holds the 2.x API alone, as 2.x's did, measured when it got
+// that content back (docs/next/DESIGN.md §14.3).
 const BUDGETS = {
   'knayi-myscript.min.mjs': { measured: 20890, limit: 22000 },
   'knayi-myscript-compat.min.mjs': { measured: 17408, limit: 18300 },
-  'knayi-myscript.min.js': { measured: 23782, limit: 25000 }
+  'knayi.min.js': { measured: 23782, limit: 25000 },
+  'knayi-myscript.min.js': { measured: 17778, limit: 18700 }
 };
 
 const args = process.argv.slice(2);

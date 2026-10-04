@@ -79,7 +79,7 @@ Knayi's output is used as data, so an unannounced change to it is a bug even whe
 - **Show that nothing changed:**
   - `npm run compare -- --base origin/main` reports 0 differences on every call form, including `fontConvert.debugging` (in 3.0 it compares the 2.x API, compat, of both copies), and the tests of the 3.0 API pass;
   - the contract matrix (`test/contract/api-matrix.test.js`, part of `npm test` and `npm run test:bun`) shows 0 changed cells;
-  - both hold for compat and for the two builds that hold it, the script build's `knayi.compat` and `knayi-myscript-compat.min.mjs`, under Node and Bun, and compat still gives the 2.x reference's output (`npm run compare -- --base e5f6e24fa756f8f9c8d790f9a15ede85b135e8ae --head mjs:src/compat/index.js`). CI checks all of this.
+  - both hold for compat and for the three builds that hold it, `knayi.compat` of `knayi.min.js`, the global of `knayi-myscript.min.js` and `knayi-myscript-compat.min.mjs`, under Node and Bun, and compat still gives the 2.x reference's output (`npm run compare -- --base e5f6e24fa756f8f9c8d790f9a15ede85b135e8ae --head mjs:src/compat/index.js`). CI checks all of this.
 - **The matrix records error messages only for errors knayi throws itself.** For a `TypeError` the engine raises by accident, it records only the class, because those messages differ between runtimes and builds. An error knayi throws on purpose carries a string `code` property; that is how the matrix tells the two apart. So throw it as `libraryError(code, message, Ctor)` from `src/core/errors.js`: `test/next/guards/errors.test.mjs` fails on any other `throw` in `src/`, apart from compat's `legacyTypeError()`, which reproduces 2.x's accidental TypeErrors.
 - **A pull request that changes output on purpose** gets the `DELIBERATE` label and:
   - lists the exact counts it expects in its description, one `--expect form:set=n` per changed cell (a set is a corpus, such as `ksw`, or a generated or fuzz set, such as `generated.rows`), and the matrix cells that change. CI's compare job reads those lines. It skips the counts for sets CI does not read (mC4, the legacy `wikipedia-v1` sample, and every corpus when its cache is cold) and `all` totals; re-run the job after you add the label or change the counts;
@@ -101,7 +101,7 @@ Knayi's output is used as data, so an unannounced change to it is a bug even whe
 The README promises Chrome 51, Edge 15, Firefox 54, Safari 10.1, Samsung Internet 5 and Opera 38: the first versions with all of ES2015 (decision 18). So the `dist/` builds must:
 
 - parse as ES2015 (`test/syntax.test.js`), as `src/` does (`test/next/guards/floor.test.mjs`, with its list of later built-ins);
-- avoid built-ins those browsers lack, such as `globalThis`, `Object.entries` or `String.prototype.padStart`, on a path they run (`test/dist-floor.test.js`, whose rules and allowlists are in `scripts/browser/floor.js`, runs both APIs of the script build without them). A read behind a `typeof` guard, or after an `if (typeof x === 'undefined') return`, is allowed;
+- avoid built-ins those browsers lack, such as `globalThis`, `Object.entries` or `String.prototype.padStart`, on a path they run (`test/dist-floor.test.js`, whose rules and allowlists are in `scripts/browser/floor.js`, runs both APIs of the script builds without them). A read behind a `typeof` guard, or after an `if (typeof x === 'undefined') return`, is allowed;
 - build no regex from a string that uses lookbehind, named groups, `\p{…}` or the `s` flag, since the syntax test cannot see inside strings (`test/regex-floor.test.js`);
 - give the results of the ES module sources in Chromium, Firefox and WebKit (`npm run test:browser`).
 
@@ -186,6 +186,6 @@ The checks block a merge only when the rules for `main` (Settings, Rules) requir
     curl -sL https://cdn.jsdelivr.net/npm/knayi-myscript@X.Y.Z/dist/knayi-myscript.min.js | openssl dgst -sha384 -binary | openssl base64 -A
     ```
 
-    It must equal the hash of the local build (`openssl dgst -sha384 -binary dist/knayi-myscript.min.js | openssl base64 -A`). Commit as `docs(site): pin the demo to X.Y.Z`. The demo calls the 2.x global: pinned to a 3.0 release, it needs `knayi = knayi.compat` after the tag, as `scripts/browser/a11y.spec.js` gives it, until it moves to the 3.0 API.
+    It must equal the hash of the local build (`openssl dgst -sha384 -binary dist/knayi-myscript.min.js | openssl base64 -A`). Commit as `docs(site): pin the demo to X.Y.Z`. The demo calls the 2.x global, which 3.0's `dist/knayi-myscript.min.js` keeps, so a 3.0 release pins as it is, until the demo moves to the 3.0 API and `dist/knayi.min.js`.
 11. **Publish the GitHub release** for the tag, with the CHANGELOG section as its notes, and a "Before you upgrade" list when output changed. If a draft release for this version exists, check its target first: a draft made earlier points at an older commit, so set its target to the tag (or make it again from the tag).
 12. **For a security fix,** say so in the CHANGELOG and the release notes, and publish the GitHub security advisory (see [SECURITY.md](SECURITY.md)).

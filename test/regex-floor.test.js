@@ -94,8 +94,8 @@ describe('RegExps built from strings', () => {
   });
 
   it('builds the same RegExps, on the same calls, in the script build', () => {
-    // The browsers get the builds, so check that the script build makes exactly the patterns checked above. It holds
-    // both APIs, and the module builds the same code. legacyWinTables is not in it: no API calls it.
+    // The browsers get the builds, so check that the 3.0 script build, knayi.min.js, makes exactly the patterns
+    // checked above. It holds both APIs, and the other builds the same code. legacyWinTables is not in it: no API calls it.
     const context = vm.createContext({});
     vm.runInContext([
       'var console = { log: function () {}, warn: function () {}, error: function () {} };',
@@ -106,7 +106,7 @@ describe('RegExps built from strings', () => {
       '});'
     ].join('\n'), context);
     const dist = require('../scripts/build').builtDist();
-    vm.runInContext(fs.readFileSync(path.join(dist, 'knayi-myscript.min.js'), 'utf8'), context);
+    vm.runInContext(fs.readFileSync(path.join(dist, 'knayi.min.js'), 'utf8'), context);
     const run = (target, list) => vm.runInContext('(' + examples.runCalls + ')(' + target + ', JSON.parse(' +
       JSON.stringify(JSON.stringify(list)) + '))', context);
     run('knayi.compat', examples.allCalls());
