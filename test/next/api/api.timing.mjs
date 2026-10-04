@@ -79,8 +79,11 @@ describe('growth of the 3.0 API (DESIGN.md §6.2)', () => {
     });
   }
 
-  it('normalize and toUnicode are linear on every pump', () => {
-    assert.deepEqual(superLinear(FUNCTIONS.normalize, PUMPS), []);
-    assert.deepEqual(superLinear(FUNCTIONS['toUnicode, detected'], PUMPS), []);
-  });
+  // One test each: the 272 pumps take about 2.5 s per function under Bun 1.4.2, and both in one test came within
+  // a few hundred milliseconds of bun test's 5 s limit, which it passed some runs and not others.
+  for (const name of ['normalize', 'toUnicode, detected']) {
+    it(name + ' is linear on every pump', () => {
+      assert.deepEqual(superLinear(FUNCTIONS[name], PUMPS), []);
+    });
+  }
 });
