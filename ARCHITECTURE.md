@@ -43,7 +43,7 @@ All library code is CommonJS in `library/`. Every file there is strict code: it 
 | Module | Exports | What it holds |
 | --- | --- | --- |
 | `converter.js` | `fontConvert`, `fontConvert.debugging` | Input checks and font routing for conversion. Both exports call `convert`, which takes the debug flag as an argument: `false` from `fontConvert`, `true` from `debugging`. Every exit that returns text before converting goes through `unconverted`, which gives `debugging` its report there. |
-| `detection.js` | `fontDetect` | 29 signature patterns (12 Unicode, 17 Zawgyi) compiled to global regexes at load; the rule scorer; the optional myanmar-tools adapter and its lazy loader. |
+| `detection.js` | `fontDetect` | 29 signature patterns (12 Unicode, 17 Zawgyi) compiled to global regexes at load; the rule scorer, `countEvidence`, and `decide`, which gives `fontDetect`'s answer for its evidence; the optional myanmar-tools adapter and its lazy loader. |
 | `normalization.js` | `normalize` | Input checks, then NFC and, for text with a character of the Myanmar blocks, `arrangeUnicode`, typos, look-alikes, NFC. |
 | `syllBreak.js` | `syllBreak` | Input checks, font choice, then `breakText`. |
 | `spellingCheck.js` | `spellingFix` | Input checks, font choice, then `collapseMarks`. The file name differs from the export name. |
@@ -141,11 +141,11 @@ Text with no character of those blocks after the first NFC returns there, since 
 ### fontDetect(content, fallback, options)
 
 1. The fallback is read with `givenName` ([below](#syllbreak-spellingfix-and-truncate)): a string other than `''`, or a `String` object's string, kept as given. Any other value, such as the index `Array#map` passes, is no fallback.
-2. Missing content, or no Myanmar character: the fallback, or `'en'`.
-3. `cleanText(content, true)`: trim, and remove U+200B and U+200C.
+2. `textToDetect` reads the text. Missing content warns, unless silent. Missing content, any other value that is not a string, and text with no Myanmar character: the fallback, or `'en'`.
+3. Otherwise `textToDetect` returns `cleanText(content, true)`: the text trimmed, without U+200B and U+200C.
 4. The fallback defaults to `'zawgyi'`.
 5. `globalOptions.detector(options)` merges the call's options with the stored ones; `null` options, like `undefined`, are none. A threshold must be two finite numbers in order; for any other value the call uses the stored pair, with the threshold error unless silent. `setGlobalOptions` checks the same way and keeps the stored pair, and `setGlobalOptions(null)` does nothing. `chooseAdapter` reads the `adapter` with `givenName`, so a value that is not a string, or `''`, names no adapter. An explicit `'rules'` or `'myanmartools'` wins; otherwise `use_myanmartools` picks myanmar-tools, and any other name also warns, unless silent.
-6. **Rules:** each side's score is the total number of matches of its signature patterns (`String#match` with the `g` flag). The higher score wins; a tie returns the fallback.
+6. **Rules:** `countEvidence` counts each side's evidence, the total number of matches of its signature patterns (`String#match` with the `g` flag), and names the side with more, or `'unknown'` when the counts tie: `{ encoding, unicode, zawgyi }`. `decide` returns that side, or the fallback on a tie.
 7. **myanmar-tools:** loaded on first use through `nodeRequire`, which only works in Node: `module.require`, or `process.getBuiltinModule('module').createRequire(...)` from `__filename` or, where that is missing, from the working directory's `package.json`. It finds Node by `process.versions.node`, and reads `process` from `globalThis` behind a `typeof` check, since browsers inside the README floor may have no `globalThis` (Chrome before 71, Firefox before 65, Safari before 12.1, Edge before 79). Anywhere else, such as in any browser, it loads nothing, and the warning says myanmar-tools is not available in this environment. A probability below the first threshold is `'unicode'`, above the second `'zawgyi'`, and in between the fallback. If the package cannot be loaded, the call uses the rules and warns once.
 
 `fontDetect` never returns `'win'`.

@@ -86,21 +86,27 @@ Object.keys(library.detect).forEach((type) => {
   }
 });
 
-function scoreWithRules(content, fallback) {
-  var match = {};
+// The rule scorer. The evidence in a text for each encoding is the number of matches of its signatures (String#match
+// with the g flag, so the matches of one signature do not overlap); the encoding is the one with more evidence, or
+// 'unknown' when the two counts tie.
+function countEvidence(content) {
+  var evidence = { encoding: 'unknown', unicode: 0, zawgyi: 0 };
 
   for (var type in library.detect) {
-    match[type] = 0;
-
     for (var i = 0; i < library.detect[type].length; i++) {
       var found = content.match(library.detect[type][i]);
-      match[type] += (found && found.length) || 0;
+      evidence[type] += (found && found.length) || 0;
     }
   }
 
-  if (match.unicode > match.zawgyi) return 'unicode';
-  if (match.unicode < match.zawgyi) return 'zawgyi';
-  return fallback;
+  if (evidence.unicode > evidence.zawgyi) evidence.encoding = 'unicode';
+  if (evidence.unicode < evidence.zawgyi) evidence.encoding = 'zawgyi';
+  return evidence;
+}
+
+// fontDetect's answer for the rule scorer's evidence: the encoding it found, or the fallback on a tie.
+function decide(evidence, fallback) {
+  return evidence.encoding === 'unknown' ? fallback : evidence.encoding;
 }
 
 function scoreWithMyanmarTools(content, fallback, threshold) {
@@ -109,6 +115,16 @@ function scoreWithMyanmarTools(content, fallback, threshold) {
   if (probability < threshold[0]) return 'unicode';
   if (probability > threshold[1]) return 'zawgyi';
   return fallback;
+}
+
+// The text fontDetect scores: trimmed, and without U+200B and U+200C. null for missing content, which warns unless
+// silent, for any other value that is not a string, and for text with no Myanmar letter.
+function textToDetect(content, apiName) {
+  content = gate.toText(content);
+  if (gate.isMissing(content) && !globalOptions.isSilentMode()) {
+    console.warn('Content must be specified on knayi.' + apiName + '.');
+  }
+  return gate.hasMyanmar(content) ? gate.cleanText(content, true) : null;
 }
 
 var warnedMissingMyanmarTools = false;
@@ -135,16 +151,8 @@ function fontDetect(content, fallback_font_type, options){
   // The fallback is a string other than '' (a String object counts as its string), returned as given. Any other
   // value, such as the index Array#map passes, is no fallback: the call returns 'en' or 'zawgyi', as if omitted.
   fallback_font_type = gate.givenName(fallback_font_type);
-  content = gate.toText(content);
-  if (gate.isMissing(content)) {
-    if (!globalOptions.isSilentMode()) console.warn('Content must be specified on knayi.fontDetect.');
-    return fallback_font_type || 'en';
-  }
-
-  if (!gate.hasMyanmar(content))
-    return fallback_font_type || 'en';
-
-  content = gate.cleanText(content, true);
+  content = textToDetect(content, 'fontDetect');
+  if (content === null) return fallback_font_type || 'en';
   fallback_font_type = fallback_font_type || 'zawgyi';
 
   // undefined and null are no options; globalOptions.detector reads them as {}.
@@ -152,7 +160,7 @@ function fontDetect(content, fallback_font_type, options){
   options = globalOptions.detector(options);
 
   if (chooseAdapter(requestedAdapter, options.use_myanmartools) === 'rules') {
-    return scoreWithRules(content, fallback_font_type);
+    return decide(countEvidence(content), fallback_font_type);
   }
 
   if (!loadMyanmarTools()) {
@@ -160,7 +168,7 @@ function fontDetect(content, fallback_font_type, options){
       console.warn(missingMyanmarToolsMessage());
       warnedMissingMyanmarTools = true;
     }
-    return scoreWithRules(content, fallback_font_type);
+    return decide(countEvidence(content), fallback_font_type);
   }
 
   return scoreWithMyanmarTools(content, fallback_font_type, options.myanmartools_zg_threshold);
