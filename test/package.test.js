@@ -6,6 +6,7 @@ const { createRequire } = require('node:module');
 const { pathToFileURL } = require('node:url');
 const pkg = require('../package.json');
 const { builtDist } = require('../scripts/build');
+const { pendingPort } = require('../scripts/testing/pending-port');
 
 // 3.0's package (decisions 31 and 35): ES module sources only, behind an exports map with one entry per API, for
 // Node 22.12 and later, where require() loads an ES module too. The 2.x API is the './compat' entry; 2.x's deep
@@ -108,11 +109,21 @@ describe('package.json', () => {
 
 describe('the entries', () => {
   for (const [entry, files] of Object.entries(ENTRIES)) {
-    it(entry + ': its types declare exactly what it exports', async () => {
+    const check = async () => {
       const module = await importEntry(entry);
       assert.deepEqual(declaredNames(files.types), Object.keys(module).sort());
-    });
+    };
+    // compat's types are 2.x's, which declare detectEncoding since 31eb6b1.
+    const test = entry === './compat' ? pendingPort('31eb6b1', check) : check;
+    it(entry + ': its types declare exactly what it exports', test);
   }
+
+  // A new export of the 2.x API comes in a 2.x minor, with types, matrix rows and tests (ARCHITECTURE.md, "Stable
+  // surfaces"); this list changes with it. The builds that hold compat export the same names (below).
+  it('give compat these 2.x exports, in this order', pendingPort('31eb6b1', async () => {
+    assert.deepEqual(Object.keys((await importEntry('./compat')).default), ['version', 'setGlobalOptions', 'fontDetect',
+      'detectEncoding', 'fontConvert', 'syllBreak', 'spellingFix', 'truncate', 'normalize']);
+  }));
 
   it('give every API the version of package.json', async () => {
     assert.equal((await importEntry('.')).VERSION, pkg.version);

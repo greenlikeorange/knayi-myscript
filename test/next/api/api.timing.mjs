@@ -1,14 +1,14 @@
 // Growth of the 3.0 API (docs/next/DESIGN.md §6.2 item 4, §11): every function in linear time, on the adversarial
-// shapes of SHAPES, the runs of NFC_RUNS (helpers.mjs), the chains normalize settles in more than one pass, and runs
-// of white space in a line that reads as Zawgyi. The
-// method is that of test/next/normalize.timing.mjs: a quick reading at n, 2n and 4n units, and a reading above 1.3
-// is measured three more times, the lowest kept. PUMPS, the single characters repeated, run through normalize,
-// which settles regions, and toUnicode, which detects lines; the core's own timing files run them through the rest.
+// shapes of SHAPES (the runs of NFC_RUNS, helpers.mjs, among them), the chains normalize settles in more than one
+// pass, and runs of white space in a line that reads as Zawgyi. The method is that of test/next/normalize.timing.mjs:
+// a quick reading at n, 2n and 4n units, and a reading above 1.3 is measured three more times, the lowest kept.
+// PUMPS, the single characters repeated, run through normalize, which settles regions, and toUnicode, which detects
+// lines; the core's own timing files run them through the rest.
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { growthExponent } from '../../../scripts/eval/lib/timing.mjs';
-import { SHAPES, PUMPS, NFC_RUNS } from '../helpers.mjs';
+import { SHAPES, PUMPS } from '../helpers.mjs';
 import {
   normalize, isNormalized, explain, detectEncoding, toUnicode, toZawgyi, segmentSyllables, syllableBoundaries,
   truncate, collapseRepeatedMarks
@@ -55,7 +55,7 @@ const WHITE_SPACE_RUNS = ['\t', ' ', '\u00A0', '\u3000'].map((space) => ({
   make: (n) => ZAWGYI_WORD + repeatTo(space, n) + 'x'
 }));
 
-const ALL = SHAPES.concat(NFC_RUNS, CHAINS, WHITE_SPACE_RUNS);
+const ALL = SHAPES.concat(CHAINS, WHITE_SPACE_RUNS);
 
 const FUNCTIONS = {
   normalize: (text) => normalize(text),

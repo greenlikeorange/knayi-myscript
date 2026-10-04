@@ -280,17 +280,18 @@ jobs:
           npm run compare -- --base . --head mjs:. $FLAGS
           bun scripts/eval/compare.mjs --base . --head min:. $FLAGS
 
-  # compat, the 2.x API on the 3.0 core (docs/next/DESIGN.md §5, §6.3): byte identity with the 2.x reference, the
-  # commit e5f6e24, under Node and Bun, and the contract matrix, whose cells are that commit's main.js. The reference
-  # is named by its full sha: CI has origin/safety-net, not a local branch. The corpus flags are those of the Compare
-  # job: --without mc4 with the corpus cache, --offline without it (mC4 stays out of CI, decision 22). The Perf job
-  # times compat's growth, since `.` is compat in a 3.0 checkout.
+  # compat, the 2.x API on the 3.0 core (docs/next/DESIGN.md §5, §6.3, §8): byte identity with the 2.x reference,
+  # commit 8923365 of the 2.x line, under Node and Bun, and the contract matrix, whose cells are that commit's
+  # main.js. The reference is named by its full sha: CI has no local branch of the 2.x line. The corpus flags are
+  # those of the Compare job: --without mc4 with the corpus cache, --offline without it (mC4 stays out of CI,
+  # decision 22). The Perf job times compat's growth, since `.` is compat in a 3.0 checkout.
   compat:
     name: Compat
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      REFERENCE: e5f6e24fa756f8f9c8d790f9a15ede85b135e8ae
+      # The 2.x line at 8923365 (pull requests #76 to #80), until v2.11.0 is tagged; then the commit of that tag.
+      REFERENCE: 8923365919943a84826e31649d094e1aa5ff285a
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

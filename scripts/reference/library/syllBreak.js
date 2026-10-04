@@ -1,0 +1,26 @@
+'use strict';
+
+const fontDetect = require('./detection').fontDetect;
+const globalOptions = require('./globalOptions');
+const gate = require('./contentGate');
+const syllable = require('./syllableRules');
+
+function syllBreak(content, fontType, breakpoint){
+  content = gate.toText(content);
+  if (gate.isMissing(content)) {
+    if (!globalOptions.isSilentMode()) console.warn('Content must be specified on knayi.syllBreak.');
+    return '';
+  }
+
+  if (!gate.hasMyanmar(content))
+    return content;
+
+  content = gate.cleanText(content, true);
+
+  // 'unicode' or 'zawgyi'; null detects the font. 'win' and unknown names throw a TypeError.
+  var font = gate.breakFont(fontType, 'syllBreak') || fontDetect(content);
+
+  return syllable.breakText(content, font, breakpoint);
+}
+
+module.exports = syllBreak;

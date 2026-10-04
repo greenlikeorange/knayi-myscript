@@ -66,7 +66,7 @@ const detectRow = (label, sources, texts, truth, fallback) => ({
   label,
   sources,
   n: texts.length,
-  cells: detectors.map((key) => rate(count(texts, (t) => E[key].detect(t, fallback) === truth), texts.length))
+  cells: detectors.map((key) => rate(count(texts, (t) => E[key].detect(t)(fallback) === truth), texts.length))
 });
 const detectionRows = [detectRow('WaitZar hand-typed Zawgyi words, on evidence', ['waitzar'], waitzar, 'zawgyi', 'unicode')];
 if (data.queries) {
@@ -86,16 +86,20 @@ sections.push({
   rows: detectionRows
 });
 
-// Unicode text wrongly flagged as Zawgyi: with the default fallback, and on evidence only.
+// Unicode text wrongly flagged as Zawgyi: with the default fallback, and on evidence only. Each text is detected once
+// and read with both fallbacks.
 const flaggedColumns = detectors.flatMap((engine) => [{ engine, variant: 'default' }, { engine, variant: 'evidence' }]);
 const flaggedRow = (label, sources, texts) => ({
   label,
   sources,
   n: texts.length,
-  cells: detectors.flatMap((key) => [
-    rate(count(texts, (t) => E[key].detect(t) === 'zawgyi'), texts.length),
-    rate(count(texts, (t) => E[key].detect(t, 'unicode') === 'zawgyi'), texts.length)
-  ])
+  cells: detectors.flatMap((key) => {
+    const answers = texts.map((t) => E[key].detect(t));
+    return [
+      rate(count(answers, (answer) => answer() === 'zawgyi'), texts.length),
+      rate(count(answers, (answer) => answer('unicode') === 'zawgyi'), texts.length)
+    ];
+  })
 });
 const flaggedNote = 'Lower is better, but nothing is bolded: a detector can flag less Unicode just by calling Zawgyi less often, so read ' +
   'these next to the detection table. "default" is a plain `fontDetect(text)`, where a tie falls back to `zawgyi`. "evidence" uses ' +
@@ -126,8 +130,9 @@ sections.push({
 });
 
 // Web text has no labels: report how much each engine calls Zawgyi, and how often it agrees with
-// myanmar-tools where myanmar-tools is confident.
-const confident = data.mc4.filter((t) => { const p = E.tools.probability(t); return p < 0.05 || p > 0.95; });
+// myanmar-tools where myanmar-tools is confident. Each line is detected once per engine, on evidence.
+const onEvidence = Object.fromEntries(detectors.map((key) => [key, data.mc4.map((t) => E[key].detect(t)('unicode'))]));
+const confident = data.mc4.map((t, i) => i).filter((i) => { const p = E.tools.probability(data.mc4[i]); return p < 0.05 || p > 0.95; });
 sections.push({
   id: 'web-text',
   title: 'Web text without labels (mC4 Burmese validation)',
@@ -135,8 +140,8 @@ sections.push({
     ' lines where myanmar-tools is confident (p < 0.05 or p > 0.95).',
   columns: detectors.map((engine) => ({ engine })),
   rows: [
-    { label: 'Called Zawgyi', sources: ['mc4'], n: data.mc4.length, cells: detectors.map((key) => rate(count(data.mc4, (t) => E[key].detect(t, 'unicode') === 'zawgyi'), data.mc4.length)) },
-    { label: 'Agrees with myanmar-tools', sources: ['mc4'], n: confident.length, cells: detectors.map((key) => key === 'tools' ? null : rate(count(confident, (t) => E[key].detect(t, 'unicode') === E.tools.detect(t, 'unicode')), confident.length)) }
+    { label: 'Called Zawgyi', sources: ['mc4'], n: data.mc4.length, cells: detectors.map((key) => rate(count(onEvidence[key], (d) => d === 'zawgyi'), data.mc4.length)) },
+    { label: 'Agrees with myanmar-tools', sources: ['mc4'], n: confident.length, cells: detectors.map((key) => key === 'tools' ? null : rate(count(confident, (i) => onEvidence[key][i] === onEvidence.tools[i]), confident.length)) }
   ]
 });
 

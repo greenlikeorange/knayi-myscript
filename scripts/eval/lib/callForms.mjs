@@ -23,6 +23,7 @@ export const FORMS = [
     call: (k, s) => k.fontConvert.debugging(s, 'zawgyi', 'unicode') },
   { id: 'fontDetect', needs: 'fontDetect', input: 'myanmar', text: 'unicode', call: (k, s) => k.fontDetect(s) },
   { id: 'fontDetect.unicode', needs: 'fontDetect', input: 'myanmar', text: 'unicode', call: (k, s) => k.fontDetect(s, 'unicode') },
+  { id: 'detectEncoding', needs: 'detectEncoding', input: 'myanmar', text: 'unicode', call: (k, s) => k.detectEncoding(s) },
   { id: 'syllBreak.unicode', needs: 'syllBreak', input: 'myanmar', text: 'unicode', call: (k, s) => k.syllBreak(s, 'unicode') },
   { id: 'syllBreak.zawgyi', needs: 'syllBreak', input: 'myanmar', text: 'zawgyi', call: (k, s) => k.syllBreak(s, 'zawgyi') },
   { id: 'syllBreak.detected', needs: 'syllBreak', input: 'myanmar', text: 'unicode', call: (k, s) => k.syllBreak(s) },

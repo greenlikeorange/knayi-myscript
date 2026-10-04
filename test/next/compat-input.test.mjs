@@ -1,10 +1,11 @@
-// compat's 2.x preamble (src/compat/input.js; docs/next/DESIGN.md §5.2 C5-C11), against the live
-// library/contentGate.js (D19), and the input policy through the public functions against main.js.
+// compat's 2.x preamble (src/compat/input.js; docs/next/DESIGN.md §5.2 C5-C11), against
+// library/contentGate.js of the 2.x reference (scripts/reference/, D19), and the input policy through the public
+// functions against main.js.
 
 import { describe, it, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { library } from './helpers.mjs';
-import { assertSameAsReference, compat, recordConsole, resetOptions } from './compat-helpers.mjs';
+import { assertSameAsReference, compat, pendingPort, recordConsole, resetOptions } from './compat-helpers.mjs';
 import {
   INPUT_POLICY, enter, unboxString, cleanText, resolveFont, chooseFontLegacy, ON_TIE_ASSUME_ZAWGYI
 } from '../../src/compat/input.js';
@@ -40,16 +41,18 @@ describe('compat: the 2.x preamble (C5-C11)', () => {
     for (const text of texts) assert.equal(cleanText(text), gate.cleanText(text, true), JSON.stringify(text));
   });
 
-  it('C10: resolveFont agrees with contentGate.resolveFont on every name, error class included', () => {
-    for (const name of FONT_NAMES) {
-      const expected = recordConsole(() => gate.resolveFont(name));
-      const actual = recordConsole(() => resolveFont(name));
-      assert.deepEqual([actual.value, actual.throws], [expected.value, expected.throws], String(name));
-    }
-    const throwing = { toString() { throw new RangeError('no name'); } };
-    assert.throws(() => resolveFont(throwing), RangeError);
-    assert.throws(() => gate.resolveFont(throwing), RangeError);
-  });
+  // 2.11 reads a name in any letter case (579be3d).
+  it('C10: resolveFont agrees with contentGate.resolveFont on every name, error class included',
+    pendingPort('579be3d', () => {
+      for (const name of FONT_NAMES) {
+        const expected = recordConsole(() => gate.resolveFont(name));
+        const actual = recordConsole(() => resolveFont(name));
+        assert.deepEqual([actual.value, actual.throws], [expected.value, expected.throws], String(name));
+      }
+      const throwing = { toString() { throw new RangeError('no name'); } };
+      assert.throws(() => resolveFont(throwing), RangeError);
+      assert.throws(() => gate.resolveFont(throwing), RangeError);
+    }));
 
   it('C11: chooseFontLegacy detects for a falsy name, and keeps an unknown name as given', () => {
     const detected = [];

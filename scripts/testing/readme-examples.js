@@ -1,8 +1,9 @@
 // Reads the examples in README.md, or in another Markdown file such as ARCHITECTURE.md. An example is any line of
 // a fenced block tagged js, javascript, mjs, cjs, ts or typescript that calls `knayi.` (the 3.0 API) or `compat.`
-// (the 2.x API) and is not an import or a require. It starts with that name, after any indentation and an optional
-// `console.log(` around the call; a line with either name in any other form is an error, "unrecognised example", so
-// no example is skipped for its notation.
+// (the 2.x API) and is not an import or a require. It starts with that name, or with an array literal mapped
+// through a call that names it, as in `['a', 'b'].map(compat.normalize)`, after any indentation and an optional
+// `console.log(` around it; a line with either name in any other form is an error, "unrecognised example", so no
+// example is skipped for its notation.
 //
 // An example is the call (over several lines if its parentheses close later), the API it calls ('knayi' or
 // 'compat'), the expected value from the comment after it (on the line where the call ends, or alone on the next
@@ -70,7 +71,10 @@ function readExamples(text, file) {
     if (/^import\b/.test(code) || /^(const|let|var)\s+[\w{},\s]+=\s*require\(/.test(code)) continue;
     const wrapped = /^console\.log\(/.test(code);
     if (wrapped) code = code.slice('console.log('.length);
-    const api = STARTS_WITH_API.exec(code);
+    // An array literal with .map( after it is one call, the map, which ends where its parentheses close. It calls the
+    // API that the line names.
+    const mapped = /^\[[^\]]*\]\.map\(/.test(code);
+    const api = mapped ? NAMED.exec(code) : STARTS_WITH_API.exec(code);
     if (!api) throw new Error('unrecognised example at ' + where + ': ' + line.trim());
 
     // A property such as knayi.VERSION has no call; otherwise the call ends where its parentheses close.

@@ -1,5 +1,6 @@
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
+const { pendingPort } = require('../scripts/testing/pending-port');
 // The 2.x API: compat, on the 3.0 core.
 var knayi = require('../src/compat/index.js').default;
 function toCharCode(letter) {
@@ -53,6 +54,19 @@ describe('Converter',()=>{
       assert.equal(knayi.fontConvert('ကြွ', 'zawgyi', 'unicode'), 'ႂကြ');
       assert.equal(knayi.fontConvert('ပြွတ်', 'zawgyi', 'unicode'), 'ႁပြတ္');
     })
+    it('writes stacked jha as Zawgyi stacked jha, which converts back', pendingPort('05de555', () => {
+      // U+1069 is stacked jha in Zawgyi, and is also written for stacked ca with medial ya. A virama left before
+      // jha would read as an asat in Zawgyi.
+      assert.equal(knayi.fontConvert('မဇ္ဈိမ', 'zawgyi', 'unicode'), '\u1019\u1007\u1069\u102d\u1019');
+      assert.equal(knayi.fontConvert('ဇ္ဈေး', 'zawgyi', 'unicode'), '\u1031\u1007\u1069\u1038');
+      assert.equal(knayi.fontConvert('မဇ္စျ', 'zawgyi', 'unicode'), '\u1019\u1007\u1069');
+      for (const word of ['မဇ္ဈိမ', 'ဇ္ဈေး', 'ဝိဇ္ဈာ']) {
+        assert.equal(knayi.fontConvert(knayi.fontConvert(word, 'zawgyi', 'unicode'), 'unicode', 'zawgyi'), word);
+      }
+      assert.ok(knayi.fontConvert.debugging('မဇ္ဈိမ', 'zawgyi', 'unicode').matched_patterns.includes('\\u1039\\u1008'));
+      // An asat before jha makes no stack: it becomes Zawgyi's asat, U+1039.
+      assert.equal(knayi.fontConvert('က်ဈ', 'zawgyi', 'unicode'), '\u1000\u1039\u1008');
+    }))
   })
 
   describe('content gate', () => {
@@ -103,6 +117,58 @@ describe('Converter',()=>{
         assert.equal(typeof pattern, 'string');
       });
     })
+
+    it('returns text from fontConvert whatever `this` is', pendingPort('d20027a', () => {
+      var convert = knayi.fontConvert;
+      globalThis.debug = true;
+      try {
+        assert.equal(convert('ျမန္မာ', 'unicode', 'zawgyi'), 'မြန်မာ');
+        assert.equal(convert('မြန်မာ', 'zawgyi', 'unicode'), 'ျမန္မာ');
+      } finally {
+        delete globalThis.debug;
+      }
+      assert.equal(knayi.fontConvert.call({ debug: true }, 'ျမန္မာ', 'unicode', 'zawgyi'), 'မြန်မာ');
+      var debugging = knayi.fontConvert.debugging;
+      var log = debugging('ျမန္မာ', 'unicode', 'zawgyi');
+      assert.equal(log.steps[log.steps.length - 1], 'မြန်မာ');
+    }))
+
+    // index.d.ts promises a ConvertDebug; 2.10 returned the text itself on these exits (refactor plan, section 7
+    // item 3). The one step is what fontConvert returns, trimmed or not.
+    it('reports the exits before converting, with no pattern and one step', pendingPort('b6cbfca', () => {
+      var report = (to, from, text) => ({ to: to, from: from, matched_patterns: [], steps: [text] });
+      var cases = [
+        [[null, 'unicode', 'zawgyi'], report('unicode', 'zawgyi', '')],
+        [['', 'zawgyi'], report('zawgyi', '', '')],
+        [[' abc ', 'unicode'], report('unicode', '', ' abc ')],
+        [[' abc ', 'zawgyi', 'Unicode'], report('zawgyi', 'unicode', ' abc ')],
+        [['ကျ'], report('', '', 'ကျ')],
+        [[' ကျ ', 'foo', 'zawgyi'], report('', 'zawgyi', 'ကျ')],
+        [[' ကျ ', 'foo'], report('', '', 'ကျ')],
+        [[' ကျ ', 'unicode', 'unicode'], report('unicode', 'unicode', 'ကျ')],
+        [[' ကျ ', 'unicode'], report('unicode', 'unicode', 'ကျ')],
+        [['ကျ', 'win', 'unicode'], report('win', 'unicode', 'ကျ')],
+        [['jrefrm', 'zawgyi', 'win'], report('zawgyi', 'win', 'jrefrm')],
+        [['abc', ['unicode'], ['zawgyi']], report('', '', 'abc')],
+        [['ကျ', ['unicode'], ['unicode']], report('unicode', 'unicode', 'ကျ')]
+      ];
+      knayi.setGlobalOptions({ silent_mode: true });
+      try {
+        cases.forEach(function ([args, expected]) {
+          var label = JSON.stringify(args);
+          assert.deepEqual(knayi.fontConvert.debugging.apply(null, args), expected, label);
+          assert.equal(knayi.fontConvert.apply(null, args), expected.steps[0], label);
+        });
+        // A font whose string form throws is not read before the call reads its fonts.
+        assert.deepEqual(knayi.fontConvert.debugging('abc', Object.create(null)), report('', '', 'abc'));
+        // A ConvertDebug holds strings, so other content comes back as it is.
+        var object = {};
+        assert.equal(knayi.fontConvert.debugging(object, 'unicode'), object);
+        assert.equal(knayi.fontConvert.debugging(123, 'unicode', 'zawgyi'), 123);
+      } finally {
+        knayi.setGlobalOptions({ silent_mode: false });
+      }
+    }))
   })
 
   describe('digit zero from Zawgyi', () => {

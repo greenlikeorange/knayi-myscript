@@ -1,8 +1,8 @@
 // Loads a fresh copy of a module of the 2.x library with some of its private bindings exported, for tests that read
-// the 2.x rule tables or need a module with its load-time state reset. The 2.x library is the frozen copy of
-// library/ at the reference in scripts/oracle/ (docs/next/DESIGN.md D19), which 3.0 no longer ships. The copy
-// requires the library's other modules by the usual relative paths, so it shares them (and their state) with
-// scripts/oracle/main.js.
+// the 2.x rule tables or need a module with its load-time state reset. The 2.x library is by default the frozen copy
+// of library/ at e5f6e24 in scripts/oracle/ (docs/next/DESIGN.md D19), which 3.0 no longer ships, or with
+// `dir` another copy, such as the 2.x reference's in scripts/reference/library/. The copy requires the library's
+// other modules by the usual relative paths, so it shares them (and their state) with the main.js beside them.
 //
 // The file itself is not changed: the source is read from disk, and a line exporting the named bindings is added
 // to the end before it is compiled, the way Node wraps a CommonJS module.

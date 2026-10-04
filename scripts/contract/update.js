@@ -1,5 +1,5 @@
 'use strict';
-// Rewrites test/contract/api-matrix.json from main.js at the 2.x reference, scripts/oracle/main.js:
+// Rewrites test/contract/api-matrix.json from main.js at the 2.x reference, scripts/reference/main.js:
 // `npm run matrix:update`. Run it when a port of the 2.x line moves the reference (docs/next/DESIGN.md §8).
 // `--out <file>` writes the snapshot to another file instead, for comparing runtimes or checkouts.
 //

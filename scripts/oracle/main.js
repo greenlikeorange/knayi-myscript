@@ -1,7 +1,7 @@
-// main.js at the 2.x reference, commit e5f6e24 (docs/next/DESIGN.md §1.1): the 2.x API, frozen, that compat
-// (src/compat/) reproduces. Its only change is the paths: the reference requires './library/<file>', and the frozen
-// copies of those files sit next to this one, so it requires './<file>'. Do not edit it otherwise: a difference
-// from the reference is what the tests that compare compat with it are for.
+// main.js at commit e5f6e24, 2.10.0's code and the 2.x reference the 3.0 core was built against (docs/next/DESIGN.md
+// §1.1, D19): the 2.x API of the frozen 2.10 engine. compat now follows the 2.x reference of scripts/reference/. Its
+// only change is the paths: e5f6e24 requires './library/<file>', and the frozen copies of those files sit next to
+// this one, so it requires './<file>'. Do not edit it otherwise: guards/oracle.test.mjs checks it against e5f6e24.
 
 const globalOptions = require('./globalOptions');
 const fontDetect = require('./detector');

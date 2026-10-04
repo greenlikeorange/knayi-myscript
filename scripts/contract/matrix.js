@@ -5,11 +5,12 @@
 // the 3.0 core), the 3.0 builds that hold it and main.js at the 2.x reference against test/contract/api-matrix.json,
 // and `npm run matrix:update` rewrites that file from that main.js.
 //
-// Errors. The library throws no error of its own today: every throw in the matrix is an accident of the code,
-// such as a TypeError from reading a property of undefined. The wording of those messages belongs to the
-// runtime and to the build (on Bun, main.js says "evaluating 'rules.length'" where min.js says "'r.length'"), so
-// a cell records only their class. An error the library throws on purpose carries a string `code` property;
-// for those a cell also records the code and the full message.
+// Errors. An error the library throws on purpose carries a string `code` property (libraryError in
+// src/core/errors.js; 2.x's in library/contentGate.js), such as the TypeError ERR_KNAYI_INVALID_FONT that syllBreak
+// and truncate throw for a font they do not break; for those a cell records the class, the code and the full
+// message. Any other throw is an accident of the code, such as a TypeError from reading a property of undefined. The
+// wording of those messages belongs to the runtime and to the build (on Bun, main.js says "evaluating
+// 'rules.length'" where min.js says "'r.length'"), so a cell records only their class.
 
 const fs = require('fs');
 const path = require('path');
@@ -19,40 +20,49 @@ const { pathToFileURL } = require('url');
 const ROOT = path.join(__dirname, '..', '..');
 const SNAPSHOT = path.join(ROOT, 'test', 'contract', 'api-matrix.json');
 
-// The builds the matrix runs on. main.js is the source of truth: 2.x's main.js at the reference, commit e5f6e24,
-// frozen with the 2.x library in scripts/oracle/ (docs/next/DESIGN.md §1.1, D19). `compat` is the 2.x API on the 3.0
-// core, src/compat/index.js (§5), imported as the ES module it is. The 3.0 dist files that hold the 2.x API come from
-// a fresh build of this checkout in a temporary directory, or from KNAYI_DIST when it is set (`KNAYI_DIST=dist`
-// checks the committed release build); see builtDist() in scripts/build.js: the compat module build, imported, and
-// the two script builds, run in a vm: knayi.compat of knayi.min.js, and knayi of knayi-myscript.min.js, 2.x's name.
+// The builds the matrix runs on. main.js is the source of truth: 2.x's main.js at the 2.x reference, commit 8923365
+// (until v2.11.0 is tagged), with its library/ beside it in scripts/reference/ (docs/next/DESIGN.md §1.1, §8).
+// `compat` is the 2.x API on the 3.0 core, src/compat/index.js (§5), imported as the ES module it is. The 3.0 dist
+// files that hold the 2.x API come from a fresh build of this checkout in a temporary directory, or from KNAYI_DIST
+// when it is set (`KNAYI_DIST=dist` checks the committed release build); see builtDist() in scripts/build.js: the
+// compat module build, imported, and the two script builds, run in a vm: knayi.compat of knayi.min.js, and knayi of
+// knayi-myscript.min.js, 2.x's name.
 const BUILDS = ['main.js', 'compat', 'knayi-myscript-compat.min.mjs', 'knayi.min.js', 'knayi-myscript.min.js'];
 
 // The 2.x API in the global of each script build (scripts/build.js).
 const SCRIPT_COMPAT = { 'knayi.min.js': (knayi) => knayi.compat, 'knayi-myscript.min.js': (knayi) => knayi };
 
 // The module of each build that is not a dist file.
-const REFERENCE_MAIN = path.join(ROOT, 'scripts', 'oracle', 'main.js');
+const REFERENCE_MAIN = path.join(ROOT, 'scripts', 'reference', 'main.js');
 const COMPAT = path.join(ROOT, 'src', 'compat', 'index.js');
 
 // A build whose known differences are exactly those of another build, so the snapshot records them once, under
-// that build, which comes before it in BUILDS. The 3.0 builds are made from compat's sources and are strict like
-// them, so they differ from main.js in the same cells, the same way (docs/next/DESIGN.md §5.4, D2).
-// `npm run matrix:update` checks that this still holds.
+// that build, which comes before it in BUILDS. The 3.0 builds are made from compat's sources, so they differ from
+// main.js in the same cells, the same way (docs/next/DESIGN.md §5.4). `npm run matrix:update` checks that this still
+// holds.
 const SHARES_RECORDED_DIFFERENCES = {
   'knayi-myscript-compat.min.mjs': 'compat', 'knayi.min.js': 'compat', 'knayi-myscript.min.js': 'compat'
 };
 
-// Cells in which a build is expected to differ from main.js, with the reason. `npm run matrix:update` refuses to
-// record a build difference that no entry here explains.
+// The one cell that asks for the myanmar-tools adapter with no detector (section 5, at the end).
+const PACKAGE_CELL = "setGlobalOptions({silent_mode: true}); fontDetect(tie, null, {adapter: 'myanmartools'})";
+
+// Cells in which a build is expected to differ from main.js, with the reason: entries of the form
+// { name, builds: ['compat'], matches: (id) => boolean, reason }. `npm run matrix:update` refuses to record a build
+// difference that no entry here explains.
+//
+// 2.x's debug flag read from `this` is gone (d20027a): main.js reads no global `debug` either, so a detached
+// fontConvert call returns text in every build. What stays is where myanmar-tools comes from: 2.x's builds in dist/
+// load no package by name since 649b2b4, and neither do compat, an ES module like 2.x's module build, and the 3.0
+// builds that hold it (docs/next/DESIGN.md §5.4).
 const KNOWN_BUILD_DIFFERENCES = [
   {
-    name: 'debug flag read from this',
+    name: 'no package load by name',
     builds: ['compat', 'knayi-myscript-compat.min.mjs', 'knayi.min.js', 'knayi-myscript.min.js'],
-    matches: (id) => id.indexOf('detached fontConvert(') === 0,
-    reason: 'fontConvert reads its debug flag from `this` (2.x converter.js fontConvert). A detached call in ' +
-      'sloppy code (2.x\'s CommonJS main.js) reads the global object, so a global `debug` variable turns on the ' +
-      'debugging output. compat is a strict ES module, and its 3.0 builds are strict too: `this` is undefined ' +
-      'there, and the call returns text.'
+    matches: (id) => id === PACKAGE_CELL,
+    reason: 'With no zawgyiDetector, 2.x\'s main.js loads myanmar-tools (the dev dependency) with module.require. ' +
+      'compat and the 3.0 builds load no package by name, as 2.x\'s builds in dist/ do, so the myanmar-tools ' +
+      'adapter uses the rule scorer there.'
   }
 ];
 
@@ -83,14 +93,20 @@ const CONTENTS = [
   ['mixed', ZAWGYI + '\n' + UNICODE]
 ];
 
+// ['unicode'] is an array whose string form is a font name: syllBreak, spellingFix and truncate detect the font for
+// any value that is not a string, and fontConvert reads it by its string form (ARCHITECTURE.md, quirks).
 const FONTS = [undefined, null, '', 'unicode', 'uni', 'zawgyi', 'zaw', 'win', 'Unicode', 'ZAWGYI', 'foo',
-  'constructor', '__proto__', 'toString', 0, 1];
+  'constructor', '__proto__', 'toString', 0, 1, ['unicode']];
 
 const DETECTOR_OPTIONS = [undefined, null, {}, { adapter: 'rules' }, { adapter: 'foo' },
   { myanmartools_zg_threshold: 'x' }, { myanmartools_zg_threshold: [NaN, NaN] }];
 
+// Options that choose myanmar-tools for fontDetect. detectEncoding never uses it, in any build.
+const TOOLS_ADAPTER = { adapter: 'myanmartools' };
+const TOOLS_SETTING = { detector: { use_myanmartools: true } };
+
 const TRUNCATE_OPTIONS = [undefined, null, 0, {}, { length: 0 }, { omission: '' }, { length: 4, omission: '\u2026' },
-  { fontType: 'win' }, { fontType: 'Unicode' }];
+  { fontType: 'win' }, { fontType: 'Unicode' }, { fontType: 'toString' }, { fontType: ['unicode'] }];
 
 const GLOBAL_OPTIONS = [undefined, null, {}, { silent_mode: false },
   { detector: null }, { detector: { myanmartools_zg_threshold: [1] } }];
@@ -101,6 +117,7 @@ const DEBUG_FONTS = [undefined, null, 'unicode', 'zawgyi', 'win', 'foo', 'constr
 // Functions passed straight to Array#map, which calls them with (value, index, array).
 const MAP_FUNCTIONS = [
   ['fontDetect', (k) => k.fontDetect],
+  ['detectEncoding', (k) => k.detectEncoding],
   ['fontConvert', (k) => k.fontConvert],
   ['fontConvert.debugging', (k) => k.fontConvert.debugging],
   ['syllBreak', (k) => k.syllBreak],
@@ -116,6 +133,7 @@ const SILENT_FORMS = [
   [(c) => `fontDetect(${c})`, (k, content) => k.fontDetect(content)],
   [(c) => `fontDetect(${c}, null, {myanmartools_zg_threshold: 'x'})`,
     (k, content, make) => k.fontDetect(content, null, make({ myanmartools_zg_threshold: 'x' }))],
+  [(c) => `detectEncoding(${c})`, (k, content) => k.detectEncoding(content)],
   [(c) => `fontConvert(${c})`, (k, content) => k.fontConvert(content)],
   [(c) => `fontConvert(${c}, 'unicode')`, (k, content) => k.fontConvert(content, 'unicode')],
   [(c) => `fontConvert(${c}, 'foo', 'unicode')`, (k, content) => k.fontConvert(content, 'foo', 'unicode')],
@@ -132,7 +150,7 @@ const SILENT_VALUES = [1, 0, 'false', '', null, undefined];
 // The state every cell starts from.
 const DEFAULT_OPTIONS = {
   silent_mode: false,
-  detector: { use_myanmartools: false, myanmartools_zg_threshold: [0.05, 0.95] }
+  detector: { use_myanmartools: false, myanmartools_zg_threshold: [0.05, 0.95], zawgyiDetector: null }
 };
 
 const CONSOLE_METHODS = ['log', 'info', 'warn', 'error', 'debug', 'trace'];
@@ -151,22 +169,27 @@ function defineCells() {
     cells.push({ id: id, run: run });
   }
 
-  // 1. Every function with every font name, options object and content probe.
+  // 1. Every function with every font name, options object and content probe. Fonts are copied into the build's
+  // realm like the content, for the array.
   for (const [name, content] of CONTENTS) {
     for (const font of FONTS) {
       const f = show(font);
-      add(`fontDetect(${name}, ${f})`, (k, make) => k.fontDetect(make(content), font));
-      add(`fontConvert(${name}, ${f})`, (k, make) => k.fontConvert(make(content), font));
-      add(`fontConvert(${name}, 'unicode', ${f})`, (k, make) => k.fontConvert(make(content), 'unicode', font));
-      add(`fontConvert(${name}, 'zawgyi', ${f})`, (k, make) => k.fontConvert(make(content), 'zawgyi', font));
+      add(`fontDetect(${name}, ${f})`, (k, make) => k.fontDetect(make(content), make(font)));
+      add(`fontConvert(${name}, ${f})`, (k, make) => k.fontConvert(make(content), make(font)));
+      add(`fontConvert(${name}, 'unicode', ${f})`, (k, make) => k.fontConvert(make(content), 'unicode', make(font)));
+      add(`fontConvert(${name}, 'zawgyi', ${f})`, (k, make) => k.fontConvert(make(content), 'zawgyi', make(font)));
       add(`fontConvert.debugging(${name}, 'unicode', ${f})`,
-        (k, make) => k.fontConvert.debugging(make(content), 'unicode', font));
-      add(`syllBreak(${name}, ${f}, '|')`, (k, make) => k.syllBreak(make(content), font, '|'));
-      add(`spellingFix(${name}, ${f})`, (k, make) => k.spellingFix(make(content), font));
+        (k, make) => k.fontConvert.debugging(make(content), 'unicode', make(font)));
+      add(`syllBreak(${name}, ${f}, '|')`, (k, make) => k.syllBreak(make(content), make(font), '|'));
+      add(`spellingFix(${name}, ${f})`, (k, make) => k.spellingFix(make(content), make(font)));
     }
     for (const options of DETECTOR_OPTIONS) {
       add(`fontDetect(${name}, null, ${show(options)})`, (k, make) => k.fontDetect(make(content), null, make(options)));
     }
+    // detectEncoding reads one argument: a fallback and options after it change nothing.
+    add(`detectEncoding(${name})`, (k, make) => k.detectEncoding(make(content)));
+    add(`detectEncoding(${name}, 'unicode', ${show(TOOLS_ADAPTER)})`,
+      (k, make) => k.detectEncoding(make(content), 'unicode', make(TOOLS_ADAPTER)));
     for (const options of TRUNCATE_OPTIONS) {
       add(`truncate(${name}, ${show(options)})`, (k, make) => k.truncate(make(content), make(options)));
     }
@@ -187,6 +210,13 @@ function defineCells() {
   }
   for (const options of GLOBAL_OPTIONS) {
     add(`setGlobalOptions(${show(options)})`, (k, make) => k.setGlobalOptions(make(options)));
+  }
+  // detectEncoding scores with the rules whatever the stored detector settings say.
+  for (const [name, content] of CONTENTS) {
+    add(`setGlobalOptions(${show(TOOLS_SETTING)}); detectEncoding(${name})`, (k, make) => {
+      k.setGlobalOptions(make(TOOLS_SETTING));
+      return k.detectEncoding(make(content));
+    });
   }
 
   // 2. The other two debugging forms: no source font, and Unicode to Zawgyi, whose rule labels are debug output.
@@ -239,6 +269,92 @@ function defineCells() {
     k.setGlobalOptions(make({ silent_mode: true }));
     k.setGlobalOptions();
     return k.fontConvert(undefined, 'unicode');
+  });
+
+  // 5. A detector passed as zawgyiDetector: a ZawgyiDetector of myanmar-tools 1.1.3, the dev dependency. It is made
+  // here and passed as it is, since a copy into the build's realm would lose the methods of its prototype. With it
+  // the adapter loads nothing, so every build gives the same cells, the script builds in a vm included. Without one,
+  // main.js loads the package, and compat and the builds load nothing (test/adapter.test.js checks both); one cell,
+  // at the end, records that difference.
+  const { ZawgyiDetector } = require('myanmar-tools');
+  const zawgyiDetector = new ZawgyiDetector();
+  const DETECTOR = 'new ZawgyiDetector()';
+  // Options in the build's realm, with zawgyiDetector set to a value that is already there (a probe copied with
+  // make, or the detector).
+  function detectorOptions(make, options, value) {
+    const copy = make(options);
+    copy.zawgyiDetector = value;
+    return copy;
+  }
+  // setGlobalOptions' argument, in the build's realm, with these detector options.
+  function withDetector(make, detector) {
+    const options = make({});
+    options.detector = detector;
+    return options;
+  }
+  function storeDetector(k, make, value) {
+    k.setGlobalOptions(withDetector(make, detectorOptions(make, { use_myanmartools: true }, value)));
+  }
+  const STORED = `setGlobalOptions({detector: {use_myanmartools: true, zawgyiDetector: ${DETECTOR}}}); `;
+  for (const [name, content] of CONTENTS) {
+    add(`fontDetect(${name}, null, {adapter: 'myanmartools', zawgyiDetector: ${DETECTOR}})`, (k, make) =>
+      k.fontDetect(make(content), null, detectorOptions(make, { adapter: 'myanmartools' }, zawgyiDetector)));
+    add(STORED + `fontConvert(${name}, 'unicode')`, (k, make) => {
+      storeDetector(k, make, zawgyiDetector);
+      return k.fontConvert(make(content), 'unicode');
+    });
+    add(STORED + `syllBreak(${name}, null, '|')`, (k, make) => {
+      storeDetector(k, make, zawgyiDetector);
+      return k.syllBreak(make(content), null, '|');
+    });
+  }
+  // The detector does not choose the adapter, and the thresholds apply to what it gives.
+  const tie = probe('tie');
+  const zawgyi = probe('zawgyi');
+  for (const options of [{}, { adapter: 'rules' }, { adapter: 'myanmartools', myanmartools_zg_threshold: [0.01, 0.02] },
+    { adapter: 'myanmartools', myanmartools_zg_threshold: [0.95, 0.05] }]) {
+    const shown = show(options);
+    add(`fontDetect(tie, null, ${shown.slice(0, -1)}${shown === '{}' ? '' : ', '}zawgyiDetector: ${DETECTOR}})`,
+      (k, make) => k.fontDetect(make(tie), null, detectorOptions(make, options, zawgyiDetector)));
+  }
+  // Values that are no detector, and null and undefined, which are none. With no detector stored, the rule scorer
+  // decides; with one, the call uses it and setGlobalOptions keeps it. Labelled by hand: show() writes a function's
+  // source.
+  const values = [['{}', {}], ['1', 1], ["'x'", 'x'], ['ZawgyiDetector', ZawgyiDetector],
+    ['{getZawgyiProbability: 0.5}', { getZawgyiProbability: 0.5 }], ['null', null], ['undefined', undefined]];
+  for (const [label, value] of values) {
+    add(`fontDetect(zawgyi, null, {zawgyiDetector: ${label}})`,
+      (k, make) => k.fontDetect(make(zawgyi), null, detectorOptions(make, {}, make(value))));
+    add(`setGlobalOptions({detector: {zawgyiDetector: ${label}}})`,
+      (k, make) => k.setGlobalOptions(withDetector(make, detectorOptions(make, {}, make(value)))));
+    // null and undefined with a detector stored leave the call with none, where main.js loads the package and the
+    // builds load nothing: the cell at the end records that once.
+    if (value == null) continue;
+    add(STORED + `fontDetect(tie, null, {zawgyiDetector: ${label}})`, (k, make) => {
+      storeDetector(k, make, zawgyiDetector);
+      return k.fontDetect(make(tie), null, detectorOptions(make, {}, make(value)));
+    });
+    add(STORED + `setGlobalOptions({detector: {zawgyiDetector: ${label}}}); fontDetect(tie)`, (k, make) => {
+      storeDetector(k, make, zawgyiDetector);
+      k.setGlobalOptions(withDetector(make, detectorOptions(make, {}, make(value))));
+      return k.fontDetect(make(tie));
+    });
+  }
+  for (const silent of [true, false]) {
+    add(`setGlobalOptions({silent_mode: ${silent}}); fontDetect(zawgyi, null, {zawgyiDetector: {}}); ` +
+      'setGlobalOptions({detector: {zawgyiDetector: {}}})', (k, make) => {
+      k.setGlobalOptions(make({ silent_mode: silent }));
+      const detected = k.fontDetect(make(zawgyi), null, detectorOptions(make, {}, make({})));
+      k.setGlobalOptions(withDetector(make, detectorOptions(make, {}, make({}))));
+      return detected;
+    });
+  }
+  // The adapter with no detector: main.js loads myanmar-tools, which reads the tie as Unicode, and compat and the
+  // builds use the rule scorer, whose tie gives 'zawgyi' (KNOWN_BUILD_DIFFERENCES). Silent mode keeps out the
+  // warning, which a copy of knayi writes only once, so that the cell does not depend on what ran before it.
+  add(PACKAGE_CELL, (k, make) => {
+    k.setGlobalOptions(make({ silent_mode: true }));
+    return k.fontDetect(make(tie), null, make({ adapter: 'myanmartools' }));
   });
 
   definedCells = cells;
@@ -448,7 +564,7 @@ function formatSnapshot(cells, known) {
   const lines = [
     '{',
     '  "about": ' + JSON.stringify('API contract matrix of the 2.x API. Generated by `npm run matrix:update` from ' +
-      'main.js at the 2.x reference (scripts/oracle/main.js); ' +
+      'main.js at the 2.x reference (scripts/reference/main.js); ' +
       'checked by test/contract/api-matrix.test.js and scripts/bun-matrix.js. Probes are synthetic.') + ',',
     '  "errors": ' + JSON.stringify('An accidental error is recorded by class only; an error the library ' +
       'throws on purpose has a string `code` and is recorded with its code and message.') + ',',

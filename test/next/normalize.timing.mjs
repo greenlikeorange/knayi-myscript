@@ -1,7 +1,7 @@
 // Growth of src/stages/normalize.js and src/engine/unicodeReader.js (docs/next/DESIGN.md §6.2 item 4, §6.4,
 // §7.7). Owner: W5 (engine-unicode).
 //
-// Every adversarial shape of SHAPES, every single-character pump of PUMPS, and every run of NFC_RUNS (helpers.mjs)
+// Every adversarial shape of SHAPES, NFC_RUNS (helpers.mjs) among them, and every single-character pump of PUMPS
 // runs at n, 2n and 4n units through reorderUnicode and through normalizeText, and the growth exponent must be at
 // most 1.3, under Node and Bun. The method is perf's (scripts/eval/lib/timing.mjs growthExponent, as
 // scripts/eval/perf.mjs screens and confirms it): a quick first reading, and a reading above the limit is measured
@@ -9,15 +9,16 @@
 //
 // NFC_RUNS are the runs of combining marks on which String#normalize takes quadratic time, such as dot below with
 // virama. normalize starts and ends with NFC, and core/nfc.js runs it in linear time (W1 ported the 2.x helper,
-// DESIGN.md §7.3), so they have no exemption here (§6.2 item 4, §8), while test/growth.timing.js still lists them
-// for the 2.x library. This file runs after the other tests (package.json `test`), like test/growth.timing.js.
+// DESIGN.md §7.3), so they have no exemption here (§6.2 item 4, §8); test/growth.timing.js runs them through every
+// 2.x call form that ends with NFC. This file runs after the other tests (package.json `test`), like
+// test/growth.timing.js.
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { normalizeText } from '../../src/stages/normalize.js';
 import { reorderUnicode } from '../../src/engine/unicodeReader.js';
 import { growthExponent, timeOnce } from '../../scripts/eval/lib/timing.mjs';
-import { SHAPES, PUMPS, NFC_RUNS } from './helpers.mjs';
+import { SHAPES, PUMPS } from './helpers.mjs';
 
 const LIMIT = 1.3;
 
@@ -59,10 +60,6 @@ describe('growth of reorderUnicode (DESIGN.md §6.2)', () => {
   it('is linear on every pump', () => {
     assert.deepEqual(superLinear(readText, PUMPS), []);
   });
-
-  it('is linear on every run of marks that NFC reorders', () => {
-    assert.deepEqual(superLinear(readText, NFC_RUNS), []);
-  });
 });
 
 describe('growth of normalizeText (DESIGN.md §6.2)', () => {
@@ -72,10 +69,6 @@ describe('growth of normalizeText (DESIGN.md §6.2)', () => {
 
   it('is linear on every pump', () => {
     assert.deepEqual(superLinear((text) => normalizeText(text), PUMPS), []);
-  });
-
-  it('is linear on every run of marks that NFC reorders', () => {
-    assert.deepEqual(superLinear((text) => normalizeText(text), NFC_RUNS), []);
   });
 
   it('takes under 100 ms on ka, then zero-width space and aa a million times (the 2.10.0 quadratic path)', (t) => {

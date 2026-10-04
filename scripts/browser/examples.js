@@ -1,9 +1,10 @@
 'use strict';
 // One list of calls for every place that runs a build outside Node's ES module sources: the browsers
 // (scripts/browser/smoke.spec.js), the floor emulation (test/dist-floor.test.js) and the RegExp check
-// (test/regex-floor.test.js). allCalls() calls the 2.x API (compat, knayi.compat in knayi.min.js, and knayi in knayi-myscript.min.js): the
-// examples of README.md and MIGRATION.md, a few more call forms, and generated inputs over the Myanmar block and
-// Latin-1 (synthetic only, decision 22). apiCalls() calls the 3.0 API on the same generated inputs.
+// (test/regex-floor.test.js). allCalls() calls the 2.x API (compat, knayi.compat in knayi.min.js, and knayi in
+// knayi-myscript.min.js): the examples of README.md and MIGRATION.md, a few more call forms, and generated inputs
+// over the Myanmar block and Latin-1, and runs of marks (synthetic only, decision 22). apiCalls() calls the 3.0 API
+// on the same generated inputs.
 
 const fs = require('fs');
 const path = require('path');
@@ -24,16 +25,20 @@ function readmeExamples(api, text) {
     .filter((example) => example.api === api).map((example) => example.code);
 }
 
-// Call forms the documents show only in prose: the three debugging sources, the rule adapter, options objects,
-// non-string input, and font names that throw (decision 9: compared by error class only).
+// Call forms the documents show only in prose: the three debugging sources, the rule adapter, the myanmar-tools
+// adapter with no detector (which warns once, in Node and in the builds), options objects, non-string input, and
+// font names that throw (decision 9: compared by error class only).
 const EXTRA = [
   'knayi.version',
+  "knayi.fontDetect('မဂၤလာပါ', null, { adapter: 'myanmartools' })",
   "knayi.fontConvert.debugging('မဂၤလာပါ', 'unicode', 'zawgyi')",
   "knayi.fontConvert.debugging('မြန်မာ', 'zawgyi', 'unicode')",
   "knayi.fontConvert.debugging('jrefrm', 'unicode', 'win')",
   "knayi.fontConvert.debugging('ကျ', 'unicode')",
   "knayi.fontDetect('ႏို္င္ငံ', null, { adapter: 'rules' })",
   "knayi.fontDetect('ရန်ကုန်တက္ကသိုလ်', 'zawgyi')",
+  "knayi.detectEncoding(' ႏို္င္ငံ ')",
+  "knayi.detectEncoding(null)",
   "knayi.fontConvert('ၿမိဳ ့\\nတစ္ခ ု', 'unicode', 'zawgyi')",
   "knayi.fontConvert(' မြန်မာ ', 'zawgyi')",
   "knayi.syllBreak('ၿမိဳ ့ေတာ္', 'zawgyi', '|')",
@@ -71,11 +76,22 @@ function generatedCalls() {
       ['fontConvert', t, 'unicode'],
       ['fontDetect', t],
       ['fontDetect', t, 'unicode'],
+      ['detectEncoding', t],
       ['syllBreak', t, 'unicode', '|'],
       ['syllBreak', t, 'zawgyi', '|'],
       ['spellingFix', t, 'unicode'],
       ['truncate', t, { length: 2, fontType: 'unicode' }]
     );
+  }
+  // Runs of marks of two classes, longer than the 30 code units src/core/nfc.js leaves to the runtime's NFC, so the
+  // build puts them in order itself, with the classes it reads from the runtime: Myanmar, Latin, Hebrew, Arabic,
+  // Tibetan and astral marks.
+  const runs = [[0x1000, 0x1037, 0x1039], [0x1000, 0x103a, 0x1037], [0x61, 0x301, 0x323], [0x5d1, 0x5bc, 0x5b8],
+    [0x628, 0x651, 0x64e], [0xf40, 0xf73, 0xf39], [0x78, 0x1d16d, 0x1d165]];
+  for (const [base, a, b] of runs) {
+    const run = String.fromCodePoint(a, b).repeat(20);
+    const t = String.fromCodePoint(base) + run + ' ' + run;
+    calls.push(['normalize', t], ['fontConvert', t, 'unicode', 'zawgyi'], ['fontConvert', t, 'unicode', 'win']);
   }
   // Win text is ASCII and Latin-1; 0x75 is u, which Win Innwa draws as က.
   for (let b = 0x20; b <= 0xff; b++) {

@@ -2,6 +2,10 @@ const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 // The 2.x API: compat, on the 3.0 core.
 var knayi = require('../src/compat/index.js').default;
+const fc = require('fast-check');
+const arb = require('../scripts/testing/arbitraries');
+const { check } = require('../scripts/testing/fuzz-settings');
+
 describe('syllBreak',()=>{
   describe('syllBreak Unicode',()=>{
     it('should syllBreak for unicode',()=>{
@@ -106,6 +110,25 @@ describe('syllBreak',()=>{
   describe('detected font', () => {
     it('keeps a virama stack together when detection runs', () => {
       assert.equal(knayi.syllBreak('ရန်ကုန်တက္ကသိုလ်', null, '|'), 'ရန်|ကုန်|တက္ကသိုလ်');
+    })
+  })
+
+  // For the default breakpoint, 2.x returns the text the break rules mark with U+200B, without splitting it into
+  // parts and joining them (breakText of 2.x's syllableRules.js), and compat writes the breaks itself (breakString of
+  // src/rules/segment.js). A String object holding U+200B is not the default breakpoint, so it takes the split and
+  // join, and must give the same text.
+  describe('the default breakpoint', () => {
+    it('gives what joining the parts with U+200B gives', () => {
+      const joined = new String('\u200B');
+      const text = fc.oneof(arb.unicodeText(24), arb.zawgyiText(24), arb.burmeseText,
+        arb.codeUnits.filter((s) => s !== ''));
+      const font = fc.constantFrom('unicode', 'zawgyi', undefined);
+      check(fc.property(text, font, (content, fontType) => {
+        const expected = knayi.syllBreak(content, fontType, joined);
+        for (const breakpoint of [undefined, null, '', 0, '\u200B']) {
+          assert.equal(knayi.syllBreak(content, fontType, breakpoint), expected);
+        }
+      }), 10000, [['\u200C\u1000\u200C\u1000\u1031\u1001', 'unicode'], ['\u200B\u1031\u1000 \u200C\u1001', 'zawgyi']]);
     })
   })
 })

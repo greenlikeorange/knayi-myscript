@@ -1,10 +1,10 @@
 // compat's option store and console writers (src/compat/globalOptions.js; docs/next/DESIGN.md §5.2 C2-C4, C25,
-// §5.3), against the live library/globalOptions.js (D19).
+// §5.3), against library/globalOptions.js of the 2.x reference (scripts/reference/, D19).
 
 import { describe, it, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { library } from './helpers.mjs';
-import { recordConsole, resetOptions } from './compat-helpers.mjs';
+import { pendingPort, recordConsole, resetOptions } from './compat-helpers.mjs';
 import {
   MESSAGES, setGlobalOptions, isSilentMode, storedDetectorOptions, mergeDetectorOptions, report, reportAlways
 } from '../../src/compat/globalOptions.js';
@@ -45,16 +45,18 @@ describe('compat: the 2.x option store (C2-C4)', () => {
       { use_myanmartools: false, myanmartools_zg_threshold: [0.05, 0.95] });
   });
 
-  it('C4: mergeDetectorOptions gives what globalOptions.detector gives, console included, from either store', () => {
-    for (const store of STORES) {
-      for (const options of DETECTOR_OPTIONS) {
-        setBoth(store);
-        const expected = recordConsole(() => globalOptions.detector(options));
-        const actual = recordConsole(() => mergeDetectorOptions(options));
-        assert.deepEqual(actual, expected, JSON.stringify(store) + ' ' + String(JSON.stringify(options)));
+  // 2.11 checks the threshold and stores zawgyiDetector with the other detector options (fb6594d, 840c8c5).
+  it('C4: mergeDetectorOptions gives what globalOptions.detector gives, console included, from either store',
+    pendingPort(['fb6594d', '840c8c5'], () => {
+      for (const store of STORES) {
+        for (const options of DETECTOR_OPTIONS) {
+          setBoth(store);
+          const expected = recordConsole(() => globalOptions.detector(options));
+          const actual = recordConsole(() => mergeDetectorOptions(options));
+          assert.deepEqual(actual, expected, JSON.stringify(store) + ' ' + String(JSON.stringify(options)));
+        }
       }
-    }
-  });
+    }));
 
   it('C4: the threshold message prints even in silent mode, and the result holds a copy of the threshold', () => {
     setGlobalOptions({ silent_mode: true });
@@ -65,21 +67,21 @@ describe('compat: the 2.x option store (C2-C4)', () => {
     assert.notEqual(mergeDetectorOptions({ myanmartools_zg_threshold: given }).myanmartools_zg_threshold, given);
   });
 
-  it('C3: setGlobalOptions stores what setOptions stores, and throws where it throws', () => {
-    const calls = [undefined, {}, { silent_mode: 1 }, { silent_mode: 'false' }, { silent_mode: undefined },
-      { detector: null }, { detector: { myanmartools_zg_threshold: [1] } }, { detector: { use_myanmartools: true } },
-      Object.create({ silent_mode: true }), 5, 'silent_mode', []];
-    for (const options of calls) {
-      setBoth(STORES[0]);
-      const expected = recordConsole(() => globalOptions.setOptions(options));
-      const actual = recordConsole(() => setGlobalOptions(options));
-      assert.deepEqual(actual, expected, String(JSON.stringify(options)));
-      assert.equal(isSilentMode(), globalOptions.isSilentMode());
-      assert.deepEqual(storedDetectorOptions(), globalOptions.detector({}));
-    }
-    assert.throws(() => setGlobalOptions(null), TypeError);
-    assert.throws(() => globalOptions.setOptions(null), TypeError);
-  });
+  // 2.11 takes null as no options, checks the threshold, and stores zawgyiDetector (fb6594d, 840c8c5).
+  it('C3: setGlobalOptions stores what setOptions stores, and throws where it throws',
+    pendingPort(['fb6594d', '840c8c5'], () => {
+      const calls = [undefined, null, {}, { silent_mode: 1 }, { silent_mode: 'false' }, { silent_mode: undefined },
+        { detector: null }, { detector: { myanmartools_zg_threshold: [1] } }, { detector: { use_myanmartools: true } },
+        Object.create({ silent_mode: true }), 5, 'silent_mode', []];
+      for (const options of calls) {
+        setBoth(STORES[0]);
+        const expected = recordConsole(() => globalOptions.setOptions(options));
+        const actual = recordConsole(() => setGlobalOptions(options));
+        assert.deepEqual(actual, expected, String(JSON.stringify(options)));
+        assert.equal(isSilentMode(), globalOptions.isSilentMode());
+        assert.deepEqual(storedDetectorOptions(), globalOptions.detector({}));
+      }
+    }));
 
   it('C3: keeps silent_mode as given; any truthy value is silent', () => {
     for (const value of [1, 'false', {}, true]) {

@@ -2,10 +2,10 @@
 //
 // The check runs, at n, 2n and 4n units (growthExponent of scripts/eval/lib/timing.mjs: n = 8,192 under Node,
 // 1,024 under Bun), through fontToUnicode, Zawgyi and Win:
-//   - every adversarial shape of SHAPES and every single-character pump of PUMPS (helpers.mjs);
-//   - NFC_RUNS (helpers.mjs), the ten runs of marks of two combining classes that d170cd8 added to the 2.x growth
-//     shapes, which the fonts write as they are typed when no base comes before them and NFC then has to reorder.
-//     core/nfc.js takes linear time on them (W1 ported the 2.x helper, §7.3), so they have no exemption.
+//   - every adversarial shape of SHAPES and every single-character pump of PUMPS (helpers.mjs). SHAPES holds the ten
+//     runs of marks of two combining classes that d170cd8 added to the 2.x growth shapes (NFC_RUNS), which the fonts
+//     write as they are typed when no base comes before them and NFC then has to reorder. core/nfc.js takes linear
+//     time on them (W1 ported the 2.x helper, §7.3), so they have no exemption.
 // The growth exponent must be at most 1.3 under Node and Bun. The method is perf's and test/growth.timing.js's:
 // every cell gets a quick reading, and a cell that reads above the limit is measured in full three times, failing
 // only when all three are above it, since another process or a garbage collection seldom spoils three in a row.
@@ -14,7 +14,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { fontToUnicode } from '../../src/stages/fonts.js';
 import { growthExponent } from '../../scripts/eval/lib/timing.mjs';
-import { SHAPES, PUMPS, NFC_RUNS } from './helpers.mjs';
+import { SHAPES, PUMPS } from './helpers.mjs';
 
 const LIMIT = 1.3;
 
@@ -36,12 +36,12 @@ describe('growth of src/stages/fonts.js (DESIGN.md §6.2)', () => {
       const call = (text) => fontToUnicode(text, font);
       const high = [];
       let measured = 0;
-      for (const shape of SHAPES.concat(PUMPS, NFC_RUNS)) {
+      for (const shape of SHAPES.concat(PUMPS)) {
         const { growth, full } = screenedGrowth(call, shape.make);
         if (full) measured++;
         if (growth.exponent === null || growth.exponent > LIMIT) high.push(shape.id + ': ' + describeGrowth(growth));
       }
-      t.diagnostic(SHAPES.length + ' shapes, ' + PUMPS.length + ' pumps and ' + NFC_RUNS.length + ' NFC runs; ' +
+      t.diagnostic(SHAPES.length + ' shapes, NFC runs among them, and ' + PUMPS.length + ' pumps; ' +
         measured + ' measured in full after a high first reading');
       assert.deepEqual(high, [], 'growth exponent above ' + LIMIT);
     });

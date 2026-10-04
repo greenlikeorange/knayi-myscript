@@ -1,8 +1,10 @@
 // Shared by compat's tests (test/next/compat-*.test.mjs, docs/next/DESIGN.md §7.10): the 2.x library at the
 // reference and compat side by side, and a console recorder.
 //
-// compat's tests compare with the frozen 2.x library of scripts/oracle/, main.js included, which a port of the 2.x
-// line moves to the new reference (DESIGN.md §8). Byte identity on every input is compare's and the matrix's job.
+// compat's tests compare with the 2.x library at the 2.x reference, commit 8923365 (until v2.11.0 is tagged): its
+// main.js and library/, byte for byte in scripts/reference/, which a port of the 2.x line moves to the new reference
+// (DESIGN.md §8). A test of a 2.x change compat does not have yet waits for its port with pendingPort
+// (scripts/testing/pending-port.js). Byte identity on every input is compare's and the matrix's job.
 
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
@@ -10,9 +12,12 @@ import compat from '../../src/compat/index.js';
 
 const require = createRequire(import.meta.url);
 
-// main.js at the reference (scripts/oracle/main.js): the 2.x API compat reproduces.
-export const reference = require('../../scripts/oracle/main.js');
+// main.js at the reference (scripts/reference/main.js): the 2.x API compat reproduces.
+export const reference = require('../../scripts/reference/main.js');
 export { compat };
+
+// A test of a 2.x change compat does not have yet, it(name, pendingPort(commit, fn)): it passes while fn fails.
+export const { pendingPort } = require('../../scripts/testing/pending-port.js');
 
 const CONSOLE_METHODS = ['log', 'info', 'warn', 'error', 'debug', 'trace'];
 

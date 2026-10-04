@@ -30,6 +30,7 @@ import { pathToFileURL } from 'node:url';
 const root = path.join(import.meta.dirname, '..');
 const srcDir = path.join(root, 'src');
 const require = createRequire(import.meta.url);
+const { pendingPortNow } = require('./testing/pending-port.js');
 const args = process.argv.slice(2);
 const verbose = args.includes('--verbose');
 const jsonOut = args.includes('--json') ? args[args.indexOf('--json') + 1] : null;
@@ -205,6 +206,8 @@ function runCallForms(knayi) {
     knayi.fontDetect(text, null, { adapter: 'rules' });
     knayi.fontDetect(text, null, { adapter: 'myanmartools' });
     knayi.fontDetect(text, 'zawgyi', { use_myanmartools: true });
+    // detectEncoding comes to compat with the port of 2.x commit 31eb6b1 (scripts/testing/pending-port.js).
+    pendingPortNow('31eb6b1', () => knayi.detectEncoding(text));
     for (const to of fonts) {
       for (const from of fonts) {
         attempt(() => knayi.fontConvert(text, to, from));
@@ -225,6 +228,7 @@ function runCallForms(knayi) {
   for (const value of [null, undefined, '', 0, 42, true, {}, new String('ကြ')]) {
     attempt(() => knayi.normalize(value));
     attempt(() => knayi.fontDetect(value));
+    attempt(() => knayi.detectEncoding(value));
     attempt(() => knayi.fontConvert(value, 'unicode', 'zawgyi'));
     attempt(() => knayi.syllBreak(value));
     attempt(() => knayi.spellingFix(value));

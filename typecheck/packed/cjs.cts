@@ -4,7 +4,7 @@
 // compiles it in a project that has the tarball installed, under the three, then runs the output in Node.
 import knayi = require("knayi-myscript");
 import compat = require("knayi-myscript/compat");
-import type { ConvertDebug, Knayi, TruncateOptions } from "knayi-myscript/compat";
+import type { ConvertDebug, EncodingDetection, Knayi, TruncateOptions } from "knayi-myscript/compat";
 
 function check(ok: boolean, what: string): void {
   if (!ok) throw new Error("cjs.cts: " + what);
@@ -27,6 +27,14 @@ const debug: ConvertDebug = compat.fontConvert.debugging(zawgyi, "unicode", "zaw
 check(debug.from === "zawgyi" && debug.to === "unicode", "fontConvert.debugging");
 const options: TruncateOptions = { length: 10, omission: "" };
 check(typeof compat.truncate(unicode, options) === "string", "truncate");
+check([unicode].map(compat.truncate)[0] === compat.truncate(unicode), "lines.map(compat.truncate)");
+
+// A call of the 2.x API that compiles against its types, but runs only once compat has detectEncoding (2.x commit
+// 31eb6b1, scripts/testing/pending-port.js); its port moves it up, to run.
+function untilPorted(): void {
+  const evidence: EncodingDetection = compat.detectEncoding(zawgyi);
+  check(evidence.encoding === "zawgyi", "detectEncoding");
+}
 
 // The types are the package's own, not any: each line below must be a type error. The function never runs, since
 // the 3.0 API throws on what its types refuse.
@@ -37,4 +45,4 @@ function typeErrors(): void {
   knayi.normalize(42);
 }
 
-export { typeErrors };
+export { typeErrors, untilPorted };

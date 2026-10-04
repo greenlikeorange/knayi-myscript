@@ -1,6 +1,7 @@
-// The frozen 2.x library of scripts/oracle/ (docs/next/DESIGN.md §6.1, D18, D19). The module tests of test/next and
-// compat's tests compare with these copies, so each must stay byte-identical to library/ at the reference, commit
-// e5f6e24, and scripts/oracle/main.js to the reference's main.js but for its header and paths.
+// The frozen 2.x library of scripts/oracle/ (docs/next/DESIGN.md §6.1, D18, D19). The module tests of test/next
+// compare with these copies, so each must stay byte-identical to library/ at commit e5f6e24 (2.10.0's code, the 2.x
+// reference the core was built against), and scripts/oracle/main.js to that commit's main.js but for its header and
+// paths. compat's tests compare with the 2.x reference of scripts/reference/ instead (guards/reference.test.mjs).
 //
 // Each copy is hashed as git hashes a blob, and compared with the blob id of `git rev-parse e5f6e24:library/<file>`
 // (or `e5f6e24:main.js`), recorded in test/next/helpers.mjs, so the check needs no git history in CI.

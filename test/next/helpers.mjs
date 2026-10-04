@@ -9,6 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { SHAPES, PUMPS } from '../../scripts/eval/lib/inputs.mjs';
 
 const require = createRequire(import.meta.url);
 const settings = require('../../scripts/testing/fuzz-settings.js');
@@ -18,8 +19,9 @@ export const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..'
 export const SRC = path.join(ROOT, 'src');
 export const ORACLE = path.join(ROOT, 'scripts', 'oracle');
 
-// The files of scripts/oracle/ that are byte-for-byte copies of library/ at the reference, e5f6e24, with the blob
-// id of each (git rev-parse e5f6e24fa756f8f9c8d790f9a15ede85b135e8ae:library/<file>): the whole 2.x library.
+// The files of scripts/oracle/ that are byte-for-byte copies of library/ at e5f6e24, 2.10.0's code and the 2.x
+// reference the core was built against, with the blob id of each (git rev-parse
+// e5f6e24fa756f8f9c8d790f9a15ede85b135e8ae:library/<file>): the whole 2.x library, frozen as the 2.10 engine.
 // guards/oracle.test.mjs checks the copies against them, and guards/citations.test.mjs lets src/ cite line numbers
 // in these files only.
 export const ORACLE_REFERENCE_BLOBS = Object.freeze({
@@ -38,10 +40,39 @@ export const ORACLE_REFERENCE_BLOBS = Object.freeze({
   'zawgyi.js': '3fbf65d78fa10373aee9a92ff4ef47b6ecd2ad7b'
 });
 
-// main.js at the reference (git rev-parse e5f6e24fa756f8f9c8d790f9a15ede85b135e8ae:main.js). scripts/oracle/main.js
-// is that file with a header and with its requires of './library/<file>' made './<file>', since the copies sit next
-// to it; guards/oracle.test.mjs undoes both and checks the blob id.
+// main.js at e5f6e24 (git rev-parse e5f6e24fa756f8f9c8d790f9a15ede85b135e8ae:main.js). scripts/oracle/main.js is
+// that file with a header and with its requires of './library/<file>' made './<file>', since the copies sit next to
+// it; guards/oracle.test.mjs undoes both and checks the blob id.
 export const ORACLE_MAIN_BLOB = 'dac33b6bf49004dd24ad550deb63266b45119d86';
+
+// The 2.x reference that compat follows (docs/next/DESIGN.md §1.1, §8): the commit of the 2.x line whose output
+// compat must give, until v2.11.0 is tagged and the tag takes its place. scripts/reference/ holds its main.js and
+// library/, byte for byte, with the blob id of each (git ls-tree <commit> main.js library/);
+// guards/reference.test.mjs checks the copies against them. compat's tests, the contract matrix and the table rows
+// read these copies; compare (scripts/eval/compare.mjs) reads the commit itself.
+export const REFERENCE = path.join(ROOT, 'scripts', 'reference');
+export const REFERENCE_COMMIT = '8923365919943a84826e31649d094e1aa5ff285a';
+export const REFERENCE_BLOBS = Object.freeze({
+  'main.js': 'dd6738b04977ee8d2328adcab8f87031162ee69c',
+  'library/contentGate.js': '5d32ed12454d54de58ed8c28cceb0cf325cfa4b2',
+  'library/converter.d.ts': 'ed71d106d61a4e03c0bd0f6b4d2e329bf1154150',
+  'library/converter.js': 'a3ddeb459da5c4756ef036a0703a3315fca55432',
+  'library/detection.js': '74abe794483798c38f6c87e811141c97caccaf64',
+  'library/detector.js': '2f2e5341ae122ba2db2717f6b0c03b8db049d196',
+  'library/globalOptions.js': '0814db29ebe08c3b4ca05b295edc39766df00ba7',
+  'library/nfc.js': 'c1ee0bf00cd11a801cf3ce683b871a986164093a',
+  'library/normalization.js': 'e340e429707e0eb0b1e8b529b8b239bff54fc8da',
+  'library/spellingCheck.js': 'c2698e3dfdb7fc45bdb9b93d71c1d79b6ad4aa0b',
+  'library/storageOrder.js': 'b0976d738ae79f33da54b949b91436ece188e21c',
+  'library/syllBreak.js': '885603f66386a16c8d02e1a72ae19af9257825f0',
+  'library/syllable.js': '3d884c35cccf061068b213809738cee237f5ac6b',
+  'library/syllableRules.js': '3c0d5bf1b64126004485c6fc059c03f23baadb4e',
+  'library/truncate.js': '79f39faa07e07c9361c68bbd0b436bf921e1342b',
+  'library/typingFixes.js': 'a7d6a16814b2a92f43ebfc154a45c5975018fa61',
+  'library/unicodeParser.js': '632e2c802ef3d14fb2065f78be58073aa4ff726f',
+  'library/win.js': '2784bb9cc25c07ed7d251e7cd5a692b1e60a1365',
+  'library/zawgyi.js': 'b26a989f6dbc1f238a13bef5c00dc867c1dd7341'
+});
 
 // The 2.10 engine at the reference: storageOrder, typingFixes, signatures, normalize, toUnicode and fontDetect.
 export const oracle = require('../../scripts/oracle/index.js');
@@ -56,14 +87,19 @@ export function internals(file, names) {
   return loaded;
 }
 
-// A module of the 2.x library at the reference, for compat's tests: its frozen copy in scripts/oracle/, which a port
-// of the 2.x line moves to the new reference (DESIGN.md §8).
+// A module of the 2.x library at the 2.x reference, for compat's tests: its copy in scripts/reference/library/,
+// which a port of the 2.x line moves to the new reference (DESIGN.md §8). The core's module tests read the frozen
+// 2.10 engine of scripts/oracle/ instead (internals, oracle).
 export function library(name) {
-  return require('../../scripts/oracle/' + name);
+  return require('../../scripts/reference/library/' + name);
 }
 
 // The fast-check arbitraries of the 2.x tests: unicodeText, zawgyiText, winText, codeUnits, burmeseText.
 export const arb = require('../../scripts/testing/arbitraries.js');
+
+// A test of a 2.x change next does not have yet, it(name, pendingPort(commit, fn)): it passes while fn fails
+// (scripts/testing/pending-port.js).
+export const { pendingPort } = require('../../scripts/testing/pending-port.js');
 
 // The fuzz settings, with both counts required (D23): the count for a pull request, and the most a long run
 // may use. A long run takes min(prCount * KNAYI_FUZZ_SCALE, nightlyCount).
@@ -98,27 +134,22 @@ export function tableProbes() {
 }
 
 // The adversarial shapes and single-character pumps of perf's growth check.
-export { SHAPES, PUMPS } from '../../scripts/eval/lib/inputs.mjs';
+export { SHAPES, PUMPS };
 
-// The ten runs of marks of two combining classes that d170cd8 added to the 2.x growth shapes
-// (scripts/eval/lib/inputs.mjs on the 2.x line), with the same ids. NFC has to reorder each run: String#normalize
-// takes quadratic time on them, and core/nfc.js linear time, since W1 ported the 2.x helper (DESIGN.md §7.3). The
-// growth checks of toNfc, normalize and the fonts run them with no exemption (§6.2 item 4, §8). When the merge of
-// main brings them into SHAPES (§8), this list goes. make(n) returns about n UTF-16 units.
-const fromCodes = (...codes) => String.fromCodePoint(...codes);
-const repeatToLength = (unit, n) => unit.repeat(Math.max(1, Math.round(n / unit.length)));
-export const NFC_RUNS = Object.freeze([
-  ['ka + (dot below + virama) run', (n) => fromCodes(0x1000) + repeatToLength(fromCodes(0x1037, 0x1039), n)],
-  ['(dot below + virama) run', (n) => repeatToLength(fromCodes(0x1037, 0x1039), n)],
-  ['Win (virama + h) run', (n) => repeatToLength(fromCodes(0x1039) + 'h', n)],
-  ['ka + (asat + dot below) run', (n) => fromCodes(0x1000) + repeatToLength(fromCodes(0x103A, 0x1037), n)],
-  ['Latin a + (acute + dot below) run', (n) => 'a' + repeatToLength(fromCodes(0x301, 0x323), n)],
-  ['Greek alpha + (ypogegrammeni + U+0344) run', (n) => fromCodes(0x3B1) + repeatToLength(fromCodes(0x345, 0x344), n)],
-  ['Hebrew bet + (dagesh + qamats) run', (n) => fromCodes(0x5D1) + repeatToLength(fromCodes(0x5BC, 0x5B8), n)],
-  ['Arabic beh + (shadda + fatha) run', (n) => fromCodes(0x628) + repeatToLength(fromCodes(0x651, 0x64E), n)],
-  ['Tibetan ka + (U+0F73 + U+0F39) run', (n) => fromCodes(0xF40) + repeatToLength(fromCodes(0xF73, 0xF39), n)],
-  ['x + (U+1D16D + U+1D165) run', (n) => 'x' + repeatToLength(fromCodes(0x1D16D, 0x1D165), n)]
-].map(([id, make]) => Object.freeze({ id, make })));
+// The ten runs of marks of two combining classes that d170cd8 added to the 2.x growth shapes, in SHAPES since the
+// merge of the 2.x line (DESIGN.md §8). NFC has to reorder each run: String#normalize takes quadratic time on them,
+// and core/nfc.js linear time, since W1 ported the 2.x helper (§7.3). Every growth check meets them in SHAPES, with
+// no exemption (§6.2 item 4); core-nfc.timing.mjs also times them alone through toNfc. make(n) returns about n
+// UTF-16 units.
+const NFC_RUN_IDS = ['ka + (dot below + virama) run', '(dot below + virama) run', 'Win (virama + h) run',
+  'ka + (asat + dot below) run', 'Latin a + (acute + dot below) run', 'Greek alpha + (ypogegrammeni + U+0344) run',
+  'Hebrew bet + (dagesh + qamats) run', 'Arabic beh + (shadda + fatha) run', 'Tibetan ka + (U+0F73 + U+0F39) run',
+  'x + (U+1D16D + U+1D165) run'];
+export const NFC_RUNS = Object.freeze(NFC_RUN_IDS.map((id) => {
+  const shape = SHAPES.find((s) => s.id === id);
+  assert.ok(shape, 'SHAPES (scripts/eval/lib/inputs.mjs) has no shape ' + id);
+  return shape;
+}));
 
 // Every file under src/, as paths relative to src/ with forward slashes, sorted.
 export function srcFiles() {

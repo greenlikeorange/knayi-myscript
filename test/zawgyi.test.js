@@ -1,5 +1,6 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
+const { pendingPort } = require('../scripts/testing/pending-port');
 // The 2.x API: compat, on the 3.0 core.
 const knayi = require('../src/compat/index.js').default;
 
@@ -137,23 +138,45 @@ describe('Zawgyi', () => {
 
     // The stage names and their order are 2.x API (ARCHITECTURE.md, Stable surfaces): one input that goes through
     // all seven.
-    it('names all seven stages in their order', () => {
+    it('names all seven stages in their order', pendingPort('ab3676e', () => {
       const c = (...codes) => String.fromCharCode(...codes);
       const input = [
         c(0x1044, 0x1004, 0x1039, 0x1038), // sequences: the digit four typed for lagaung
         c(0x1031, 0x1000), // syllables: e typed before ka
         c(0x1000, 0x1040, 0x1004, 0x103A), // zero as wa: a zero inside a word
-        c(0x1041, 0x101B, 0x1041), // look-alikes: ra between digits
         c(0x1000, 0x102D, 0x102E), // typos: i with ii
+        c(0x1041, 0x101B, 0x1041), // look-alikes: ra between digits
         c(0x1025, 0x102E) // NFC: u and ii compose to U+1026
       ].join(' ');
       const log = knayi.fontConvert.debugging(input, 'unicode', 'zawgyi');
-      assert.deepEqual(log.matched_patterns, ['sequences', 'glyphs', 'syllables', 'zero as wa', 'look-alikes', 'typos', 'NFC']);
+      assert.deepEqual(log.matched_patterns, ['sequences', 'glyphs', 'syllables', 'zero as wa', 'typos', 'look-alikes', 'NFC']);
       assert.equal(log.steps.length, 8);
       assert.equal(log.steps[7], [
         c(0x104E, 0x1004, 0x103A, 0x1038), c(0x1000, 0x1031), c(0x1000, 0x101D, 0x1004, 0x103B),
-        c(0x1041, 0x1047, 0x1041), c(0x1000, 0x102E), c(0x1026)
+        c(0x1000, 0x102E), c(0x1041, 0x1047, 0x1041), c(0x1026)
       ].join(' '));
-    });
+    }));
+
+    // Conversion makes the typos first, then the look-alikes, as normalize does (ARCHITECTURE.md, Typing fixes
+    // and their order).
+    it('makes the typing fixes in the order normalize makes them', pendingPort('ab3676e', () => {
+      const c = (...codes) => String.fromCharCode(...codes);
+      // Ra, the digit four and nga, with the visarga typed before the asat: no sequence matches, so the four is
+      // still a digit when the syllables are in order. It is lagaung, and the ra, next to no digit, stays ra.
+      const zawgyi = c(0x101B, 0x1044, 0x1004, 0x1038, 0x1039);
+      const lagaung = c(0x101B, 0x104E, 0x1004, 0x103A, 0x1038);
+      assert.equal(toUnicode(zawgyi), lagaung);
+      assert.equal(knayi.normalize(c(0x101B, 0x1044, 0x1004, 0x103A, 0x1038)), lagaung);
+      assert.deepEqual(knayi.fontConvert.debugging(zawgyi, 'unicode', 'zawgyi').matched_patterns,
+        ['glyphs', 'syllables', 'typos']);
+      // Where both change the text, the typos come first: kinzi drawn with ii, then i, seven and a short ra. ii
+      // with i is ii, then ra next to seven is seven.
+      const both = knayi.fontConvert.debugging(c(0x108C, 0x102D, 0x1047, 0x1090), 'unicode', 'zawgyi');
+      assert.deepEqual(both.matched_patterns, ['glyphs', 'typos', 'look-alikes']);
+      assert.deepEqual(both.steps.slice(2), [
+        c(0x1004, 0x103A, 0x1039, 0x102E, 0x1047, 0x101B),
+        c(0x1004, 0x103A, 0x1039, 0x102E, 0x1047, 0x1047)
+      ]);
+    }));
   });
 });

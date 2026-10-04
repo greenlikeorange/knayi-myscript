@@ -13,11 +13,15 @@
 //   returns the result as a string. scripts/testing/table-cases.js runs apply with copies of the pattern that
 //   differ in one branch, to find a probe for each branch.
 //
-// The tables are the 2.x tables that compat keeps, read from fresh copies of the frozen 2.x library in
-// scripts/oracle/ (scripts/testing/internals.js), which does not export them.
+// The tables are the 2.x tables of the 2.x reference, which compat follows, read from fresh copies of its library
+// in scripts/reference/library/ (scripts/testing/internals.js), which does not export them. The cases of
+// test/fixtures/tables.json hold what the reference gives for each probe.
 
 const path = require('path');
-const { ORACLE, loadWithInternals } = require('./internals');
+const { loadWithInternals } = require('./internals');
+
+const REFERENCE_LIBRARY = path.join(__dirname, '..', 'reference', 'library');
+const fromReference = { dir: REFERENCE_LIBRARY };
 
 const ZERO_WIDTH_BREAKS = /[\u200B\u200C]/g;
 
@@ -55,26 +59,17 @@ function replace(re, text, replacement) {
   return result;
 }
 
-// An asLongAsMatch rule of syllable.js: replaced again while it matches and changes the text, at most 40 times.
-function replaceRepeated(re, text, replacement) {
-  for (let guard = 0; guard < 40 && test(re, text); guard++) {
-    const next = replace(re, text, replacement);
-    if (next === text) break;
-    text = next;
-  }
-  return text;
-}
-
 function loadTables() {
-  const syllable = loadWithInternals('syllable.js', ['convertRules', 'BREAK_RULES', 'COLLAPSE']);
+  const syllable = loadWithInternals('syllableRules.js', ['convertRules', 'BREAK_RULES', 'COLLAPSE_MARKS'],
+    fromReference);
   return {
-    zawgyi: loadWithInternals('zawgyi.js', ['ZAWGYI', 'SEQUENCES']).__internals,
-    win: require(path.join(ORACLE, 'win.js')).tables,
+    zawgyi: loadWithInternals('zawgyi.js', ['ZAWGYI', 'SEQUENCES'], fromReference).__internals,
+    win: require(path.join(REFERENCE_LIBRARY, 'win.js')).tables,
     syllable: syllable.__internals,
     collapseMarks: syllable.collapseMarks,
-    detector: loadWithInternals('detector.js', ['library']).__internals.library.detect,
-    typingFixes: loadWithInternals('typingFixes.js', ['TYPOS']).__internals,
-    storageOrder: require(path.join(ORACLE, 'storageOrder.js'))
+    detector: loadWithInternals('detection.js', ['library'], fromReference).__internals.library.detect,
+    typingFixes: loadWithInternals('typingFixes.js', ['TYPOS'], fromReference).__internals,
+    storageOrder: require(path.join(REFERENCE_LIBRARY, 'storageOrder.js'))
   };
 }
 
@@ -85,10 +80,7 @@ function buildRows(knayi) {
   // Glyph and sequence rows of the drawing-order fonts.
   function fontRows(font, table, sequences, roles) {
     const convert = (probe) => knayi.fontConvert(probe, 'unicode', font);
-    const stages = (probe) => {
-      const debug = knayi.fontConvert.debugging(probe, 'unicode', font);
-      return typeof debug === 'string' ? debug : debug.matched_patterns;
-    };
+    const stages = (probe) => knayi.fontConvert.debugging(probe, 'unicode', font).matched_patterns;
     Object.keys(table).forEach(function (key) {
       rows.push({
         id: font + ' glyph ' + codePoint(key),
@@ -137,9 +129,10 @@ function buildRows(knayi) {
         label: typeof rule[2] === 'string' ? rule[2] : rule[0].source });
     });
   });
-  // fontConvert trims the text and collapses repeated marks, then applies every oneTime rule once and every
-  // asLongAsMatch rule while it matches, in order (syllable.js, convertText).
-  const u2zApply = (r) => (re, text) => (r.group === 'oneTime' ? replace(re, text, r.rule[1]) : replaceRepeated(re, text, r.rule[1]));
+  // fontConvert trims the text and collapses repeated marks, then applies every rule once, in order: each
+  // oneTime rule, then each asLongAsMatch rule that matches, which one replace leaves without a match
+  // (syllableRules.js, convertText).
+  const u2zApply = (r) => (re, text) => replace(re, text, r.rule[1]);
   const u2zTurn = (index) => (probe) => {
     let text = tables.collapseMarks(probe.trim(), 'unicode');
     for (let j = 0; j < index; j++) text = u2zApply(u2zRules[j])(u2zRules[j].rule[0], text);
@@ -147,10 +140,7 @@ function buildRows(knayi) {
   };
   const idOfLabel = {};
   u2zRules.forEach((r) => { if (!idOfLabel[r.label]) idOfLabel[r.label] = r.id; });
-  const logged = (probe) => {
-    const debug = knayi.fontConvert.debugging(probe, 'zawgyi', 'unicode');
-    return typeof debug === 'string' ? [] : debug.matched_patterns;
-  };
+  const logged = (probe) => knayi.fontConvert.debugging(probe, 'zawgyi', 'unicode').matched_patterns;
   u2zRules.forEach(function (r, index) {
     rows.push({
       id: r.id,
@@ -258,21 +248,20 @@ function buildRows(knayi) {
     });
   });
 
-  // spellingFix: one collapse rule per mark and font.
-  Object.keys(tables.syllable.COLLAPSE).forEach(function (font) {
-    const rules = tables.syllable.COLLAPSE[font];
-    rules.forEach(function (rule, i) {
+  // spellingFix: one row per mark and font. collapseMarks collapses a run of any one mark of the font with a
+  // single regex; a row's pattern, [mark]{2,}, is the part of that regex for its mark. A run of one mark ends
+  // where any other character starts, so collapsing the other marks never changes it, and every row sees the
+  // cleaned text.
+  Object.keys(tables.syllable.COLLAPSE_MARKS).forEach(function (font) {
+    tables.syllable.COLLAPSE_MARKS[font].split('').forEach(function (mark) {
+      const re = new RegExp('[' + mark + ']{2,}', 'g');
       rows.push({
-        id: 'collapse ' + font + ' ' + codePoint(rule[1]),
+        id: 'collapse ' + font + ' ' + codePoint(mark),
         table: 'spellingFix collapse',
-        label: rule[0].source,
-        pattern: rule[0],
-        branches: [{
-          re: rule[0],
-          turn: (probe) => rules.slice(0, i).reduce((text, earlier) => replace(earlier[0], text, earlier[1]), cleaned(probe)),
-          apply: (re, text) => replace(re, text, rule[1])
-        }],
-        exercises: (probe) => test(rule[0], cleaned(probe)),
+        label: re.source,
+        pattern: re,
+        branches: [{ re: re, turn: cleaned, apply: (other, text) => replace(other, text, mark) }],
+        exercises: (probe) => test(re, cleaned(probe)),
         run: (probe) => ({ output: knayi.spellingFix(probe, font) })
       });
     });

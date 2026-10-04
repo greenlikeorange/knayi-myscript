@@ -26,11 +26,18 @@ const debug: ConvertDebug = fontConvert.debugging(zawgyi, "unicode", "zawgyi");
 check(debug.steps.length > 0, "fontConvert.debugging");
 const options: DetectorOptions = { adapter: "rules" };
 check(fontDetect(unicode, null, options) === "unicode", "fontDetect");
+check([zawgyi, unicode].map(fontDetect).join() === "zawgyi,unicode", "lines.map(fontDetect)");
 check(syllBreak(unicode, "unicode", "|") === "မင်္ဂလာ|ပါ", "syllBreak");
 check(version === compat.version, "version");
+
+// A call of the 2.x API that compiles against its types, but runs only once compat has detectEncoding (2.x commit
+// 31eb6b1, scripts/testing/pending-port.js); its port moves it up, to run.
+function untilPorted(): void {
+  check(compat.detectEncoding(unicode).encoding === "unicode", "detectEncoding");
+}
 
 // The types are the package's own, not any.
 // @ts-expect-error syllBreak returns a string
 const wrong: string[] = syllBreak(unicode);
 
-export { wrong };
+export { wrong, untilPorted };

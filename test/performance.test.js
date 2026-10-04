@@ -45,6 +45,23 @@ describe('long input', () => {
     }
   });
 
+  // NFC puts each run of marks in order by combining class, and String.prototype.normalize does it with an
+  // insertion sort. Before library/nfc.js put long runs in order first, ka followed by 32,000 pairs of dot below
+  // and virama took about a second in normalize, and 64,000 pairs about four.
+  it('runs NFC in linear time on a long run of marks of two classes', () => {
+    const N = 50000;
+    const calls = {
+      'normalize, ka then dot below and virama': () => knayi.normalize('\u1000' + '\u1037\u1039'.repeat(N)),
+      'normalize, a then acute and dot below': () => knayi.normalize('a' + '\u0301\u0323'.repeat(N)),
+      'Zawgyi to Unicode, dot below and virama': () => knayi.fontConvert('\u1037\u1039'.repeat(N), 'unicode', 'zawgyi'),
+      'Win to Unicode, virama and h': () => knayi.fontConvert('\u1039h'.repeat(N), 'unicode', 'win')
+    };
+    for (const [name, call] of Object.entries(calls)) {
+      const ms = timed(call);
+      assert.ok(ms < LIMIT_MS, name + ' took ' + ms.toFixed(0) + 'ms');
+    }
+  });
+
   it('still moves marks behind a stacked consonant and kinzi (2.8.3 output)', () => {
     assert.equal(knayi.fontConvert('ကိၠ', 'unicode', 'zawgyi'), 'က္ကိ');
     assert.equal(knayi.fontConvert('ကုၠ', 'unicode', 'zawgyi'), 'က္ကု');

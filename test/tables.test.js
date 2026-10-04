@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 // The 2.x API: compat, on the 3.0 core.
 const knayi = require('../src/compat/index.js').default;
 const { buildRows } = require('../scripts/testing/rows');
+const { pendingPort } = require('../scripts/testing/pending-port');
 const fixture = require('./fixtures/tables.json');
 
 // One case per row of the library's tables: every Zawgyi and Win glyph and look-alike sequence, every Unicode
@@ -19,6 +20,10 @@ const rows = buildRows(knayi);
 const cases = fixture.cases;
 const UPDATE = 'node scripts/testing/table-cases.js --write';
 
+// The rows and cases are those of the 2.x reference (scripts/testing/rows.js). A row of a 2.x change compat does not
+// have yet waits for its port (scripts/testing/pending-port.js).
+const PENDING_ROWS = { 'unicode-to-zawgyi oneTime 41': '05de555' };
+
 const tables = [];
 for (const row of rows) {
   if (tables.indexOf(row.table) === -1) tables.push(row.table);
@@ -28,7 +33,7 @@ describe('table rows', () => {
   for (const table of tables) {
     describe(table, () => {
       for (const row of rows.filter((r) => r.table === table)) {
-        it(row.id, () => {
+        const test = () => {
           const entry = cases[row.id];
           assert.ok(entry, 'no case for ' + row.id + ' (' + row.label + '); run ' + UPDATE);
           assert.ok(row.exercises(entry.probe), 'the probe ' + JSON.stringify(entry.probe) + ' no longer exercises ' +
@@ -42,7 +47,8 @@ describe('table rows', () => {
             assert.deepEqual(row.run(edge.probe), edge.expect, 'edge probe ' + JSON.stringify(edge.probe) + ' (' +
               edge.branches.join('; ') + ')');
           }
-        });
+        };
+        it(row.id, PENDING_ROWS[row.id] ? pendingPort(PENDING_ROWS[row.id], test) : test);
       }
     });
   }

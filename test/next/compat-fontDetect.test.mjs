@@ -10,7 +10,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { ROOT } from './helpers.mjs';
-import { assertSameAsReference, recordConsole, resetOptions } from './compat-helpers.mjs';
+import { assertSameAsReference, pendingPort, recordConsole, resetOptions } from './compat-helpers.mjs';
 import { fontDetectCore } from '../../src/compat/fontDetect.js';
 import { createZawgyiModelLoader } from '../../src/compat/zawgyiModel.js';
 import { setGlobalOptions } from '../../src/compat/globalOptions.js';
@@ -45,19 +45,22 @@ const MODEL = Object.freeze({ adapter: 'myanmartools' });
 afterEach(resetOptions);
 
 describe('compat: fontDetect (C13, C14)', () => {
-  it('C13: answers every fallback and options value as main.js does, console included', () => {
-    const fallbacks = [undefined, null, '', 0, 'unicode', 'en', 5, {}];
-    const options = [undefined, null, {}, 0, [], 'rules', { adapter: 'rules' }, { adapter: 'foo' },
-      { myanmartools_zg_threshold: 'x' }, { myanmartools_zg_threshold: [NaN, NaN] }, { use_myanmartools: false }];
-    for (const text of [UNICODE, ZAWGYI, TIE, ' \u200B' + TIE + ' ', 'abc', '']) {
-      for (const fallback of fallbacks) {
-        for (const option of options) {
-          assertSameAsReference((k) => k.fontDetect(text, fallback, option),
-            JSON.stringify([text, fallback, option]));
+  // 2.11 ignores a fallback that is not a string (86f0040), and takes null options and checks the detector options
+  // (fb6594d).
+  it('C13: answers every fallback and options value as main.js does, console included',
+    pendingPort(['86f0040', 'fb6594d'], () => {
+      const fallbacks = [undefined, null, '', 0, 'unicode', 'en', 5, {}];
+      const options = [undefined, null, {}, 0, [], 'rules', { adapter: 'rules' }, { adapter: 'foo' },
+        { myanmartools_zg_threshold: 'x' }, { myanmartools_zg_threshold: [NaN, NaN] }, { use_myanmartools: false }];
+      for (const text of [UNICODE, ZAWGYI, TIE, ' \u200B' + TIE + ' ', 'abc', '']) {
+        for (const fallback of fallbacks) {
+          for (const option of options) {
+            assertSameAsReference((k) => k.fontDetect(text, fallback, option),
+              JSON.stringify([text, fallback, option]));
+          }
         }
       }
-    }
-  });
+    }));
 
   it('C14: the rule scorer counts on the cleaned text, and a tie gives the fallback as given', () => {
     const fallback = { any: 'value' };
@@ -135,13 +138,14 @@ describe('compat: the myanmar-tools adapter (C13, C26)', () => {
 });
 
 // The second known build difference (§5.4): main.js looks myanmar-tools up from the directory of its detector.js
-// (library/ in the package; here the frozen copy in scripts/oracle/), compat from the working directory. Each run is
-// a child process, so the shared loader of this process is never touched.
+// (library/ in the package; here the copy of the 2.x reference in scripts/reference/), compat from the working
+// directory. Each run is a child process, so the shared loader of this process is never touched. 2.11 loads nothing
+// by name outside main.js (649b2b4), and compat follows with its port: these cases then change.
 describe('compat: where myanmar-tools is looked up from (§5.4)', () => {
   const script = [
     'import { createRequire } from \'node:module\';',
     'const require = createRequire(' + JSON.stringify(path.join(ROOT, 'package.json')) + ');',
-    'const main = require(' + JSON.stringify(path.join(ROOT, 'scripts', 'oracle', 'main.js')) + ');',
+    'const main = require(' + JSON.stringify(path.join(ROOT, 'scripts', 'reference', 'main.js')) + ');',
     'const compat = (await import(' + JSON.stringify(new URL('../../src/compat/index.js', import.meta.url).href) +
       ')).default;',
     'const warnings = [];',

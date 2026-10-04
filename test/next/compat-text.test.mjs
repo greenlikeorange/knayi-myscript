@@ -3,7 +3,9 @@
 
 import { describe, it, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { assertSameAsReference, compat, recordConsole, reference, resetOptions } from './compat-helpers.mjs';
+import {
+  assertSameAsReference, compat, pendingPort, recordConsole, reference, resetOptions
+} from './compat-helpers.mjs';
 
 const UNICODE = '\u1019\u103C\u1014\u103A\u1019\u102C';
 const ZAWGYI = '\u103B\u1019\u1014\u1039\u1019\u102C';
@@ -84,11 +86,14 @@ describe('compat: the text functions (C21-C24)', () => {
     assert.deepEqual(run, { value: '', console: ['warn: Content must be specified on knayi.truncate.'] });
   });
 
-  it('C23: truncate is not always a prefix: a word that fits after one that does not is kept', () => {
-    const text = '\u1000\u102C abcdefghij ab';
-    assertSameAsReference((k) => k.truncate(text, { length: 12 }), JSON.stringify(text));
-    assert.equal(compat.truncate(text, { length: 12 }), '\u1000\u102C ab...');
-  });
+  // 2.10.0's truncate went on after a word that did not fit and kept a later one that did, '\u1000\u102C ab...' here;
+  // 2.11's returns the start of the text (41984eb).
+  it('C23: truncate returns a start of the text: a word that fits after one that does not is left out',
+    pendingPort('41984eb', () => {
+      const text = '\u1000\u102C abcdefghij ab';
+      assertSameAsReference((k) => k.truncate(text, { length: 12 }), JSON.stringify(text));
+      assert.equal(compat.truncate(text, { length: 12 }), '\u1000\u102C...');
+    }));
 
   it('C24: normalize is NFC, the reader, typos, look-alikes and NFC, with NFC on text with no Myanmar', () => {
     const texts = ['e\u0301', '\u1000\u103B\u103C', '\u1000\u102F\u102D', '\u1025\u102E', '\u101D\u1040',

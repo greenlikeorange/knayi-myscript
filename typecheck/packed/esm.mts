@@ -3,8 +3,24 @@
 import * as knayi from "knayi-myscript";
 import { normalize, toUnicode, createTrace, VERSION } from "knayi-myscript";
 import type { NormalizeReport, Trace } from "knayi-myscript";
-import compat, { fontConvert, fontDetect, setGlobalOptions, syllBreak, version } from "knayi-myscript/compat";
-import type { ConvertDebug, DetectorOptions, GlobalOptions, Knayi, TruncateOptions } from "knayi-myscript/compat";
+import compat, {
+  fontConvert,
+  fontDetect,
+  setGlobalOptions,
+  spellingFix,
+  syllBreak,
+  truncate,
+  version
+} from "knayi-myscript/compat";
+import type {
+  ConvertDebug,
+  DetectorOptions,
+  EncodingDetection,
+  GlobalOptions,
+  Knayi,
+  TruncateOptions,
+  ZawgyiDetectorLike
+} from "knayi-myscript/compat";
 
 function check(ok: boolean, what: string): void {
   if (!ok) throw new Error("esm.mts: " + what);
@@ -33,8 +49,32 @@ check(fontConvert(zawgyi, "unicode", "zawgyi") === unicode, "named fontConvert")
 const debug: ConvertDebug = fontConvert.debugging(zawgyi, "unicode", "zawgyi");
 check(debug.steps[debug.steps.length - 1] === unicode, "fontConvert.debugging");
 check(fontDetect(zawgyi, null, detectorOptions) === "zawgyi", "fontDetect");
+const detected: "unicode" | "zawgyi" | "tie" = fontDetect(unicode, "tie");
+check(detected === "unicode", "fontDetect with a fallback");
 check(syllBreak(unicode, null, "|") === "မင်္ဂလာ|ပါ", "syllBreak");
 check(typeof compat.truncate(unicode, truncateOptions) === "string", "truncate");
+// As Array#map callbacks: the 2.x types give these an overload for map's index and array.
+const lines = [zawgyi, unicode, "abc"];
+check(lines.map(spellingFix)[1] === unicode, "lines.map(spellingFix)");
+check(lines.map(truncate)[2] === "abc...", "lines.map(truncate)");
+check(lines.map(compat.normalize)[1] === unicode, "lines.map(normalize)");
+
+// Calls of the 2.x API that compile against its types, but run only once compat has the 2.x changes they need
+// (scripts/testing/pending-port.js): null options (fb6594d), detectEncoding (31eb6b1), zawgyiDetector (840c8c5) and
+// a fallback that is not a string (86f0040). Each port moves its calls up, to run; detectEncoding then joins the
+// named imports above (an import of a name compat does not export fails before any code runs).
+function untilPorted(): void {
+  check(fontDetect(zawgyi, null, null) === "zawgyi", "fontDetect with null options");
+  const evidence: EncodingDetection = compat.detectEncoding(zawgyi);
+  check(evidence.encoding === "zawgyi" && evidence.zawgyi > evidence.unicode, "detectEncoding");
+  // The project has no myanmar-tools: a detector passed as zawgyiDetector needs none.
+  const unicodeDetector: ZawgyiDetectorLike = { getZawgyiProbability: () => 0 };
+  check(fontDetect(zawgyi, null, { adapter: "myanmartools", zawgyiDetector: unicodeDetector }) === "unicode",
+    "zawgyiDetector");
+  setGlobalOptions(null);
+  const fonts: string[] = lines.map(fontDetect);
+  check(fonts.join() === "zawgyi,unicode,en", "lines.map(fontDetect)");
+}
 
 // './stream' is stream.mts's: its types name the runtime's TransformStream, which this project's lib leaves out, so
 // that '.' and './compat' are shown to need no DOM or Node types.
@@ -48,7 +88,9 @@ function typeErrors(): void {
   toUnicode(zawgyi, "zawgyi");
   // @ts-expect-error adapter is a per-call option; setGlobalOptions does not store it
   setGlobalOptions({ detector: { adapter: "rules" } });
-  check(wrong === 0, "never runs");
+  // @ts-expect-error fontDetect never returns 'win'
+  const notWin: "win" = fontDetect(unicode);
+  check(wrong === 0 && notWin === "win", "never runs");
 }
 
-export { typeErrors };
+export { typeErrors, untilPorted };

@@ -1,6 +1,7 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const matrix = require('../../scripts/contract/matrix');
+const { MATRIX_CHANGES, pendingPort } = require('../../scripts/testing/pending-port');
 
 // The API contract matrix (scripts/contract/matrix.js): every public function and call form on fixed synthetic
 // probes, with what each call returns, throws and writes to the console. A failure lists the cells that changed.
@@ -16,12 +17,17 @@ describe('API contract matrix', () => {
   });
 
   for (const name of matrix.BUILDS) {
-    it(name + ' gives the recorded result, error class and console output in every cell', async (t) => {
+    const check = async (t) => {
       const build = await matrix.loadBuild(name);
       const result = matrix.checkBuild(snapshot, build);
       assert.ok(result.ok, result.text);
       t.diagnostic(result.text);
-    });
+    };
+    // The cells are those of main.js at the 2.x reference, 8923365. compat and the builds that hold it give them
+    // once compat has the 2.x changes that touch cells (scripts/testing/pending-port.js); until then 912 of the
+    // 3,915 cells differ.
+    it(name + ' gives the recorded result, error class and console output in every cell',
+      name === 'main.js' ? check : pendingPort(MATRIX_CHANGES, check));
   }
 
   // compat holds the 2.x option store and the myanmar-tools loader as module state, as main.js does, so it is checked

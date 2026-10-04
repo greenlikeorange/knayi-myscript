@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fc = require('fast-check');
 // The 2.x API: compat, on the 3.0 core.
 const knayi = require('../src/compat/index.js').default;
+const { pendingPort } = require('../scripts/testing/pending-port');
 
 // Super-linear time on structured random input. Each case is a prefix, a short unit repeated many times and a
 // suffix, drawn from the characters the rules care about: Burmese letters and marks, the Zawgyi and Win
@@ -26,7 +27,8 @@ const knayi = require('../src/compat/index.js').default;
 // Bun 1.4), and normalize and conversion to Unicode end with NFC. 2.10.0 passed such runs to it, so this file
 // used to excuse a call whose growth NFC alone explained. compat puts each long run in canonical order first and
 // gives NFC only short ones (src/core/nfc.js), so its NFC is linear, and the three runs that were known to be
-// quadratic are among the EXAMPLES that every call form runs.
+// quadratic are among the EXAMPLES that every call form runs. The tests under 'runs of marks that NFC reorders' run
+// ten such runs, in Myanmar and in other scripts, through every call form that runs NFC.
 
 const LIMIT = 2.6; // t(2n) / t(n): about 2 in linear time, 4 in quadratic time (growth exponent 1.38)
 const ATTEMPTS = 3;
@@ -102,19 +104,35 @@ const EXAMPLES = [
   shape([], [0x1039, 0x68]) // Win's virama glyph and h
 ].map((example) => [example]);
 
-// Every public call form. `pumps` marks the ones whose readers walk runs of marks.
+// Every public call form. `pumps` marks the ones whose readers walk runs of marks, and `nfc` the ones whose output
+// goes through NFC (src/core/nfc.js). `pending` names the 2.x change a form waits for
+// (scripts/testing/pending-port.js).
 const FORMS = [
-  { name: 'normalize', pumps: true, run: (s) => knayi.normalize(s) },
-  { name: 'fontConvert zawgyi to unicode', pumps: true, run: (s) => knayi.fontConvert(s, 'unicode', 'zawgyi') },
-  { name: 'fontConvert win to unicode', pumps: true, run: (s) => knayi.fontConvert(s, 'unicode', 'win') },
-  { name: 'fontConvert detected to unicode', pumps: true, run: (s) => knayi.fontConvert(s, 'unicode') },
+  { name: 'normalize', pumps: true, nfc: true, run: (s) => knayi.normalize(s) },
+  {
+    name: 'fontConvert zawgyi to unicode',
+    pumps: true,
+    nfc: true,
+    run: (s) => knayi.fontConvert(s, 'unicode', 'zawgyi')
+  },
+  { name: 'fontConvert win to unicode', pumps: true, nfc: true, run: (s) => knayi.fontConvert(s, 'unicode', 'win') },
+  { name: 'fontConvert detected to unicode', pumps: true, nfc: true, run: (s) => knayi.fontConvert(s, 'unicode') },
   { name: 'fontConvert unicode to zawgyi', run: (s) => knayi.fontConvert(s, 'zawgyi', 'unicode') },
   { name: 'fontConvert detected to zawgyi', run: (s) => knayi.fontConvert(s, 'zawgyi') },
-  { name: 'fontConvert.debugging zawgyi to unicode', run: (s) => knayi.fontConvert.debugging(s, 'unicode', 'zawgyi') },
-  { name: 'fontConvert.debugging win to unicode', run: (s) => knayi.fontConvert.debugging(s, 'unicode', 'win') },
+  {
+    name: 'fontConvert.debugging zawgyi to unicode',
+    nfc: true,
+    run: (s) => knayi.fontConvert.debugging(s, 'unicode', 'zawgyi')
+  },
+  {
+    name: 'fontConvert.debugging win to unicode',
+    nfc: true,
+    run: (s) => knayi.fontConvert.debugging(s, 'unicode', 'win')
+  },
   { name: 'fontConvert.debugging unicode to zawgyi', run: (s) => knayi.fontConvert.debugging(s, 'zawgyi', 'unicode') },
   { name: 'fontDetect', run: (s) => knayi.fontDetect(s) },
   { name: 'fontDetect with a unicode fallback', run: (s) => knayi.fontDetect(s, 'unicode') },
+  { name: 'detectEncoding', pending: '31eb6b1', run: (s) => knayi.detectEncoding(s) },
   { name: 'syllBreak unicode', run: (s) => knayi.syllBreak(s, 'unicode', '|') },
   { name: 'syllBreak zawgyi', run: (s) => knayi.syllBreak(s, 'zawgyi', '|') },
   { name: 'syllBreak detected', run: (s) => knayi.syllBreak(s) },
@@ -183,13 +201,14 @@ function describeCase(shape, result) {
 
 describe('time grows linearly on structured random input', () => {
   FORMS.forEach((form, index) => {
-    it(form.name, () => {
+    const test = () => {
       fc.assert(fc.property(shapes, (shape) => {
         const result = growth(form.run, shape);
         if (result.ok) return;
         assert.fail(form.name + ' grows faster than linear: ' + describeCase(shape, result));
       }), { seed: SEED + index, numRuns: RUNS, examples: EXAMPLES });
-    });
+    };
+    it(form.name, form.pending ? pendingPort(form.pending, test) : test);
   });
 });
 
@@ -224,6 +243,35 @@ describe('time grows linearly on a run of one character', () => {
         assert.fail(form.name + ' grows faster than linear: ' + describeCase(pump, result));
       }
       t.diagnostic(PUMPS.length + ' pumps, ' + measured + ' measured in full after a high first reading');
+    });
+  }
+});
+
+// Runs of marks of two combining classes, which NFC has to put in order, in Myanmar and in other scripts (the
+// unit is UTF-16 code units, so an astral mark is a surrogate pair). src/core/nfc.js puts them in order before
+// String.prototype.normalize sees them; before 2.x's helper did, the first three (in EXAMPLES too) took quadratic
+// time. scripts/eval/lib/inputs.mjs has the same runs as perf's growth shapes.
+const NFC_RUNS = [
+  ['ka, then dot below and virama', shape([0x1000], [0x1037, 0x1039])],
+  ['Zawgyi dot below and virama', shape([], [0x1037, 0x1039])],
+  ['Win virama and h', shape([], [0x1039, 0x68])],
+  ['ka, then asat and dot below', shape([0x1000], [0x103A, 0x1037])],
+  ['Latin a, then acute and dot below', shape([0x61], [0x301, 0x323])],
+  ['Greek alpha, then ypogegrammeni and dialytika tonos', shape([0x3B1], [0x345, 0x344])],
+  ['Hebrew bet, then dagesh and qamats', shape([0x5D1], [0x5BC, 0x5B8])],
+  ['Arabic beh, then shadda and fatha', shape([0x628], [0x651, 0x64E])],
+  ['Tibetan ka, then U+0F73 and U+0F39', shape([0xF40], [0xF73, 0xF39])],
+  ['x, then the musical augmentation dot and stem (U+1D16D, U+1D165)', shape([0x78], [0xD834, 0xDD6D, 0xD834, 0xDD65])]
+];
+
+describe('time grows linearly on runs of marks that NFC reorders', () => {
+  for (const form of FORMS.filter((f) => f.nfc)) {
+    it(form.name, () => {
+      for (const [name, run] of NFC_RUNS) {
+        const result = growth(form.run, run);
+        if (result.ok) continue;
+        assert.fail(form.name + ' on ' + name + ' grows faster than linear: ' + describeCase(run, result));
+      }
     });
   }
 });

@@ -304,7 +304,7 @@ knayi.toUnicode('ၿမိဳ ့', { from: 'zawgyi' }) // 'မြို့'
 - **Zero:** `၀` is also ဝ. A zero stays a digit next to a digit or an arithmetic sign, or across a decimal point from a digit (၁၀၀, ၅.၀).
 - **Typing fixes, as in [normalize](#normalizetext-options):** ဝ or ရ typed in a number is a digit (`၂ဝ၁၉` is ၂၀၁၉). ၇ starting a closed syllable is ရ (ဆိုရင်). ိ with ီ is ီ (ဦး), and ု with ူ is ူ.
 - **Spaces:** a space typed before a mark only moved the mark, so it is dropped: `ၿမိဳ ့` is မြို့ and `တစ္ခ ု` is တစ်ခု. A line break stays.
-- **Zero-width characters:** one typed inside a syllable (U+200B, U+200C, U+200D, U+2060 or U+FEFF) moves to the end of the syllable.
+- **Zero-width characters:** one typed inside a syllable (U+200B, U+200C, U+200D, U+2060 or U+FEFF) moves to the end of the syllable, and one typed between ေ or medial ra and its consonant moves before the syllable.
 - **NFC:** the result is NFC.
 
 #### Win fonts
@@ -638,7 +638,7 @@ With a bundler, an import takes only what it uses. Measured with esbuild at ES20
 
 ## The 2.x API: knayi-myscript/compat
 
-`knayi-myscript/compat` is the 2.x API on the 3.0 core: the same exports, options, console messages and debug output as knayi 2.10.0, and its output on every input. `npm run compare` finds 0 differences from 2.10.0's code on every eval corpus and on generated and fuzzed input, and CI runs it on every pull request.
+`knayi-myscript/compat` is the 2.x API on the 3.0 core: the same exports, options, console messages and debug output as the last release of knayi 2.x, 2.11.0, and its output on every input. `npm run compare` checks it against 2.11.0's code on every eval corpus and on generated and fuzzed input, and CI runs it on every pull request.
 
 ```javascript
 import compat from 'knayi-myscript/compat'

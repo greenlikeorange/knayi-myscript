@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
 const { readExamples } = require('../scripts/testing/readme-examples');
+const { PENDING_EXAMPLES, pendingPort } = require('../scripts/testing/pending-port');
 
 // The two APIs the examples call: `knayi.…` the 3.0 API, `compat.…` the 2.x API on the 3.0 core.
 const LIBRARIES = {
@@ -10,16 +11,32 @@ const LIBRARIES = {
   compat: require('../src/compat/index.js').default
 };
 
-// Every example in README.md, MIGRATION.md and ARCHITECTURE.md runs against the API it names and returns the value in
-// its comment. An example whose note says it warns must write a warning or an error to the console.
+// Every example in README.md, MIGRATION.md and ARCHITECTURE.md, and in the JSDoc of compat's types, runs against
+// the API it names and returns the value in its comment. An example whose note says it warns, or that it writes an
+// error, must write a warning or an error to the console.
 //
 // The number of examples in each file is pinned, so an example the reader stops seeing fails here. When you add or
 // remove an example, change its count.
 const FILES = {
   'README.md': { knayi: 61, compat: 1 },
-  'MIGRATION.md': { knayi: 26, compat: 54 },
-  'ARCHITECTURE.md': { knayi: 0, compat: 11 }
+  'MIGRATION.md': { knayi: 26, compat: 72 },
+  'ARCHITECTURE.md': { knayi: 0, compat: 11 },
+  'src/compat/index.d.ts': { knayi: 0, compat: 24 }
 };
+
+// A file's text as Markdown. In a declaration file, the JSDoc lines lose their leading ` * `, so the fenced examples
+// in the comments read as README's do; line numbers stay the same. compat's types are 2.x's, whose examples call the
+// 2.x API by its 2.x name, knayi, so they are read as compat's.
+function asMarkdown(file, text) {
+  return file.endsWith('.d.ts') ? text.replace(/^[ \t]*\*(?: |$)/gm, '').replace(/\bknayi\./g, 'compat.') : text;
+}
+
+// The test of one example, which waits for its port when PENDING_EXAMPLES names it (the examples that show a 2.x change
+// compat does not have yet, scripts/testing/pending-port.js).
+function exampleTest(example, test) {
+  const commit = PENDING_EXAMPLES[example.file + ' ' + example.code];
+  return commit ? pendingPort(commit, test) : test;
+}
 
 // Runs fn with console.warn and console.error recorded instead of printed.
 function capture(fn) {
@@ -44,7 +61,7 @@ function countByApi(examples) {
 
 for (const [file, counts] of Object.entries(FILES)) {
   describe(file + ' examples', () => {
-    const examples = readExamples(fs.readFileSync(path.join(__dirname, '..', file), 'utf8'), file);
+    const examples = readExamples(asMarkdown(file, fs.readFileSync(path.join(__dirname, '..', file), 'utf8')), file);
 
     it('reads every example', (t) => {
       assert.deepEqual(countByApi(examples), counts, file + ' has other examples; if you added or removed one, ' +
@@ -53,16 +70,16 @@ for (const [file, counts] of Object.entries(FILES)) {
     });
 
     for (const example of examples) {
-      it(file + ':' + example.line + ' ' + example.code.replace(/\s+/g, ' '), () => {
+      it(file + ':' + example.line + ' ' + example.code.replace(/\s+/g, ' '), exampleTest(example, () => {
         assert.notEqual(example.expected, null, 'add the value this call returns to ' + file + ', as a comment after it');
         const call = new Function(example.api, 'return (' + example.code + ');');
         const run = capture(() => call(LIBRARIES[example.api]));
         const expected = new Function('return (' + example.expected + ');')();
         assert.deepEqual(run.value, expected);
-        if (example.note && /\bwarns\b/.test(example.note)) {
-          assert.ok(run.messages.length > 0, 'the documentation says this call warns');
+        if (example.note && /\bwarns\b|\ban error\b/.test(example.note)) {
+          assert.ok(run.messages.length > 0, 'the documentation says this call writes to the console');
         }
-      });
+      }));
     }
   });
 }
@@ -138,9 +155,19 @@ describe('example reader', () => {
     assert.deepEqual([example.code, example.expected, example.note], ["compat.fontConvert('(', 'unicode')", "'('", 'no change; warns']);
   });
 
+  it('reads an array literal mapped through a call as one example, of the API it names', () => {
+    const examples = readExamples(fence('javascript',
+      "['a', 'b'].map(knayi.normalize) // ['a', 'b']\n" +
+      "['(', ')'].map((line) => compat.syllBreak(line, null, '|'))\n// ['(', ')']"), 'probe.md');
+    assert.deepEqual(examples.map((e) => [e.line, e.api, e.code, e.expected]), [
+      [2, 'knayi', "['a', 'b'].map(knayi.normalize)", "['a', 'b']"],
+      [3, 'compat', "['(', ')'].map((line) => compat.syllBreak(line, null, '|'))", "['(', ')']"]
+    ]);
+  });
+
   it('rejects a line with knayi. or compat. in any other form', () => {
     for (const body of ["const x = knayi.normalize('a')", "knayi.normalize('a').length", "console.log(knayi.normalize('a')",
-      "const y = compat.normalize('a')"]) {
+      "const y = compat.normalize('a')", "['a'].forEach(compat.normalize)", "['a'].map(compat.normalize).length"]) {
       assert.throws(() => readExamples(fence('javascript', body), 'probe.md'), /unrecognised example at probe\.md:2/, body);
     }
   });
