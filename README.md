@@ -343,17 +343,19 @@ knayi.segmentSyllables('ပထမဆုံး') // ['ပ', 'ထ', 'မ', 'ဆု
 knayi.segmentSyllables('ပထမဆုံး', { policy: 'chains' }) // ['ပထမဆုံး']
 knayi.segmentSyllables('ပထမဆုံး', { policy: 'pairs' }) // ['ပထ', 'မဆုံး']
 knayi.segmentSyllables('ၾကပါ', { font: 'zawgyi' }) // ['ၾက', 'ပါ']
-knayi.segmentSyllables('မင်္ဂလာပါ မြန်မာ') // ['မင်္ဂ', 'လာ', 'ပါ မြန်', 'မာ']
+knayi.segmentSyllables('မင်္ဂလာပါ မြန်မာ') // ['မင်္ဂ', 'လာ', 'ပါ ', 'မြန်', 'မာ']
+knayi.segmentSyllables('မင်္ဂလာပါ မြန်မာ', { policy: 'pairs' }) // ['မင်္ဂလာ', 'ပါ မြန်', 'မာ']
+knayi.segmentSyllables('ကောင်း (မောင်)') // ['ကောင်း ', '(မောင်)']
 knayi.segmentSyllables('') // []
 ```
 
-- **Where a piece starts:** at the start of the text, and before a consonant, an independent vowel, ဿ or one of ၌ ၍ ၎ ၏ that starts a syllable, but not right after white space, and not before a consonant right after an opening bracket, quote or dash: a space already separates the words, and an opening mark stays with the word it opens. So spaces, digits, punctuation and text in other scripts stay with the syllable before them, and `segmentSyllables('ကောင်း မောင်')` is one piece. Split on white space first if you count syllables.
+- **Where a piece starts:** at the start of the text, and before a consonant, an independent vowel, ဿ or one of ၌ ၍ ၎ ၏ that starts a syllable. A consonant under a virama, or with an asat, belongs to the syllable before it. White space ends a piece, so a syllable after a space or a line break starts one, and the opening brackets, quotes or dashes typed right before a syllable start its piece with it. Digits, punctuation and text in other scripts stay with the syllable before them; text before the first syllable, white space included, is a piece of its own. Under `policy: 'pairs'`, as in 2.x's `syllBreak`, no piece starts right after white space, or at a consonant right after an opening mark.
 - **`policy`** says how a consonant with no mark, a bare consonant, is read:
   - `'separate'`, the default: a syllable of its own, with its inherent vowel (ပ|ထ|မ|ဆုံး).
   - `'chains'`: joined, with every bare consonant before it, to the syllable after it (ပထမဆုံး).
   - `'pairs'`: joined two by two, as 2.x `syllBreak` does (ပထ|မဆုံး, and ကကက is ကက|က).
 
-  `'separate'` is the only policy whose pieces are the syllables, whatever the consonants around them: under the other two, 16–18% of the pieces of the Burmese corpora hold more than one. It changes the pieces of 79–99% of Burmese lines against 2.x's breaks. [research/segmentation.md](research/segmentation.md) has the counts.
+  `'separate'` is the only policy whose pieces are the syllables, whatever the consonants around them: under `'chains'`, 13–14% of the pieces of the Burmese corpora hold more than one, and under `'pairs'`, which also joins across white space, a third or more. It changes the pieces of 94–100% of Burmese lines against 2.x's breaks. [research/segmentation.md](research/segmentation.md) has the counts.
 - **`font`** is `'unicode'`, the default, or `'zawgyi'`. The text is not detected: Zawgyi text read as Unicode splits a medial ra or ေ from its consonant, as `ၾကပါ` read as Unicode gives `ၾ`, `က` and `ပါ`.
 
 ### truncate(text, options)

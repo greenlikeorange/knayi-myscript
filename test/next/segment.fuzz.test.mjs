@@ -132,6 +132,36 @@ describe('src/rules/segment.js against 2.x, both fonts', () => {
   });
 });
 
+describe('white space and opening marks under CHAINS and SEPARATE (DESIGN.md §11.6)', () => {
+  const SPACED = [BARE_CONSONANTS.CHAINS, BARE_CONSONANTS.SEPARATE];
+  const OPENING_MARK = /[>\u201C\u2018\-(\[{\u2012-\u2014]/;
+  const anyText = fc.oneof(text, arb.codeUnits);
+
+  it('white space joins nothing: it breaks as U+200B does, which never starts or joins a syllable', () => {
+    fuzz.check(fc.property(anyText, (raw) => {
+      const zeroWidth = raw.replace(/\s/g, '\u200B');
+      for (const font of FONTS) {
+        for (const policy of SPACED) {
+          assertSame(syllableBoundaries(raw, font, policy), syllableBoundaries(zeroWidth, font, policy),
+            'syllableBoundaries ' + font + ' ' + policy, raw);
+        }
+      }
+    }), 100000, REGRESSIONS, 1000000);
+  });
+
+  it('an opening mark stays with the syllable after it, and CHAINS breaks only where SEPARATE does', () => {
+    fuzz.check(fc.property(anyText, (raw) => {
+      for (const font of FONTS) {
+        const separate = syllableBoundaries(raw, font, BARE_CONSONANTS.SEPARATE);
+        for (const at of separate.concat(syllableBoundaries(raw, font, BARE_CONSONANTS.CHAINS))) {
+          assert.ok(!OPENING_MARK.test(raw[at - 1]), font + ': a break after an opening mark at ' + at + ' in ' + raw);
+        }
+        const chains = syllableBoundaries(raw, font, BARE_CONSONANTS.CHAINS);
+        assert.ok(chains.every((at) => separate.indexOf(at) !== -1), font + ': ' + JSON.stringify(raw));
+      }
+    }), 100000, REGRESSIONS, 1000000);
+  });
+});
 // Every distinct line of every cached corpus, on a long run, when the cache holds all of them.
 async function cachedCorpora() {
   if (!fuzz.LONG_RUN) return { skip: 'a long run only (KNAYI_FUZZ_SCALE above 1)' };

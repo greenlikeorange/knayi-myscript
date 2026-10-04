@@ -45,7 +45,7 @@ export const BREAK_RULES = {
       pattern: /([\u0009-\u000d\u0020\u00a0\u2000-\u200a\u2028\u2029\u202f]|>|\u201C|\u2018|\-|\(|\[|{|[\u2012-\u2014]|\u1039)\u200B([\u1000-\u1021])/g,
       replacement: '$1$2',
       offWhen: null,
-      why: 'A consonant after a virama is stacked under the consonant before it, in the same syllable. A consonant after a space or an opening mark (> U+201C U+2018 - ( [ { and the dashes U+2012-U+2014) gets no break either: a space already separates the words, and an opening mark stays with the word it opens.',
+      why: 'A consonant after a virama is stacked under the consonant before it, in the same syllable. A consonant after a space or an opening mark (> U+201C U+2018 - ( [ { and the dashes U+2012-U+2014) gets no break either: a space already separates the words, and an opening mark stays with the word it opens. The scanners keep the space and opening-mark part under PAIRS only: under CHAINS and SEPARATE a syllable after white space starts a piece, with the opening marks typed right before it (DESIGN.md §11.6).',
       source: 'UTN #11 (virama stacks the next consonant); the opening marks kept from 2.x, evidence not recorded',
       example: '\u1000\u102C (\u1001\u102B)'
     },
@@ -75,7 +75,7 @@ export const BREAK_RULES = {
       pattern: /(\s|\n)\u200B([\u1000-\u1021\u1023-\u1027\u1029\u102a\u103f\u104c-\u104f])/g,
       replacement: '$1$2',
       offWhen: null,
-      why: 'A letter after white space (JavaScript \\s) gets no break: the space already separates the pieces. Row U3 covers the consonants after the common spaces; this row covers the other letters and spaces.',
+      why: 'A letter after white space (JavaScript \\s) gets no break: the space already separates the pieces. Row U3 covers the consonants after the common spaces; this row covers the other letters and spaces. The scanners keep it under PAIRS only: under CHAINS and SEPARATE white space separates syllables (DESIGN.md §11.6).',
       source: 'kept from 2.x; evidence not recorded',
       example: '\u1000\u102C \u1025'
     },
@@ -127,7 +127,7 @@ export const BREAK_RULES = {
       pattern: /([\u0009-\u000d\u0020\u00a0\u2000-\u200a\u2028\u2029\u202f]|>|\u201C|\u2018|\-|\(|\[|{|[\u2012-\u2014])\u200B([\u1000-\u1021\u1031\u103b\u1025\u1029\u106A\u106B\u107e-\u1084\u1086\u108F\u1090])/g,
       replacement: '$1$2',
       offWhen: null,
-      why: 'A base or a prebase glyph after a space or an opening mark gets no break, as in Unicode row U3.',
+      why: 'A base or a prebase glyph after a space or an opening mark gets no break, as in Unicode row U3, and under PAIRS only, as row U3 is.',
       source: 'kept from 2.x; evidence not recorded',
       example: '(\u1031\u1000)'
     },
@@ -157,7 +157,7 @@ export const BREAK_RULES = {
       pattern: /(\s|\n)\u200B([\u1000-\u1021\u1023-\u1027\u1029\u102a\u104c-\u104f\u1086\u108f-\u1092])/g,
       replacement: '$1$2',
       offWhen: null,
-      why: 'A letter after white space (JavaScript \\s) gets no break, as in Unicode row U6.',
+      why: 'A letter after white space (JavaScript \\s) gets no break, as in Unicode row U6, and under PAIRS only, as row U6 is.',
       source: 'kept from 2.x; evidence not recorded',
       example: '\u1000\u102C \u1027'
     },

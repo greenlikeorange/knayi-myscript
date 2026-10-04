@@ -29,6 +29,12 @@ import { ERR, libraryError } from '../core/errors.js';
 //   SEPARATE  none joins: a bare consonant is a syllable of its own, with its inherent vowel (UTN #11): က|က|က.
 // Every function here defaults to PAIRS, as 2.x does. The 3.0 API passes SEPARATE by default, chosen by decision 34
 // from corpus counts (DESIGN.md §11.6; api/segment.js DEFAULT_POLICY).
+//
+// The policy also says what white space does. Under PAIRS it joins, as in 2.x: a letter after white space, or a
+// consonant after an opening mark, gets no break (rows U3, U6, Z4 and Z7), since 2.x put U+200B between the pieces
+// of a text whose words a space already separated. Under CHAINS and SEPARATE, which give pieces, not a joined text,
+// white space never joins two syllables: a syllable after it starts a piece, with any opening marks typed right
+// before it, and the white space ends the piece before (spaceSeparates; DESIGN.md §11.6).
 export const BARE_CONSONANTS = /* @__PURE__ */ deepFreeze({ PAIRS: 'pairs', CHAINS: 'chains', SEPARATE: 'separate' });
 
 // 2.x joinParts puts U+200B between the parts when no separator is given (syllable.js:272-275).
@@ -109,8 +115,8 @@ export function breakString(text, font, separator) {
 // Lossless segmentation (3.0, decision 34): the breaks of forEachBreak on the text as given. Nothing is cleaned,
 // trimmed or reordered, so segmentSyllables(text, font).join('') === text. Row U1's swap is read only to decide
 // the breaks. U+200B and U+200C are ordinary units here. They never start a syllable, so each one stays at the end
-// of the syllable before it; and they are not spaces, so a letter after one keeps the break that rows U3, U6, Z4
-// and Z7 delete after a space.
+// of the syllable before it, as white space does under CHAINS and SEPARATE; and they are not spaces, so under PAIRS
+// a letter after one keeps the break that rows U3, U6, Z4 and Z7 delete after a space.
 
 // The indexes where a syllable starts, 0 left out: syllable k is text.slice(boundaries[k - 1], boundaries[k]).
 export function syllableBoundaries(text, font, bareConsonants = BARE_CONSONANTS.PAIRS) {
@@ -153,6 +159,26 @@ function isWhiteSpace(code) {
     code === 0x202F || code === 0x205F || code === 0x3000 || code === 0xFEFF;
 }
 
+// The opening marks of rows U3 and Z4 that are not white space: > U+201C U+2018 - ( [ { and U+2012-U+2014.
+function isOpeningMark(code) {
+  return code === 0x28 || code === 0x2D || code === 0x3E || code === 0x5B || code === 0x7B ||
+    (code >= 0x2012 && code <= 0x2014) || code === 0x2018 || code === 0x201C;
+}
+
+// Whether white space separates syllables under the policy: under every policy but 2.x's PAIRS (BARE_CONSONANTS).
+function spaceSeparates(bareConsonants) {
+  return bareConsonants !== BARE_CONSONANTS.PAIRS;
+}
+
+// Where the piece of the syllable that starts at i begins when white space separates: before the opening marks typed
+// right before it, which open its word ((မောင်), “မောင်”). 0 when they start the text, which has no break at 0.
+// Each run of opening marks is read once, by the syllable right after it.
+function startOfOpeningMarks(text, i) {
+  let at = i;
+  while (at > 0 && isOpeningMark(text.charCodeAt(at - 1))) at--;
+  return at;
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // Bare consonants (rows U7 and Z8, decision 34).
 
@@ -173,19 +199,22 @@ function bareConsonantJoins(bareConsonants, i, pairedAt) {
 // ---------------------------------------------------------------------------------------------------------------
 // Unicode (rows U2-U7; row U1 is prepareBreakText).
 
-// Calls onBreak at each break that rows U2-U7 leave in Unicode text.
+// Calls onBreak at each break that rows U2-U7 leave in Unicode text. Where white space separates, the break of a
+// syllable goes before the opening marks typed right before it.
 function forEachUnicodeBreak(text, bareConsonants, onBreak) {
+  const spaced = spaceSeparates(bareConsonants);
   let pairedAt = -1;
   for (let i = 1; i < text.length; i++) {
     const code = text.charCodeAt(i);
     if (!startsUnicodeSyllable(code)) continue;
     const before = text.charCodeAt(i - 1);
-    if (unicodeJoinsBefore(text, i, code, before)) continue;
+    if (unicodeJoinsBefore(text, i, code, before, spaced)) continue;
     if (isBurmeseConsonant(code) && isBurmeseConsonant(before) && bareConsonantJoins(bareConsonants, i, pairedAt)) {
       pairedAt = i; // U7
       continue;
     }
-    if (onBreak(i) === false) return;
+    const at = spaced ? startOfOpeningMarks(text, i) : i;
+    if (at > 0 && onBreak(at) === false) return;
   }
 }
 
@@ -199,11 +228,13 @@ function startsUnicodeSyllable(code) {
 
 // Rows U3, U5 and U6: whether a join reason deletes the break before the letter `code` at i, with `before` the
 // unit at i - 1. Row U4 is not here: its text starts with nga and asat, so row U5 decides every break it could.
-function unicodeJoinsBefore(text, i, code, before) {
+// The parts of rows U3 and U6 that read white space and opening marks join only where white space does not
+// separate (spaced is false: PAIRS, 2.x).
+function unicodeJoinsBefore(text, i, code, before, spaced) {
   if (isBurmeseConsonant(code)) {
     // U3: a consonant after a virama is stacked under the one before it (UTN #11); after a space or an opening
     // mark it stays with its word.
-    if (before === CP.VIRAMA || isOpeningCharacter(before)) return true;
+    if (before === CP.VIRAMA || (!spaced && isOpeningCharacter(before))) return true;
     // U5, first branch: a consonant with asat is the final of the syllable before it (UTN #11), also with a dot
     // below or visarga typed between them (ဖြင့်, ခြမး်; 41e18bf).
     if (isAsatAfterTones(text, i + 1)) return true;
@@ -212,7 +243,7 @@ function unicodeJoinsBefore(text, i, code, before) {
     // or medial; after a vowel sign it starts a syllable, as Pa'o writes it (ထွူ|လဲ|ဥ်း; 73214a3).
     return true;
   }
-  return isWhiteSpace(before); // U6: the space already separates the pieces
+  return !spaced && isWhiteSpace(before); // U6: in 2.x, the space already separates the pieces
 }
 
 // Row U5: whether asat is at j, after any dots below and visargas typed before it.
@@ -239,16 +270,18 @@ const TAKES_NOTHING = 0;
 const TAKES_LONE_PREBASE = 1; // an e or medial ra with no base after it
 const TAKES_SYLLABLE = 2; // a consonant, or a base with e or medial ra typed before it
 
-// Calls onBreak at each break that rows Z1-Z8 leave in Zawgyi text.
+// Calls onBreak at each break that rows Z1-Z8 leave in Zawgyi text. Where white space separates, the break of a
+// syllable goes before the opening marks typed right before it, as in Unicode text.
 function forEachZawgyiBreak(text, bareConsonants, onBreak) {
-  const kinziRuleOn = !looksLikeSgawKaren(text);
+  const scan = { kinziRuleOn: !looksLikeSgawKaren(text), spaced: spaceSeparates(bareConsonants) };
   let pairedAt = -1;
   for (let i = 1; i < text.length; i++) {
-    if (!zawgyiHasBreakAt(text, i, kinziRuleOn)) continue;
-    const taken = zawgyiBareConsonantTakes(text, i, kinziRuleOn, bareConsonants, pairedAt);
+    if (!zawgyiHasBreakAt(text, i, scan)) continue;
+    const taken = zawgyiBareConsonantTakes(text, i, scan, bareConsonants, pairedAt);
     if (taken === TAKES_SYLLABLE) pairedAt = i;
     if (taken !== TAKES_NOTHING) continue;
-    if (onBreak(i) === false) return;
+    const at = scan.spaced ? startOfOpeningMarks(text, i) : i;
+    if (at > 0 && onBreak(at) === false) return;
   }
 }
 
@@ -262,8 +295,9 @@ export function looksLikeSgawKaren(text) {
 }
 
 // Rows Z1-Z7: whether a break is left before i (i > 0). Z1 and Z2 put one before every letter and every e or medial
-// ra, except a medial ra typed right after e: Zawgyi types the two together before their consonant.
-function zawgyiHasBreakAt(text, i, kinziRuleOn) {
+// ra, except a medial ra typed right after e: Zawgyi types the two together before their consonant. `scan` holds
+// what a scan reads once for the whole text: kinziRuleOn (row Z6's switch) and spaced (spaceSeparates).
+function zawgyiHasBreakAt(text, i, scan) {
   const code = text.charCodeAt(i);
   const before = text.charCodeAt(i - 1);
   if (isZawgyiPrebase(code)) {
@@ -271,7 +305,7 @@ function zawgyiHasBreakAt(text, i, kinziRuleOn) {
   } else if (!startsZawgyiSyllable(code)) {
     return false; // Z1
   }
-  return !zawgyiJoinsBefore(text, i, code, before, kinziRuleOn);
+  return !zawgyiJoinsBefore(text, i, code, before, scan);
 }
 
 // Row Z1: the letters 2.x puts a break before: the consonants, the independent vowels but U+1022 and U+1028, the
@@ -291,19 +325,20 @@ function isZawgyiBreakBase(code) {
     code === 0x108F || code === 0x1090;
 }
 
-// Rows Z3-Z7: whether a join reason deletes the break before the letter, e or medial ra `code` at i.
-function zawgyiJoinsBefore(text, i, code, before, kinziRuleOn) {
+// Rows Z3-Z7: whether a join reason deletes the break before the letter, e or medial ra `code` at i. Rows Z4 and Z7
+// read white space and opening marks, and join only where white space does not separate, as rows U3 and U6.
+function zawgyiJoinsBefore(text, i, code, before, scan) {
   const isBase = isZawgyiBreakBase(code);
   // Z3: an e or medial ra typed before a base belongs to it (research/zawgyi-to-unicode.md §2).
   if (isBase && isZawgyiPrebase(before)) return true;
   // Z4: a base, e or medial ra after a space or an opening mark stays with its word, as row U3.
-  if ((isBase || isZawgyiPrebase(code)) && isOpeningCharacter(before)) return true;
+  if (!scan.spaced && (isBase || isZawgyiPrebase(code)) && isOpeningCharacter(before)) return true;
   // Z5: a base with asat is the final of the syllable before it (UTN #11), also with dots below or a visarga typed
   // before the asat (ငး္, င့္; b982c98, a2d6e49).
   if (isBase && isZawgyiAsatAfterTones(text, i + 1)) return true;
   // Z6: kinzi is the final nga of the syllable before (UTN #11), but Zawgyi writes it after its consonant.
-  if (kinziRuleOn && startsKinziSyllable(text, i)) return true;
-  return startsZawgyiSyllable(code) && isWhiteSpace(before); // Z7, as row U6
+  if (scan.kinziRuleOn && startsKinziSyllable(text, i)) return true;
+  return !scan.spaced && startsZawgyiSyllable(code) && isWhiteSpace(before); // Z7, as row U6
 }
 
 // Row Z5: whether Zawgyi's asat is at j, after any dots below (U+1037, U+1094, U+1095) and visargas.
@@ -330,12 +365,12 @@ function startsKinziSyllable(text, i) {
 // so it takes nothing (ကၾက|ပါ; b982c98). A lone e or medial ra joins the consonant before it under every policy,
 // unless 2.x's pairs have just taken that consonant. A syllable joins as the policy says, read by
 // bareConsonantJoins as row U7 reads it.
-function zawgyiBareConsonantTakes(text, i, kinziRuleOn, bareConsonants, pairedAt) {
+function zawgyiBareConsonantTakes(text, i, scan, bareConsonants, pairedAt) {
   if (!isBurmeseConsonant(text.charCodeAt(i - 1)) || isZawgyiPrebase(text.charCodeAt(i - 2))) return TAKES_NOTHING;
   if (bareConsonants === BARE_CONSONANTS.PAIRS && !legacyBareConsonantPair(i, pairedAt)) return TAKES_NOTHING;
   const code = text.charCodeAt(i);
   if (isZawgyiPrebase(code)) {
-    if (!startsBaseWithPrebase(text, i, kinziRuleOn)) return TAKES_LONE_PREBASE;
+    if (!startsBaseWithPrebase(text, i, scan)) return TAKES_LONE_PREBASE;
   } else if (!isBurmeseConsonant(code)) {
     return TAKES_NOTHING;
   }
@@ -345,9 +380,9 @@ function zawgyiBareConsonantTakes(text, i, kinziRuleOn, bareConsonants, pairedAt
 // Row Z8: whether the e or medial ra at i starts a run of them that reaches a base with no break inside. A base
 // never has a break after one of them (row Z3). The run is at most four glyphs: e and a medial ra, twice, when row
 // Z6 deleted the break between the pairs.
-function startsBaseWithPrebase(text, i, kinziRuleOn) {
+function startsBaseWithPrebase(text, i, scan) {
   let j = i + 1;
-  while (isZawgyiPrebase(text.charCodeAt(j)) && !zawgyiHasBreakAt(text, j, kinziRuleOn)) j++;
+  while (isZawgyiPrebase(text.charCodeAt(j)) && !zawgyiHasBreakAt(text, j, scan)) j++;
   return isZawgyiBreakBase(text.charCodeAt(j));
 }
 

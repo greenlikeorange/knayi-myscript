@@ -110,9 +110,9 @@ What a 2.x user sees who replaces each 2.x call with its plain 3.0 call. The cou
 | `fontConvert(t, 'unicode')` → `toUnicode(t)` | 0 | 168 | 550 | 247 | 365 | 531 | 202 | 113 | 85 | 18,540 of 35,452 |
 | `fontConvert(t, 'zawgyi', 'unicode')` → `toZawgyi(t)` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1,113 of 35,452 |
 | `fontDetect(t)` → `detectEncoding(t).encoding` | 0 | 242 | 1,092 | 355 | 672 | 593 | 230 | 115 | 96 | 19,774 of 35,452 |
-| `syllBreak(t, 'unicode')` → `segmentSyllables(t)` | 1,986 | 3,834 | 14,317 | 13,298 | 473 | 1,506 | 2,024 | 617 | 578 | 10,188 of 35,452 |
-| `syllBreak(t, 'zawgyi')` → `segmentSyllables(t, { font: 'zawgyi' })` | 2,009 | 4,498 | 15,993 | 12,788 | 57 | 5,954 | 2,072 | 617 | 679 | 10,061 of 35,452 |
-| `syllBreak(t)` → `segmentSyllables(t, { font })`, `font` detected | 1,986 | 3,860 | 14,409 | 12,515 | 178 | 1,911 | 2,060 | 617 | 615 | 14,739 of 35,452 |
+| `syllBreak(t, 'unicode')` → `segmentSyllables(t)` | 2,009 | 4,510 | 16,005 | 13,872 | 473 | 7,450 | 2,200 | 648 | 680 | 10,401 of 35,452 |
+| `syllBreak(t, 'zawgyi')` → `segmentSyllables(t, { font: 'zawgyi' })` | 2,009 | 4,667 | 16,330 | 13,784 | 57 | 7,894 | 2,207 | 645 | 723 | 10,525 of 35,452 |
+| `syllBreak(t)` → `segmentSyllables(t, { font })`, `font` detected | 2,009 | 4,520 | 16,049 | 13,748 | 178 | 7,782 | 2,209 | 645 | 703 | 14,965 of 35,452 |
 | `spellingFix(t, font)` → `collapseRepeatedMarks(t, { font })` | 6 | 188 | 1,068 | 159 | 0 | 48 | 0 | 1 | 3 | 6,306 of 35,452 |
 | `truncate(t, { length: 30 })` → `truncate(t, { length: 30 })` | 1,117 | 3,102 | 10,576 | 10,419 | 2,390 | 6,876 | 1,501 | 386 | 531 | 35,452 of 35,452 |
 
@@ -122,7 +122,7 @@ Why each changes:
 - **`toUnicode` with `from`** and **`toZawgyi`** convert as 2.x did; they only stop trimming. No corpus line has white space at either end, so only generated and fuzzed input changes. `toUnicode` from Zawgyi also decides line by line whether a line has a Myanmar character, so a line with none, next to one with some, is no longer put in NFC; no corpus line is such a text.
 - **`toUnicode` with no `from`** leaves a line whose evidence ties as it is, where 2.x read it as Zawgyi and damaged it. Every changed line of the Unicode corpora is such a tie, now left intact; mC4 and WaitZar are mostly Zawgyi, and their ties include short Zawgyi text that 3.0 no longer converts. Name the source for short text, or pass `tie: 'zawgyi'` ([research/tie-policy.md](research/tie-policy.md)).
 - **`detectEncoding`** names two answers that 2.x folded into its fallback: every changed corpus line is a tie, `'unknown'` where 2.x said `'zawgyi'` (or the fallback). No corpus line has no Myanmar character, which 3.0 calls `'none'` and 2.x `'en'`.
-- **`segmentSyllables`** reads a bare consonant as a syllable of its own by default, keeps every character (2.x trimmed the text and removed U+200B and U+200C), returns the pieces instead of a joined string, does not swap an asat typed before a dot below, and detects nothing ([research/segmentation.md](research/segmentation.md)).
+- **`segmentSyllables`** reads a bare consonant as a syllable of its own by default, starts a piece at a syllable after white space, keeps every character (2.x trimmed the text and removed U+200B and U+200C), returns the pieces instead of a joined string, does not swap an asat typed before a dot below, and detects nothing ([research/segmentation.md](research/segmentation.md)).
 - **`collapseRepeatedMarks`** keeps zero-width spaces and non-joiners, and white space at the ends: every changed corpus line holds U+200B or U+200C.
 - **`truncate`** returns a text that fits as it is, where 2.x appended the omission (every WaitZar word, and 1,184 of the 3,102 changed Wikipedia lines, are at most 30 units long); cuts a text that does not fit to a prefix, where 2.x could keep a later word after a skipped one; and cuts at the syllable breaks of `policy: 'separate'`. compare counts lengths 10, 60 and 120 too: on Wikipedia, they change 2,609, 4,035 and 4,120 lines.
 
@@ -305,7 +305,7 @@ When `fontType` is omitted, detection runs first. Unknown font names throw.
 
 Zawgyi types ေ and the medial ra before the consonant. A consonant typed after them ends its syllable, as ကြ does in Unicode.
 
-**3.0: `segmentSyllables(text, { policy, font })`** returns the syllables as an array that joins back to the text, and `syllableBoundaries` where each starts. It reads a bare consonant as a syllable of its own unless `policy: 'pairs'` asks for 2.x's pairs; it keeps white space and zero-width characters; and it does not detect: `font` is `'unicode'` unless you say `'zawgyi'`.
+**3.0: `segmentSyllables(text, { policy, font })`** returns the syllables as an array that joins back to the text, and `syllableBoundaries` where each starts. It reads a bare consonant as a syllable of its own unless `policy: 'pairs'` asks for 2.x's pairs; a syllable after white space starts a piece, where 2.x joined it to the syllable before (`policy: 'pairs'` still does); it keeps white space and zero-width characters; and it does not detect: `font` is `'unicode'` unless you say `'zawgyi'`.
 
 ```javascript
 knayi.segmentSyllables('မင်္ဂလာပါ') // ['မင်္ဂ', 'လာ', 'ပါ']
@@ -314,7 +314,9 @@ knayi.segmentSyllables('ကက') // ['က', 'က']
 knayi.segmentSyllables('ကက', { policy: 'pairs' }) // ['ကက']
 knayi.segmentSyllables('ၾကပါ') // ['ၾ', 'က', 'ပါ']  (Zawgyi read as Unicode)
 knayi.segmentSyllables('ၾကပါ', { font: 'zawgyi' }) // ['ၾက', 'ပါ']
-knayi.segmentSyllables(' မြန်\u200bမာ ') // [' မြန်\u200b', 'မာ ']
+knayi.segmentSyllables(' မြန်\u200bမာ ') // [' ', 'မြန်\u200b', 'မာ ']
+knayi.segmentSyllables('ကောင်း မောင်') // ['ကောင်း ', 'မောင်']
+knayi.segmentSyllables('ကောင်း မောင်', { policy: 'pairs' }) // ['ကောင်း မောင်']
 ```
 
 ### spellingFix(content, fontType?)

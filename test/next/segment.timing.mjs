@@ -26,6 +26,9 @@ const FORMS = [
   ['breakString unicode', (x) => breakString(x, 'unicode', '|')],
   ['breakString zawgyi', (x) => breakString(x, 'zawgyi', '|')],
   ['segmentSyllables unicode', (x) => segmentSyllables(x, 'unicode')],
+  // SEPARATE reads back over the opening marks before a syllable (startOfOpeningMarks), each run once.
+  ['segmentSyllables unicode separate', (x) => segmentSyllables(x, 'unicode', 'separate')],
+  ['segmentSyllables zawgyi separate', (x) => segmentSyllables(x, 'zawgyi', 'separate')],
   ['collapseRepeatedMarks unicode', (x) => collapseRepeatedMarks(x, 'unicode')],
   ['collapseRepeatedMarks zawgyi', (x) => collapseRepeatedMarks(x, 'zawgyi')]
 ];

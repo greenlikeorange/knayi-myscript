@@ -40,6 +40,19 @@ describe('segmentSyllables and syllableBoundaries (DESIGN.md §11.6)', () => {
     assert.deepEqual(syllableBoundaries(''), []);
   });
 
+  it('end a piece at white space, and start one at the opening marks before a syllable, unless policy is \'pairs\'', () => {
+    const GOOD = '\u1000\u1031\u102C\u1004\u103A\u1038'; // ကောင်း
+    const MAUNG = '\u1019\u1031\u102C\u1004\u103A'; // မောင်
+    assert.deepEqual(segmentSyllables(GOOD + ' ' + MAUNG), [GOOD + ' ', MAUNG]);
+    assert.deepEqual(segmentSyllables(GOOD + '\n' + MAUNG), [GOOD + '\n', MAUNG]);
+    assert.deepEqual(segmentSyllables(GOOD + ' (' + MAUNG + ')'), [GOOD + ' ', '(' + MAUNG + ')']);
+    assert.deepEqual(segmentSyllables(GOOD + '(' + MAUNG + ')'), [GOOD, '(' + MAUNG + ')']);
+    assert.deepEqual(segmentSyllables(GOOD + ' ' + MAUNG, { policy: 'chains' }), [GOOD + ' ', MAUNG]);
+    assert.deepEqual(segmentSyllables(GOOD + ' ' + MAUNG, { policy: 'pairs' }), [GOOD + ' ' + MAUNG]);
+    assert.deepEqual(segmentSyllables(' ' + MAUNG + ' '), [' ', MAUNG + ' ']);
+    assert.deepEqual(syllableBoundaries(GOOD + ' ' + MAUNG), [GOOD.length + 1]);
+  });
+
   it('are lossless under every policy and font: the pieces join to the text, none empty', () => {
     const text = fc.oneof(arb.unicodeText(16), arb.zawgyiText(16), arb.burmeseText, arb.codeUnits);
     fuzz.check(fc.property(text, fc.constantFrom(...POLICIES), fc.constantFrom(...FONTS), (x, policy, font) => {
@@ -78,15 +91,16 @@ describe('segmentSyllables and syllableBoundaries (DESIGN.md §11.6)', () => {
 
 describe('the counts decision 34 chose the default policy from (DESIGN.md §11.6)', () => {
   // Per corpus, its distinct lines with a Myanmar-block character: the lines whose pieces under 'chains' and under
-  // 'separate' differ from 'pairs' (2.x), the pieces of each policy, and the pieces of 'pairs' that hold more than
-  // one syllable of 'separate'. mC4 is read as Zawgyi.
+  // 'separate' differ from 'pairs' (2.x), the pieces of each policy, and the pieces of 'pairs' and of 'chains' that
+  // hold more than one syllable of 'separate'. mC4 is read as Zawgyi. 'pairs' joins syllables across white space,
+  // as 2.x did; the other two do not.
   const RECORDED = {
-    flores: [2009, 377, 1985, 65805, 65368, 77128, 10597],
-    wikipedia: [4812, 1013, 3801, 120363, 118517, 142962, 20393],
-    okell: [16924, 3885, 14156, 588013, 581621, 700205, 104143],
-    mc4: [14304, 4963, 12779, 618033, 602322, 750691, 129206],
-    shn: [9923, 94, 1426, 186348, 186219, 188791, 2401],
-    mnw: [2270, 834, 2024, 76094, 74334, 95757, 17918]
+    flores: [2009, 2009, 2009, 65805, 82744, 94504, 21684, 11017],
+    wikipedia: [4812, 4309, 4505, 120363, 156268, 180713, 44148, 21267],
+    okell: [16924, 15452, 15952, 588013, 807703, 926287, 248545, 109825],
+    mc4: [14304, 13257, 13784, 618033, 774647, 923016, 230190, 136018],
+    shn: [9923, 7332, 7444, 186348, 240191, 242763, 46648, 2421],
+    mnw: [2270, 2110, 2200, 76094, 95473, 116896, 30472, 18602]
   };
 
   it('recounts them on the cached corpora', async (t) => {
@@ -96,16 +110,18 @@ describe('the counts decision 34 chose the default policy from (DESIGN.md §11.6
     for (const id of Object.keys(RECORDED)) {
       const font = id === 'mc4' ? 'zawgyi' : 'unicode';
       const lines = corpora.sets[id].filter((line) => /[\u1000-\u109F]/.test(line));
-      const row = [lines.length, 0, 0, 0, 0, 0, 0];
+      const row = [lines.length, 0, 0, 0, 0, 0, 0, 0];
       for (const line of lines) {
         const [pairs, chains, separate] = ['pairs', 'chains', 'separate'].map((policy) =>
           segmentSyllables(line, { policy, font }));
+        const syllables = syllableBoundaries(line, { policy: 'separate', font });
         if (chains.join('|') !== pairs.join('|')) row[1]++;
         if (separate.join('|') !== pairs.join('|')) row[2]++;
         row[3] += pairs.length;
         row[4] += chains.length;
         row[5] += separate.length;
-        row[6] += piecesHoldingSeveral(pairs, syllableBoundaries(line, { policy: 'separate', font }));
+        row[6] += piecesHoldingSeveral(pairs, syllables);
+        row[7] += piecesHoldingSeveral(chains, syllables);
       }
       counts[id] = row;
     }

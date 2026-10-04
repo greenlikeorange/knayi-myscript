@@ -162,8 +162,43 @@ describe('forEachBreak', () => {
     assert.deepEqual(breaksOf(KA + '\u1031\u103B' + KHA, 'zawgyi'), []);
     assert.deepEqual(breaksOf(KA + '\u1031\u103B' + KHA, 'zawgyi', BARE_CONSONANTS.SEPARATE), [1]);
     assert.deepEqual(breaksOf(KA + '\u1031\u106B', 'zawgyi', BARE_CONSONANTS.SEPARATE), [1]);
-    const loneE = KA + '\u1031 ' + KHA; // က, then an e with no base after it
-    for (const policy of Object.values(BARE_CONSONANTS)) assert.deepEqual(breaksOf(loneE, 'zawgyi', policy), [], policy);
+    const loneE = KA + '\u1031 ' + KHA; // က, then an e with no base after it; then a space, which joins only
+    assert.deepEqual(breaksOf(loneE, 'zawgyi', BARE_CONSONANTS.PAIRS), []); // under 2.x's pairs (row Z7)
+    assert.deepEqual(breaksOf(loneE, 'zawgyi', BARE_CONSONANTS.CHAINS), [3]);
+    assert.deepEqual(breaksOf(loneE, 'zawgyi', BARE_CONSONANTS.SEPARATE), [3]);
+  });
+
+  it('white space and opening marks join syllables under PAIRS only, as 2.x; under the others they separate them', () => {
+    // ကောင်း and မောင်, in both fonts (Zawgyi ေကာင္း and ေမာင္).
+    const texts = {
+      unicode: ['\u1000\u1031\u102C\u1004\u103A\u1038', '\u1019\u1031\u102C\u1004\u103A'],
+      zawgyi: ['\u1031\u1000\u102C\u1004\u1039\u1038', '\u1031\u1019\u102C\u1004\u1039']
+    };
+    for (const font of FONTS) {
+      const [first, second] = texts[font];
+      const at = first.length;
+      // Under PAIRS, a Zawgyi e after white space that row Z4 does not list, such as U+3000, keeps its break (2.x).
+      for (const between of [' ', '\n', ' \u00A0\t', '\u3000', '\uFEFF']) {
+        const text = first + between + second;
+        if (font === 'unicode' || /^[\t-\r \u00A0]+$/.test(between)) {
+          assert.deepEqual(breaksOf(text, font, BARE_CONSONANTS.PAIRS), [], font + ' pairs ' + units(between));
+        }
+        for (const policy of [BARE_CONSONANTS.CHAINS, BARE_CONSONANTS.SEPARATE]) {
+          assert.deepEqual(breaksOf(text, font, policy), [at + between.length], font + ' ' + policy + ' ' + units(between));
+        }
+      }
+      // An opening mark goes with the syllable it opens, with or without white space before it.
+      for (const between of [' (', '(', ' \u201C', ' -(', '[', '\u2014']) {
+        const text = first + between + second + ')';
+        assert.deepEqual(breaksOf(text, font, BARE_CONSONANTS.PAIRS), [], font + ' pairs ' + units(between));
+        const opening = at + between.length - between.trimStart().length;
+        assert.deepEqual(breaksOf(text, font, BARE_CONSONANTS.SEPARATE), [opening], font + ' ' + units(between));
+      }
+      // No break at 0: white space before the first syllable is a piece of its own, and opening marks that start
+      // the text stay with the syllable after them.
+      assert.deepEqual(breaksOf(' ' + second, font, BARE_CONSONANTS.SEPARATE), [1], font);
+      assert.deepEqual(breaksOf('(' + second, font, BARE_CONSONANTS.SEPARATE), [], font);
+    }
   });
 });
 describe('the font and the policy are checked, the same way for both fonts', () => {
