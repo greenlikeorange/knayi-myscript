@@ -30,12 +30,26 @@ function install(dir) {
   else execFileSync('npm', args, options);
 }
 
+// What fontDetect(text, fallback) returns for a detectEncoding result: the encoding it found, or else the fallback,
+// and with no fallback 'zawgyi' for a tie and 'en' for text with no Myanmar letters.
+const fontDetectAnswer = (found, fallback) => (found.encoding === 'unicode' || found.encoding === 'zawgyi'
+  ? found.encoding : fallback || (found.encoding === 'none' ? 'en' : 'zawgyi'));
+
+// Every engine's detect(text) detects once and returns (fallback) => the engine's answer with that fallback, so a
+// table that asks with and without a fallback detects each text once.
 function knayiEngine(lib, name) {
   lib.setGlobalOptions({ silent_mode: true });
+  // A copy with detectEncoding detects once; an older release, such as the baseline, runs fontDetect per fallback.
+  const detect = typeof lib.detectEncoding === 'function'
+    ? (text) => {
+      const found = lib.detectEncoding(text);
+      return (fallback) => fontDetectAnswer(found, fallback);
+    }
+    : (text) => (fallback) => lib.fontDetect(text, fallback);
   return {
     name,
     lib,
-    detect: (text, fallback) => lib.fontDetect(text, fallback),
+    detect,
     toUnicode: (text) => lib.fontConvert(text, 'unicode', 'zawgyi')
   };
 }
@@ -54,9 +68,9 @@ export function loadEngines() {
   const detector = new tools.ZawgyiDetector();
   const converter = new tools.ZawgyiConverter();
   // Same thresholds and fallback as knayi's myanmartools adapter.
-  const toolsDetect = (text, fallback = 'zawgyi') => {
+  const toolsDetect = (text) => {
     const p = detector.getZawgyiProbability(text);
-    return p < 0.05 ? 'unicode' : p > 0.95 ? 'zawgyi' : fallback;
+    return (fallback = 'zawgyi') => (p < 0.05 ? 'unicode' : p > 0.95 ? 'zawgyi' : fallback);
   };
 
   return {

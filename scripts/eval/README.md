@@ -94,6 +94,7 @@ Then review the change and update the sha256 in `HF_SAMPLES`. Caches made before
 - **Detection.** The share of real Zawgyi recognised "on evidence", with fallback `'unicode'`, so a word only counts when the detector finds Zawgyi evidence.
 - **Unicode flagged as Zawgyi.** Two numbers per engine. "default" is a plain `fontDetect(text)`, where a tie between the scores returns `'zawgyi'`. "evidence" passes `'unicode'` as the fallback. Lower is better, but a detector can lower it just by calling Zawgyi less often, so the page doesn't bold a winner; read it next to the detection table.
 - **myanmar-tools** is scored with the thresholds of knayi's adapter: Zawgyi above p = 0.95, Unicode below 0.05, and the fallback in between.
+- **One detection per text.** Each engine detects a text once and reads the result with each fallback a table asks for (`detect` in `engines.mjs`): knayi with `detectEncoding`, read as `fontDetect` reads it, and myanmar-tools with one probability. A knayi release without `detectEncoding`, such as the baseline, calls `fontDetect` once per fallback.
 - **Web text.** How much each engine calls Zawgyi, and how often knayi agrees with myanmar-tools where myanmar-tools is confident.
 
 Rows whose labels or expected outputs came from Google's tools favour myanmar-tools. The tables say which ones.
