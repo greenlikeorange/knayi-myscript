@@ -1,7 +1,7 @@
 // segmentSyllables, syllableBoundaries, truncate and collapseRepeatedMarks of the 3.0 API (docs/next/DESIGN.md
 // §11.6, §11.7; decision 34).
 //
-// - Lossless: the syllables join back to the text under every policy and font, ZWNJ and all.
+// - Lossless: the syllables join back to the text under every policy and encoding, ZWNJ and all.
 // - 'pairs' is 2.x syllBreak's reading; 'separate', the default, gives the syllables of UTN #11.
 // - The counts decision 34 chose the default from, recounted on the cached corpora and recorded.
 // - truncate always returns a prefix of the text, then the omission, within `length`.
@@ -32,34 +32,34 @@ function cleaned(text) {
 describe('segmentSyllables and syllableBoundaries (DESIGN.md §11.6)', () => {
   it('read a bare consonant as a syllable of its own by default; the other policies on request', () => {
     assert.deepEqual(segmentSyllables(FIRST), ['\u1015', '\u1011', '\u1019', '\u1006\u102F\u1036\u1038']);
-    assert.deepEqual(segmentSyllables(FIRST, { policy: 'separate' }), segmentSyllables(FIRST));
-    assert.deepEqual(segmentSyllables(FIRST, { policy: 'pairs' }), ['\u1015\u1011', '\u1019\u1006\u102F\u1036\u1038']);
-    assert.deepEqual(segmentSyllables(FIRST, { policy: 'chains' }), [FIRST]);
+    assert.deepEqual(segmentSyllables(FIRST, { bareConsonants: 'separate' }), segmentSyllables(FIRST));
+    assert.deepEqual(segmentSyllables(FIRST, { bareConsonants: 'pairs' }), ['\u1015\u1011', '\u1019\u1006\u102F\u1036\u1038']);
+    assert.deepEqual(segmentSyllables(FIRST, { bareConsonants: 'chains' }), [FIRST]);
     assert.deepEqual(syllableBoundaries(FIRST), [1, 2, 3]);
     assert.deepEqual(segmentSyllables(''), []);
     assert.deepEqual(syllableBoundaries(''), []);
   });
 
-  it('end a piece at white space, and start one at the opening marks before a syllable, unless policy is \'pairs\'', () => {
+  it('end a piece at white space, and start one at the opening marks before a syllable, unless bareConsonants is \'pairs\'', () => {
     const GOOD = '\u1000\u1031\u102C\u1004\u103A\u1038'; // ကောင်း
     const MAUNG = '\u1019\u1031\u102C\u1004\u103A'; // မောင်
     assert.deepEqual(segmentSyllables(GOOD + ' ' + MAUNG), [GOOD + ' ', MAUNG]);
     assert.deepEqual(segmentSyllables(GOOD + '\n' + MAUNG), [GOOD + '\n', MAUNG]);
     assert.deepEqual(segmentSyllables(GOOD + ' (' + MAUNG + ')'), [GOOD + ' ', '(' + MAUNG + ')']);
     assert.deepEqual(segmentSyllables(GOOD + '(' + MAUNG + ')'), [GOOD, '(' + MAUNG + ')']);
-    assert.deepEqual(segmentSyllables(GOOD + ' ' + MAUNG, { policy: 'chains' }), [GOOD + ' ', MAUNG]);
-    assert.deepEqual(segmentSyllables(GOOD + ' ' + MAUNG, { policy: 'pairs' }), [GOOD + ' ' + MAUNG]);
+    assert.deepEqual(segmentSyllables(GOOD + ' ' + MAUNG, { bareConsonants: 'chains' }), [GOOD + ' ', MAUNG]);
+    assert.deepEqual(segmentSyllables(GOOD + ' ' + MAUNG, { bareConsonants: 'pairs' }), [GOOD + ' ' + MAUNG]);
     assert.deepEqual(segmentSyllables(' ' + MAUNG + ' '), [' ', MAUNG + ' ']);
     assert.deepEqual(syllableBoundaries(GOOD + ' ' + MAUNG), [GOOD.length + 1]);
   });
 
-  it('are lossless under every policy and font: the pieces join to the text, none empty', () => {
+  it('are lossless under every policy and encoding: the pieces join to the text, none empty', () => {
     const text = fc.oneof(arb.unicodeText(16), arb.zawgyiText(16), arb.burmeseText, arb.codeUnits);
-    fuzz.check(fc.property(text, fc.constantFrom(...POLICIES), fc.constantFrom(...FONTS), (x, policy, font) => {
-      const pieces = segmentSyllables(x, { policy, font });
+    fuzz.check(fc.property(text, fc.constantFrom(...POLICIES), fc.constantFrom(...FONTS), (x, bareConsonants, from) => {
+      const pieces = segmentSyllables(x, { bareConsonants, from });
       assert.equal(pieces.join(''), x, units(x));
       assert.ok(pieces.every((piece) => piece.length > 0));
-      const boundaries = syllableBoundaries(x, { policy, font });
+      const boundaries = syllableBoundaries(x, { bareConsonants, from });
       let at = 0;
       assert.deepEqual(boundaries, pieces.slice(0, -1).map((piece) => (at += piece.length)));
     }), 30000, [['\u1000\u200C\u102C\u200B\u1001'], [FIRST]], 600000);
@@ -70,8 +70,8 @@ describe('segmentSyllables and syllableBoundaries (DESIGN.md §11.6)', () => {
       for (const [text, font] of [[cleaned(unicode), 'unicode'], [cleaned(zawgyi), 'zawgyi']]) {
         // 2.x swapped asat and dot below before breaking Unicode text (row U1); the lossless pieces keep them.
         if (!/[\u1000-\u109F]/.test(text) || (font === 'unicode' && text.indexOf('\u103A\u1037') !== -1)) continue;
-        assert.equal(segmentSyllables(text, { policy: 'pairs', font }).join('|'), syllBreak(text, font, '|'),
-          font + ': ' + units(text));
+        assert.equal(segmentSyllables(text, { bareConsonants: 'pairs', from: font }).join('|'),
+          syllBreak(text, font, '|'), font + ': ' + units(text));
       }
     }), 30000, [[FIRST, '\u1031\u1000']], 600000);
   });
@@ -79,9 +79,9 @@ describe('segmentSyllables and syllableBoundaries (DESIGN.md §11.6)', () => {
   it('throw coded errors for bad options, and are map-safe', () => {
     const rangeError = { name: 'RangeError', code: 'ERR_KNAYI_INVALID_ARG_VALUE' };
     const typeError = { name: 'TypeError', code: 'ERR_KNAYI_INVALID_ARG_TYPE' };
-    assert.throws(() => segmentSyllables(FIRST, { policy: 'words' }), rangeError);
-    assert.throws(() => segmentSyllables(FIRST, { font: 'win' }), rangeError);
-    assert.throws(() => syllableBoundaries(FIRST, { policy: 1 }), typeError);
+    assert.throws(() => segmentSyllables(FIRST, { bareConsonants: 'words' }), rangeError);
+    assert.throws(() => segmentSyllables(FIRST, { from: 'win' }), rangeError);
+    assert.throws(() => syllableBoundaries(FIRST, { bareConsonants: 1 }), typeError);
     assert.throws(() => segmentSyllables(null), typeError);
     const lines = [FIRST, '\u1000\u102C\u1001'];
     assert.deepEqual(lines.map(segmentSyllables), lines.map((line) => segmentSyllables(line)));
@@ -112,9 +112,9 @@ describe('the counts decision 34 chose the default policy from (DESIGN.md §11.6
       const lines = corpora.sets[id].filter((line) => /[\u1000-\u109F]/.test(line));
       const row = [lines.length, 0, 0, 0, 0, 0, 0, 0];
       for (const line of lines) {
-        const [pairs, chains, separate] = ['pairs', 'chains', 'separate'].map((policy) =>
-          segmentSyllables(line, { policy, font }));
-        const syllables = syllableBoundaries(line, { policy: 'separate', font });
+        const [pairs, chains, separate] = ['pairs', 'chains', 'separate'].map((bareConsonants) =>
+          segmentSyllables(line, { bareConsonants, from: font }));
+        const syllables = syllableBoundaries(line, { bareConsonants: 'separate', from: font });
         if (chains.join('|') !== pairs.join('|')) row[1]++;
         if (separate.join('|') !== pairs.join('|')) row[2]++;
         row[3] += pairs.length;
@@ -156,7 +156,7 @@ describe('truncate (DESIGN.md §11.7)', () => {
   it('returns the text when it fits, else a prefix cut at a syllable, then the omission', () => {
     assert.equal(truncate('short'), 'short');
     assert.equal(truncate(FIRST + FIRST, { length: 6, omission: '.' }), '\u1015\u1011\u1019.');
-    assert.equal(truncate(FIRST + FIRST, { length: 6, omission: '.', policy: 'pairs' }), '\u1015\u1011.');
+    assert.equal(truncate(FIRST + FIRST, { length: 6, omission: '.', bareConsonants: 'pairs' }), '\u1015\u1011.');
     const cut = truncate(PANGRAM, { length: 30 });
     assert.ok(cut.length <= 30 && cut.endsWith('...'));
     assert.ok(PANGRAM.startsWith(cut.slice(0, -3)), 'a prefix');
@@ -179,7 +179,7 @@ describe('truncate (DESIGN.md §11.7)', () => {
   it('always gives a prefix, then the omission, within the length', () => {
     const text = fc.oneof(arb.unicodeText(24), arb.burmeseText, arb.codeUnits, fc.string());
     const options = fc.record({ length: fc.integer({ min: 3, max: 40 }), omission: fc.constantFrom('...', '', '\u2026'),
-      policy: fc.constantFrom(...POLICIES) });
+      bareConsonants: fc.constantFrom(...POLICIES) });
     fuzz.check(fc.property(text, options, (x, settings) => {
       const out = truncate(x, settings);
       assert.ok(out.length <= settings.length, units(x));
@@ -187,7 +187,7 @@ describe('truncate (DESIGN.md §11.7)', () => {
       assert.ok(out.endsWith(settings.omission));
       const kept = out.slice(0, out.length - settings.omission.length);
       assert.ok(x.startsWith(kept), units(x) + ' gives ' + units(out));
-    }), 30000, [[PANGRAM, { length: 30, omission: '...', policy: 'separate' }]], 600000);
+    }), 30000, [[PANGRAM, { length: 30, omission: '...', bareConsonants: 'separate' }]], 600000);
   });
 
   it('throws coded errors for bad options', () => {
@@ -207,22 +207,22 @@ describe('truncate (DESIGN.md §11.7)', () => {
 describe('collapseRepeatedMarks (DESIGN.md §11.6)', () => {
   it('collapses a run of one mark, and keeps white space and zero-width characters', () => {
     assert.equal(collapseRepeatedMarks(' \u1000\u102C\u102C\u102C\u200B '), ' \u1000\u102C\u200B ');
-    assert.equal(collapseRepeatedMarks('\u1000\u102C\u102C', { font: 'zawgyi' }), '\u1000\u102C');
+    assert.equal(collapseRepeatedMarks('\u1000\u102C\u102C', { from: 'zawgyi' }), '\u1000\u102C');
     assert.equal(collapseRepeatedMarks('\u1000\u1060\u1060'), '\u1000\u1060\u1060', 'not a Unicode mark');
-    assert.equal(collapseRepeatedMarks('\u1000\u1060\u1060', { font: 'zawgyi' }), '\u1000\u1060');
+    assert.equal(collapseRepeatedMarks('\u1000\u1060\u1060', { from: 'zawgyi' }), '\u1000\u1060');
   });
 
   it('is 2.x spellingFix on the text 2.x cleaned', () => {
     fuzz.check(fc.property(arb.unicodeText(16), arb.zawgyiText(16), (unicode, zawgyi) => {
       for (const [text, font] of [[cleaned(unicode), 'unicode'], [cleaned(zawgyi), 'zawgyi']]) {
         if (!/[\u1000-\u109F]/.test(text)) continue;
-        assert.equal(collapseRepeatedMarks(text, { font }), spellingFix(text, font), font + ': ' + units(text));
+        assert.equal(collapseRepeatedMarks(text, { from: font }), spellingFix(text, font), font + ': ' + units(text));
       }
     }), 30000, [], 600000);
   });
 
   it('throws coded errors for bad options', () => {
-    assert.throws(() => collapseRepeatedMarks('a', { font: 'win' }), { code: 'ERR_KNAYI_INVALID_ARG_VALUE' });
+    assert.throws(() => collapseRepeatedMarks('a', { from: 'win' }), { code: 'ERR_KNAYI_INVALID_ARG_VALUE' });
     assert.throws(() => collapseRepeatedMarks({}), { code: 'ERR_KNAYI_INVALID_ARG_TYPE' });
   });
 });

@@ -108,7 +108,7 @@ function apiCalls() {
       ['toUnicode', t, { tie: 'zawgyi' }],
       ['toZawgyi', t],
       ['segmentSyllables', t],
-      ['segmentSyllables', t, { font: 'zawgyi', policy: 'pairs' }],
+      ['segmentSyllables', t, { from: 'zawgyi', bareConsonants: 'pairs' }],
       ['syllableBoundaries', t],
       ['truncate', t, { length: 2 }],
       ['collapseRepeatedMarks', t]

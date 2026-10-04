@@ -19,13 +19,13 @@ import { requireString, readOptions, readChoice, readCount, readText, where } fr
 /** @typedef {import('../index.js').SyllableOptions} SyllableOptions */
 /** @typedef {import('../index.js').TruncateOptions} TruncateOptions */
 /** @typedef {import('../index.js').CollapseOptions} CollapseOptions */
-/** @typedef {import('../index.js').BreakFont} BreakFont */
+/** @typedef {import('../index.js').SegmentEncoding} SegmentEncoding */
 /** @typedef {import('../index.js').BareConsonantPolicy} BareConsonantPolicy */
-/** @typedef {{ policy: BareConsonantPolicy, font: BreakFont }} BreakSettings */
+/** @typedef {{ bareConsonants: BareConsonantPolicy, from: SegmentEncoding }} BreakSettings */
 
-// The fonts the break scanners read, and the bare-consonant policies (rules/segment.js BARE_CONSONANTS).
-/** @type {readonly BreakFont[]} */
-const FONTS = /* @__PURE__ */ deepFreeze(['unicode', 'zawgyi']);
+// The encodings the break scanners read, and the bare-consonant policies (rules/segment.js BARE_CONSONANTS).
+/** @type {readonly SegmentEncoding[]} */
+const ENCODINGS = /* @__PURE__ */ deepFreeze(['unicode', 'zawgyi']);
 /** @type {readonly BareConsonantPolicy[]} */
 const POLICIES = /* @__PURE__ */ deepFreeze(['separate', 'chains', 'pairs']);
 
@@ -38,8 +38,8 @@ const DEFAULT_POLICY = 'separate'; // BARE_CONSONANTS.SEPARATE
 
 // segmentSyllables(text, options?): the syllables, in order; [] for ''. They join back to the text: every unit
 // stays, in its place, with zero-width characters and spaces at the end of the syllable before them.
-//   policy  how a bare consonant is read: 'separate' (the default), 'chains' or 'pairs'.
-//   font    'unicode' (the default) or 'zawgyi', the encoding whose syllables are read.
+//   bareConsonants  how a bare consonant is read: 'separate' (the default), 'chains' or 'pairs'.
+//   from            the text's encoding, 'unicode' (the default) or 'zawgyi', as toUnicode names it.
 /**
  * @param {string} text
  * @param {SyllableOptions | number | null} [options]
@@ -48,7 +48,7 @@ const DEFAULT_POLICY = 'separate'; // BARE_CONSONANTS.SEPARATE
 export function segmentSyllables(text, options) {
   requireString('segmentSyllables', 'text', text);
   const settings = readBreakSettings('segmentSyllables', options);
-  return coreSegments(text, settings.font, settings.policy);
+  return coreSegments(text, settings.from, settings.bareConsonants);
 }
 
 // syllableBoundaries(text, options?): where each syllable after the first starts, in increasing order; [] for a
@@ -62,12 +62,12 @@ export function segmentSyllables(text, options) {
 export function syllableBoundaries(text, options) {
   requireString('syllableBoundaries', 'text', text);
   const settings = readBreakSettings('syllableBoundaries', options);
-  return coreBoundaries(text, settings.font, settings.policy);
+  return coreBoundaries(text, settings.from, settings.bareConsonants);
 }
 
 // collapseRepeatedMarks(text, options?): each run of one mark typed several times in a row, as one (2.x spellingFix,
-// with neither its trim nor its removal of zero-width characters). options.font: 'unicode' (the default) or
-// 'zawgyi', whose marks are collapsed.
+// with neither its trim nor its removal of zero-width characters). options.from: the text's encoding, 'unicode'
+// (the default) or 'zawgyi', whose marks are collapsed.
 /**
  * @param {string} text
  * @param {CollapseOptions | number | null} [options]
@@ -75,9 +75,9 @@ export function syllableBoundaries(text, options) {
  */
 export function collapseRepeatedMarks(text, options) {
   requireString('collapseRepeatedMarks', 'text', text);
-  const font = readChoice('collapseRepeatedMarks', readOptions('collapseRepeatedMarks', options), 'font', FONTS,
+  const from = readChoice('collapseRepeatedMarks', readOptions('collapseRepeatedMarks', options), 'from', ENCODINGS,
     'unicode');
-  return coreCollapse(text, font);
+  return coreCollapse(text, from);
 }
 
 // truncate(text, options?): the text, when it is at most `length` units long; else its longest prefix that ends at
@@ -85,9 +85,10 @@ export function collapseRepeatedMarks(text, options) {
 // always starts with a prefix of the text, and is at most `length` units long.
 //   length    the most units of the result, the omission included; undefined or null for the default, 30.
 //   omission  what marks the cut; undefined or null for the default, '...'. It must fit in `length`.
-//   policy, font  as for segmentSyllables.
-// A cut falls at a syllable break of the font's scanner, or between two units outside the Myanmar blocks, but never
-// before a combining mark, a joiner or variation selector, or inside a surrogate pair. The scan stops at the cut.
+//   bareConsonants, from  as for segmentSyllables.
+// A cut falls at a syllable break of the encoding's scanner, or between two units outside the Myanmar blocks, but
+// never before a combining mark, a joiner or variation selector, or inside a surrogate pair. The scan stops at the
+// cut.
 /**
  * @param {string} text
  * @param {TruncateOptions | number | null} [options]
@@ -108,7 +109,7 @@ export function truncate(text, options) {
   return withoutTrailingSpace(text.slice(0, cut)) + omission;
 }
 
-// The policy and font of a call's options.
+// The bare-consonant policy and the encoding of a call's options.
 /**
  * @param {string} api
  * @param {unknown} options
@@ -117,8 +118,8 @@ export function truncate(text, options) {
 function readBreakSettings(api, options) {
   const settings = readOptions(api, options);
   return {
-    policy: readChoice(api, settings, 'policy', POLICIES, DEFAULT_POLICY),
-    font: readChoice(api, settings, 'font', FONTS, 'unicode')
+    bareConsonants: readChoice(api, settings, 'bareConsonants', POLICIES, DEFAULT_POLICY),
+    from: readChoice(api, settings, 'from', ENCODINGS, 'unicode')
   };
 }
 
@@ -133,11 +134,11 @@ function readBreakSettings(api, options) {
  */
 function lastCutAtOrBefore(text, budget, breaks) {
   const isBreak = new Uint8Array(budget + 1);
-  forEachBreak(prepareBreakText(text, breaks.font), breaks.font, (/** @type {number} */ index) => {
+  forEachBreak(prepareBreakText(text, breaks.from), breaks.from, (/** @type {number} */ index) => {
     if (index > budget) return false;
     isBreak[index] = 1;
     return true;
-  }, breaks.policy);
+  }, breaks.bareConsonants);
   for (let cut = budget; cut > 0; cut--) {
     if (isBreak[cut] === 1 || isCutOutsideMyanmar(text, cut)) return cut;
   }

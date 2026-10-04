@@ -24,7 +24,7 @@ const OPTION_TYPES = Object.freeze({
   to: { type: 'string' },
   tie: { type: 'string' },
   detector: { type: 'string' },
-  policy: { type: 'string' },
+  'bare-consonants': { type: 'string' },
   separator: { type: 'string' },
   jsonl: { type: 'boolean' },
   field: { type: 'string' },
@@ -39,14 +39,14 @@ const OPTION_TYPES = Object.freeze({
 const DETECTORS = Object.freeze(['rules', 'myanmar-tools']);
 
 // The options only some commands take: for each, the commands that take it, with the values each one accepts. The
-// values are the 3.0 API's: to-unicode's from and tie (toUnicode), segment's from (segmentSyllables' font) and
-// policy. to-zawgyi reads Unicode, or Zawgyi, which it copies as it is.
+// values are the 3.0 API's: to-unicode's from and tie (toUnicode), segment's from and bare-consonants
+// (segmentSyllables' from and bareConsonants). to-zawgyi reads Unicode, or Zawgyi, which it copies as it is.
 const COMMAND_CHOICES = Object.freeze({
   from: { 'to-unicode': ['unicode', 'zawgyi', 'win'], 'to-zawgyi': ['unicode', 'zawgyi'],
     segment: ['unicode', 'zawgyi'] },
   tie: { 'to-unicode': ['unicode', 'zawgyi'] },
   detector: { 'to-unicode': DETECTORS, detect: DETECTORS, check: DETECTORS },
-  policy: { segment: ['separate', 'chains', 'pairs'] },
+  'bare-consonants': { segment: ['separate', 'chains', 'pairs'] },
   separator: { segment: null } // any text
 });
 
@@ -125,14 +125,14 @@ function checkChoice(option, value, choices, command) {
   throw usageError(option + ' must be ' + listOf(choices, true) + ' for ' + command + ', not ' + JSON.stringify(value));
 }
 
-// The settings of a run. An option not given is null where the 3.0 API has the default (from, tie, policy), and
-// knayi's own default otherwise.
+// The settings of a run. An option not given is null where the 3.0 API has the default (from, tie,
+// bareConsonants), and knayi's own default otherwise.
 function readSettings(values) {
   return Object.freeze({
     from: orNull(values.from),
     tie: orNull(values.tie),
     detector: values.detector === undefined ? 'rules' : values.detector,
-    policy: orNull(values.policy),
+    bareConsonants: orNull(values['bare-consonants']),
     separator: values.separator === undefined ? '|' : values.separator,
     jsonl: values.jsonl === true,
     field: values.field === undefined ? 'text' : values.field,

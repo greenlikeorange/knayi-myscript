@@ -31,16 +31,16 @@ function fontDetect(text) {
 // syllBreak(text, font): the syllables of segmentSyllables joined by U+200B, 2.x's separator. With no font, 2.x
 // detected one; the 3.0 call names it, from detectEncoding, a tie read as Unicode as toUnicode reads it.
 function syllBreak(text, font) {
-  return api.segmentSyllables(text, { font: font || fontOf(text) }).join(ZERO_WIDTH_SPACE);
+  return api.segmentSyllables(text, { from: font || fontOf(text) }).join(ZERO_WIDTH_SPACE);
 }
 
 function fontOf(text) {
   return api.detectEncoding(text).encoding === 'zawgyi' ? 'zawgyi' : 'unicode';
 }
 
-// spellingFix(text, font): collapseRepeatedMarks(text, { font }).
+// spellingFix(text, font): collapseRepeatedMarks(text, { from: font }).
 function spellingFix(text, font) {
-  return api.collapseRepeatedMarks(text, { font: font });
+  return api.collapseRepeatedMarks(text, { from: font });
 }
 
 // truncate(text, { length }): truncate(text, { length }).

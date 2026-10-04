@@ -90,7 +90,7 @@ function detectCommand(zawgyiDetector) {
 
 // segmentSyllables: in plain text the syllables joined by --separator, in JSON Lines their array.
 function segmentCommand(settings) {
-  const options = Object.freeze({ policy: settings.policy, font: settings.from });
+  const options = Object.freeze({ bareConsonants: settings.bareConsonants, from: settings.from });
   return Object.freeze({
     run: (text) => segmentSyllables(text, options),
     writesLines: true,

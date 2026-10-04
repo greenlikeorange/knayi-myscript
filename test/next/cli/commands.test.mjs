@@ -84,10 +84,10 @@ describe('knayi detect and segment', () => {
       '\u1019\u103C\u1014\u103A|\u1019\u102C|\u1005\u102C\n');
     assert.equal(spawnKnayi(['segment', '--separator', ' / '], { input: MYANMAR }).stdout,
       segmentSyllables(MYANMAR).join(' / '));
-    const pairs = spawnKnayi(['segment', '--policy', 'pairs', '--separator', '\u200B'], { input: TIE });
-    assert.equal(pairs.stdout, segmentSyllables(TIE, { policy: 'pairs' }).join('\u200B'));
+    const pairs = spawnKnayi(['segment', '--bare-consonants', 'pairs', '--separator', '\u200B'], { input: TIE });
+    assert.equal(pairs.stdout, segmentSyllables(TIE, { bareConsonants: 'pairs' }).join('\u200B'));
     const zawgyi = spawnKnayi(['segment', '--from', 'zawgyi'], { input: ZAWGYI });
-    assert.equal(zawgyi.stdout, segmentSyllables(ZAWGYI, { font: 'zawgyi' }).join('|'));
+    assert.equal(zawgyi.stdout, segmentSyllables(ZAWGYI, { from: 'zawgyi' }).join('|'));
   });
 });
 

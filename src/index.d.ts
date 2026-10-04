@@ -166,12 +166,12 @@ export declare function explain(text: string, options?: DetectorOptions | number
 // ---------------------------------------------------------------------------------------------------------------
 // toUnicode and toZawgyi
 
-/** The fonts toUnicode converts from. */
-export type SourceFont = 'unicode' | 'zawgyi' | 'win';
+/** The encodings toUnicode converts from. */
+export type SourceEncoding = 'unicode' | 'zawgyi' | 'win';
 
 export interface ToUnicodeOptions extends DetectorOptions {
-  /** The font of the text. Not given: each line is detected; Win text cannot be, and needs from: 'win'. */
-  from?: SourceFont | null;
+  /** The text's encoding. Not given: each line is detected; Win text cannot be, and needs from: 'win'. */
+  from?: SourceEncoding | null;
   /** How a line whose detection ties is read: 'unicode' (left as it is, the default) or 'zawgyi' (as 2.x did). */
   tie?: 'unicode' | 'zawgyi' | null;
   /** A trace from createTrace(), to fill with the text after each stage of the font pipeline that changed it. */
@@ -201,8 +201,8 @@ export declare function toZawgyi(text: string, options?: ToZawgyiOptions | numbe
 // ---------------------------------------------------------------------------------------------------------------
 // segmentSyllables and syllableBoundaries
 
-/** The encodings the syllable scanners read. */
-export type BreakFont = 'unicode' | 'zawgyi';
+/** The encodings the syllable scanners read, and collapseRepeatedMarks. */
+export type SegmentEncoding = 'unicode' | 'zawgyi';
 
 /**
  * How a bare consonant, one with no mark, is read: 'separate' (the default), a syllable of its own as UTN #11 has
@@ -211,9 +211,10 @@ export type BreakFont = 'unicode' | 'zawgyi';
 export type BareConsonantPolicy = 'separate' | 'chains' | 'pairs';
 
 export interface SyllableOptions {
-  policy?: BareConsonantPolicy | null;
-  /** The text's encoding. Default 'unicode'. */
-  font?: BreakFont | null;
+  /** How a bare consonant is read. Default 'separate'. */
+  bareConsonants?: BareConsonantPolicy | null;
+  /** The text's encoding, as toUnicode's `from`. Default 'unicode': the text is not detected. */
+  from?: SegmentEncoding | null;
 }
 
 /** The syllables of the text, which join back to it; [] for ''. */
@@ -236,8 +237,8 @@ export interface TruncateOptions extends SyllableOptions {
 export declare function truncate(text: string, options?: TruncateOptions | number | null): string;
 
 export interface CollapseOptions {
-  /** Whose marks to collapse. Default 'unicode'. */
-  font?: BreakFont | null;
+  /** The text's encoding, whose marks are collapsed. Default 'unicode'. */
+  from?: SegmentEncoding | null;
 }
 
 /** Each run of one mark typed several times in a row, as one. Never trims; zero-width characters stay. */

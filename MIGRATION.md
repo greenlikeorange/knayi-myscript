@@ -60,7 +60,7 @@ import { normalize, toUnicode } from 'knayi-myscript'
 | `use_myanmartools`, `adapter: 'myanmartools'`: knayi loads myanmar-tools | `zawgyiDetector`: you pass the detector object; knayi loads no code |
 | `myanmartools_zg_threshold` | `thresholds` |
 | Converting trims the text; breaking and collapsing trim it and remove U+200B and U+200C first | Nothing is trimmed, and zero-width characters stay |
-| `syllBreak`, `spellingFix` and `truncate` detect the font when none is given | Only `toUnicode` detects; the others take `font`, `'unicode'` by default |
+| `syllBreak`, `spellingFix` and `truncate` detect the font when none is given | Only `toUnicode` detects; the others take `from`, `'unicode'` by default |
 | A tie in detection reads as Zawgyi | `detectEncoding` says `'unknown'`, and `toUnicode` leaves the line as it is unless `tie: 'zawgyi'` |
 | Detection reads the whole text once | `toUnicode` detects each line on its own |
 | Errors and warnings go to the console | Bad arguments throw errors with a `code` ([README.md](README.md#errors)) |
@@ -87,9 +87,9 @@ and 2.x returns a text with no character of U+1000–U+109F as it is, untrimmed,
 | `fontConvert(text, 'zawgyi', 'unicode')` | `toZawgyi(text)` | `toZawgyi(text.trim())` | nothing |
 | `fontConvert(text, 'zawgyi')` | `toZawgyi(text)` when `detectEncoding` says the text is Unicode | | not compared |
 | `fontConvert.debugging(...)` | the `trace` option | | not compared: a trace has another shape |
-| `syllBreak(text, font, separator)` | `segmentSyllables(text, { font }).join(separator)` | `segmentSyllables(clean(text), { font, policy: 'pairs' }).join(separator)` | an asat typed before a dot below, which 2.x writes after it |
-| `syllBreak(text)` | `segmentSyllables(text, { font })`, with `font` `'zawgyi'` when `detectEncoding` says Zawgyi | `segmentSyllables(clean(text), { font, policy: 'pairs' })`, with a tie read as Zawgyi | as for a named font |
-| `spellingFix(text, font)` | `collapseRepeatedMarks(text, { font })` | `collapseRepeatedMarks(clean(text), { font })` | nothing |
+| `syllBreak(text, font, separator)` | `segmentSyllables(text, { from: font }).join(separator)` | `segmentSyllables(clean(text), { from: font, bareConsonants: 'pairs' }).join(separator)` | an asat typed before a dot below, which 2.x writes after it |
+| `syllBreak(text)` | `segmentSyllables(text, { from })`, with `from` `'zawgyi'` when `detectEncoding` says Zawgyi | `segmentSyllables(clean(text), { from, bareConsonants: 'pairs' })`, with a tie read as Zawgyi | as for a named font |
+| `spellingFix(text, font)` | `collapseRepeatedMarks(text, { from: font })` | `collapseRepeatedMarks(clean(text), { from: font })` | nothing |
 | `truncate(text, { length, omission, fontType })` | `truncate(text, { length, omission, font })` | none: 2.x's is not always a prefix, and appends the omission to text that fits | |
 | `normalize(text)` | `normalize(text)` | none: 2.x's could change its own output again | |
 | `setGlobalOptions({ silent_mode: true })` | nothing to silence | | |
@@ -111,9 +111,9 @@ What a 2.x user sees who replaces each 2.x call with its plain 3.0 call. The cou
 | `fontConvert(t, 'zawgyi', 'unicode')` → `toZawgyi(t)` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1,113 of 35,452 |
 | `fontDetect(t)` → `detectEncoding(t).encoding` | 0 | 242 | 1,092 | 355 | 672 | 593 | 230 | 115 | 96 | 19,774 of 35,452 |
 | `syllBreak(t, 'unicode')` → `segmentSyllables(t)` | 2,009 | 4,510 | 16,005 | 13,872 | 473 | 7,450 | 2,200 | 648 | 680 | 10,401 of 35,452 |
-| `syllBreak(t, 'zawgyi')` → `segmentSyllables(t, { font: 'zawgyi' })` | 2,009 | 4,667 | 16,330 | 13,784 | 57 | 7,894 | 2,207 | 645 | 723 | 10,525 of 35,452 |
-| `syllBreak(t)` → `segmentSyllables(t, { font })`, `font` detected | 2,009 | 4,520 | 16,049 | 13,748 | 178 | 7,782 | 2,209 | 645 | 703 | 14,965 of 35,452 |
-| `spellingFix(t, font)` → `collapseRepeatedMarks(t, { font })` | 6 | 188 | 1,068 | 159 | 0 | 48 | 0 | 1 | 3 | 6,306 of 35,452 |
+| `syllBreak(t, 'zawgyi')` → `segmentSyllables(t, { from: 'zawgyi' })` | 2,009 | 4,667 | 16,330 | 13,784 | 57 | 7,894 | 2,207 | 645 | 723 | 10,525 of 35,452 |
+| `syllBreak(t)` → `segmentSyllables(t, { from })`, `from` detected | 2,009 | 4,520 | 16,049 | 13,748 | 178 | 7,782 | 2,209 | 645 | 703 | 14,965 of 35,452 |
+| `spellingFix(t, font)` → `collapseRepeatedMarks(t, { from: font })` | 6 | 188 | 1,068 | 159 | 0 | 48 | 0 | 1 | 3 | 6,306 of 35,452 |
 | `truncate(t, { length: 30 })` → `truncate(t, { length: 30 })` | 1,117 | 3,102 | 10,576 | 10,419 | 2,390 | 6,876 | 1,501 | 386 | 531 | 35,452 of 35,452 |
 
 Why each changes:
@@ -124,13 +124,13 @@ Why each changes:
 - **`detectEncoding`** names two answers that 2.x folded into its fallback: every changed corpus line is a tie, `'unknown'` where 2.x said `'zawgyi'` (or the fallback). No corpus line has no Myanmar character, which 3.0 calls `'none'` and 2.x `'en'`.
 - **`segmentSyllables`** reads a bare consonant as a syllable of its own by default, starts a piece at a syllable after white space, keeps every character (2.x trimmed the text and removed U+200B and U+200C), returns the pieces instead of a joined string, does not swap an asat typed before a dot below, and detects nothing ([research/segmentation.md](research/segmentation.md)).
 - **`collapseRepeatedMarks`** keeps zero-width spaces and non-joiners, and white space at the ends: every changed corpus line holds U+200B or U+200C.
-- **`truncate`** returns a text that fits as it is, where 2.x appended the omission (every WaitZar word, and 1,184 of the 3,102 changed Wikipedia lines, are at most 30 units long); cuts a text that does not fit to a prefix, where 2.x could keep a later word after a skipped one; and cuts at the syllable breaks of `policy: 'separate'`. compare counts lengths 10, 60 and 120 too: on Wikipedia, they change 2,609, 4,035 and 4,120 lines.
+- **`truncate`** returns a text that fits as it is, where 2.x appended the omission (every WaitZar word, and 1,184 of the 3,102 changed Wikipedia lines, are at most 30 units long); cuts a text that does not fit to a prefix, where 2.x could keep a later word after a skipped one; and cuts at the syllable breaks of `bareConsonants: 'separate'`. compare counts lengths 10, 60 and 120 too: on Wikipedia, they change 2,609, 4,035 and 4,120 lines.
 
 With the options that keep 2.x's output, every row above but `normalize` and `truncate` drops to 0 on every corpus and fuzz set, except these (WaitZar, Mon and Pa'o: 0):
 
 | 2.x call → the 3.0 call that keeps its output | FLORES | Wikipedia | Okell | mC4 | Shan | S'gaw Karen | Fuzz | Why |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| `syllBreak(t, 'unicode')` → `segmentSyllables(clean(t), { policy: 'pairs' })` | 112 | 0 | 1 | 566 | 59 | 6 | 165 | an asat typed before a dot below, which 2.x's break rule U1 writes after it and `segmentSyllables` keeps as typed |
+| `syllBreak(t, 'unicode')` → `segmentSyllables(clean(t), { bareConsonants: 'pairs' })` | 112 | 0 | 1 | 566 | 59 | 6 | 165 | an asat typed before a dot below, which 2.x's break rule U1 writes after it and `segmentSyllables` keeps as typed |
 | `syllBreak(t)` → the same, with the font detected | 112 | 0 | 1 | 566 | 59 | 1 | 47 | the same |
 | `fontConvert(t, 'unicode')` → `toUnicode(t.trim(), { tie: 'zawgyi' })` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | only generated texts of several lines, whose lines 2.x read as the encoding of the whole text, and 3.0 each as its own |
 
@@ -153,7 +153,7 @@ This part documents the 2.x API as `knayi-myscript/compat` keeps it, function by
 
 `unicode`, `uni`, `zawgyi`, `zaw`, and `win`. `uni` is Unicode. `zaw` is Zawgyi. `win` is the Win Innwa family of legacy fonts, which `fontConvert` converts to Unicode. Any other string is an unknown font.
 
-**3.0:** one name each, `'unicode'`, `'zawgyi'` and `'win'`, given as `from` or `font`. Any other name, `'uni'` and `'zaw'` included, is a `RangeError`.
+**3.0:** one name each, `'unicode'`, `'zawgyi'` and `'win'`, given as `from` wherever an option names the text's encoding. Any other name, `'uni'` and `'zaw'` included, is a `RangeError`.
 
 ### Missing content
 
@@ -305,18 +305,18 @@ When `fontType` is omitted, detection runs first. Unknown font names throw.
 
 Zawgyi types ေ and the medial ra before the consonant. A consonant typed after them ends its syllable, as ကြ does in Unicode.
 
-**3.0: `segmentSyllables(text, { policy, font })`** returns the syllables as an array that joins back to the text, and `syllableBoundaries` where each starts. It reads a bare consonant as a syllable of its own unless `policy: 'pairs'` asks for 2.x's pairs; a syllable after white space starts a piece, where 2.x joined it to the syllable before (`policy: 'pairs'` still does); it keeps white space and zero-width characters; and it does not detect: `font` is `'unicode'` unless you say `'zawgyi'`.
+**3.0: `segmentSyllables(text, { bareConsonants, from })`** returns the syllables as an array that joins back to the text, and `syllableBoundaries` where each starts. It reads a bare consonant as a syllable of its own unless `bareConsonants: 'pairs'` asks for 2.x's pairs; a syllable after white space starts a piece, where 2.x joined it to the syllable before (`bareConsonants: 'pairs'` still does); it keeps white space and zero-width characters; and it does not detect: `from` is `'unicode'` unless you say `'zawgyi'`.
 
 ```javascript
 knayi.segmentSyllables('မင်္ဂလာပါ') // ['မင်္ဂ', 'လာ', 'ပါ']
-knayi.segmentSyllables('မင်္ဂလာပါ', { policy: 'pairs' }) // ['မင်္ဂလာ', 'ပါ']
+knayi.segmentSyllables('မင်္ဂလာပါ', { bareConsonants: 'pairs' }) // ['မင်္ဂလာ', 'ပါ']
 knayi.segmentSyllables('ကက') // ['က', 'က']
-knayi.segmentSyllables('ကက', { policy: 'pairs' }) // ['ကက']
+knayi.segmentSyllables('ကက', { bareConsonants: 'pairs' }) // ['ကက']
 knayi.segmentSyllables('ၾကပါ') // ['ၾ', 'က', 'ပါ']  (Zawgyi read as Unicode)
-knayi.segmentSyllables('ၾကပါ', { font: 'zawgyi' }) // ['ၾက', 'ပါ']
+knayi.segmentSyllables('ၾကပါ', { from: 'zawgyi' }) // ['ၾက', 'ပါ']
 knayi.segmentSyllables(' မြန်\u200bမာ ') // [' ', 'မြန်\u200b', 'မာ ']
 knayi.segmentSyllables('ကောင်း မောင်') // ['ကောင်း ', 'မောင်']
-knayi.segmentSyllables('ကောင်း မောင်', { policy: 'pairs' }) // ['ကောင်း မောင်']
+knayi.segmentSyllables('ကောင်း မောင်', { bareConsonants: 'pairs' }) // ['ကောင်း မောင်']
 ```
 
 ### spellingFix(content, fontType?)
@@ -330,7 +330,7 @@ compat.spellingFix('\u1033\u1033', 'zawgyi') // '\u1033'
 compat.spellingFix('\u1033\u1033', 'zaw') // '\u1033'
 ```
 
-**3.0: `collapseRepeatedMarks(text, { font })`**, with no trim, no removal of zero-width characters, and no detection.
+**3.0: `collapseRepeatedMarks(text, { from })`**, with no trim, no removal of zero-width characters, and no detection.
 
 ```javascript
 knayi.collapseRepeatedMarks('မင်္ဂလာာပါါ') // 'မင်္ဂလာပါ'
@@ -380,7 +380,7 @@ compat.truncate(null) // ''
 
 The result is not always a prefix of the text: a part that does not fit adds those of its words that do, so a later word can follow a skipped one, as ဈေး follows the skipped ဇလွန် above. A `length` or `omission` that is falsy, `0` or `''`, takes its default.
 
-**3.0: `truncate(text, { length, omission, policy, font })`** returns a text that fits as it is, and otherwise a prefix cut at a syllable break, then the omission, in at most `length` units. `0` is a length and `''` an omission; `undefined` and `null` take the defaults. The font is `font`, not `fontType`, and is not detected.
+**3.0: `truncate(text, { length, omission, bareConsonants, from })`** returns a text that fits as it is, and otherwise a prefix cut at a syllable break, then the omission, in at most `length` units. `0` is a length and `''` an omission; `undefined` and `null` take the defaults. The text's encoding is `from`, not `fontType`, and is not detected.
 
 ```javascript
 knayi.truncate('အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇလွန်ဈေးဘေးဗာဒံပင်ထက် အဓိဋ္ဌာန်လျက် ဂဃနဏဖတ်ခဲ့သည်။', { length: 30 })
@@ -391,4 +391,4 @@ compat.truncate('abcdef', { length: 3, omission: '' }) // '...'
 knayi.truncate('abcdef', { length: 3, omission: '' }) // 'abc'
 ```
 
-The 3.0 cut above ends at the bare consonant ဇ, a syllable of its own under the default policy; `policy: 'pairs'` cuts before it.
+The 3.0 cut above ends at the bare consonant ဇ, a syllable of its own under the default policy; `bareConsonants: 'pairs'` cuts before it.

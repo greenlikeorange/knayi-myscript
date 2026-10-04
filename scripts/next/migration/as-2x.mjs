@@ -1,5 +1,5 @@
 // The 2.x call forms of npm run compare, each made with the 3.0 API and the options and steps that MIGRATION.md
-// gives for keeping 2.x's output: a trim, tie: 'zawgyi', policy: 'pairs', and 2.x's removal of U+200B and U+200C.
+// gives for keeping 2.x's output: a trim, tie: 'zawgyi', bareConsonants: 'pairs', and 2.x's removal of U+200B and U+200C.
 // MIGRATION.md's counts of what still differs compare compat, which gives 2.x's output, with this file:
 //
 //   npm run compare -- --base mjs:src/compat/index.js --head mjs:scripts/next/migration/as-2x.mjs --forms <forms>
@@ -49,13 +49,13 @@ function syllBreak(text, font) {
   if (!hasMyanmarBlock(text)) return text;
   const clean = cleaned(text);
   const breakFont = font || (fontDetect(clean) === 'zawgyi' ? 'zawgyi' : 'unicode');
-  return api.segmentSyllables(clean, { policy: 'pairs', font: breakFont }).join(ZERO_WIDTH_SPACE);
+  return api.segmentSyllables(clean, { bareConsonants: 'pairs', from: breakFont }).join(ZERO_WIDTH_SPACE);
 }
 
 // spellingFix(text, font): collapseRepeatedMarks on the cleaned text.
 function spellingFix(text, font) {
   if (!hasMyanmarBlock(text)) return text;
-  return api.collapseRepeatedMarks(cleaned(text), { font: font });
+  return api.collapseRepeatedMarks(cleaned(text), { from: font });
 }
 
 export default { fontConvert, fontDetect, syllBreak, spellingFix };

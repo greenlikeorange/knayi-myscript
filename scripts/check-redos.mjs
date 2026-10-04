@@ -248,13 +248,13 @@ function runApiCallForms(api) {
       attempt(() => api.toUnicode(text, { from, tie: 'zawgyi', zawgyiDetector: detector }));
     }
     api.toZawgyi(text, { trace: api.createTrace() });
-    for (const font of ['unicode', 'zawgyi']) {
-      for (const policy of ['pairs', 'chains', 'separate']) {
-        api.segmentSyllables(text, { font, policy });
-        api.syllableBoundaries(text, { font, policy });
+    for (const from of ['unicode', 'zawgyi']) {
+      for (const bareConsonants of ['pairs', 'chains', 'separate']) {
+        api.segmentSyllables(text, { from, bareConsonants });
+        api.syllableBoundaries(text, { from, bareConsonants });
       }
-      api.collapseRepeatedMarks(text, { font });
-      for (const length of [3, 10, 30, 60]) api.truncate(text, { length, font, omission: '' });
+      api.collapseRepeatedMarks(text, { from });
+      for (const length of [3, 10, 30, 60]) api.truncate(text, { length, from, omission: '' });
     }
   }
   attempt(() => api.normalize(42));

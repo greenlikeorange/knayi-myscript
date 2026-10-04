@@ -119,7 +119,7 @@ Neighbouring lines join one piece, line break included, since the font pipeline 
 
 ### segmentSyllables, syllableBoundaries, truncate and collapseRepeatedMarks
 
-`segmentSyllables` and `syllableBoundaries` call the core's functions with `font` (`'unicode'` by default) and `policy` (`'separate'` by default, `DEFAULT_POLICY` in `api/segment.js`; the core's own default is `'pairs'`, 2.x's). `collapseRepeatedMarks` is the core's, with the font's set of marks. None trims or removes a zero-width character.
+`segmentSyllables` and `syllableBoundaries` call the core's functions with `from`, the text's encoding (`'unicode'` by default), and `bareConsonants` (`'separate'` by default, `DEFAULT_POLICY` in `api/segment.js`; the core's own default is `'pairs'`, 2.x's). `collapseRepeatedMarks` is the core's, with the encoding's set of marks. None trims or removes a zero-width character.
 
 `truncate` returns a text that fits as it is. Otherwise `lastCutAtOrBefore` marks the syllable breaks up to `length - omission.length`, with `forEachBreak` stopping at the first break past it, and takes the last place at or before that budget that is a break, or lies before a unit outside the Myanmar blocks that does not join the unit before it (`joinsUnitBefore`: a low surrogate, a combining mark of the common blocks, ZWNJ, ZWJ or a variation selector). The prefix loses its trailing white space and gets the omission.
 

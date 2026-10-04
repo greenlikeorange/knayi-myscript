@@ -6,9 +6,9 @@ Notes behind the default of knayi 3.0's `segmentSyllables`, `syllableBoundaries`
 
 - A **bare consonant** is a consonant with no mark of its own: no vowel sign, medial, asat or stacked consonant. It is read with its inherent vowel, as a syllable of its own: ပထမ is three syllables, ပ, ထ and မ.
 - 2.x's `syllBreak` joins bare consonants **in pairs**: ကကက is ကက|က, and ပထမဆုံး is ပထ|မဆုံး. Its own comment says every bare consonant joins the next syllable, which one global replace cannot do, since it never looks again at a consonant it has just joined (DESIGN.md §10 Q11).
-- 3.0 offers three readings, `policy: 'separate'`, `'chains'` and `'pairs'`, and reads `'separate'` by default: it is the only one whose pieces are syllables whatever the consonants around them.
+- 3.0 offers three readings, `bareConsonants: 'separate'`, `'chains'` and `'pairs'`, and reads `'separate'` by default: it is the only one whose pieces are syllables whatever the consonants around them.
 - 2.x also joins a letter after white space to the syllable before it. Under `'separate'` and `'chains'`, white space separates syllables: `ကောင်း မောင်` is `ကောင်း ` and `မောင်`. Only `'pairs'` keeps 2.x's join (§4).
-- The price: the pieces of 94–100% of Burmese lines differ from 2.x's. `policy: 'pairs'` keeps 2.x's breaks, and compat's `syllBreak` is unchanged.
+- The price: the pieces of 94–100% of Burmese lines differ from 2.x's. `bareConsonants: 'pairs'` keeps 2.x's breaks, and compat's `syllBreak` is unchanged.
 
 ## 1. The three readings
 
@@ -26,7 +26,7 @@ Under all three policies, a consonant with asat stays with the syllable before i
 
 ## 2. The counts
 
-Distinct lines of each corpus with a character of U+1000–U+109F, segmented through the 3.0 API. mC4 is raw web text, mostly Zawgyi, and is read with `font: 'zawgyi'`; the others with `font: 'unicode'`. For each corpus: the lines whose pieces under `chains` and under `separate` differ from `pairs`; the pieces of each policy; and the pieces of `pairs` and of `chains` that hold more than one syllable of `separate`.
+Distinct lines of each corpus with a character of U+1000–U+109F, segmented through the 3.0 API. mC4 is raw web text, mostly Zawgyi, and is read with `from: 'zawgyi'`; the others with `from: 'unicode'`. For each corpus: the lines whose pieces under `chains` and under `separate` differ from `pairs`; the pieces of each policy; and the pieces of `pairs` and of `chains` that hold more than one syllable of `separate`.
 
 | Corpus | Lines | `chains` differs | `separate` differs | Pieces: `pairs` / `chains` / `separate` | Pieces of 2+ syllables: `pairs` / `chains` |
 | --- | ---: | ---: | ---: | --- | --- |
@@ -46,7 +46,7 @@ In the Burmese corpora, 13–14% of the pieces of `chains` hold two or more syll
 - **It is the syllable.** A bare consonant carries its inherent vowel and is pronounced as a syllable of its own, often a reduced one (the သ of သတင်း). `separate` is the only policy whose pieces are syllables in every context.
 - **It is a fixed unit.** A syllable count, a syllable-based tokenizer or an n-gram model needs the same word to give the same pieces wherever it stands. Under `pairs` it depends on the parity of the run before it; under `chains` on the length of the run.
 - **It changes the most lines against 2.x**, as any policy but `pairs` must: 2.x joins bare consonants, and almost every line has one. The change is in the pieces only: no character is added, dropped or moved.
-- **The other readings stay available.** `policy: 'pairs'` gives 2.x's breaks on the text 2.x breaks (`segment.test.mjs` checks it on fuzz against `syllBreak` of the cleaned text), and `'chains'` the reading 2.x's comment described.
+- **The other readings stay available.** `bareConsonants: 'pairs'` gives 2.x's breaks on the text 2.x breaks (`segment.test.mjs` checks it on fuzz against `syllBreak` of the cleaned text), and `'chains'` the reading 2.x's comment described.
 
 The same default applies to `truncate`, which cuts at a syllable break: the pangram of MIGRATION.md's `truncate` examples, cut at 30, ends at the bare ဇ under `separate` and before it under `pairs`.
 
@@ -61,12 +61,12 @@ So under `separate` and `chains` (`spaceSeparates` in `src/rules/segment.js`):
 - **Text before the first syllable is a piece of its own**, white space included, as text in other scripts there already was: `' မြန်'` is `' '` and `'မြန်'`. Opening marks that start the text stay with the syllable after them. Elsewhere, digits, punctuation and text in other scripts stay with the syllable before them.
 - **A consonant with asat after white space** is still the final of the syllable before it (row U5), as Zawgyi's kinzi still is (row Z6): neither starts a syllable.
 
-`pairs` keeps 2.x's join, so that `policy: 'pairs'` still gives 2.x's breaks. Over every distinct line of every cached corpus, at lengths 10 to 120, under each policy and font, 3.0's `truncate` gives another text in 72 of 2,333,052 calls, each one that ended in an opening mark before the omission (`(ဥ`, an independent vowel after a bracket, which row U3 does not join). The counts of §2 are with this change.
+`pairs` keeps 2.x's join, so that `bareConsonants: 'pairs'` still gives 2.x's breaks. Over every distinct line of every cached corpus, at lengths 10 to 120, under each policy and font, 3.0's `truncate` gives another text in 72 of 2,333,052 calls, each one that ended in an opening mark before the omission (`(ဥ`, an independent vowel after a bracket, which row U3 does not join). The counts of §2 are with this change.
 
 ## 5. What 3.0 segmentation still does as 2.x did
 
 - **The Zawgyi break classes disagree** about U+106A and U+106B (DESIGN.md §10 Q17): both class edits together fix 16 lines, and wait for a deliberate pull request of the 2.x line.
-- **No detection:** `font` is `'unicode'` unless the caller says `'zawgyi'`. 2.x's `syllBreak` detected the font when none was named.
+- **No detection:** `from` is `'unicode'` unless the caller says `'zawgyi'`. 2.x's `syllBreak` detected the font when none was named.
 
 ## 6. How this was checked, and what was not
 

@@ -340,23 +340,23 @@ The rules move ေ or medial ra before the nearest consonant before it, past a s
 knayi.segmentSyllables('မင်္ဂလာပါ') // ['မင်္ဂ', 'လာ', 'ပါ']
 knayi.syllableBoundaries('မင်္ဂလာပါ') // [5, 7]
 knayi.segmentSyllables('ပထမဆုံး') // ['ပ', 'ထ', 'မ', 'ဆုံး']
-knayi.segmentSyllables('ပထမဆုံး', { policy: 'chains' }) // ['ပထမဆုံး']
-knayi.segmentSyllables('ပထမဆုံး', { policy: 'pairs' }) // ['ပထ', 'မဆုံး']
-knayi.segmentSyllables('ၾကပါ', { font: 'zawgyi' }) // ['ၾက', 'ပါ']
+knayi.segmentSyllables('ပထမဆုံး', { bareConsonants: 'chains' }) // ['ပထမဆုံး']
+knayi.segmentSyllables('ပထမဆုံး', { bareConsonants: 'pairs' }) // ['ပထ', 'မဆုံး']
+knayi.segmentSyllables('ၾကပါ', { from: 'zawgyi' }) // ['ၾက', 'ပါ']
 knayi.segmentSyllables('မင်္ဂလာပါ မြန်မာ') // ['မင်္ဂ', 'လာ', 'ပါ ', 'မြန်', 'မာ']
-knayi.segmentSyllables('မင်္ဂလာပါ မြန်မာ', { policy: 'pairs' }) // ['မင်္ဂလာ', 'ပါ မြန်', 'မာ']
+knayi.segmentSyllables('မင်္ဂလာပါ မြန်မာ', { bareConsonants: 'pairs' }) // ['မင်္ဂလာ', 'ပါ မြန်', 'မာ']
 knayi.segmentSyllables('ကောင်း (မောင်)') // ['ကောင်း ', '(မောင်)']
 knayi.segmentSyllables('') // []
 ```
 
-- **Where a piece starts:** at the start of the text, and before a consonant, an independent vowel, ဿ or one of ၌ ၍ ၎ ၏ that starts a syllable. A consonant under a virama, or with an asat, belongs to the syllable before it. White space ends a piece, so a syllable after a space or a line break starts one, and the opening brackets, quotes or dashes typed right before a syllable start its piece with it. Digits, punctuation and text in other scripts stay with the syllable before them; text before the first syllable, white space included, is a piece of its own. Under `policy: 'pairs'`, as in 2.x's `syllBreak`, no piece starts right after white space, or at a consonant right after an opening mark.
-- **`policy`** says how a consonant with no mark, a bare consonant, is read:
+- **Where a piece starts:** at the start of the text, and before a consonant, an independent vowel, ဿ or one of ၌ ၍ ၎ ၏ that starts a syllable. A consonant under a virama, or with an asat, belongs to the syllable before it. White space ends a piece, so a syllable after a space or a line break starts one, and the opening brackets, quotes or dashes typed right before a syllable start its piece with it. Digits, punctuation and text in other scripts stay with the syllable before them; text before the first syllable, white space included, is a piece of its own. Under `bareConsonants: 'pairs'`, as in 2.x's `syllBreak`, no piece starts right after white space, or at a consonant right after an opening mark.
+- **`bareConsonants`** says how a consonant with no mark, a bare consonant, is read:
   - `'separate'`, the default: a syllable of its own, with its inherent vowel (ပ|ထ|မ|ဆုံး).
   - `'chains'`: joined, with every bare consonant before it, to the syllable after it (ပထမဆုံး).
   - `'pairs'`: joined two by two, as 2.x `syllBreak` does (ပထ|မဆုံး, and ကကက is ကက|က).
 
   `'separate'` is the only policy whose pieces are the syllables, whatever the consonants around them: under `'chains'`, 13–14% of the pieces of the Burmese corpora hold more than one, and under `'pairs'`, which also joins across white space, a third or more. It changes the pieces of 94–100% of Burmese lines against 2.x's breaks. [research/segmentation.md](research/segmentation.md) has the counts.
-- **`font`** is `'unicode'`, the default, or `'zawgyi'`. The text is not detected: Zawgyi text read as Unicode splits a medial ra or ေ from its consonant, as `ၾကပါ` read as Unicode gives `ၾ`, `က` and `ပါ`.
+- **`from`**, the text's encoding, is `'unicode'`, the default, or `'zawgyi'`, as for [toUnicode](#tounicodetext-options). The text is not detected: Zawgyi text read as Unicode splits a medial ra or ေ from its consonant, as `ၾကပါ` read as Unicode gives `ၾ`, `က` and `ပါ`.
 
 ### truncate(text, options)
 
@@ -371,17 +371,17 @@ knayi.truncate('abc') // 'abc'
 ```
 
 - **`length`**, the most units of the result with the omission included, is a whole number; `omission` is any string, `''` included. They default to 30 and `'...'` when they are `undefined` or `null`. An omission longer than `length` throws a `RangeError` with the code `ERR_KNAYI_INVALID_ARG_VALUE`.
-- **Where it cuts:** at a syllable break of the font's scanner, read with `policy` and `font` as in [segmentSyllables](#segmentsyllablestext-options-and-syllableboundariestext-options), or before any character outside the Myanmar blocks, but never inside a surrogate pair, or before a combining mark of the common blocks (U+0300–U+036F, U+1AB0–U+1AFF, U+1DC0–U+1DFF, U+20D0–U+20FF, U+FE20–U+FE2F), a zero-width non-joiner or joiner, or a variation selector. Outside the Myanmar blocks it does not look for a word break. It reads the text only as far as the cut.
+- **Where it cuts:** at a syllable break of the encoding's scanner, read with `bareConsonants` and `from` as in [segmentSyllables](#segmentsyllablestext-options-and-syllableboundariestext-options), or before any character outside the Myanmar blocks, but never inside a surrogate pair, or before a combining mark of the common blocks (U+0300–U+036F, U+1AB0–U+1AFF, U+1DC0–U+1DFF, U+20D0–U+20FF, U+FE20–U+FE2F), a zero-width non-joiner or joiner, or a variation selector. Outside the Myanmar blocks it does not look for a word break. It reads the text only as far as the cut.
 
 ### collapseRepeatedMarks(text, options)
 
-Makes a mark typed two or more times in a row one mark. It does not reorder marks, trim, or remove zero-width characters. `font` is `'unicode'`, the default, or `'zawgyi'`: the marks of that encoding are collapsed.
+Makes a mark typed two or more times in a row one mark. It does not reorder marks, trim, or remove zero-width characters. `from`, the text's encoding, is `'unicode'`, the default, or `'zawgyi'`: the marks of that encoding are collapsed.
 
 ```javascript
 knayi.collapseRepeatedMarks('မင်္ဂလာာပါါ') // 'မင်္ဂလာပါ'
 knayi.collapseRepeatedMarks(' ကာာ\u200B ') // ' ကာ\u200B '
 knayi.collapseRepeatedMarks('ကိီ') // 'ကိီ'
-knayi.collapseRepeatedMarks('\u1033\u1033', { font: 'zawgyi' }) // '\u1033'
+knayi.collapseRepeatedMarks('\u1033\u1033', { from: 'zawgyi' }) // '\u1033'
 ```
 
 ### Traces: createTrace()
@@ -428,7 +428,7 @@ Every error the 3.0 API and its streams throw on purpose has a `code`, which is 
 | `code` | Class | When |
 | --- | --- | --- |
 | `ERR_KNAYI_INVALID_ARG_TYPE` | `TypeError` | A text that is not a string; options that are not an object, `undefined`, `null` or a number (an array included); an option of the wrong type; a stream chunk that is neither a string nor bytes, or of the other kind than the first chunk; a line function that does not return a string. |
-| `ERR_KNAYI_INVALID_ARG_VALUE` | `RangeError` | An option of the right type that knayi does not take: an unknown name, such as `{ from: 'Zawgyi' }` or `{ policy: 'Pairs' }`; a `length` that is not a whole number; an omission longer than `length`; `thresholds` out of order; `createConverter({ to: 'zawgyi' })`. |
+| `ERR_KNAYI_INVALID_ARG_VALUE` | `RangeError` | An option of the right type that knayi does not take: an unknown name, such as `{ from: 'Zawgyi' }` or `{ bareConsonants: 'Pairs' }`; a `length` that is not a whole number; an omission longer than `length`; `thresholds` out of order; `createConverter({ to: 'zawgyi' })`. |
 | `ERR_KNAYI_LINE_TOO_LONG` | `RangeError` | A line of a stream passes its `maxLineLength` before it ends. |
 | `ERR_KNAYI_UNSUPPORTED_RUNTIME` | `Error` | A stream on a runtime with no `TransformStream`, or bytes on one with no `TextDecoder`. |
 
@@ -526,7 +526,7 @@ knayi --version
 | `--to <encoding>` | `convert` | `unicode` or `zawgyi`. |
 | `--tie <reading>` | `to-unicode` | How a line whose evidence ties is read: `unicode` (left as it is, the default) or `zawgyi`, as 2.x did. |
 | `--detector <name>` | `to-unicode`, `detect`, `check` | `rules` (the default) or `myanmar-tools`, Google's detector, which must be installed next to knayi-myscript (`npm install myanmar-tools@1.1.3`). |
-| `--policy <policy>` | `segment` | How a consonant with no mark is read: `separate` (the default), a syllable of its own; `chains`, joined to the syllable after it; `pairs`, joined two by two, as 2.x `syllBreak` did. |
+| `--bare-consonants <policy>` | `segment` | How a consonant with no mark is read, as `segmentSyllables`' `bareConsonants`: `separate` (the default), a syllable of its own; `chains`, joined to the syllable after it; `pairs`, joined two by two, and across white space, as 2.x `syllBreak` did. |
 | `--separator <text>` | `segment` | What goes between syllables. Default `\|`. |
 | `--jsonl` | all | Read and write JSON Lines. |
 | `--field <name>` | all, with `--jsonl` | The field that holds the text. Default `text`. |

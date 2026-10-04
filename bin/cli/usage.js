@@ -30,10 +30,11 @@ Options:
                          unicode (left as it is; the default) or zawgyi
   --detector <name>      to-unicode, detect, check: rules (the default) or
                          myanmar-tools, installed next to knayi-myscript
-  --policy <policy>      segment: how a consonant with no mark is read:
+  --bare-consonants <p>  segment: how a consonant with no mark is read:
                          separate (the default), a syllable of its own;
                          chains, joined to the syllable after it; pairs,
-                         joined two by two, as 2.x syllBreak did
+                         joined two by two, and across white space, as 2.x
+                         syllBreak did
   --separator <text>     segment: what goes between syllables (default: |)
   --jsonl                read and write JSON Lines, one object per line; every
                          field but the one written is passed through as it was

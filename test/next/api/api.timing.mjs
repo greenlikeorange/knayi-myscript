@@ -67,7 +67,7 @@ const FUNCTIONS = {
   'toUnicode, offsets': (text) => toUnicode(text, { from: 'zawgyi', offsets: true }),
   toZawgyi: (text) => toZawgyi(text),
   segmentSyllables: (text) => segmentSyllables(text),
-  syllableBoundaries: (text) => syllableBoundaries(text, { policy: 'pairs' }),
+  syllableBoundaries: (text) => syllableBoundaries(text, { bareConsonants: 'pairs' }),
   truncate: (text) => truncate(text, { length: text.length >> 1 }),
   collapseRepeatedMarks: (text) => collapseRepeatedMarks(text)
 };

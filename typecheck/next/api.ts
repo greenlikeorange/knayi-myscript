@@ -75,17 +75,19 @@ const zawgyi: string = toZawgyi(unicode, { trace });
 // segmentSyllables and syllableBoundaries
 import { segmentSyllables, syllableBoundaries } from '../../src/index.js';
 
-const syllables: string[] = segmentSyllables(lines[0], { policy: 'pairs', font: 'zawgyi' });
+const syllables: string[] = segmentSyllables(lines[0], { bareConsonants: 'pairs', from: 'zawgyi' });
 const boundaries: number[] = syllableBoundaries(lines[0]);
 const pieces: string[][] = lines.map(segmentSyllables);
 // @ts-expect-error: the policies are separate, chains and pairs
-segmentSyllables('x', { policy: 'words' });
+segmentSyllables('x', { bareConsonants: 'words' });
+// @ts-expect-error: segmentSyllables reads Unicode or Zawgyi, not Win
+segmentSyllables('x', { from: 'win' });
 
 // truncate and collapseRepeatedMarks
 import { truncate, collapseRepeatedMarks } from '../../src/index.js';
 
-const cut: string = truncate(lines[0], { length: 10, omission: '\u2026', policy: 'separate' });
+const cut: string = truncate(lines[0], { length: 10, omission: '\u2026', bareConsonants: 'separate' });
 const cutDefault: string = truncate(lines[0], { length: null, omission: null });
-const collapsed: string = collapseRepeatedMarks(lines[0], { font: 'zawgyi' });
+const collapsed: string = collapseRepeatedMarks(lines[0], { from: 'zawgyi' });
 // @ts-expect-error: length is a number
 truncate('x', { length: '30' });

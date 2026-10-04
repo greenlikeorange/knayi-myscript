@@ -29,7 +29,7 @@ describe('knayi usage errors exit with 2, before reading any input', () => {
 
   it('an option the command does not take', () => {
     assertStops(['normalize', '--tie', 'zawgyi'], 2, /--tie does not apply to normalize/);
-    assertStops(['detect', '--policy', 'pairs'], 2, /--policy does not apply to detect/);
+    assertStops(['detect', '--bare-consonants', 'pairs'], 2, /--bare-consonants does not apply to detect/);
     assertStops(['to-zawgyi', '--detector', 'rules'], 2, /--detector does not apply to to-zawgyi/);
     assertStops(['detect', '--to', 'unicode'], 2, /--to is an option of convert; detect takes no --to/);
     assertStops(['normalize', '--field', 'body'], 2, /--field names a field of a record, and needs --jsonl/);
@@ -49,7 +49,7 @@ describe('knayi usage errors exit with 2, before reading any input', () => {
   });
 
   it('writes nothing to standard output', () => {
-    assert.equal(spawnKnayi(['segment', '--policy', 'all'], { input: 'abc\n' }).stdout, '');
+    assert.equal(spawnKnayi(['segment', '--bare-consonants', 'all'], { input: 'abc\n' }).stdout, '');
   });
 });
 

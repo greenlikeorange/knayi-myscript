@@ -12,7 +12,7 @@
 // project has from TypeScript's DOM library or from @types/node (typecheck/packed/stream.mts compiles with the
 // first). The types of '.' and './compat' need neither.
 
-import type { DetectorOptions, SourceFont } from './index.js';
+import type { DetectorOptions, SourceEncoding } from './index.js';
 
 /**
  * A chunk of a stream's text: a string, or UTF-8 bytes (an ArrayBuffer, or a view of one such as a Uint8Array or a
@@ -53,7 +53,7 @@ export declare function createNormalizer(options?: LineOptions | number | null):
 
 export interface ConverterOptions extends DetectorOptions, LineOptions {
   /** The font of the text. Not given: each line is detected alone, as toUnicode detects it. */
-  from?: SourceFont | null;
+  from?: SourceEncoding | null;
   /**
    * What to convert to: 'unicode', the default. 'zawgyi' throws 'ERR_KNAYI_INVALID_ARG_VALUE': the Unicode to Zawgyi
    * rules move e and medial ra across line breaks, so a stream cannot convert line by line to Zawgyi.
