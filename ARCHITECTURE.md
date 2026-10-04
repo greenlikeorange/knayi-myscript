@@ -72,11 +72,11 @@ The core holds no options and writes nothing to the console (DESIGN.md §4): eve
 - `core/nfc.js`: `NFC_MEMO`, facts about the runtime's Unicode data (which code points start or continue a run of non-starters, their decompositions and combining classes), never a result of a call.
 - The readers' scratch buffers (`engine/unicodeReader.js`, `engine/fontReader.js`), which a call resets and gives back when they grow past 65,536 units.
 - Three regexes of `rules/typingFixes.js` driven by `exec` loops, each left with `lastIndex` 0.
-- compat only: the 2.x option store (`compat/globalOptions.js`: `silent_mode` and the detector options) and the myanmar-tools loader (`compat/zawgyiModel.js`: the loaded model, the load error, and whether the "not installed" warning was printed).
+- compat only: the 2.x option store (`compat/globalOptions.js`: `silent_mode` and the detector options, a `zawgyiDetector` among them) and whether the warning for a myanmar-tools adapter with no detector has printed (`compat/zawgyiModel.js`).
 
 A stream's state lives in its own `LineMapper` object, made per call (`api/lines.js`), and no stream keeps anything at module level.
 
-compat's console output: missing content warns (`console.warn`), conversion errors use `console.error`, and both are silenced by `silent_mode`. One message ignores silent mode: the threshold error of the detector options. Nothing else in `src/` writes to the console.
+compat's console output: missing content warns (`console.warn`), conversion errors use `console.error`, and both are silenced by `silent_mode`. Since 2.11 silent mode silences every message, the threshold and detector errors of the detector options included, which start with a code (`[ERR_KNAYI_INVALID_THRESHOLD]`, `[ERR_KNAYI_INVALID_DETECTOR]`). Nothing else in `src/` writes to the console.
 
 ## What each 3.0 call does
 
@@ -131,7 +131,7 @@ Neighbouring lines join one piece, line break included, since the font pipeline 
 
 compat gives 2.x's output on every input. The core does the work; compat adds 2.x's preamble.
 
-What follows is compat's code today, which gives 2.10.0's output but for the 2.11 changes ported so far: one policy for font names, in any letter case, with a coded `TypeError` ([below](#syllbreak-spellingfix-and-truncate)); and the typing fixes in `normalize`'s order in the font pipeline, and the Unicode to Zawgyi rule for stacked jha, two changes to the core ([below](#typing-fixes-and-their-order), [and below](#detection-breaks-and-the-unicode-to-zawgyi-rules)). The 2.x reference has moved on to 2.11 (commit `8923365`), and its other changes wait for their ports: a `fontDetect` fallback that is a string or none; `null` options and checked detector options; no debug flag read from `this`; a report from `fontConvert.debugging` on every exit with text; a `truncate` that returns the start of the text; `detectEncoding`; the `zawgyiDetector` option; and no package loaded by name outside `main.js`. Each is ported into `src/` on its own, and until then the 2.x tests of it wait for it (`scripts/testing/pending-port.js`). compat's types, `src/compat/index.d.ts`, are 2.11's already. Every function starts the same way, with small differences (`compat/input.js`): `unboxString` unwraps `String` objects, and `enter` treats `null`, `undefined`, `''`, `0`, `false` and `NaN` as missing: the function warns (unless silent) and returns `''`, or the fallback or `'en'` for `fontDetect`. `truncate` does not count `''` as missing. Other non-strings are returned unchanged; `fontDetect` returns the fallback or `'en'` for them, and `truncate` turns them into strings. `hasMyanmarBlockChar` tests for a character in U+1000–U+109F.
+What follows is compat's code today, which gives 2.10.0's output but for the 2.11 changes ported so far: one policy for font names, in any letter case, with a coded `TypeError` ([below](#syllbreak-spellingfix-and-truncate)); a `fontDetect` fallback that is a string or none, `null` options, checked detector options, the `zawgyiDetector` option and no package loaded by name ([below](#fontdetectcontent-fallback-options)); and the typing fixes in `normalize`'s order in the font pipeline, and the Unicode to Zawgyi rule for stacked jha, two changes to the core ([below](#typing-fixes-and-their-order), [and below](#detection-breaks-and-the-unicode-to-zawgyi-rules)). The 2.x reference has moved on to 2.11 (commit `8923365`), and its other changes wait for their ports: no debug flag read from `this`; a report from `fontConvert.debugging` on every exit with text; a `truncate` that returns the start of the text; and `detectEncoding`. Each is ported into `src/` on its own, and until then the 2.x tests of it wait for it (`scripts/testing/pending-port.js`). compat's types, `src/compat/index.d.ts`, are 2.11's already. Every function starts the same way, with small differences (`compat/input.js`): `unboxString` unwraps `String` objects, and `enter` treats `null`, `undefined`, `''`, `0`, `false` and `NaN` as missing: the function warns (unless silent) and returns `''`, or the fallback or `'en'` for `fontDetect`. `truncate` does not count `''` as missing. Other non-strings are returned unchanged; `fontDetect` returns the fallback or `'en'` for them, and `truncate` turns them into strings. `hasMyanmarBlockChar` tests for a character in U+1000–U+109F.
 
 ### fontConvert(content, to, from)
 
@@ -172,12 +172,12 @@ So text with no Myanmar characters still comes back in NFC; `normalizeText` take
 
 ### fontDetect(content, fallback, options)
 
-1. Missing content, or no Myanmar character: the fallback, or `'en'`.
+1. The fallback is a string other than `''`, or a `String` object's string (`givenName`); any other value, such as the index `Array#map` passes, is none. Missing content, or no Myanmar character: the fallback, or `'en'`.
 2. `cleanText`: trim, and remove U+200B and U+200C.
 3. The fallback defaults to `'zawgyi'`.
-4. `mergeDetectorOptions(options)` merges the call's options with the stored ones. An explicit `adapter` (`'rules'` or `'myanmartools'`) wins; otherwise `use_myanmartools` picks myanmar-tools.
+4. `mergeDetectorOptions(options)` merges the call's options with the stored ones; `undefined` and `null` are none. A threshold that is not two finite numbers in order, or a `zawgyiDetector` with no `getZawgyiProbability` method, keeps the stored one, with an error unless silent. An explicit `adapter` (`'rules'` or `'myanmartools'`) wins; another name warns, unless silent, and `use_myanmartools` picks myanmar-tools.
 5. **Rules:** `countEvidence` (`rules/detect.js`) counts the matches of the 29 signatures (12 Unicode, 17 Zawgyi) in one pass, as 2.x's `String#match` of each signature counted them; `decide` gives the side with more, and a tie gives the fallback.
-6. **myanmar-tools:** loaded on first use, from the working directory (`process.getBuiltinModule('module').createRequire(process.cwd() + '/package.json')`), in Node and Bun only. A probability below the first threshold is `'unicode'`, above the second `'zawgyi'`, and in between the fallback. If the package cannot be loaded, the call uses the rules and warns once.
+6. **myanmar-tools:** the detector passed as `zawgyiDetector`, for the call or stored, scores the text (`scoreByZawgyiModel`): a probability below the first threshold is `'unicode'`, above the second `'zawgyi'`, and in between the fallback. compat loads no package, as 2.11's builds in `dist/` do: with no detector the call uses the rules and warns once, unless silent, that myanmar-tools is not available.
 
 `fontDetect` never returns `'win'`.
 
@@ -331,7 +331,7 @@ The writers record only when they are handed a log, so the fast paths, and compa
 - **Look-alikes:** zero (U+1040) and wa (U+101D), and seven (U+1047) and ra (U+101B), typed for each other.
 - **Tie:** equal evidence for Unicode and Zawgyi. 2.x's `fontDetect` returns the fallback, `'zawgyi'` when none is given; the 3.0 `detectEncoding` says `'unknown'`, and `toUnicode` leaves the line as it is. Short Unicode text, such as one consonant or a word whose only sign is a stacked consonant, ties often.
 - **Region:** a part of a text that one pass of the stable normalize reads and writes on its own (see [above](#normalize-the-stable-pipeline)).
-- **Silent mode:** compat's `setGlobalOptions({ silent_mode: true })`, which hides the warnings and errors (all but one, see [Module state](#module-state)).
+- **Silent mode:** compat's `setGlobalOptions({ silent_mode: true })`, which hides every warning and error it writes ([Module state](#module-state)).
 - **Output version:** `OUTPUT_VERSION`, which goes up with every deliberate change to what any function returns: 1 for 2.10.0's output, 2 since the 3.0 `normalize` settles, and 3 since the port of 2.11's output fixes, in both APIs.
 
 ## Stable surfaces

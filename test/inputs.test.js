@@ -98,7 +98,7 @@ describe('Array#map callbacks', () => {
 
   // Each waits for the 2.x change that makes it read map's index and array as setting nothing
   // (scripts/testing/pending-port.js).
-  const PENDING = { fontDetect: '86f0040', detectEncoding: '31eb6b1' };
+  const PENDING = { detectEncoding: '31eb6b1' };
   for (const name of ['fontDetect', 'detectEncoding', 'spellingFix', 'truncate', 'normalize']) {
     const test = () => {
       for (const silent of [false, true]) {

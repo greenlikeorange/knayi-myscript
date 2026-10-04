@@ -15,31 +15,21 @@
 // Each key is the 2.x commit that made the change; the port of a commit removes its key once no test names it.
 
 const PENDING = Object.freeze({
-  '86f0040': 'a fontDetect fallback that is not a string is no fallback (PR 4.4)',
-  'fb6594d': 'null options, and checked detector options with coded console errors (PR 4.5)',
   'd20027a': 'fontConvert reads no debug flag from this (PR 4.1)',
   'b6cbfca': 'fontConvert.debugging reports every exit with text (PR 4.2)',
   '41984eb': 'truncate returns a start of the text, and breaks only that start (PR 4.9)',
-  '31eb6b1': 'the detectEncoding export (Phase 5 item 1)',
-  '840c8c5': 'the zawgyiDetector option (Phase 5 item 2)',
-  '649b2b4': 'no package loaded by name outside main.js (decision 17 (c))'
+  '31eb6b1': 'the detectEncoding export (Phase 5 item 1)'
 });
 
-// The changes that change cells of the contract matrix (test/contract/api-matrix.json): font names, a fallback that
-// is not a string, the detector options, debugging's reports, truncate's prefix, detectEncoding, zawgyiDetector and
-// the package load. test/contract/api-matrix.test.js and scripts/bun-matrix.js check compat and its builds against
-// the matrix as waiting for them.
-const MATRIX_CHANGES = Object.freeze(['86f0040', 'fb6594d', 'b6cbfca', '41984eb', '31eb6b1',
-  '840c8c5', '649b2b4']);
+// The changes that change cells of the contract matrix (test/contract/api-matrix.json): debugging's reports,
+// truncate's prefix and detectEncoding. test/contract/api-matrix.test.js and scripts/bun-matrix.js check compat and its
+// builds against the matrix as waiting for them.
+const MATRIX_CHANGES = Object.freeze(['b6cbfca', '41984eb', '31eb6b1']);
 
 // The examples of the 2.x API in the documents that show a change compat does not have yet, by file and code (as
 // scripts/testing/readme-examples.js reads them), with the commit each waits for. test/readme.test.js and
 // test/next/compat-index.test.mjs run them as waiting for it.
 const PENDING_EXAMPLES = Object.freeze({
-  "MIGRATION.md compat.fontDetect('က', 1)": '86f0040',
-  "MIGRATION.md compat.fontDetect('ကျ', null, null)": 'fb6594d',
-  "MIGRATION.md compat.fontDetect('ကျ', null, { adapter: 'rule' })": 'fb6594d',
-  "MIGRATION.md compat.fontDetect('ကျ', null, { myanmartools_zg_threshold: [0.95, 0.05] })": 'fb6594d',
   "MIGRATION.md compat.detectEncoding('မဂၤလာပါ')": '31eb6b1',
   "MIGRATION.md compat.detectEncoding('မြန်မာ')": '31eb6b1',
   "MIGRATION.md compat.detectEncoding('က')": '31eb6b1',

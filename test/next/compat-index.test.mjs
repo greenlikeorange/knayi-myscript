@@ -45,7 +45,7 @@ describe('compat: the export object (C1)', () => {
   // setGlobalOptions and fontDetect lost their default options with fb6594d (null options), so their lengths are 1
   // and 3; detectEncoding's is 1.
   it('gives each function the length of its 2.x function, debugging included',
-    pendingPort(['fb6594d', '31eb6b1'], () => {
+    pendingPort('31eb6b1', () => {
       for (const name of FUNCTIONS) assert.equal(compat[name].length, reference[name].length, name);
       assert.equal(typeof compat.fontConvert.debugging, 'function');
       assert.equal(compat.fontConvert.debugging.length, reference.fontConvert.debugging.length);
@@ -63,10 +63,9 @@ describe('compat: the export object (C1)', () => {
 });
 
 // lines.map(knayi.f) passes (value, index, array): the index and the array land in the fallback, target, source,
-// font, separator and options positions. Where 2.11 reads them otherwise, the form waits for its port: a fallback
-// that is not a string (86f0040), detectEncoding (31eb6b1), and debugging's report (b6cbfca).
+// font, separator and options positions. Where 2.11 reads them otherwise, the form waits for its port:
+// detectEncoding (31eb6b1), and debugging's report (b6cbfca).
 const MAP_PENDING = {
-  fontDetect: '86f0040',
   detectEncoding: '31eb6b1',
   'fontConvert.debugging': 'b6cbfca'
 };

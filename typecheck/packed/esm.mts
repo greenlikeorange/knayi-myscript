@@ -58,22 +58,23 @@ const lines = [zawgyi, unicode, "abc"];
 check(lines.map(spellingFix)[1] === unicode, "lines.map(spellingFix)");
 check(lines.map(truncate)[2] === "abc...", "lines.map(truncate)");
 check(lines.map(compat.normalize)[1] === unicode, "lines.map(normalize)");
+// null options are no options, and a fallback that is not a string, such as map's index, is no fallback.
+check(fontDetect(zawgyi, null, null) === "zawgyi", "fontDetect with null options");
+setGlobalOptions(null);
+const fonts: string[] = lines.map(fontDetect);
+check(fonts.join() === "zawgyi,unicode,en", "lines.map(fontDetect)");
+// The project has no myanmar-tools: a detector passed as zawgyiDetector needs none, and compat loads no package.
+const unicodeDetector: ZawgyiDetectorLike = { getZawgyiProbability: () => 0 };
+check(fontDetect(zawgyi, null, { adapter: "myanmartools", zawgyiDetector: unicodeDetector }) === "unicode",
+  "zawgyiDetector");
 
 // Calls of the 2.x API that compile against its types, but run only once compat has the 2.x changes they need
-// (scripts/testing/pending-port.js): null options (fb6594d), detectEncoding (31eb6b1), zawgyiDetector (840c8c5) and
-// a fallback that is not a string (86f0040). Each port moves its calls up, to run; detectEncoding then joins the
-// named imports above (an import of a name compat does not export fails before any code runs).
+// (scripts/testing/pending-port.js): detectEncoding (31eb6b1). Its port moves the call up, to run, and
+// detectEncoding then joins the named imports above (an import of a name compat does not export fails before any
+// code runs).
 function untilPorted(): void {
-  check(fontDetect(zawgyi, null, null) === "zawgyi", "fontDetect with null options");
   const evidence: EncodingDetection = compat.detectEncoding(zawgyi);
   check(evidence.encoding === "zawgyi" && evidence.zawgyi > evidence.unicode, "detectEncoding");
-  // The project has no myanmar-tools: a detector passed as zawgyiDetector needs none.
-  const unicodeDetector: ZawgyiDetectorLike = { getZawgyiProbability: () => 0 };
-  check(fontDetect(zawgyi, null, { adapter: "myanmartools", zawgyiDetector: unicodeDetector }) === "unicode",
-    "zawgyiDetector");
-  setGlobalOptions(null);
-  const fonts: string[] = lines.map(fontDetect);
-  check(fonts.join() === "zawgyi,unicode,en", "lines.map(fontDetect)");
 }
 
 // './stream' is stream.mts's: its types name the runtime's TransformStream, which this project's lib leaves out, so

@@ -222,9 +222,9 @@ describe('floor emulation', () => {
   const expected = JSON.parse(execFileSync(process.execPath, [path.join(__dirname, '..', 'scripts', 'browser', 'node-results.js')],
     { maxBuffer: 1 << 27 }));
 
-  // Node with myanmar-tools hidden says "not installed"; with no `process`, compat says "not available" instead.
-  const NODE_ADAPTER_WARNING = /^warn: myanmar-tools is not installed;/;
-  const FLOOR_ADAPTER_WARNING = 'warn: myanmar-tools is not available in this environment; fontDetect used the rule scorer.';
+  // compat loads no package by name (2.11, 649b2b4), so with no detector the adapter warns this in Node as in a
+  // browser.
+  const ADAPTER_WARNING = 'warn: myanmar-tools is not available in this environment; fontDetect used the rule scorer.';
 
   // A vm context with the post-floor built-ins removed and the script build `file` run in it.
   function floorContext(file) {
@@ -248,18 +248,10 @@ describe('floor emulation', () => {
 
   // The 2.x API's results, the adapter warning once at the first adapter call.
   function checkCompat(actual) {
-    let adapterWarnings = 0;
-    const diffs = examples.differences(calls.compat, actual, expected.compat, {
-      same(i, a, b) {
-        const floorLines = (a.console || []).map((line) => line === FLOOR_ADAPTER_WARNING ? 'adapter warning' : line);
-        const nodeLines = (b.console || []).map((line) => NODE_ADAPTER_WARNING.test(line) ? 'adapter warning' : line);
-        if (floorLines.indexOf('adapter warning') !== -1) adapterWarnings++;
-        return JSON.stringify(Object.assign({}, a, { console: floorLines })) ===
-          JSON.stringify(Object.assign({}, b, { console: nodeLines }));
-      }
-    });
+    const diffs = examples.differences(calls.compat, actual, expected.compat);
     assert.deepEqual(diffs, [], diffs.join('\n'));
-    assert.equal(adapterWarnings, 1, 'the adapter warning appears once, at the first adapter call');
+    const warned = actual.filter((result) => (result.console || []).indexOf(ADAPTER_WARNING) !== -1);
+    assert.equal(warned.length, 1, 'the adapter warning appears once, at the first adapter call');
   }
 
   it('knayi.compat in knayi.min.js gives compat\'s results without the post-floor built-ins', () => {

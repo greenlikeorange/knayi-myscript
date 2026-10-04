@@ -6,7 +6,6 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 const { test, expect } = require('@playwright/test');
 const examples = require('./examples');
-const { pendingPort } = require('../testing/pending-port');
 
 const calls = { compat: examples.allCalls(), api: examples.apiCalls() };
 let nodeResults = null;
@@ -19,23 +18,15 @@ function expected() {
   return nodeResults;
 }
 
-// A browser has no `process`, so compat's adapter examples warn this where Node with myanmar-tools missing says
-// "is not installed". The return values are the same.
-const BROWSER_ADAPTER_WARNING = 'warn: myanmar-tools is not available in this environment; fontDetect used the rule scorer.';
-const NODE_ADAPTER_WARNING = /^warn: myanmar-tools is not installed;/;
+// compat loads no package by name (2.11, 649b2b4), so with no detector its adapter examples warn this in a browser
+// as in Node.
+const ADAPTER_WARNING = 'warn: myanmar-tools is not available in this environment; fontDetect used the rule scorer.';
 
 function compareCompat(actual) {
-  let adapterWarnings = 0;
-  const diffs = examples.differences(calls.compat, actual, expected().compat, {
-    same(i, a, b) {
-      const browser = (a.console || []).map((line) => line === BROWSER_ADAPTER_WARNING ? 'adapter warning' : line);
-      const node = (b.console || []).map((line) => NODE_ADAPTER_WARNING.test(line) ? 'adapter warning' : line);
-      if (browser.indexOf('adapter warning') !== -1) adapterWarnings++;
-      return JSON.stringify(Object.assign({}, a, { console: browser })) === JSON.stringify(Object.assign({}, b, { console: node }));
-    }
-  });
+  const diffs = examples.differences(calls.compat, actual, expected().compat);
   expect(diffs, diffs.join('\n')).toEqual([]);
-  expect(adapterWarnings, 'the adapter warning appears once').toBe(1);
+  const warned = actual.filter((result) => (result.console || []).indexOf(ADAPTER_WARNING) !== -1);
+  expect(warned.length, 'the adapter warning appears once').toBe(1);
 }
 
 function compareApi(actual) {
@@ -115,12 +106,9 @@ function detectWith(lib, ZawgyiDetector, probes) {
 }
 
 // The 2.x API's builds: knayi.compat of knayi.min.js (page.html), knayi of knayi-myscript.min.js (page-2x.html), and
-// the default export of the compat module build. Node's results come from compat with myanmar-tools 1.1.3. The test
-// waits for the port of the zawgyiDetector option (scripts/testing/pending-port.js).
+// the default export of the compat module build. Node's results come from compat with myanmar-tools 1.1.3.
 test('the script and module builds use a ZawgyiDetector passed as zawgyiDetector', async ({ page }) => {
-  await pendingPort('840c8c5', async () => {
-    await detectorInBuilds(page);
-  })();
+  await detectorInBuilds(page);
 });
 
 async function detectorInBuilds(page) {

@@ -1,6 +1,5 @@
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
-const { pendingPort } = require('../scripts/testing/pending-port');
 // The 2.x option store: compat's, on the 3.0 core.
 var globalOptions = require('../src/compat/globalOptions.js');
 describe('globalOptions',()=>{
@@ -27,7 +26,7 @@ describe('globalOptions',()=>{
       })
     })
 
-    it('takes undefined and null as no options', pendingPort(['fb6594d', '840c8c5'], () => {
+    it('takes undefined and null as no options', () => {
       globalOptions.setGlobalOptions({
         silent_mode: true,
         detector: { use_myanmartools: true, myanmartools_zg_threshold: [0.2, 0.8] }
@@ -40,7 +39,7 @@ describe('globalOptions',()=>{
       assert.deepEqual(globalOptions.mergeDetectorOptions(undefined), { use_myanmartools: true, myanmartools_zg_threshold: [0.2, 0.8], zawgyiDetector: null })
       globalOptions.setGlobalOptions({ detector: null })
       assert.deepEqual(globalOptions.mergeDetectorOptions({}), { use_myanmartools: true, myanmartools_zg_threshold: [0.2, 0.8], zawgyiDetector: null })
-    }))
+    })
 
     it('keeps a stored threshold when a later call only sets the adapter flag', () => {
       globalOptions.setGlobalOptions({
@@ -65,7 +64,7 @@ describe('globalOptions',()=>{
       })
     })
 
-    it('stores a detector, keeps it when a later call leaves it out, and lets a call use another', pendingPort('840c8c5', () => {
+    it('stores a detector, keeps it when a later call leaves it out, and lets a call use another', () => {
       assert.equal(globalOptions.mergeDetectorOptions({}).zawgyiDetector, null)
       globalOptions.setGlobalOptions({ detector: { zawgyiDetector: first } })
       assert.equal(globalOptions.mergeDetectorOptions({}).zawgyiDetector, first)
@@ -73,14 +72,14 @@ describe('globalOptions',()=>{
       assert.equal(globalOptions.mergeDetectorOptions(null).zawgyiDetector, first)
       assert.equal(globalOptions.mergeDetectorOptions({ zawgyiDetector: second }).zawgyiDetector, second)
       assert.equal(globalOptions.mergeDetectorOptions({}).zawgyiDetector, first)
-    }))
+    })
 
-    it('reads undefined and null as no detector', pendingPort('840c8c5', () => {
+    it('reads undefined and null as no detector', () => {
       globalOptions.setGlobalOptions({ detector: { zawgyiDetector: first } })
       assert.equal(globalOptions.mergeDetectorOptions({ zawgyiDetector: null }).zawgyiDetector, null)
       assert.equal(globalOptions.mergeDetectorOptions({ zawgyiDetector: undefined }).zawgyiDetector, undefined)
       globalOptions.setGlobalOptions({ detector: { zawgyiDetector: null } })
       assert.equal(globalOptions.mergeDetectorOptions({}).zawgyiDetector, null)
-    }))
+    })
   })
 })

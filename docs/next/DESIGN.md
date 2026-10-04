@@ -116,6 +116,7 @@ The recommended option of each decision below is adopted.
 | 14 | truncate's prefix fix ships in 2.11 as its own pull request; the option changes (`''`, `0`, `== null`) wait for 3.0 | compat keeps 2.10.0's `truncate`, which is not always a prefix (§10 Q5, C23). 3.0's `truncate` is a prefix that stops early, takes `''` as an omission and `0` as a length, and reads `undefined` and `null` as the defaults (§11.7). |
 | 15 | Typos before look-alikes in both pipelines | 2.11 made it (2.x ab3676e), and the port puts `typos` before `look-alikes` in `FONT_STAGES`, so compat and the 3.0 API convert alike (§8, §10 Q8). `OUTPUT_VERSION` is 3 since. |
 | 16 | normalize keeps NFC on text with no Myanmar | The no-Myanmar fast path returns `toNfc(text)`. |
+| 17 | (c) An injected detector, and no package loaded by name outside `main.js` | Adopted with the port of 2.11 (2.x 840c8c5 and 649b2b4, §8), where it was first left out (D3): compat takes a detector as `zawgyiDetector`, per call or stored, and loads no package at all, as 2.x's builds in `dist/` do. With no detector the adapter uses the rule scorer and warns once (`compat/zawgyiModel.js`, C26). The core and the 3.0 API took the detector as an argument from the start. |
 | 18 | (b) Raise the floor to engines with full ES2015 | `src/` uses ES2015 syntax and built-ins only (`TypedArray#fill` is allowed). Checked by a test with a listed denylist (§6.2). The 3.0 builds and their floor tests follow it at Chrome 51, Edge 15, Firefox 54 and Safari 10.1, the release with classes (§14), and the 3.0 release notes state the new floor. |
 | 20 | (c) now, (b) in 3.0 | `codes.js` states the Unicode version it matches, and a test checks it against the runtime. Extended-C digits and code-point iteration are a deliberate 3.0 output change, made later. The readers keep reading UTF-16 units and never split a surrogate pair. |
 | 28 | Only the two simple gates | The no-Myanmar fast path and the final-NFC gate (§3.10). No typo or look-alike gates (PR 2.7 is not built). As reviewed (§7.11), Unicode to Zawgyi skips the rows that cannot match (§3.10, gate 3): it couples no rule to another module's trigger bits, since each row names its own `needs`, and it was measured end to end, 2.5-2.7x per word. The font pipeline's final NFC is gated too (gate 4): decision 28 asked for a fused prototype that beats the ungated pipeline on one big string, and this one costs one OR per glyph written whole, reads 0.97 of the ungated pipeline on one string and 0.87-0.89 per line and word. |
@@ -128,7 +129,7 @@ The recommended option of each decision below is adopted.
 | 35 | Delete parseUnicode and serializeUnicode | Not ported; deleted with `library/` (§14). The frozen copy of `syllable.js` in `scripts/oracle/` keeps them, unused. |
 | 36 | normalize idempotent by construction in 3.0 | 3.0's `normalize`: two targeted fixes, then a bounded fixpoint on the regions the first pass changed (§11.2). compat stays non-idempotent, exactly like 2.x. |
 
-Decisions 5 and 17 are not adopted. §1.4 says what this spec does instead (D6 and D3).
+Decision 5 is not adopted. §1.4 says what this spec does instead (D6). Decision 17 was not adopted either (D3) until the port of 2.11 brought it into compat.
 
 ### 1.4 Decisions this spec makes where the plan leaves it open
 
@@ -136,7 +137,7 @@ Decisions 5 and 17 are not adopted. §1.4 says what this spec does instead (D6 a
 |---|---|---|
 | D1 | **The 2.x public-layer pieces live in compat, not in the core.** These are: the input policy rows and `enter()` with its warnings; the global option store and `setGlobalOptions`; the 2.x merge of detector options; the 2.x font-name and rule-table lookups. `core/options.js` and `core/input.js` keep only what 3.0 shares: defaults, the font registry, text predicates and `requireText`. | The core is stateless and silent (Phase 6 #1, §4). The plan designed these pieces for the 2.x layout, where the public layer and the engine sat in one package. The 3.0 API validates strictly and throws, which 2.x never does. |
 | D2 | **compat is a strict ES module.** A detached `fontConvert` call never reads `debug` from the global object. In those 10 matrix cells compat matches the 2.x ES module build, and the matrix records them as a known build difference, as it already does for `knayi-myscript.mjs` (§5.4). | Reproducing the sloppy-mode read would mean reading `globalThis.debug` on purpose. That brings back global state and §7 bug #2, which PR 4.1 removes from 2.x. The 2.x ES module build already behaves like this. |
-| D3 | **compat loads myanmar-tools the way the 2.x ES module build does:** by name, from the working directory, in Node and Bun only. This happens in one file, `compat/zawgyiModel.js`. The core takes the detector as an injected object. `main.js` looks the package up from `library/` instead, so this is the second known build difference (§5.4). | Decision 17 is not adopted, so compat keeps the 2.x behaviour (§10 Q15). The core never loads code (§4). Injection for compat (Phase 5 #2) arrives with the 2.x port. |
+| D3 | **compat loaded myanmar-tools the way the 2.10 ES module build did:** by name, from the working directory, in Node and Bun only, in one file, `compat/zawgyiModel.js`, and `main.js` from `library/`: the second known build difference (§5.4). Since the port of 2.11 compat loads no package, as 2.11's ES module build does (decision 17), and takes the detector as `zawgyiDetector`. The core takes the detector as an injected object. | Decision 17 was not adopted, so compat kept the 2.10 behaviour (§10 Q15) until 2.11 adopted it (840c8c5, 649b2b4). The core never loads code (§4). |
 | D4 | **One trace shape for both kinds of 2.x debug log.** A trace is `{start, records}`. compat builds `steps` as `[start, ...records.map(r => r.text)]`. | 2.x logs font stages as "input, then the text after each stage that changed it", and Unicode to Zawgyi rules as "the text before each logged rule, then the result". The second is the same list as the first, with the collapsed text as `start` (§3.9). One recorder serves both. |
 | D5 | **`fontToUnicode(text, fontName)` takes the font's name.** The compiled fonts stay private to `stages/fonts.js`. | Callers (compat now, the 3.0 API later) name a font. Only the stages need the compiled form. |
 | D6 | **No internal switch back to the 2.10 engine** (decision 5's rollback switch). | Under decision 6(b) the new engine ships with 3.0. A user who needs the old engine stays on the 2.x line, and a 2.x branch is cut when 3.0 reaches main (decision 7). `scripts/oracle/` stays as the test oracle. |
@@ -154,7 +155,7 @@ Decisions 5 and 17 are not adopted. §1.4 says what this spec does instead (D6 a
 | D18 | **The 2.x reference is the commit `e5f6e24`**, not the branch `safety-net` (§1.1); since the merge of the 2.x line, the commit `8923365` (§8). | A branch can move, and byte identity needs a fixed reference. A bare branch name does not resolve in CI. |
 | D19 | **Module tests reach 2.x private code only through `scripts/oracle/`**, frozen at the reference. W0 adds byte-for-byte copies of `library/syllable.js` and `library/contentGate.js` there, and a `dir` option to `loadWithInternals`. compat's tests compare with the live `library/`. | §8 merges `main` into `next`, and the 2.x speed wins rewrite `library/`'s private code (for example PR 1.4's glyph array and PR 1.6's mark bit set). A module test that read `library/` would then break, or quietly test a different engine. compat follows the 2.x line port by port, so it is compared with the live library, and with the reference only through public functions: compare and the matrix. (As packaged, §14: `library/` is gone, `scripts/oracle/` holds all 13 of its files and its `main.js`, and compat's tests compare with them; a port moves them to the new reference, §8.) |
 | D20 | **`core/nfc.js` may keep one memo, `NFC_MEMO`**, of facts about the runtime's Unicode data: which code points start or continue a run of non-starters, their decompositions and their combining classes. The stateless guard exempts it by name. | The 2.x line's linear NFC helper (d170cd8, ported by W1, §7.3) reads combining classes from `String#normalize` with probes, and keeps them, because JavaScript has no table of them. Building the table eagerly would probe every code point at import. The memo is deterministic and bounded (§3.11): it never holds a result of a call, so outputs still depend only on the arguments and the runtime's NFC data (§4 rule 6). |
-| D21 | **The myanmar-tools loader is built by a factory**, `createZawgyiModelLoader(requireFn)`. compat uses one shared instance, which holds the loaded model, the load error and the warned flag. `fontDetectCore` takes the loader as an optional last argument. | An ES module cannot be loaded fresh the way the 2.x adapter tests reload `detector.js`. In Node, `import('x.js?copy=N')` runs only that file again, and its imports stay shared; in Bun 1.4.2 a second `?copy=` import returns the same instance. `bun test ./test` runs every test file in one process, so per-process state would leak between files. Tests build their own loaders with stub requires instead. |
+| D21 | **The myanmar-tools state is built by a factory**: until the port of 2.11 a loader, `createZawgyiModelLoader(requireFn)`, which held the loaded model, the load error and the warned flag; since then, when compat loads no package, a notice, `createNoDetectorNotice()`, which holds only whether the warning for a missing detector has printed. compat uses one shared instance, and `fontDetectCore` takes it as an optional last argument. | An ES module cannot be loaded fresh the way the 2.x adapter tests reload `detector.js`. In Node, `import('x.js?copy=N')` runs only that file again, and its imports stay shared; in Bun 1.4.2 a second `?copy=` import returns the same instance. `bun test ./test` runs every test file in one process, so per-process state would leak between files. Tests build their own loaders with stub requires instead. |
 | D22 | **The binding speed check is: no Node row slower than the reference, and every growth exponent ≤ 1.3** under Node and Bun. The ratios of §6.4 are goals, reported with their margins. Rows marked "estimate" never block. | Several goals sit 1-3% from their evidence, inside perf's A/A noise of about ±2.5%. The evidence was timed on 32k corpus lines, while perf times 400 FLORES lines, and on prototypes that kept their hot state in closure locals rather than in this spec's buffer objects and stage runner. |
 | D23 | **Each fuzz test has an explicit nightly count**, and the nightly counts run on `next`. A long run uses `min(prCount × KNAYI_FUZZ_SCALE, nightlyCount)`. W0 adds a `next` leg to `main`'s nightly fuzz workflow, and the gate runs the nightly counts once by hand (§6.3). | A scheduled workflow runs the default branch's file on the default branch, and `main` has no `test/next`. Scale 100 would turn each 200k PR count into 20M strings, which does not fit the fuzz job's 30 minutes. |
 
@@ -1201,10 +1202,10 @@ It also checks freezing. Every exported plain object and array must be `Object.i
 | File | Exports | Holds |
 |---|---|---|
 | `compat/index.js` | `version`, `setGlobalOptions`, `fontDetect`, `fontConvert`, `syllBreak`, `spellingFix`, `truncate`, `normalize` (named), and `default` | The export object: those 8 keys in that order, plus a non-enumerable `default` that points to the object itself (main.js:13-26). `version` is `PACKAGE_VERSION`. |
-| `compat/globalOptions.js` | `setGlobalOptions`, `isSilentMode`, `storedDetectorOptions`, `mergeDetectorOptions`, `report`, `reportAlways`, `MESSAGES` | The option store. It and the loader instance of `zawgyiModel.js` are compat's only module state. It is the only file that writes to the console. `report(level, message)` checks silent mode at call time and returns whether it printed. Both writers look `console[level]` up at call time, never at load, because the matrix swaps the console methods per cell. |
+| `compat/globalOptions.js` | `setGlobalOptions`, `isSilentMode`, `storedDetectorOptions`, `mergeDetectorOptions`, `report`, `MESSAGES` | The option store. It and the notice instance of `zawgyiModel.js` are compat's only module state. It is the only file that writes to the console. `report(level, message)` checks silent mode at call time and returns whether it printed; since 2.11 every message goes through it (`reportAlways`, for 2.10's threshold message, went with the port). It looks `console[level]` up at call time, never at load, because the matrix swaps the console methods per cell. |
 | `compat/input.js` | `INPUT_POLICY`, `enter`, `unboxString`, `cleanText`, `resolveFont`, `givenName`, `breakFont`, `ON_TIE_ASSUME_ZAWGYI` | The 2.x preamble (D1), with 2.11's font names |
 | `compat/legacy.js` | `toJoinSeparator`, `legacyWinTables` | The `syllBreak` separator as `Array#join` converts it, and the 2.x shape of the Win tables: `legacyWinTables()` returns library/win.js's `{ WIN, SEQUENCES, ROLES }` (role strings, the C1 controls as keys sharing their key's row, `[RegExp, replacement]` pairs), with new objects and RegExps at each call, for compat and the shim of library/win.js when 3.0 deletes library/ (§9) |
-| `compat/zawgyiModel.js` | `createZawgyiModelLoader`, `zawgyiModelLoader` | The myanmar-tools loader (D3, D21). It imports no other compat file, and writes nothing to the console. |
+| `compat/zawgyiModel.js` | `createNoDetectorNotice`, `noDetectorNotice` | Whether the warning for a myanmar-tools adapter with no detector has printed (D3, D21). compat loads no package since the port of 2.11 (decision 17), so this replaced the loader. It imports no other compat file, and writes nothing to the console. |
 | `compat/fontDetect.js` | `fontDetect`, `fontDetectCore`, `detectForRouting` | |
 | `compat/fontConvert.js` | `fontConvert` (with `.debugging`) | |
 | `compat/text.js` | `normalize`, `syllBreak`, `spellingFix`, `truncate` | |
@@ -1228,37 +1229,35 @@ The two shared signatures:
 // cleanText. spellingFix reads givenName(name) itself, and detects for null.
 export function breakFont(fontType: unknown, apiName: 'syllBreak' | 'truncate'): 'unicode' | 'zawgyi' | null
 
-// compat/zawgyiModel.js
-type ZawgyiModelLoader = Readonly<{
-  load(): ZawgyiModel | null,   // the first call tries to load and records the outcome; later calls return it
-  missingMessage(): string,     // the §5.3 text for the recorded outcome
-  // Calls write(missingMessage()) unless a warning has already printed, and records that one printed only when
-  // write returns true. So a call in silent mode leaves the next call free to warn (C26).
-  warnOnce(write: (message: string) => boolean): void
+// compat/zawgyiModel.js. Until the port of 2.11 a loader (createZawgyiModelLoader(requireFn)) loaded the package
+// from the working directory; compat loads none since (decision 17), and only the warning keeps state.
+type NoDetectorNotice = Readonly<{
+  // Calls write() unless a warning has already printed, and records that one printed only when write returns true.
+  // So a call in silent mode leaves the next call free to warn (C26).
+  warnOnce(write: () => boolean): void
 }>
-// requireFn(id) returns the package, throws its load error, or returns null where there is no Node-style require.
-export function createZawgyiModelLoader(requireFn: (id: string) => unknown): ZawgyiModelLoader
-// The one instance compat uses. Its requireFn builds the require of C26 at its first call, from the working
-// directory at that moment, not at import.
-export const zawgyiModelLoader: ZawgyiModelLoader
+export function createNoDetectorNotice(): NoDetectorNotice
+// The one instance compat uses.
+export const noDetectorNotice: NoDetectorNotice
 ```
 
 The flows, as the builder writes them. `enter` returns `{kind: 'missing' | 'other' | 'text', value}`.
 
 ```
-fontDetect(content, fallback_font_type, options = {})            // length 2, as in 2.x
-  input = enter('fontDetect', content); if input.kind !== 'text': return fallback_font_type || 'en'
-  if !hasMyanmarBlockChar(input.value): return fallback_font_type || 'en'
-  return fontDetectCore(input.value, fallback_font_type || 'zawgyi', options)
+fontDetect(content, fallback_font_type, options)                 // length 3, as in 2.11
+  given = givenName(fallback_font_type)                         // 2.11: a fallback that is not a string is none
+  input = enter('fontDetect', content); if input.kind !== 'text': return given || 'en'
+  if !hasMyanmarBlockChar(input.value): return given || 'en'
+  return fontDetectCore(input.value, given || 'zawgyi', options)
 
-fontDetectCore(text, fallback, options, loader = zawgyiModelLoader)   // compat never passes loader; tests do
+fontDetectCore(text, fallback, options, notice = noDetectorNotice)   // compat never passes notice; tests do
   cleaned = cleanText(text)                                     // trim, then stripZeroWidthBreaks
-  requested = options.adapter                                   // null options: TypeError here, as in 2.x
-  merged = mergeDetectorOptions(options)                        // may print the threshold error
-  if pickAdapter(requested, merged) === 'rules': return decide(countEvidence(cleaned), fallback)
-  model = loader.load()
+  requested = options && options.adapter                        // 2.11: null options are none
+  merged = mergeDetectorOptions(options)                        // may print the threshold and detector errors
+  if pickAdapter(requested, merged) === 'rules': return decide(countEvidence(cleaned), fallback)   // may warn
+  model = merged.zawgyiDetector                                 // 2.11: the detector of the call, or the stored one
   if !model:
-    loader.warnOnce(function (message) { return report('warn', message) })   // silent-aware
+    notice.warnOnce(function () { return report('warn', MESSAGES.noDetector) })   // silent-aware
     return decide(countEvidence(cleaned), fallback)
   return scoreByZawgyiModel(cleaned, model, merged.myanmartools_zg_threshold, fallback)
 
@@ -1297,9 +1296,9 @@ Each row is a behaviour of the reference library that the contract matrix or com
 | # | 2.x behaviour (where) | Provided by |
 |---|---|---|
 | C1 | Eight exports in order, a non-enumerable `default` pointing back at the object, and `fontConvert.debugging`. Function lengths: `setGlobalOptions` 0, `fontDetect` 2, `fontConvert` 3, `syllBreak` 3, `spellingFix` 2, `truncate` 2, `normalize` 1, `debugging` 3 (main.js:13-26). Function names are not part of the contract. | `compat/index.js`, with the same default parameters |
-| C2 | Store `{silent_mode: false, detector: {use_myanmartools: false, myanmartools_zg_threshold: [0.05, 0.95]}}` (globalOptions.js:1-7) | `globalOptions.js`, initialised from core `DEFAULTS` |
-| C3 | `setGlobalOptions(options = {})`. Own enumerable keys, read with `Object.keys`, so `null` throws a TypeError. `silent_mode` is stored as given, and any truthy value is silent. `detector` is merged by C4. Returns undefined. | `setGlobalOptions` |
-| C4 | The detector merge (globalOptions.js:13-35): `hasOwnProperty` per key; missing keys come from the *current* store; the threshold must be an array whose `[0]` and `[1]` are of type number, so NaN passes; otherwise `console.error` the threshold message **even in silent mode** and keep the stored threshold. The result's threshold is a copy. | `mergeDetectorOptions`, `reportAlways` |
+| C2 | Store `{silent_mode: false, detector: {use_myanmartools: false, myanmartools_zg_threshold: [0.05, 0.95], zawgyiDetector: null}}` (2.11's globalOptions.js OPTIONS) | `globalOptions.js`, initialised from core `DEFAULTS` |
+| C3 | `setGlobalOptions(options)`, length 1: `undefined` and `null` change nothing (2.11, fb6594d). Own enumerable keys, read with `Object.keys`. `silent_mode` is stored as given, and any truthy value is silent. `detector` is merged by C4, after `silent_mode`. Returns undefined. | `setGlobalOptions` |
+| C4 | The detector merge (2.11's globalOptions.js detector): `undefined` and `null` are no options; `hasOwnProperty` per key; missing keys come from the *current* store; each of the three keys is read before any check. The threshold must be two finite numbers, the first no greater than the second (fb6594d); otherwise the threshold error, unless silent, and the stored threshold stays. `zawgyiDetector` must be `undefined`, `null` (no detector) or have a `getZawgyiProbability` method (840c8c5); otherwise the detector error, unless silent, and the stored detector stays. The result's threshold is a copy. | `mergeDetectorOptions`, `report` |
 | C5 | String objects are unwrapped by their `[object String]` tag (contentGate.js:17-19) | `unboxString` in `enter` |
 | C6 | Missing content: `null`, `undefined`, `''`, `0`, `false` or `NaN` warns (silent-aware) and returns `''`. `fontDetect` returns `fallback \|\| 'en'`. For `truncate`, `''` is not missing. | `INPUT_POLICY`, `enter` |
 | C7 | Other non-strings: returned as they are. `fontDetect` returns `fallback \|\| 'en'`. `truncate` uses `String(content)`, so `Object.create(null)` throws a TypeError. | `INPUT_POLICY`, `enter` |
@@ -1308,7 +1307,7 @@ Each row is a behaviour of the reference library that the contract matrix or com
 | C10 | Font names (2.x contentGate.js resolveFont): `null`, `undefined` and `''` mean none. A string, or a `String` object's string, is read in any letter case (2.11, 579be3d). Any other value goes to `Object.prototype.hasOwnProperty.call(aliases, name)`, which converts it to a property key, so `['zawgyi']` resolves, `['Zawgyi']` does not, and an object whose `toString` throws, throws. | `resolveFont` over core `FONT_ALIASES` |
 | C11 | `syllBreak`, `spellingFix` and `truncate` (2.11, 24f81c6): a font that is not a string, or `''`, means detection with fallback `'zawgyi'` (contentGate.js givenName). `syllBreak` and `truncate` take a name of Unicode or Zawgyi, and throw a `TypeError` with the code `ERR_KNAYI_INVALID_FONT` and the message `knayi.<name> takes the font 'unicode' or 'zawgyi', not "<font>".` for any other (contentGate.js breakFont). Each detects on a different text (§5.1). | `breakFont(fontType, apiName) \|\| detectForRouting(text)`; `givenName` |
 | C12 | `spellingFix` collapses with the Zawgyi marks for a name of Zawgyi, and with the Unicode marks for any other name, `'win'`, unknown names and `Object.prototype`'s included: 2.11 looks the set up by an own key (syllableRules.js collapseMarks). Until 2.11, 2.x looked its rule tables up as plain-object properties, so the names of `Object.prototype` members threw an accidental TypeError or ran no rule (D13). | `collapseRepeatedMarks(text, font === 'zawgyi' ? 'zawgyi' : 'unicode')` |
-| C13 | `fontDetect` (detector.js:126-156):<ul><li>`fallback \|\| 'zawgyi'` for detection, and a tie returns the fallback as given, of any type;</li><li>`options = {}` only for undefined, and `options.adapter` is read before the merge;</li><li>the adapter is the requested one when that is `'rules'` or `'myanmartools'`; otherwise myanmar-tools when the merged `use_myanmartools` is truthy, else the rules. So `{adapter: 'foo'}` falls through to `use_myanmartools`;</li><li>the model path uses the merged threshold;</li><li>if loading failed, warn once and use the rules.</li></ul> | `fontDetect`, `fontDetectCore`, `pickAdapter`; core `scoreByZawgyiModel` |
+| C13 | `fontDetect` (2.11's detection.js), length 3:<ul><li>the fallback is a string other than `''`, or a `String` object's string, returned as given; any other value is none (86f0040), so `fallback \|\| 'zawgyi'` for detection and `fallback \|\| 'en'` with no Myanmar text;</li><li>`undefined` and `null` options are none, and `options.adapter` is read before the merge (fb6594d);</li><li>the adapter is the requested one when its name (read as `givenName` reads it) is `'rules'` or `'myanmartools'`; another name warns, unless silent; otherwise myanmar-tools when the merged `use_myanmartools` is truthy, else the rules;</li><li>the myanmar-tools path scores with the merged `zawgyiDetector` against the merged threshold (840c8c5);</li><li>with no detector, warn once and use the rules (C26).</li></ul> | `fontDetect`, `fontDetectCore`, `pickAdapter`; core `scoreByZawgyiModel` |
 | C14 | The rule scorer: the `String#match` counts of the 29 signatures on the cleaned text; unicode > zawgyi, unicode < zawgyi, else the fallback | core `countEvidence`, `decide` |
 | C15 | `fontConvert`'s order of checks, messages and trims (converter.js:11-59; §5.1). The source is detected on the trimmed text, with the global detector options. The same font returns the trimmed text. Win as a target, or Win to anything but Unicode, is an error that returns the trimmed text. | `fontConvert` |
 | C16 | The debug flag is `this && this.debug`, read after the early exits. `debugging` is `fontConvert.apply({debug: true}, [a, b, c])`. A detached call: §5.4. | `fontConvert` |
@@ -1321,7 +1320,7 @@ Each row is a behaviour of the reference library that the contract matrix or com
 | C23 | `truncate` (truncate.js):<ul><li>`options \|\| {}`; `length \|\| 30`; `omission \|\| '...'`; budget = `length - omission.length`, NaN allowed;</li><li>text with no Myanmar block character: `text.substr(0, budget) + omission`;</li><li>otherwise it detects on `String(content)`, before trim and zero-width removal, and breaks the cleaned text (§5.1);</li><li>whole parts while they fit; a part that does not fit is split on `\s` and adds the words that fit, each followed by a space; then trim, plus the omission;</li><li>not always a prefix (§10 Q5).</li></ul> | `truncate` with `fitParts`; `breakFont`; core `breakParts` |
 | C24 | `normalize`: NFC, the reader, typos, look-alikes, NFC (normalization.js:22-23). Text with no Myanmar still gets NFC. Typos run before look-alikes, as the fonts run them since the port of 2.11 (zero as wa, then typos, then look-alikes; §10 Q8, fixed). Not idempotent on garbled input (§10 Q12). | core `normalizeText` |
 | C25 | The console messages and when they print (§5.3) | `MESSAGES`, `report`, `reportAlways` |
-| C26 | myanmar-tools is loaded at most once per process, by the first call that needs it, as the 2.x ES module build does: Node and Bun only, through `process.getBuiltinModule('module').createRequire(process.cwd() + '/package.json')`. It is not loaded in other runtimes. A package without `ZawgyiDetector` counts as a load error. One of three messages is printed once. The warned flag is set only when a message is printed. `main.js` resolves the package from `library/` instead (§5.4). | the shared `zawgyiModelLoader` (D3, D21): it holds the model, the error and the warned flag |
+| C26 | compat loads no package by name, as 2.11's builds in `dist/` do (649b2b4, decision 17): the myanmar-tools adapter with no detector uses the rules and warns `myanmar-tools is not available in this environment; fontDetect used the rule scorer.` once. The warned flag is set only when the message is printed. `main.js` loads the package from its own folder instead (§5.4). Until the port compat loaded it from the working directory, as 2.10's ES module build did. | the shared `noDetectorNotice` (D3, D21): it holds the warned flag |
 | C27 | `Array#map` use: every function receives `(value, index, array)`, and the index and array land in the fallback, `to`/`from`, font, separator and options positions with exactly the semantics above | the same parameter lists |
 
 Everything that compare or the matrix can observe is in this table. A behaviour found later goes into this table, with a test.
@@ -1335,41 +1334,29 @@ Everything that compare or the matrix can observe is in this table. A behaviour 
 | error | unknown target, unless silent | `Convert library doesn't have this fontType.` (2.10 wrote "dosen't"; 2.11 fixed it, 24f81c6) |
 | warn | an unknown source font that is a string, unless silent (2.11) | `Unknown source font "<name>" on knayi.fontConvert; detecting it.` |
 | error | Win as a target, or Win to anything but Unicode, unless silent | `knayi.fontConvert converts Win text to Unicode only.` |
-| error | invalid threshold, **always** | `myanmartools_zg_threshold must be [number, number]` |
-| warn | myanmar-tools missing, once, unless silent | No error recorded: `myanmar-tools is not available in this environment; fontDetect used the rule scorer.` An error whose `code` ends in `MODULE_NOT_FOUND` and whose first line names `'myanmar-tools'`: `myanmar-tools is not installed; fontDetect used the rule scorer. Install myanmar-tools@1.1.3 to use it.` Any other error: `myanmar-tools could not be loaded (<first line of its message>); fontDetect used the rule scorer. Install myanmar-tools@1.1.3.` |
+| error | invalid threshold, unless silent (2.10 wrote it always, as `myanmartools_zg_threshold must be [number, number]`) | `[ERR_KNAYI_INVALID_THRESHOLD] myanmartools_zg_threshold must be two finite numbers in order.` The code is API; the words after it may change. |
+| error | a `zawgyiDetector` with no `getZawgyiProbability` method, unless silent (2.11) | `[ERR_KNAYI_INVALID_DETECTOR] zawgyiDetector must have a getZawgyiProbability method.` |
+| warn | an unknown adapter name, unless silent (2.11) | `Unknown adapter "<name>" on knayi.fontDetect.` |
+| warn | the myanmar-tools adapter with no detector, once, unless silent | `myanmar-tools is not available in this environment; fontDetect used the rule scorer.` (2.10's compat, which loaded the package, also had "is not installed" and "could not be loaded" messages for a failed load.) |
 
 ### 5.4 The known build differences
 
-compat differs from `main.js` in two ways, and the 2.x ES module build (`knayi-myscript.mjs`) differs in the same two. No other difference is allowed.
+compat may differ from `main.js` of the 2.x reference only where 2.x's own ES module build does, and the contract matrix records each such cell (D2). Since the port of 2.11 there is one:
 
-Since the merge of the 2.x line (§8), the reference is 2.11's code, which changes both. 2.11's `main.js` reads no debug flag from `this` (d20027a), so the first difference is gone, and the matrix records none. 2.11's builds in `dist/` load no package by name (649b2b4): compat follows with its port, and then the second difference is that compat loads myanmar-tools nowhere by name, where `main.js` loads it from its own folder. The matrix records that one cell under compat, as `no package load by name`. The two subsections below describe compat as it is until those ports.
+**Where myanmar-tools comes from** (D3, C26), with `use_myanmartools` on or `adapter: 'myanmartools'` and no `zawgyiDetector`:
 
-**1. The debug flag of a detached call.** A detached call, such as `const f = knayi.fontConvert; f(text, 'unicode')`, made while the page has a global `debug` variable:
-
-| Build | Result |
+| Build | Loads `myanmar-tools` from |
 |---|---|
-| sloppy-mode builds (`main.js` and the script builds) | the debug object |
-| the 2.x ES module build and compat | the text, because both are strict |
+| `main.js` | its own folder, `library/detection.js` through `module.require` |
+| 2.11's builds in `dist/`, compat and the 3.0 builds that hold it | nowhere: the adapter uses the rule scorer and warns that myanmar-tools is not available |
 
-The matrix already records this for `knayi-myscript.mjs` under "debug flag read from this" (scripts/contract/matrix.js:28-37). It is 10 cells, the ids beginning `detached fontConvert(`. The compat module (W8) does three things:
-- adds `compat` to that entry's `builds`;
-- adds `compat` to `BUILDS`, loaded with `import()` of `src/compat/index.js`;
-- checks compat against the 10 cells recorded for `knayi-myscript.mjs`, which it shares (as built, §7.10): `SHARES_RECORDED_DIFFERENCES` maps `compat` to that build, so `test/contract/api-matrix.json` stays as it is, and `npm run matrix:update` fails unless compat differs from `main.js` in exactly those cells, the same way.
+The matrix records the one cell that shows it under compat, as `no package load by name`, and the 3.0 builds share it (`SHARES_RECORDED_DIFFERENCES`). `test/next/compat-fontDetect.test.mjs` pins it in child processes, in an empty working directory and in the repository, on plain Unicode text with the threshold `[-1, -1]`, under which every model score means `'zawgyi'`: `main.js` answers `'zawgyi'` (the model it loads) and compat `'unicode'` (the rule scorer), with the warning. A caller who wants the model passes a `ZawgyiDetector` as `zawgyiDetector`, per call or stored.
 
-That records nothing new about `main.js`, and no other cell may differ (D2).
-
-**2. Where myanmar-tools is looked up** (D3, C26), with `use_myanmartools` on or `adapter: 'myanmartools'`:
-
-| Build | Resolves `myanmar-tools` from |
-|---|---|
-| `main.js` | `library/detector.js`, through `module.require` |
-| the 2.x ES module build and compat | the working directory, through `createRequire(process.cwd() + '/package.json')` |
-
-So in a working directory that cannot resolve the package, `main.js` scores with the model while compat warns and uses the rules (§10 Q15). That happens in a monorepo whose package sits elsewhere, or in a worker started from another directory. Neither compare nor the matrix runs the adapter, so neither can see this. W8 pins it with an adapter test. It runs compat and `main.js` in a child process whose working directory is an empty temporary directory, on plain Unicode text, with the threshold `[-1, -1]`, under which every model score means `'zawgyi'`. `main.js` must answer `'zawgyi'` (the model). compat must print the "not installed" message and answer `'unicode'` (the rule scorer).
+Two differences were known before the port. **A detached call read the global `debug`:** 2.10's sloppy-mode builds (`main.js` and the script builds) read `this.debug` from the global object in `const f = knayi.fontConvert; f(text, 'unicode')`, while its ES module build and compat, strict code, did not; 2.11 reads no debug flag from `this` (d20027a), so the matrix records no such cell. **compat looked myanmar-tools up from the working directory,** through `createRequire(process.cwd() + '/package.json')`, as 2.10's ES module build did (§10 Q15); 2.11's builds load nothing by name (649b2b4), and compat follows.
 
 ### 5.5 What compat does not do
 
-- **No new exports or options.** That rules out `detectEncoding`, `zawgyiDetector`, types and overloads (Phase 5).
+- **No new exports or options of its own.** It has those of the 2.x reference: since the port of 2.11, `detectEncoding`, `zawgyiDetector` and the types and overloads of Phase 5.
 - **No contract fixes.** Phase 1c (PRs 4.3-4.5) and PRs 4.1-4.2 are not applied.
 - **No output change.** Phase 4 is not applied.
 - **No deep paths.** `knayi-myscript/library/converter` remains `library/`'s.
@@ -2041,7 +2028,6 @@ compat must give the reference's output on every input (§1.2 rule 1), so the co
 | Q10 | Unicode to Zawgyi moves an e or a medial ra before the nearest consonant before it, past anything that is not a consonant, a space or a line break included (syllable.js:22, :26; rows `uz.order.1` and `uz.order.3`). So a line does not convert to Zawgyi as it would alone, and streaming to Zawgyi is refused (§12.2). | `toZawgyi('က\nေ')` gives U+1031 U+1000 U+000A, where its lines alone give U+1000 U+000A U+1031 | 839 of the 48,105 pairs of neighbouring lines of the Unicode corpora convert otherwise as one text (2,622 of 64,797 with mC4 and WaitZar) | `rules/unicodeToZawgyi.js` `VISUAL_ORDER` | a deliberate 2.x pull request (Phase 4), then streaming to Zawgyi, with a boundary test |
 | Q11 | Bare consonants join only in pairs: one global replace never looks again at the consonant it has just taken, though the comment of syllable.js says every bare consonant joins (rows U7 and Z8, C21). | `syllBreak('ကကက', 'unicode', '\|')` is `ကက\|က`; ပထမဆုံး breaks as ပထ\|မဆုံး | 6,032 of 34,285 lines would change | `rules/segment.js` `legacyBareConsonantPair`; `spec/breakRules.js` U7, Z8 | decision 34: 3.0 reads a bare consonant as a syllable of its own by default (§11.6) |
 | Q12 | normalize is not idempotent on garbled input: a second call can change the text again (C24). | `၀ွ ှ` gives `ဝွ ှ`, then `ဝွှ`; `ိီိ` gives `ီိ`, then `ီ` | 0 Unicode corpus lines; 104 of 15,405 raw mC4 lines | `engine/unicodeReader.js`, `rules/typingFixes.js` | decision 36: 3.0's normalize is idempotent (§11.2) |
-| Q15 | The 2.x ES module build, and compat with it, look myanmar-tools up from the working directory, where `main.js` looks from `library/` (known build difference 2, §5.4; C26). | A worker started from another directory finds the package "not installed" | monorepos and workers | `compat/zawgyiModel.js` | decision 17: an injected detector (Phase 5) |
 | Q17 | The Zawgyi break classes disagree: row Z1 puts no break before the base glyphs U+106A (small nya) and U+106B, which the bases of rows Z3-Z5 and Z8 include, and neither class is the set of bases of the glyph table (syllable.js `BREAK_RULES` against zawgyi.js). | ငန္းၫွိ gets no break before U+106B | both class edits together fix 16 lines; one alone fixes 16 and breaks 4 | `rules/segment.js` `startsZawgyiSyllable`, `isZawgyiBreakBase`; `spec/breakRules.js` Z1 | a deliberate 2.x pull request (Phase 4) |
 | Q19 | A base glyph's own marks are written as they are, not sorted with the syllable's: a whole base (Zawgyi lagaung, Win kyat and nnya with aa) keeps its inner marks first, and 2.x drops the attached marks of a BASE row, so compileFont refuses them (§3.8, check 4). | Win `aÓ` gives U+1009 U+102C U+1031 (ဉာေ), not ဉော | a latent table trap; a fix changes 16 mC4 and 107 Unicode lines | `fonts/zawgyi.js`, `fonts/win.js` `wholeBases`; `engine/fontReader.js` | a deliberate 2.x pull request, after a decision |
 | Q20 | zero as wa and the look-alikes judge "a zero in a number" by two different rules (`NUMBER_CONTEXT.ZERO_AS_WA` and `.LOOK_ALIKES`, §2.3). | `(၇ ဒသမ ၀)` gives `(၇ ဒသမ ဝ)` | 45 mC4 lines with a lone zero | `rules/typingFixes.js` `isInNumber` | a deliberate 2.x pull request, after a decision |
@@ -2050,6 +2036,7 @@ The 2.x line has fixed these since, and the port of 2.11 (§8) brought each fix 
 
 | # | Quirk | Example | Fixed by |
 |---|---|---|---|
+| Q15 | The 2.x ES module build, and compat with it, looked myanmar-tools up from the working directory, where `main.js` looks from `library/` (§5.4; C26). | A worker started from another directory found the package "not installed" | 2.x 840c8c5 and 649b2b4, decision 17: compat takes a detector as `zawgyiDetector` and loads no package (`compat/zawgyiModel.js`) |
 | Q8 | The two pipelines ran the typing fixes in different orders: normalize typos then look-alikes, and the font pipeline look-alikes then typos (C24; ARCHITECTURE.md, "Typing fixes and their order"). | The Win text `&4if;` gave U+1047 U+1044 (digits), where `normalize('ရ၄င်း')` gives U+101B U+104E (lagaung) | 2.x ab3676e, decision 15: typos first in both, in `stages/fonts.js`; both APIs, `OUTPUT_VERSION` 3 |
 
 ---

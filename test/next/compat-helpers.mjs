@@ -21,10 +21,11 @@ export const { pendingPort } = require('../../scripts/testing/pending-port.js');
 
 const CONSOLE_METHODS = ['log', 'info', 'warn', 'error', 'debug', 'trace'];
 
-// The state every test starts from and goes back to: the 2.x defaults (globalOptions.js:1-7).
+// The state every test starts from and goes back to: the 2.x defaults (2.11's library/globalOptions.js OPTIONS).
 export const DEFAULT_OPTIONS = Object.freeze({
   silent_mode: false,
-  detector: Object.freeze({ use_myanmartools: false, myanmartools_zg_threshold: Object.freeze([0.05, 0.95]) })
+  detector: Object.freeze({ use_myanmartools: false, myanmartools_zg_threshold: Object.freeze([0.05, 0.95]),
+    zawgyiDetector: null })
 });
 
 // Sets both libraries back to the defaults. Each store keeps a copy of the threshold it is given.

@@ -4,9 +4,9 @@
 import { describe, it, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { library } from './helpers.mjs';
-import { pendingPort, recordConsole, resetOptions } from './compat-helpers.mjs';
+import { recordConsole, resetOptions } from './compat-helpers.mjs';
 import {
-  MESSAGES, setGlobalOptions, isSilentMode, storedDetectorOptions, mergeDetectorOptions, report, reportAlways
+  MESSAGES, setGlobalOptions, isSilentMode, storedDetectorOptions, mergeDetectorOptions, report
 } from '../../src/compat/globalOptions.js';
 
 const globalOptions = library('globalOptions.js');
@@ -16,14 +16,19 @@ const globalOptions = library('globalOptions.js');
 const DETECTOR_OPTIONS = [undefined, null, 0, 1, '', 'abc', [], {}, { use_myanmartools: true },
   { use_myanmartools: 0 }, { use_myanmartools: undefined }, { myanmartools_zg_threshold: [0.1, 0.9] },
   { myanmartools_zg_threshold: [NaN, NaN] }, { myanmartools_zg_threshold: [1] }, { myanmartools_zg_threshold: 'x' },
+  { myanmartools_zg_threshold: [0.9, 0.1] }, { myanmartools_zg_threshold: [0.5, 0.5] },
+  { myanmartools_zg_threshold: [0, Infinity] }, { myanmartools_zg_threshold: [-Infinity, 0.5] },
   { myanmartools_zg_threshold: ['0.1', 0.9] }, { myanmartools_zg_threshold: null },
   { myanmartools_zg_threshold: undefined }, { myanmartools_zg_threshold: [0, 1, 2] },
   { use_myanmartools: 'yes', myanmartools_zg_threshold: [-1, 2] }, Object.create({ use_myanmartools: true }),
-  { adapter: 'myanmartools' }];
+  { adapter: 'myanmartools' }, { zawgyiDetector: null }, { zawgyiDetector: {} }, { zawgyiDetector: 1 },
+  { zawgyiDetector: { getZawgyiProbability: () => 0.5 } }, { zawgyiDetector: undefined },
+  { zawgyiDetector: {}, myanmartools_zg_threshold: 'x' }];
 
 // The stores each library starts a comparison from.
 const STORES = [
-  { silent_mode: false, detector: { use_myanmartools: false, myanmartools_zg_threshold: [0.05, 0.95] } },
+  { silent_mode: false, detector: { use_myanmartools: false, myanmartools_zg_threshold: [0.05, 0.95],
+    zawgyiDetector: null } },
   { silent_mode: true, detector: { use_myanmartools: true, myanmartools_zg_threshold: [0.2, 0.3] } }
 ];
 
@@ -42,12 +47,12 @@ describe('compat: the 2.x option store (C2-C4)', () => {
     const fresh = await import('../../src/compat/globalOptions.js?fresh');
     assert.equal(fresh.isSilentMode(), false);
     assert.deepEqual(fresh.storedDetectorOptions(),
-      { use_myanmartools: false, myanmartools_zg_threshold: [0.05, 0.95] });
+      { use_myanmartools: false, myanmartools_zg_threshold: [0.05, 0.95], zawgyiDetector: null });
   });
 
   // 2.11 checks the threshold and stores zawgyiDetector with the other detector options (fb6594d, 840c8c5).
   it('C4: mergeDetectorOptions gives what globalOptions.detector gives, console included, from either store',
-    pendingPort(['fb6594d', '840c8c5'], () => {
+    () => {
       for (const store of STORES) {
         for (const options of DETECTOR_OPTIONS) {
           setBoth(store);
@@ -56,12 +61,16 @@ describe('compat: the 2.x option store (C2-C4)', () => {
           assert.deepEqual(actual, expected, JSON.stringify(store) + ' ' + String(JSON.stringify(options)));
         }
       }
-    }));
+    });
 
-  it('C4: the threshold message prints even in silent mode, and the result holds a copy of the threshold', () => {
+  // 2.11 writes the threshold error only when not silent (fb6594d); 2.10 wrote it in silent mode too.
+  it('C4: the threshold error prints unless silent, and the result holds a copy of the threshold', () => {
+    const loud = recordConsole(() => mergeDetectorOptions({ myanmartools_zg_threshold: [1] }));
+    assert.deepEqual(loud.console, ['error: ' + MESSAGES.badThreshold]);
     setGlobalOptions({ silent_mode: true });
-    const run = recordConsole(() => mergeDetectorOptions({ myanmartools_zg_threshold: [1] }));
-    assert.deepEqual(run.console, ['error: ' + MESSAGES.badThreshold]);
+    const run = recordConsole(() => mergeDetectorOptions({ myanmartools_zg_threshold: [0.9, 0.1] }));
+    assert.deepEqual(run.console, []);
+    assert.deepEqual(run.value.myanmartools_zg_threshold, [0.05, 0.95], 'the stored pair');
     assert.notEqual(run.value.myanmartools_zg_threshold, storedDetectorOptions().myanmartools_zg_threshold);
     const given = [0.3, 0.6];
     assert.notEqual(mergeDetectorOptions({ myanmartools_zg_threshold: given }).myanmartools_zg_threshold, given);
@@ -69,7 +78,7 @@ describe('compat: the 2.x option store (C2-C4)', () => {
 
   // 2.11 takes null as no options, checks the threshold, and stores zawgyiDetector (fb6594d, 840c8c5).
   it('C3: setGlobalOptions stores what setOptions stores, and throws where it throws',
-    pendingPort(['fb6594d', '840c8c5'], () => {
+    () => {
       const calls = [undefined, null, {}, { silent_mode: 1 }, { silent_mode: 'false' }, { silent_mode: undefined },
         { detector: null }, { detector: { myanmartools_zg_threshold: [1] } }, { detector: { use_myanmartools: true } },
         Object.create({ silent_mode: true }), 5, 'silent_mode', []];
@@ -81,7 +90,7 @@ describe('compat: the 2.x option store (C2-C4)', () => {
         assert.equal(isSilentMode(), globalOptions.isSilentMode());
         assert.deepEqual(storedDetectorOptions(), globalOptions.detector({}));
       }
-    }));
+    });
 
   it('C3: keeps silent_mode as given; any truthy value is silent', () => {
     for (const value of [1, 'false', {}, true]) {
@@ -97,11 +106,10 @@ describe('compat: the 2.x option store (C2-C4)', () => {
 });
 
 describe('compat: the console writers (C25, §5.3)', () => {
-  it('report prints unless silent and says whether it printed; reportAlways prints always', () => {
+  it('report prints unless silent and says whether it printed', () => {
     assert.deepEqual(recordConsole(() => report('error', 'e')), { value: true, console: ['error: e'] });
     setGlobalOptions({ silent_mode: true });
     assert.deepEqual(recordConsole(() => report('error', 'e')), { value: false, console: [] });
-    assert.deepEqual(recordConsole(() => reportAlways('error', 'e')), { value: undefined, console: ['error: e'] });
   });
 
   it('looks console[level] up at each call', () => {
@@ -118,6 +126,12 @@ describe('compat: the console writers (C25, §5.3)', () => {
     assert.equal(MESSAGES.invalidFont('syllBreak', 'win'),
       'knayi.syllBreak takes the font \'unicode\' or \'zawgyi\', not "win".');
     assert.equal(MESSAGES.winSourceOnly, 'knayi.fontConvert converts Win text to Unicode only.');
-    assert.equal(MESSAGES.badThreshold, 'myanmartools_zg_threshold must be [number, number]');
+    assert.equal(MESSAGES.unknownAdapter('tools'), 'Unknown adapter "tools" on knayi.fontDetect.');
+    assert.equal(MESSAGES.badThreshold,
+      '[ERR_KNAYI_INVALID_THRESHOLD] myanmartools_zg_threshold must be two finite numbers in order.');
+    assert.equal(MESSAGES.badDetector,
+      '[ERR_KNAYI_INVALID_DETECTOR] zawgyiDetector must have a getZawgyiProbability method.');
+    assert.equal(MESSAGES.noDetector,
+      'myanmar-tools is not available in this environment; fontDetect used the rule scorer.');
   });
 });

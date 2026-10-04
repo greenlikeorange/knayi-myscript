@@ -59,16 +59,18 @@ describe('detector adapters', () => {
   after(function () {
     knayi.setGlobalOptions({
       silent_mode: false,
-      detector: { use_myanmartools: false, myanmartools_zg_threshold: [0.05, 0.95] }
+      detector: { use_myanmartools: false, myanmartools_zg_threshold: [0.05, 0.95], zawgyiDetector: null }
     });
   });
 
+  // compat loads no package by name (2.x 649b2b4), so the test passes it a detector of the package, as an app does;
+  // 2.x's main.js loads the package itself.
   it('lets the passed adapter win over the global flag', function () {
-    knayi.setGlobalOptions({ detector: { use_myanmartools: true } });
     var tools;
     try {
       tools = require('myanmar-tools');
     } catch (e) {}
+    knayi.setGlobalOptions({ detector: { use_myanmartools: true, zawgyiDetector: tools ? new tools.ZawgyiDetector() : null } });
 
     var toolsOptions = { adapter: 'myanmartools', myanmartools_zg_threshold: [0.05, 0.9] };
 
@@ -78,7 +80,7 @@ describe('detector adapters', () => {
     } else {
       assert.equal(knayi.fontDetect('က္က', 'unicode', toolsOptions), 'unicode');
       assert.ok(myanmarToolsWarnings.some(function (message) {
-        return /myanmar-tools is not installed/.test(String(message));
+        return /myanmar-tools is not available/.test(String(message));
       }));
     }
   });
@@ -124,7 +126,7 @@ describe('detector fallback', () => {
     });
   });
 
-  it('ignores a fallback that is not a string, or is empty', pendingPort('86f0040', () => {
+  it('ignores a fallback that is not a string, or is empty', () => {
     knayi.setGlobalOptions({ silent_mode: true });
     for (const fallback of NOT_FALLBACKS) {
       const label = inspect(fallback);
@@ -135,21 +137,21 @@ describe('detector fallback', () => {
       // myanmar-tools gives က a probability of about 0.48, between the default thresholds.
       assert.equal(knayi.fontDetect('က', fallback, { adapter: 'myanmartools' }), 'zawgyi', label);
     }
-  }));
+  });
 
-  it('gives a font or en for every line of lines.map(fontDetect)', pendingPort('86f0040', () => {
+  it('gives a font or en for every line of lines.map(fontDetect)', () => {
     knayi.setGlobalOptions({ silent_mode: true });
     assert.deepEqual(['မြန်မာ', 'ျမန္မာ', TIE, 'abc', '', 'jrefrm', 'က'].map(knayi.fontDetect),
       ['unicode', 'zawgyi', 'zawgyi', 'en', 'en', 'en', 'zawgyi']);
-  }));
+  });
 
-  it('returns a string fallback as given, and a String object as its string', pendingPort('86f0040', () => {
+  it('returns a string fallback as given, and a String object as its string', () => {
     assert.equal(knayi.fontDetect('abc', 'tie'), 'tie');
     assert.equal(knayi.fontDetect(TIE, 'Unicode'), 'Unicode');
     assert.equal(knayi.fontDetect('abc', new String('unicode')), 'unicode');
     assert.equal(knayi.fontDetect(TIE, new String('en')), 'en');
     assert.equal(knayi.fontDetect('က', new String('unicode'), { adapter: 'myanmartools' }), 'unicode');
-  }));
+  });
 })
 
 // undefined and null are no options: the call uses the stored detector options, as with {}.
@@ -157,11 +159,11 @@ describe('detector options', () => {
   afterEach(() => {
     knayi.setGlobalOptions({
       silent_mode: false,
-      detector: { use_myanmartools: false, myanmartools_zg_threshold: [0.05, 0.95] }
+      detector: { use_myanmartools: false, myanmartools_zg_threshold: [0.05, 0.95], zawgyiDetector: null }
     });
   });
 
-  it('takes null as no options', pendingPort('fb6594d', () => {
+  it('takes null as no options', () => {
     const texts = ['ျမန္မာ', 'မြန်မာ', 'ဗုဒ္ဓ', ' မြန်\u200Bမာ ', 'ျမန္မာ\nမြန်မာ', 'abc', 123];
     for (const text of texts) {
       for (const fallback of [undefined, null, 'unicode', 1]) {
@@ -171,11 +173,13 @@ describe('detector options', () => {
       }
     }
     assert.deepEqual(['ျမန္မာ', 'ဗုဒ္ဓ'].map((text) => knayi.fontDetect(text, null, null)), ['zawgyi', 'zawgyi']);
-  }));
+  });
 
-  it('uses the stored adapter and threshold with null options', pendingPort('fb6594d', () => {
-    // myanmar-tools gives က္က a probability of about 0.93: Zawgyi above 0.9, and a rule-score tie.
-    knayi.setGlobalOptions({ detector: { use_myanmartools: true, myanmartools_zg_threshold: [0.05, 0.9] } });
+  it('uses the stored adapter and threshold with null options', () => {
+    // myanmar-tools gives က္က a probability of about 0.93: Zawgyi above 0.9, and a rule-score tie. compat scores with
+    // a stored detector of the package, which 2.x's main.js loads itself.
+    const zawgyiDetector = new (require('myanmar-tools').ZawgyiDetector)();
+    knayi.setGlobalOptions({ detector: { use_myanmartools: true, myanmartools_zg_threshold: [0.05, 0.9], zawgyiDetector } });
     assert.equal(knayi.fontDetect('က္က', 'unicode', null), 'zawgyi');
     knayi.setGlobalOptions(null);
     assert.equal(knayi.fontDetect('က္က', 'unicode', null), 'zawgyi');
@@ -183,7 +187,7 @@ describe('detector options', () => {
     assert.equal(knayi.fontDetect('က္က', 'unicode', null), 'zawgyi');
     knayi.setGlobalOptions({ detector: { use_myanmartools: false } });
     assert.equal(knayi.fontDetect('က္က', 'unicode', null), 'unicode');
-  }));
+  });
 })
 
 // detectEncoding returns the rule scorer's evidence, { encoding, unicode, zawgyi }, and fontDetect reads the same
