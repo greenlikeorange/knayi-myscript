@@ -53,6 +53,27 @@ export interface Trace {
 export declare function createTrace(): Trace;
 
 // ---------------------------------------------------------------------------------------------------------------
+// The result types of normalize and toUnicode, whose options decide what they return.
+
+/**
+ * Options of type O with every key that T does not declare typed `never`, so that such a key is a compile error, as
+ * it is a RangeError at run time. A generic parameter takes no excess-property check of its own.
+ */
+type KnownKeys<O, T> = O extends object ? O & { [K in Exclude<keyof O, keyof T>]: never } : O;
+
+/**
+ * What a function returns for options of type O when its flag F turns a string into R: R when O sets F to true,
+ * the string when O leaves F out or sets it to false or null, and either when O is a type whose F may be either,
+ * such as a stored options object or a flag that is a boolean. No options, or an index from Array#map, give the
+ * string.
+ */
+type FlagResult<O, F extends string, R> = O extends object
+  ? (F extends keyof O
+    ? (O extends { [K in F]: true } ? R : O extends { [K in F]?: false | null } ? string : string | R)
+    : string)
+  : string;
+
+// ---------------------------------------------------------------------------------------------------------------
 // normalize and isNormalized
 
 /** The ids of the stages of normalize, in the order they run. */
@@ -82,12 +103,17 @@ export interface NormalizeReport {
   changes: NormalizeChange[];
 }
 
+/** What normalize returns for options of type O: a NormalizeReport with `report: true`, else the text. */
+export type NormalizeResult<O> = FlagResult<O, 'report', NormalizeReport>;
+
 /**
  * Unicode Burmese text in the storage order of UTN #11, with its typing slips and look-alike digits fixed, in NFC.
- * Idempotent: normalize(normalize(text)) === normalize(text). Never trims; zero-width characters stay.
+ * Idempotent: normalize(normalize(text)) === normalize(text). Never trims; zero-width characters stay. With
+ * `report: true`, `{ text, changes }`; options whose `report` may be either (a stored NormalizeOptions, a boolean
+ * flag) give the union.
  */
-export declare function normalize(text: string, options: NormalizeOptions & { report: true }): NormalizeReport;
-export declare function normalize(text: string, options?: NormalizeOptions | number | null): string;
+export declare function normalize<O extends NormalizeOptions | number | null | undefined = undefined>(text: string,
+  options?: KnownKeys<O, NormalizeOptions>): NormalizeResult<O>;
 
 /** Whether normalize would return the text unchanged. It does not tell Zawgyi from Unicode. */
 export declare function isNormalized(text: string): boolean;
@@ -197,9 +223,15 @@ export interface ConversionWithOffsets {
   offsets: number[];
 }
 
-/** Text in Unicode. Never trims. */
-export declare function toUnicode(text: string, options: ToUnicodeOptions & { offsets: true }): ConversionWithOffsets;
-export declare function toUnicode(text: string, options?: ToUnicodeOptions | number | null): string;
+/** What toUnicode returns for options of type O: `{ text, offsets }` with `offsets: true`, else the text. */
+export type ToUnicodeResult<O> = FlagResult<O, 'offsets', ConversionWithOffsets>;
+
+/**
+ * Text in Unicode. Never trims. With `offsets: true`, `{ text, offsets }`; options whose `offsets` may be either (a
+ * stored ToUnicodeOptions, a boolean flag) give the union.
+ */
+export declare function toUnicode<O extends ToUnicodeOptions | number | null | undefined = undefined>(text: string,
+  options?: KnownKeys<O, ToUnicodeOptions>): ToUnicodeResult<O>;
 
 export interface ToZawgyiOptions {
   /** A trace from createTrace(), to fill with the text after the collapse and after each rule that changed it. */

@@ -12,7 +12,7 @@ const lines: string[] = ['\u1031\u1000', '\u1000\u102C'];
 
 // normalize and isNormalized: a string, or a report with { report: true }.
 import { normalize, isNormalized } from '../../src/index.js';
-import type { NormalizeReport, NormalizeChange } from '../../src/index.js';
+import type { NormalizeOptions, NormalizeReport, NormalizeChange, NormalizeResult } from '../../src/index.js';
 
 const normalized: string = normalize(lines[0]);
 const mapped: string[] = lines.map(normalize); // the index is no options
@@ -28,6 +28,18 @@ normalize(42);
 normalize('x', { report: 'yes' });
 // @ts-expect-error: a report is not a string
 const notText: string = normalize('x', { report: true });
+// Options built once and reused, or a flag that is a boolean, may ask for a report: the result is either.
+const stored: NormalizeOptions = { report: true };
+const either: string | NormalizeReport = normalize(lines[0], stored);
+// @ts-expect-error: a stored NormalizeOptions may give a report
+const storedText: string = normalize(lines[0], stored);
+declare const wantReport: boolean;
+// @ts-expect-error: a boolean flag may give a report
+const flaggedText: string = normalize(lines[0], { report: wantReport });
+const flagged: string | NormalizeReport = normalize(lines[0], { report: wantReport });
+const nullFlag: string = normalize(lines[0], { report: null });
+// @ts-expect-error: normalize takes no offsets, next to a key it takes too
+normalize('x', { report: true, offsets: true });
 try {
   normalize(lines[0]);
 } catch (error) {
@@ -61,7 +73,7 @@ explain(lines[0], { from: 'win' });
 
 // toUnicode: a string, or { text, offsets } with { offsets: true }; toZawgyi
 import { toUnicode, toZawgyi } from '../../src/index.js';
-import type { ConversionWithOffsets } from '../../src/index.js';
+import type { ConversionWithOffsets, ToUnicodeOptions, ToUnicodeResult } from '../../src/index.js';
 
 const unicode: string = toUnicode(lines[0], { from: 'zawgyi' });
 const detected: string[] = lines.map(toUnicode);
@@ -69,6 +81,18 @@ const tied: string = toUnicode(lines[0], { tie: 'zawgyi', zawgyiDetector: detect
 const withOffsets: ConversionWithOffsets = toUnicode(lines[0], { offsets: true });
 const firstSource: number | undefined = withOffsets.offsets[0];
 toUnicode(lines[0], { from: 'win', trace });
+const noOffsets: string = toUnicode(lines[0], { from: 'zawgyi', offsets: false });
+// A stored ToUnicodeOptions, or a boolean flag, may ask for offsets: the result is either.
+const conversion: ToUnicodeOptions = { from: 'zawgyi', offsets: true };
+const converted: ToUnicodeResult<ToUnicodeOptions> = toUnicode(lines[0], conversion);
+// @ts-expect-error: a stored ToUnicodeOptions may give { text, offsets }, which has no length
+toUnicode('x', conversion).length;
+declare const wantOffsets: boolean;
+// @ts-expect-error: a boolean flag may give { text, offsets }
+const flaggedUnicode: string = toUnicode(lines[0], { offsets: wantOffsets });
+const reportType: NormalizeResult<{ report: true }> = normalize(lines[0], { report: true });
+// @ts-expect-error: toUnicode takes no to, next to a key it takes too
+toUnicode('x', { from: 'zawgyi', to: 'unicode' });
 // @ts-expect-error: from is a font name
 toUnicode('x', { from: 'Zawgyi' });
 // @ts-expect-error: tie is 'unicode' or 'zawgyi'
