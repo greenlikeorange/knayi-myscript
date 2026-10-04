@@ -68,8 +68,8 @@ test('knayi.min.js sets knayi to the 3.0 API, with the 2.x API as knayi.compat',
     compat: Object.keys(window.knayi.compat)
   }));
   expect(names.global).toEqual(names.api.concat('compat').sort());
-  expect(names.compat).toEqual(['version', 'setGlobalOptions', 'fontDetect', 'fontConvert', 'syllBreak', 'spellingFix',
-    'truncate', 'normalize']);
+  expect(names.compat).toEqual(['version', 'setGlobalOptions', 'fontDetect', 'detectEncoding', 'fontConvert', 'syllBreak',
+    'spellingFix', 'truncate', 'normalize']);
   expect(await page.evaluate(() => window.knayi.compat.fontConvert('မဂၤလာပါ', 'unicode', 'zawgyi'))).toBe('မင်္ဂလာပါ');
 });
 
@@ -81,7 +81,7 @@ test('knayi.min.js gives the results of the sources', async ({ page }) => {
 test('knayi-myscript.min.js, 2.x\'s file name, sets knayi to the 2.x API and gives its results', async ({ page }) => {
   await page.goto('/scripts/browser/page-2x.html');
   expect(await page.evaluate(() => Object.keys(window.knayi))).toEqual(['version', 'setGlobalOptions', 'fontDetect',
-    'fontConvert', 'syllBreak', 'spellingFix', 'truncate', 'normalize']);
+    'detectEncoding', 'fontConvert', 'syllBreak', 'spellingFix', 'truncate', 'normalize']);
   compareCompat(JSON.parse(await runInPage(page, 'knayi', calls.compat)));
 });
 
