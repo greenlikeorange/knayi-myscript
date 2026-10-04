@@ -11,7 +11,7 @@ const vm = require('vm');
 
 const LIBRARY = path.join(__dirname, '..', '..', 'library');
 
-// options.moduleRequire: what the module sees as module.require (library/detector.js loads myanmar-tools
+// options.moduleRequire: what the module sees as module.require (library/detection.js loads myanmar-tools
 // through it). options.context: a vm context to compile the module in, for a global object without `process`.
 function loadWithInternals(file, names, options) {
   options = options || {};

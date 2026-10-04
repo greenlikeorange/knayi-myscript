@@ -6,7 +6,7 @@ const vm = require('node:vm');
 const { createRequire } = require('node:module');
 
 // Which Unicode version the character tables match. The tables are hand-written code point ranges in
-// library/storageOrder.js, typingFixes.js, unicodeParser.js and contentGate.js (which fontDetect in detector.js and
+// library/storageOrder.js, typingFixes.js, unicodeParser.js and contentGate.js (which fontDetect in detection.js and
 // every other public function use to find Myanmar text). This test reads the runtime's Unicode data with
 // \p{...} property escapes, so it runs in Node only.
 //

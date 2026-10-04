@@ -4,8 +4,9 @@
 //
 // storageOrder.js, typingFixes.js, zawgyi.js and win.js are byte-for-byte copies of library/ at 2.10 with the
 // linear-time fix (commit 2eb0988); they load each other by the same relative paths, so nothing in them was
-// changed. signatures.js holds the 29 detector signatures and the rule scorer of library/detector.js. Do not
-// edit these files to make a test pass: a difference from the library is what the fuzz test is for.
+// changed. signatures.js holds the 29 detector signatures and the rule scorer of 2.10's library/detector.js,
+// which library/detection.js holds now. Do not edit these files to make a test pass: a difference from the
+// library is what the fuzz test is for.
 //
 // The functions below add the public preamble of 2.10 (library/contentGate.js, converter.js, detector.js and
 // normalization.js) for string input, so the fuzz test can compare them with the public API directly. They also

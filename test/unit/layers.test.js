@@ -34,8 +34,10 @@ const LAYERS = [
     'library/syllable.js'
   ]],
   ['L3 stages', []],
+  // library/detector.js is the 2.x path of fontDetect, which detection.js holds; the library does not require it.
   ['L4 public', [
     'library/converter.js',
+    'library/detection.js',
     'library/detector.js',
     'library/normalization.js',
     'library/spellingCheck.js',
@@ -72,8 +74,8 @@ function listFiles(dir) {
 // Code loaded other than by require('<literal>'), which esbuild cannot bundle either: require used as a value (an
 // alias such as `var load = require`, require.call, require.apply), and the loading APIs module.require,
 // createRequire and process.getBuiltinModule. They are allowed only inside the functions listed here; today one,
-// detector.js's nodeRequire, which loads the optional myanmar-tools in Node.
-const LOADER_SITES = ['library/detector.js nodeRequire'];
+// detection.js's nodeRequire, which loads the optional myanmar-tools in Node.
+const LOADER_SITES = ['library/detection.js nodeRequire'];
 const LOADING_MEMBERS = ['require', 'createRequire', 'getBuiltinModule'];
 
 // Every require(...) call in a file, found by walking the syntax tree, so comments and strings do not count, and
@@ -156,7 +158,7 @@ describe('layers', () => {
   });
 
   // The library ships without runtime dependencies and runs in browsers, so it requires only its own files.
-  // (detector.js loads the optional myanmar-tools at run time through module.require, not require().)
+  // (detection.js loads the optional myanmar-tools at run time through module.require, not require().)
   it('requires only library files, by a literal relative path', () => {
     assert.deepEqual(unresolved, []);
   });

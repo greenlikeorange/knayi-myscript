@@ -12,9 +12,9 @@ const globalOptions = require('../library/globalOptions');
 const { ZawgyiDetector } = require('myanmar-tools');
 const { loadWithInternals } = require('../scripts/testing/internals');
 
-// The optional myanmar-tools adapter of fontDetect (library/detector.js): the probability thresholds, the
+// The optional myanmar-tools adapter of fontDetect (library/detection.js): the probability thresholds, the
 // options that choose it, and what happens when the package cannot be loaded. myanmar-tools 1.1.3 is a dev
-// dependency; the failures are made with fresh copies of detector.js that load it from a place where it is
+// dependency; the failures are made with fresh copies of detection.js that load it from a place where it is
 // missing or broken.
 
 const ZAWGYI = 'မဂၤလာပါ';
@@ -236,10 +236,10 @@ describe('myanmar-tools adapter', () => {
     });
     after(() => fs.rmSync(root, { recursive: true, force: true }));
 
-    // A fresh detector.js whose module.require loads packages as a file in root/<place> would.
+    // A fresh detection.js whose module.require loads packages as a file in root/<place> would.
     function detectorIn(place) {
       const requireFrom = Module.createRequire(path.join(root, place, 'app.js'));
-      return loadWithInternals('detector.js', [], { moduleRequire: (id) => requireFrom(id) });
+      return loadWithInternals('detection.js', [], { moduleRequire: (id) => requireFrom(id) }).fontDetect;
     }
 
     // Probes and fallbacks for which the rule scorer decides, and ties.
@@ -275,7 +275,7 @@ describe('myanmar-tools adapter', () => {
     it('says it is not available outside Node', () => {
       const messages = [];
       const context = vm.createContext({ console: { warn: (m) => messages.push(['warn', m]), error: (m) => messages.push(['error', m]) } });
-      const fontDetect = loadWithInternals('detector.js', [], { context: context });
+      const fontDetect = loadWithInternals('detection.js', [], { context: context }).fontDetect;
       assertRuleScorer(fontDetect);
       assert.deepEqual(messages, [['warn', NOT_AVAILABLE]]);
     });
@@ -288,7 +288,7 @@ describe('myanmar-tools adapter', () => {
       const context = vm.createContext({ console: { warn: (m) => messages.push(['warn', m]), error: (m) => messages.push(['error', m]) } });
       vm.runInContext('delete globalThis.globalThis', context);
       assert.equal(vm.runInContext('typeof globalThis', context), 'undefined');
-      const fontDetect = loadWithInternals('detector.js', [], { context: context });
+      const fontDetect = loadWithInternals('detection.js', [], { context: context }).fontDetect;
       assertRuleScorer(fontDetect);
       assert.deepEqual(messages, [['warn', NOT_AVAILABLE]]);
     });
@@ -296,7 +296,7 @@ describe('myanmar-tools adapter', () => {
     it('tries to load it once, and warns once', () => {
       let loads = 0;
       const requireFrom = Module.createRequire(path.join(root, 'missing', 'app.js'));
-      const fontDetect = loadWithInternals('detector.js', [], { moduleRequire: (id) => { loads++; return requireFrom(id); } });
+      const fontDetect = loadWithInternals('detection.js', [], { moduleRequire: (id) => { loads++; return requireFrom(id); } }).fontDetect;
       const run = capture(() => {
         for (let i = 0; i < 3; i++) fontDetect(ZAWGYI, null, { adapter: 'myanmartools' });
       });
@@ -318,7 +318,7 @@ describe('myanmar-tools adapter', () => {
 
     it('does not load it for the rule scorer', () => {
       let loads = 0;
-      const fontDetect = loadWithInternals('detector.js', [], { moduleRequire: () => { loads++; throw new Error('unexpected'); } });
+      const fontDetect = loadWithInternals('detection.js', [], { moduleRequire: () => { loads++; throw new Error('unexpected'); } }).fontDetect;
       assert.equal(fontDetect(ZAWGYI, null, { adapter: 'rules' }), 'zawgyi');
       assert.equal(fontDetect(ZAWGYI), 'zawgyi');
       assert.equal(loads, 0);

@@ -62,7 +62,7 @@ function loadTables() {
     win: require(path.join(LIBRARY, 'win.js')).tables,
     syllable: syllable.__internals,
     collapseMarks: syllable.collapseMarks,
-    detector: loadWithInternals('detector.js', ['library']).__internals.library.detect,
+    detector: loadWithInternals('detection.js', ['library']).__internals.library.detect,
     typingFixes: loadWithInternals('typingFixes.js', ['TYPOS']).__internals,
     storageOrder: require(path.join(LIBRARY, 'storageOrder.js'))
   };

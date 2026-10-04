@@ -184,6 +184,26 @@ describe('detector options', () => {
   });
 })
 
+// library/detector.js is the 2.x path of fontDetect, which library/detection.js holds. The library requires
+// detection.js, so the builds leave the old path out.
+describe('library/detector.js', () => {
+  it('is fontDetect', () => {
+    assert.equal(require('../library/detector'), knayi.fontDetect);
+    assert.equal(require('../library/detection').fontDetect, knayi.fontDetect);
+  });
+
+  it('is left out of the builds', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const { builtDist } = require('../scripts/build');
+    for (const name of ['knayi-myscript.js', 'knayi-myscript.mjs']) {
+      const source = fs.readFileSync(path.join(builtDist(), name), 'utf8');
+      assert.ok(source.indexOf('// library/detection.js\n') !== -1, name + ' has no detection.js');
+      assert.equal(source.indexOf('// library/detector.js\n'), -1, name + ' has detector.js');
+    }
+  });
+});
+
 after(function () {
   knayi.setGlobalOptions({
     silent_mode: false,

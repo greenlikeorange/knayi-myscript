@@ -23,7 +23,7 @@ const builds = {
 
 // Known uses below the floor, per build, to fix in Phase 1. The test fails when this list changes either way,
 // so a fix must remove its entry. The library code has none: the builds read globalThis only behind a typeof
-// check, which the checker allows, in library/detector.js's nodeRequire and where scripts/build.js sets the
+// check, which the checker allows, in library/detection.js's nodeRequire and where scripts/build.js sets the
 // global. What is left comes from scripts/build.js's ESM entry, in the module builds only:
 //
 // - let, for-of: esbuild's CommonJS interop helper `__copyProps` (`for (let key of ...)`), pulled into the

@@ -318,7 +318,7 @@ describe('literal searches V8 runs slowly on Myanmar text', () => {
 
   it('builds no RegExp and searches for no needle that starts there while the call forms run', (t) => {
     t.diagnostic(run.built.length + ' RegExps built from strings, ' + run.needles + ' distinct string needles');
-    assert.ok(run.built.some((site) => site.startsWith('library/detector.js:')), 'the detector signatures were seen');
+    assert.ok(run.built.some((site) => site.startsWith('library/detection.js:')), 'the detector signatures were seen');
     assert.ok(run.needles > 0, 'no string needle was seen');
     assert.deepEqual(run.problems, [], run.problems.join('\n'));
   });

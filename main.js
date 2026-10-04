@@ -1,5 +1,5 @@
 const globalOptions = require('./library/globalOptions');
-const fontDetect = require('./library/detector');
+const fontDetect = require('./library/detection').fontDetect;
 const fontConvert = require('./library/converter');
 const syllBreak = require('./library/syllBreak');
 const spellingFix = require('./library/spellingCheck');

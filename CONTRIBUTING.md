@@ -102,7 +102,7 @@ Knayi's output is used as data, so an unannounced change to it is a bug even whe
 The README promises Chrome 49, Edge 14, Firefox 34, Safari 10, Samsung Internet 5 and Opera 36. So the `dist/` builds must:
 
 - parse as ES2015 (`test/syntax.test.js`);
-- avoid syntax and built-ins those browsers lack: no `let`, `const`, `for…of` or `class`, and no newer built-in, such as `TypedArray.prototype.fill`, on a path they run (`test/dist-floor.test.js`, whose rules and allowlists are in `scripts/browser/floor.js`). A newer global may be read behind a `typeof` check, as `library/detector.js` reads `globalThis`. The known exceptions, to be fixed in Phase 1 of the refactor, are listed in `test/dist-floor.test.js`: `let`, `for…of` and destructuring in the module builds, from the ESM entry that `scripts/build.js` writes;
+- avoid syntax and built-ins those browsers lack: no `let`, `const`, `for…of` or `class`, and no newer built-in, such as `TypedArray.prototype.fill`, on a path they run (`test/dist-floor.test.js`, whose rules and allowlists are in `scripts/browser/floor.js`). A newer global may be read behind a `typeof` check, as `library/detection.js` reads `globalThis`. The known exceptions, to be fixed in Phase 1 of the refactor, are listed in `test/dist-floor.test.js`: `let`, `for…of` and destructuring in the module builds, from the ESM entry that `scripts/build.js` writes;
 - build no regex from a string that uses lookbehind, named groups, `\p{…}` or the `s` flag, since the syntax test cannot see inside strings (`test/regex-floor.test.js`);
 - give `main.js`'s results in Chromium, Firefox and WebKit (`npm run test:browser`).
 

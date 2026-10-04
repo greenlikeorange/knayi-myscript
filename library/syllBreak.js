@@ -1,6 +1,6 @@
 'use strict';
 
-const fontDetect = require('./detector');
+const fontDetect = require('./detection').fontDetect;
 const globalOptions = require('./globalOptions');
 const gate = require('./contentGate');
 const syllable = require('./syllableRules');
