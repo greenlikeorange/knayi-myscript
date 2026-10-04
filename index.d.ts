@@ -4,7 +4,9 @@
 // Array#map calls a function with the line, its index and the array. fontDetect, spellingFix and truncate read that
 // index and array as setting nothing, so each has an overload that takes them, and `lines.map(knayi.truncate)`
 // type-checks. The overload comes first, since TypeScript reads Parameters and ReturnType from the last signature,
-// and has a short JSDoc of its own, since an editor shows each signature's own JSDoc while you type a call.
+// and has a short JSDoc of its own, since an editor shows each signature's own JSDoc while you type a call. Its array
+// is required, so that a direct call with a number in second place, such as `truncate(text, 20)`, still fails to
+// compile; the cost is that Array.from(iterable, knayi.truncate), whose map function gets no array, fails too.
 // normalize and detectEncoding read one argument, and need an overload only once they take a second. syllBreak and
 // fontConvert change what they do for map's arguments, and get none. typecheck/map-callbacks.ts checks these types,
 // and test/inputs.test.js what the calls return.
@@ -143,8 +145,8 @@ export declare const version: string;
  */
 export declare function setGlobalOptions(options?: GlobalOptions | null): void;
 
-// The result type is string, as for a fallback of any string: a call whose fallback is typed any can match this
-// signature, and then it may return that fallback.
+// The result type is string, as for a fallback of any string: a call with three arguments whose fallback and options
+// are typed any can match this signature, and then it may return that fallback.
 /**
  * fontDetect as an Array#map callback: `lines.map(knayi.fontDetect)` gives each line what `fontDetect(line)` gives.
  * The index map passes is no fallback, and the array sets no option. The other signature has the details.
@@ -155,7 +157,7 @@ export declare function setGlobalOptions(options?: GlobalOptions | null): void;
 export declare function fontDetect(
   content: string | null | undefined,
   index: number,
-  array?: ReadonlyArray<string | null | undefined>
+  array: ReadonlyArray<string | null | undefined>
 ): string;
 /**
  * Tells whether text is Unicode or Zawgyi: returns `'unicode'` or `'zawgyi'`, never `'win'`.
@@ -306,7 +308,7 @@ export declare function syllBreak(
 export declare function spellingFix(
   content: string | null | undefined,
   index: number,
-  array?: ReadonlyArray<string | null | undefined>
+  array: ReadonlyArray<string | null | undefined>
 ): string;
 /**
  * Collapses a mark typed two or more times in a row into one mark. It does not reorder marks: that is normalize.
@@ -340,7 +342,7 @@ export declare function spellingFix(
 export declare function truncate(
   content: string | null | undefined,
   index: number,
-  array?: ReadonlyArray<string | null | undefined>
+  array: ReadonlyArray<string | null | undefined>
 ): string;
 /**
  * Returns the longest start of the text that fits in `length`, omission included, and ends at a syllable break or

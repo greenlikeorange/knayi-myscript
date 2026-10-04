@@ -25,17 +25,26 @@ const detectedType: Equal<typeof detected, string[]> = true;
 const returnType: Equal<ReturnType<typeof fontDetect>, string> = true;
 const literal: Array<"unicode" | "zawgyi" | "en"> = lines.map((line) => fontDetect(line));
 
-// The same through the default export and the Knayi type, on a readonly array, on lines that may be missing, and with
-// Array.from, whose map function takes the value and the index.
+// The same through the default export and the Knayi type, on a readonly array, and on lines that may be missing.
 const fromDefault: string[] = lines.map(knayi.truncate);
 const all: Knayi = knayi;
 const fromKnayi: string[] = frozen.map(all.spellingFix);
 const fromFrozen: string[] = frozen.map(truncate);
 const fromGaps: string[] = gaps.map(normalize);
 const gapsDetected: string[] = gaps.map(fontDetect);
-const fromSet: string[] = Array.from(new Set(lines), spellingFix);
+// The overloads take the array as a required third argument, so that a direct call with a number in second place
+// still fails (below). The cost: Array.from's map function gets the value and the index only, and does not fit.
+// @ts-expect-error write Array.from(set, (line) => spellingFix(line))
+Array.from(new Set(lines), spellingFix);
 
-// The overloads change no direct call. Parameters and ReturnType read the signature with the options.
+// The overloads change no direct call: a call with a number in second place fits neither signature, as before them,
+// though at run time the number sets nothing. Parameters and ReturnType read the signature with the options.
+// @ts-expect-error truncate's second argument is its options, not a length
+truncate("ကျ", 20);
+// @ts-expect-error a number is no font
+spellingFix("ကျ", 1);
+// @ts-expect-error a number is no fallback
+fontDetect("ကျ", 2);
 const truncateParameters: Equal<Parameters<typeof truncate>, [string | null | undefined, TruncateOptions?]> = true;
 const spellingParameters: Equal<
   Parameters<typeof spellingFix>,
@@ -49,16 +58,16 @@ const withTie = fontDetect("ကျ", "tie", { adapter: "rules" });
 const tieType: Equal<typeof withTie, "unicode" | "zawgyi" | "tie"> = true;
 const noFallback = fontDetect("ကျ");
 const noFallbackType: Equal<typeof noFallback, "unicode" | "zawgyi" | "en"> = true;
-// A direct call with a number, which is no fallback, matches the map overload, whose result is string, as is the result
-// for a fallback typed string. A fallback typed any matches it too, when the call does not fit the other signature
-// exactly, and may be returned; a fallback typed any with no options still gives any, as before the overloads.
-const numberFallback = fontDetect("ကျ", 1);
-const numberFallbackType: Equal<typeof numberFallback, string> = true;
+// A call with three arguments, the last two typed any, matches the map overload, whose result is string, as is the
+// result for a fallback typed string: the fallback typed any may be returned. With two arguments typed any, a call
+// still gives any, as before the overloads.
 declare const anyValue: any;
 const anyFallbackAndOptions = fontDetect("ကျ", anyValue, anyValue);
 const anyFallbackAndOptionsType: Equal<typeof anyFallbackAndOptions, string> = true;
 const anyFallback = fontDetect("ကျ", anyValue);
 const anyFallbackType: Equal<typeof anyFallback, any> = true;
+const anyTextAndFallback = fontDetect(anyValue, anyValue);
+const anyTextAndFallbackType: Equal<typeof anyTextAndFallback, any> = true;
 // @ts-expect-error a misspelt option is still an error
 truncate("ကျ", { lenght: 10 });
 // @ts-expect-error so is an adapter knayi does not have
@@ -95,15 +104,14 @@ export {
   fromFrozen,
   fromGaps,
   gapsDetected,
-  fromSet,
   truncateParameters,
   spellingParameters,
   detectParameters,
   tieType,
   noFallbackType,
-  numberFallbackType,
   anyFallbackAndOptionsType,
   anyFallbackType,
+  anyTextAndFallbackType,
   broken,
   double,
   optionsOnly
