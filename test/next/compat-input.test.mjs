@@ -5,9 +5,9 @@
 import { describe, it, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { library } from './helpers.mjs';
-import { assertSameAsReference, compat, pendingPort, recordConsole, resetOptions } from './compat-helpers.mjs';
+import { assertSameAsReference, compat, recordConsole, resetOptions } from './compat-helpers.mjs';
 import {
-  INPUT_POLICY, enter, unboxString, cleanText, resolveFont, chooseFontLegacy, ON_TIE_ASSUME_ZAWGYI
+  INPUT_POLICY, enter, unboxString, cleanText, resolveFont, givenName, breakFont, ON_TIE_ASSUME_ZAWGYI
 } from '../../src/compat/input.js';
 import { setGlobalOptions } from '../../src/compat/globalOptions.js';
 
@@ -41,35 +41,42 @@ describe('compat: the 2.x preamble (C5-C11)', () => {
     for (const text of texts) assert.equal(cleanText(text), gate.cleanText(text, true), JSON.stringify(text));
   });
 
-  // 2.11 reads a name in any letter case (579be3d).
-  it('C10: resolveFont agrees with contentGate.resolveFont on every name, error class included',
-    pendingPort('579be3d', () => {
-      for (const name of FONT_NAMES) {
-        const expected = recordConsole(() => gate.resolveFont(name));
-        const actual = recordConsole(() => resolveFont(name));
-        assert.deepEqual([actual.value, actual.throws], [expected.value, expected.throws], String(name));
-      }
-      const throwing = { toString() { throw new RangeError('no name'); } };
-      assert.throws(() => resolveFont(throwing), RangeError);
-      assert.throws(() => gate.resolveFont(throwing), RangeError);
-    }));
-
-  it('C11: chooseFontLegacy detects for a falsy name, and keeps an unknown name as given', () => {
-    const detected = [];
-    const detect = (text) => {
-      detected.push(text);
-      return 'detected';
-    };
-    for (const name of [undefined, null, '', 0, false, NaN]) {
-      assert.equal(chooseFontLegacy(name, 'text', detect), 'detected');
+  // Names are read in any letter case since 2.11 (579be3d).
+  it('C10: resolveFont agrees with contentGate.resolveFont on every name, error class included', () => {
+    for (const name of FONT_NAMES) {
+      const expected = recordConsole(() => gate.resolveFont(name));
+      const actual = recordConsole(() => resolveFont(name));
+      assert.deepEqual([actual.value, actual.throws], [expected.value, expected.throws], String(name));
     }
-    assert.deepEqual(detected, Array(6).fill('text'));
-    assert.equal(chooseFontLegacy('zaw', 'text', detect), 'zawgyi');
-    assert.equal(chooseFontLegacy('Unicode', 'text', detect), 'Unicode');
-    const object = {};
-    assert.equal(chooseFontLegacy(object, 'text', detect), object);
-    assert.equal(detected.length, 6);
+    assert.equal(resolveFont('ZAWGYI'), 'zawgyi');
+    assert.equal(resolveFont(new String('Uni')), 'unicode');
+    assert.equal(resolveFont(['Zawgyi']), null, 'an array is looked up by its string, as it is');
+    const throwing = { toString() { throw new RangeError('no name'); } };
+    assert.throws(() => resolveFont(throwing), RangeError);
+    assert.throws(() => gate.resolveFont(throwing), RangeError);
+  });
+
+  it('C11: givenName reads a string other than \'\', or a String object\'s, as contentGate.givenName', () => {
+    for (const name of FONT_NAMES) assert.equal(givenName(name), gate.givenName(name), String(name));
+    assert.equal(givenName(new String('Win')), 'Win');
+    assert.equal(givenName(1), null);
     assert.equal(ON_TIE_ASSUME_ZAWGYI, 'zawgyi');
+  });
+
+  // One policy for font names since 2.11 (24f81c6): a coded TypeError for the fonts with no break rules.
+  it('C11: breakFont agrees with contentGate.breakFont on every name, the error\'s code and message included', () => {
+    for (const api of ['syllBreak', 'truncate']) {
+      for (const name of FONT_NAMES) {
+        const expected = recordConsole(() => gate.breakFont(name, api));
+        const actual = recordConsole(() => breakFont(name, api));
+        assert.deepEqual([actual.value, actual.throws], [expected.value, expected.throws], api + ' ' + String(name));
+        if (!expected.throws) continue;
+        assert.deepEqual([actual.error.code, actual.error.message], [expected.error.code, expected.error.message]);
+        assert.equal(actual.error.code, 'ERR_KNAYI_INVALID_FONT');
+      }
+    }
+    assert.equal(breakFont(undefined, 'syllBreak'), null, 'no name: the caller detects the font');
+    assert.equal(breakFont('UNI', 'syllBreak'), 'unicode');
   });
 });
 

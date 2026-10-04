@@ -98,7 +98,7 @@ describe('Array#map callbacks', () => {
 
   // Each waits for the 2.x change that makes it read map's index and array as setting nothing
   // (scripts/testing/pending-port.js).
-  const PENDING = { fontDetect: '86f0040', detectEncoding: '31eb6b1', spellingFix: '24f81c6' };
+  const PENDING = { fontDetect: '86f0040', detectEncoding: '31eb6b1' };
   for (const name of ['fontDetect', 'detectEncoding', 'spellingFix', 'truncate', 'normalize']) {
     const test = () => {
       for (const silent of [false, true]) {
@@ -113,12 +113,12 @@ describe('Array#map callbacks', () => {
       PENDING[name] ? pendingPort(PENDING[name], test) : test);
   }
 
-  it('changes what syllBreak and fontConvert give', pendingPort('24f81c6', () => {
+  it('changes what syllBreak and fontConvert give', () => {
     knayi.setGlobalOptions({ silent_mode: true });
     const two = ['မြန်မာ', 'ျမန္မာ'];
     // The array is syllBreak's break point.
     assert.deepEqual(two.map(knayi.syllBreak), ['မြန်မြန်မာ,ျမန္မာမာ', 'ျမန္မြန်မာ,ျမန္မာမာ']);
     // The index is fontConvert's target, which is no font, so nothing is converted.
     assert.deepEqual(two.map(knayi.fontConvert), two);
-  }));
+  });
 });

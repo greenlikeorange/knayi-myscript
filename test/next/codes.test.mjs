@@ -561,13 +561,14 @@ describe('freeze.js: deepFreeze', () => {
 });
 
 describe('core/errors.js', () => {
-  it('ERR holds the six codes of the spec', () => {
+  it('ERR holds the seven codes of the spec', () => {
     assert.deepEqual({ ...ERR }, {
       INVALID_ARG_TYPE: 'ERR_KNAYI_INVALID_ARG_TYPE',
       INVALID_ARG_VALUE: 'ERR_KNAYI_INVALID_ARG_VALUE',
       LINE_TOO_LONG: 'ERR_KNAYI_LINE_TOO_LONG',
       UNSUPPORTED_RUNTIME: 'ERR_KNAYI_UNSUPPORTED_RUNTIME',
       INVALID_FONT_TABLE: 'ERR_KNAYI_INVALID_FONT_TABLE',
+      INVALID_FONT: 'ERR_KNAYI_INVALID_FONT',
       NOT_BUILT: 'ERR_KNAYI_NOT_BUILT'
     });
     assert.ok(Object.isFrozen(ERR));

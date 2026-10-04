@@ -1,13 +1,12 @@
 // Errors with codes (docs/next/DESIGN.md §4 rule 4, D13): every throw in src/ throws libraryError(...), with a
-// code from ERR. The one exception is compat's legacyTypeError(), in compat/legacy.js only, which reproduces the
-// TypeErrors 2.x threw by accident, with no code; so that file is also the only one that constructs an error
-// class itself.
+// code from ERR, and no file constructs an error class itself. compat's legacyTypeError(), which reproduced the
+// TypeErrors 2.10 threw by accident, went with the port of 2.11's font-name policy (DESIGN.md §8): 2.11 throws a
+// TypeError with a code there.
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { parsedSources, walk, where } from './ast.mjs';
 
-const LEGACY = 'compat/legacy.js';
 const ERROR_CLASSES = new Set(['Error', 'TypeError', 'RangeError', 'SyntaxError', 'ReferenceError', 'EvalError',
   'URIError']);
 const SOURCES = parsedSources();
@@ -18,14 +17,13 @@ function calleeName(node) {
 }
 
 describe('errors thrown by src/ (DESIGN.md §4 rule 4)', () => {
-  it('every throw throws libraryError(...), or legacyTypeError() in ' + LEGACY, () => {
+  it('every throw throws libraryError(...)', () => {
     const bad = [];
     for (const { file, ast, text } of SOURCES) {
       walk(ast, (node) => {
         if (node.type !== 'ThrowStatement') return;
-        const name = calleeName(node.argument);
-        const allowed = name === 'libraryError' || (name === 'legacyTypeError' && file === LEGACY);
-        if (!allowed) bad.push(where(file, node) + ': ' + text.slice(node.start, node.end));
+        if (calleeName(node.argument) === 'libraryError') return;
+        bad.push(where(file, node) + ': ' + text.slice(node.start, node.end));
       });
     }
     assert.deepEqual(bad, []);
@@ -46,10 +44,9 @@ describe('errors thrown by src/ (DESIGN.md §4 rule 4)', () => {
     assert.deepEqual(bad, []);
   });
 
-  it('only ' + LEGACY + ' constructs an error class itself; the rest go through libraryError', () => {
+  it('no file constructs an error class itself: every error comes from libraryError', () => {
     const bad = [];
     for (const { file, ast } of SOURCES) {
-      if (file === LEGACY) continue;
       walk(ast, (node) => {
         if (ERROR_CLASSES.has(calleeName(node))) bad.push(where(file, node) + ': ' + calleeName(node));
       });

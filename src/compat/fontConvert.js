@@ -11,7 +11,7 @@ import { createTrace } from '../core/rules.js';
 import { fontToUnicode, traceFontToUnicode } from '../stages/fonts.js';
 import { unicodeToZawgyi, traceUnicodeToZawgyi } from '../rules/unicodeToZawgyi.js';
 import { detectForRouting } from './fontDetect.js';
-import { enter, resolveFont } from './input.js';
+import { enter, resolveFont, givenName } from './input.js';
 import { report, MESSAGES } from './globalOptions.js';
 
 // fontConvert(content, to, from), in 2.x's order of checks (converter.js fontConvert, C15):
@@ -19,7 +19,8 @@ import { report, MESSAGES } from './globalOptions.js';
 // 2. text with no unit of U+1000-U+109F comes back unchanged, unless the source is Win, whose text is ASCII;
 // 3. no target prints an error and returns the text, untrimmed;
 // 4. the text is trimmed (zero-width spaces stay: they mark word breaks); an unknown target prints an error;
-// 5. a missing source is detected on the trimmed text, with the global detector options;
+// 5. a missing source is detected on the trimmed text, with the global detector options, and so is an unknown one,
+//    after a warning (2.x 24f81c6). Font names are read in any letter case (resolveFont);
 // 6. the same font returns the trimmed text; Win as a target, or Win to anything but Unicode, prints an error.
 // The debug flag is `this && this.debug`, read after the early exits (C16). A function, not an arrow, so that
 // `this` is the receiver; compat is a strict module, so a detached call has none (§5.4).
@@ -33,13 +34,17 @@ export const fontConvert = /* @__PURE__ */ withDebugging(function fontConvert(co
     return text;
   }
   text = text.trim();
+  const sourceName = givenName(from);
   const target = resolveFont(to);
   let source = resolveFont(from);
   if (!target) {
     report('error', MESSAGES.unknownTarget);
     return text;
   }
-  if (!source) source = detectForRouting(text);
+  if (!source) {
+    if (sourceName !== null) report('warn', MESSAGES.unknownSource(sourceName));
+    source = detectForRouting(text);
+  }
   if (target === source) return text;
   if (FONTS[target].sourceOnly || (FONTS[source].sourceOnly && target !== 'unicode')) {
     report('error', MESSAGES.winSourceOnly);

@@ -3,9 +3,10 @@
 //
 // Both functions are compared with 2.x zawgyi.toUnicode and win.toUnicode, with and without debug, in the frozen
 // copies of scripts/oracle/ (D19), with the typing fixes in normalize's order, as scripts/oracle/index.js makes them
-// for the 2.x line's change since 2.10 (2.x ab3676e; DESIGN.md §8): on the regressions of test/fuzz.test.js, the table probes of
-// test/fixtures/tables.json, and every generated input set of scripts/eval/lib/inputs.mjs (every Myanmar-block
-// pair, Extended-A/B/C, the row probes with the strings of the documents' examples, and the generated Win sets).
+// for the 2.x line's change since 2.10 (2.x ab3676e; DESIGN.md §8): on the regressions of test/fuzz.test.js, the
+// table probes of test/fixtures/tables.json, and every generated input set of scripts/eval/lib/inputs.mjs (every
+// Myanmar-block pair, Extended-A/B/C, the row probes with the strings of the documents' examples, and the generated
+// Win sets).
 // fontToUnicode.fuzz.test.mjs adds random strings; `npm run compare` adds the corpora, mC4 included. The Win
 // results are "Win identity only": there is no hand-checked Win set yet (PR 0.9 of the plan).
 

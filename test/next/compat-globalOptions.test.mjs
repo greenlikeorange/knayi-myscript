@@ -113,7 +113,10 @@ describe('compat: the console writers (C25, §5.3)', () => {
   it('has the texts of §5.3, as 2.x prints them', () => {
     assert.equal(MESSAGES.missingContent('truncate'), 'Content must be specified on knayi.truncate.');
     assert.equal(MESSAGES.noTarget, 'Convert target font must be specified on knayi.fontConvert.');
-    assert.equal(MESSAGES.unknownTarget, 'Convert library dosen\'t have this fontType.');
+    assert.equal(MESSAGES.unknownTarget, 'Convert library doesn\'t have this fontType.');
+    assert.equal(MESSAGES.unknownSource('zg'), 'Unknown source font "zg" on knayi.fontConvert; detecting it.');
+    assert.equal(MESSAGES.invalidFont('syllBreak', 'win'),
+      'knayi.syllBreak takes the font \'unicode\' or \'zawgyi\', not "win".');
     assert.equal(MESSAGES.winSourceOnly, 'knayi.fontConvert converts Win text to Unicode only.');
     assert.equal(MESSAGES.badThreshold, 'myanmartools_zg_threshold must be [number, number]');
   });

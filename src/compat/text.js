@@ -10,8 +10,8 @@ import { DEFAULTS } from '../core/options.js';
 import { normalizeText } from '../stages/normalize.js';
 import { prepareBreakText, breakParts, breakString, collapseRepeatedMarks } from '../rules/segment.js';
 import { detectForRouting } from './fontDetect.js';
-import { enter, cleanText, chooseFontLegacy } from './input.js';
-import { legacyBreakFont, legacyCollapseFont, NO_RULES, toJoinSeparator } from './legacy.js';
+import { enter, cleanText, resolveFont, givenName, breakFont } from './input.js';
+import { toJoinSeparator } from './legacy.js';
 
 // normalize(content) (2.x normalization.js, C24): Unicode text in the storage order of UTN #11, with the typing
 // fixes, as NFC. There is no Myanmar gate: text with no Myanmar still gets NFC (decision 16).
@@ -21,15 +21,14 @@ export function normalize(content) {
 }
 
 // syllBreak(content, fontType, breakpoint) (2.x syllBreak.js, C21): the text with the separator between its
-// syllables. It cleans the text first and detects a missing font on the cleaned text. The rule table is looked up
-// before the separator is converted, as 2.x's joinParts(breakParts(...)) does (C12, C20).
+// syllables. It cleans the text first and detects a missing font on the cleaned text; 'win' and an unknown font
+// throw (breakFont). The font is read before the separator is converted, as 2.x's breakText does (C20).
 export function syllBreak(content, fontType, breakpoint) {
   const input = enter('syllBreak', content);
   if (input.kind !== 'text' || !hasMyanmarBlockChar(input.value)) return input.value;
   const text = cleanText(input.value);
-  const font = legacyBreakFont(chooseFontLegacy(fontType, text, detectForRouting));
+  const font = breakFont(fontType, 'syllBreak') || detectForRouting(text);
   const separator = breakSeparator(breakpoint);
-  if (font === NO_RULES) return text;
   // An empty separator joins the pieces, which gives back the prepared text (row U1 applied).
   return separator === '' ? prepareBreakText(text, font) : breakString(text, font, separator);
 }
@@ -40,21 +39,22 @@ function breakSeparator(breakpoint) {
   return breakpoint && breakpoint !== DEFAULTS.breakSeparator ? toJoinSeparator(breakpoint) : DEFAULTS.breakSeparator;
 }
 
-// spellingFix(content, fontType) (2.x spellingCheck.js, C22): each run of one repeated mark as one mark. It
-// detects a missing font on the text as given, then cleans it, then collapses with the font's set of marks.
+// spellingFix(content, fontType) (2.x spellingCheck.js, C22): each run of one repeated mark as one mark. A font
+// that is not a string, or '', is detected on the text as given; then the text is cleaned and collapsed with the
+// Zawgyi marks for a name of Zawgyi, and with the Unicode marks for any other name, 'win' and unknown names
+// included (2.x 24f81c6).
 export function spellingFix(content, fontType) {
   const input = enter('spellingFix', content);
   if (input.kind !== 'text' || !hasMyanmarBlockChar(input.value)) return input.value;
-  const font = chooseFontLegacy(fontType, input.value, detectForRouting);
-  const text = cleanText(input.value);
-  const marks = legacyCollapseFont(font);
-  return marks === NO_RULES ? text : collapseRepeatedMarks(text, marks);
+  const name = givenName(fontType);
+  const font = name === null ? detectForRouting(input.value) : resolveFont(name);
+  return collapseRepeatedMarks(cleanText(input.value), font === 'zawgyi' ? 'zawgyi' : 'unicode');
 }
 
 // truncate(content, options) (2.x truncate.js, C23): at most `length` units, the omission included, cut at a
 // syllable break. It reads every option before it looks at the content, and detects a missing font on the content
-// as given (before trim and zero-width removal), then breaks the cleaned text (§5.1). Not always a prefix: a part
-// that does not fit adds the words of it that do (DESIGN.md §10 Q5).
+// as given (before trim and zero-width removal), then breaks the cleaned text (§5.1); 'win' and an unknown font
+// throw (breakFont). Not always a prefix: a part that does not fit adds the words of it that do (DESIGN.md §10 Q5).
 export function truncate(content, options) {
   const settings = options || {};
   const fontType = settings.fontType;
@@ -65,11 +65,8 @@ export function truncate(content, options) {
   if (input.kind === 'missing') return '';
   const text = input.value;
   if (text === '' || !hasMyanmarBlockChar(text)) return text.substr(0, budget) + omission;
-  const font = chooseFontLegacy(fontType, text, detectForRouting);
-  const cleaned = cleanText(text);
-  const breakFont = legacyBreakFont(font);
-  const parts = breakFont === NO_RULES ? [cleaned] : breakParts(cleaned, breakFont);
-  return fitParts(parts, budget).trim() + omission;
+  const font = breakFont(fontType, 'truncate') || detectForRouting(text);
+  return fitParts(breakParts(cleanText(text), font), budget).trim() + omission;
 }
 
 // 2.x truncate's reduce (truncate.js): whole parts while they fit in the budget; a part that does not fit

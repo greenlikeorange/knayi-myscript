@@ -15,8 +15,6 @@
 // Each key is the 2.x commit that made the change; the port of a commit removes its key once no test names it.
 
 const PENDING = Object.freeze({
-  '24f81c6': 'one font-name policy, with the coded TypeError ERR_KNAYI_INVALID_FONT (refactor plan PR 4.3)',
-  '579be3d': 'font names in any letter case (PR 4.3b)',
   '86f0040': 'a fontDetect fallback that is not a string is no fallback (PR 4.4)',
   'fb6594d': 'null options, and checked detector options with coded console errors (PR 4.5)',
   'd20027a': 'fontConvert reads no debug flag from this (PR 4.1)',
@@ -31,15 +29,13 @@ const PENDING = Object.freeze({
 // is not a string, the detector options, debugging's reports, truncate's prefix, detectEncoding, zawgyiDetector and
 // the package load. test/contract/api-matrix.test.js and scripts/bun-matrix.js check compat and its builds against
 // the matrix as waiting for them.
-const MATRIX_CHANGES = Object.freeze(['24f81c6', '579be3d', '86f0040', 'fb6594d', 'b6cbfca', '41984eb', '31eb6b1',
+const MATRIX_CHANGES = Object.freeze(['86f0040', 'fb6594d', 'b6cbfca', '41984eb', '31eb6b1',
   '840c8c5', '649b2b4']);
 
 // The examples of the 2.x API in the documents that show a change compat does not have yet, by file and code (as
 // scripts/testing/readme-examples.js reads them), with the commit each waits for. test/readme.test.js and
 // test/next/compat-index.test.mjs run them as waiting for it.
 const PENDING_EXAMPLES = Object.freeze({
-  "MIGRATION.md compat.fontConvert('ျမန္မာ', 'unicode', 'zg')": '24f81c6',
-  "MIGRATION.md compat.fontConvert('ျမန္မာ', 'Unicode', 'ZAWGYI')": '579be3d',
   "MIGRATION.md compat.fontDetect('က', 1)": '86f0040',
   "MIGRATION.md compat.fontDetect('ကျ', null, null)": 'fb6594d',
   "MIGRATION.md compat.fontDetect('ကျ', null, { adapter: 'rule' })": 'fb6594d',
@@ -53,7 +49,6 @@ const PENDING_EXAMPLES = Object.freeze({
   "MIGRATION.md ['မြန်မာ', 'ျမန္မာ', 'abc'].map(compat.detectEncoding)": '31eb6b1',
   "MIGRATION.md compat.fontConvert.debugging(' ကျ ', 'unicode', 'unicode')": 'b6cbfca',
   "MIGRATION.md compat.fontConvert.debugging('abc', 'unicode')": 'b6cbfca',
-  "MIGRATION.md ['မြန်မာ', 'ျမန္မာ'].map(compat.syllBreak)": '24f81c6',
   "MIGRATION.md compat.truncate('အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇလွန်ဈေးဘေးဗာဒံပင်ထက် အဓိဋ္ဌာန်လျက် ဂဃနဏဖတ်ခဲ့သည်။', { length: 30, omission: '...' })": '41984eb',
   "src/compat/index.d.ts compat.detectEncoding('မဂၤလာပါ')": '31eb6b1',
   "src/compat/index.d.ts compat.detectEncoding('မြန်မာ')": '31eb6b1',

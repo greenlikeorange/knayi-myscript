@@ -452,7 +452,7 @@ try {
 }
 ```
 
-`knayi-myscript/compat` throws nothing on purpose, as 2.x did ([MIGRATION.md](MIGRATION.md#keep-2xs-output-knayi-myscriptcompat)).
+`knayi-myscript/compat` throws on purpose only where 2.11 does: `syllBreak` and `truncate` throw a `TypeError` with the code `ERR_KNAYI_INVALID_FONT` for a font they have no break rules for, such as `'win'` ([MIGRATION.md](MIGRATION.md#font-names)).
 
 ## Streams: knayi-myscript/stream
 

@@ -64,14 +64,11 @@ describe('compat: the export object (C1)', () => {
 
 // lines.map(knayi.f) passes (value, index, array): the index and the array land in the fallback, target, source,
 // font, separator and options positions. Where 2.11 reads them otherwise, the form waits for its port: a fallback
-// that is not a string (86f0040), detectEncoding (31eb6b1), the font names and "doesn't" (24f81c6), and debugging's
-// report (b6cbfca).
+// that is not a string (86f0040), detectEncoding (31eb6b1), and debugging's report (b6cbfca).
 const MAP_PENDING = {
   fontDetect: '86f0040',
   detectEncoding: '31eb6b1',
-  fontConvert: '24f81c6',
-  syllBreak: '24f81c6',
-  'fontConvert.debugging': ['24f81c6', 'b6cbfca']
+  'fontConvert.debugging': 'b6cbfca'
 };
 
 describe('compat: every function as an Array#map callback (C27)', () => {

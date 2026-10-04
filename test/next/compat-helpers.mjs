@@ -50,10 +50,13 @@ export function recordConsole(fn) {
   }
 }
 
-// What a call gave, in a form two libraries can be compared by: the value (or the error class) and the console.
+// What a call gave, in a form two libraries can be compared by: the value, or the error class, and the console. An
+// error knayi throws on purpose has a string code, and its code and message count too, as in the contract matrix.
 export function outcome(call, knayi) {
   const run = recordConsole(() => call(knayi));
-  return run.throws ? { throws: run.throws, console: run.console } : { value: run.value, console: run.console };
+  if (!run.throws) return { value: run.value, console: run.console };
+  if (!run.error || typeof run.error.code !== 'string') return { throws: run.throws, console: run.console };
+  return { throws: run.throws, code: run.error.code, message: run.error.message, console: run.console };
 }
 
 // Asserts that compat gives what main.js gives for call, from the default options.

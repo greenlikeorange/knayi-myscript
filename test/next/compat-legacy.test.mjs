@@ -1,15 +1,13 @@
-// compat's 2.x property-lookup quirks (src/compat/legacy.js; docs/next/DESIGN.md §5.2 C12, C20, D13), against
-// main.js on every Object.prototype name, the matrix's font names and separators of every kind; and the 2.x shape
-// of the Win tables, against library/win.js of the 2.x reference (scripts/reference/). 2.11 gives font names one
-// policy (24f81c6), in any letter case (579be3d), and truncate a prefix (41984eb): the comparisons with main.js wait
-// for their ports.
+// compat's font names in syllBreak, spellingFix and truncate, against main.js on every Object.prototype name, the
+// matrix's font names and values of every kind (docs/next/DESIGN.md §5.2 C11, C12); the syllBreak separator (C20);
+// and the 2.x shape of the Win tables, against library/win.js of the 2.x reference (scripts/reference/). 2.11 gives
+// font names one policy (24f81c6), in any letter case (579be3d), and truncate a prefix (41984eb): the comparison
+// of truncate with main.js waits for the port of the last.
 
 import { describe, it, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { assertSameAsReference, compat, pendingPort, resetOptions } from './compat-helpers.mjs';
-import {
-  legacyBreakFont, legacyCollapseFont, NO_RULES, legacyTypeError, toJoinSeparator, legacyWinTables
-} from '../../src/compat/legacy.js';
+import { assertSameAsReference, compat, pendingPort, recordConsole, resetOptions } from './compat-helpers.mjs';
+import { toJoinSeparator, legacyWinTables } from '../../src/compat/legacy.js';
 import { WIN_GLYPHS, LOOK_ALIKE_SEQUENCES, C1_ALIASES } from '../../src/fonts/win.js';
 import { library } from './helpers.mjs';
 
@@ -18,44 +16,50 @@ const ZAWGYI = '\u103B\u1019\u1014\u1039\u1019\u102C\u102C';
 
 // The font names of the contract matrix (scripts/contract/matrix.js FONTS), every name Object.prototype has, and a
 // few more values a caller might pass.
-const FONT_NAMES = [undefined, null, '', 'unicode', 'uni', 'zawgyi', 'zaw', 'win', 'Unicode', 'ZAWGYI', 'foo', 0, 1,
-  'length', 'prototype', ['unicode'], {}, Symbol('zawgyi'), true]
+const FONT_NAMES = [undefined, null, '', 'unicode', 'uni', 'zawgyi', 'zaw', 'win', 'Unicode', 'ZAWGYI', 'Win', 'foo',
+  0, 1, 'length', 'prototype', ['unicode'], {}, Symbol('zawgyi'), true, new String('Zaw')]
   .concat(Object.getOwnPropertyNames(Object.prototype));
 
 afterEach(resetOptions);
 
-describe('compat: the 2.x rule-table lookups (C12)', () => {
-  it('syllBreak, spellingFix and truncate answer every font name as main.js does, error class included',
-    pendingPort(['24f81c6', '579be3d', '41984eb'], () => {
-      for (const name of FONT_NAMES) {
-        for (const text of [UNICODE, ZAWGYI, ' ' + UNICODE + '\u200B ']) {
-          const what = String(name) + ' on ' + JSON.stringify(text);
-          assertSameAsReference((k) => k.syllBreak(text, name, '|'), 'syllBreak ' + what);
-          assertSameAsReference((k) => k.spellingFix(text, name), 'spellingFix ' + what);
-          assertSameAsReference((k) => k.truncate(text + text, { fontType: name, length: 9 }), 'truncate ' + what);
-        }
+describe('compat: font names in syllBreak, spellingFix and truncate (C11, C12)', () => {
+  it('syllBreak and spellingFix answer every font name as main.js does, the error\'s code and message included', () => {
+    for (const name of FONT_NAMES) {
+      for (const text of [UNICODE, ZAWGYI, ' ' + UNICODE + '\u200B ']) {
+        const what = String(name) + ' on ' + JSON.stringify(text);
+        assertSameAsReference((k) => k.syllBreak(text, name, '|'), 'syllBreak ' + what);
+        assertSameAsReference((k) => k.spellingFix(text, name), 'spellingFix ' + what);
       }
-    }));
-
-  it('finds the fonts under their own keys, and what Object.prototype has under other names', () => {
-    assert.equal(legacyBreakFont('unicode'), 'unicode');
-    assert.equal(legacyBreakFont('zawgyi'), 'zawgyi');
-    for (const name of ['win', 'Unicode', 1, 'foo', 'length']) assert.throws(() => legacyBreakFont(name), TypeError);
-    for (const name of ['constructor', 'hasOwnProperty', 'isPrototypeOf', '__defineGetter__']) {
-      assert.throws(() => legacyBreakFont(name), TypeError, name);
-      assert.throws(() => legacyCollapseFont(name), TypeError, name);
     }
-    for (const name of ['toString', 'valueOf', 'toLocaleString', '__proto__']) {
-      assert.equal(legacyBreakFont(name), NO_RULES, name);
-      assert.equal(legacyCollapseFont(name), NO_RULES, name);
-    }
-    for (const name of ['win', 'Unicode', 1, undefined]) assert.equal(legacyCollapseFont(name), 'unicode');
   });
 
-  it('throws its TypeErrors with no code, so the matrix records them by class only (D13)', () => {
-    const error = legacyTypeError();
-    assert.ok(error instanceof TypeError);
-    assert.equal(Object.prototype.hasOwnProperty.call(error, 'code'), false);
+  it('truncate answers every font name as main.js does', pendingPort('41984eb', () => {
+    for (const name of FONT_NAMES) {
+      for (const text of [UNICODE, ZAWGYI, ' ' + UNICODE + '\u200B ']) {
+        const what = String(name) + ' on ' + JSON.stringify(text);
+        assertSameAsReference((k) => k.truncate(text + text, { fontType: name, length: 9 }), 'truncate ' + what);
+      }
+    }
+  }));
+
+  it('syllBreak and truncate throw ERR_KNAYI_INVALID_FONT for win and unknown names, Object.prototype\'s too', () => {
+    for (const name of ['win', 'WIN', 'foo', 'constructor', 'toString', '__proto__', 'hasOwnProperty']) {
+      for (const [api, call] of [['syllBreak', () => compat.syllBreak(UNICODE, name)],
+        ['truncate', () => compat.truncate(UNICODE, { fontType: name })]]) {
+        const run = recordConsole(call);
+        assert.equal(run.throws, 'TypeError', api + ' ' + name);
+        assert.equal(run.error.code, 'ERR_KNAYI_INVALID_FONT');
+        assert.equal(run.error.message, 'knayi.' + api + ' takes the font \'unicode\' or \'zawgyi\', not ' +
+          JSON.stringify(name) + '.');
+      }
+    }
+  });
+
+  it('spellingFix collapses the Zawgyi marks for a name of Zawgyi, and the Unicode marks for any other', () => {
+    assert.equal(compat.spellingFix('\u1000\u1033\u1033', 'Zaw'), '\u1000\u1033');
+    for (const name of ['win', 'foo', 'constructor', 'toString', '__proto__']) {
+      assert.equal(compat.spellingFix('\u1000\u102C\u102C', name), '\u1000\u102C', name);
+    }
   });
 });
 
@@ -65,14 +69,14 @@ describe('compat: the syllBreak separator (C20)', () => {
     {}, { toString: () => '', valueOf: () => '+' }, { toString: () => '/', valueOf: () => '+' },
     { toString: () => ({}), valueOf: () => '+' }, new String('|'), Symbol('|')];
 
-  it('converts each separator as main.js does, after the rule-table lookup', pendingPort('24f81c6', () => {
+  it('converts each separator as main.js does, after reading the font', () => {
     for (const separator of SEPARATORS) {
       for (const font of ['unicode', 'zawgyi', undefined, 'toString', 'win']) {
         assertSameAsReference((k) => k.syllBreak(UNICODE + ' ' + ZAWGYI, font, separator),
           String(font) + ' ' + String(separator && separator.toString ? separator.toString() : separator));
       }
     }
-  }));
+  });
 
   it('toJoinSeparator converts as Array#join does: toString first, and a Symbol throws', () => {
     assert.equal(toJoinSeparator({ toString: () => 'a', valueOf: () => 'b' }), 'a');

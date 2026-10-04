@@ -12,12 +12,14 @@
 import { deepFreeze } from '../freeze.js';
 import { DEFAULTS } from '../core/options.js';
 
-// The console texts of §5.3, word for word as 2.x prints them (library/*.js). unknownTarget keeps 2.x's spelling:
-// fixing it is a 2.x change, ported later (DESIGN.md §5.3, §8).
+// The console texts of §5.3, and the message of the font error, word for word as 2.x writes them (library/*.js).
 export const MESSAGES = /* @__PURE__ */ deepFreeze({
   missingContent: (apiName) => 'Content must be specified on knayi.' + apiName + '.',
   noTarget: 'Convert target font must be specified on knayi.fontConvert.',
-  unknownTarget: 'Convert library dosen\'t have this fontType.',
+  unknownTarget: 'Convert library doesn\'t have this fontType.',
+  unknownSource: (name) => 'Unknown source font ' + JSON.stringify(name) + ' on knayi.fontConvert; detecting it.',
+  invalidFont: (apiName, name) => 'knayi.' + apiName + ' takes the font \'unicode\' or \'zawgyi\', not ' +
+    JSON.stringify(name) + '.',
   winSourceOnly: 'knayi.fontConvert converts Win text to Unicode only.',
   badThreshold: 'myanmartools_zg_threshold must be [number, number]'
 });

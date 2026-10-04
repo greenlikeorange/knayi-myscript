@@ -17,20 +17,19 @@ afterEach(resetOptions);
 
 describe('compat: fontConvert (C15-C19)', () => {
   // The font names of 2.11: any letter case (579be3d), and an unknown source that warns, and "doesn't" (24f81c6).
-  it('C15: answers every target and source as main.js does, console included',
-    pendingPort(['24f81c6', '579be3d'], () => {
-      for (const text of TEXTS) {
-        for (const to of FONTS) {
-          for (const from of FONTS) {
-            assertSameAsReference((k) => k.fontConvert(text, to, from), JSON.stringify([text, to, from]));
-          }
+  it('C15: answers every target and source as main.js does, console included', () => {
+    for (const text of TEXTS) {
+      for (const to of FONTS) {
+        for (const from of FONTS) {
+          assertSameAsReference((k) => k.fontConvert(text, to, from), JSON.stringify([text, to, from]));
         }
       }
-    }));
+    }
+  });
 
   // And debugging's report on every exit with text (b6cbfca).
   it('C17-C19: debugging gives main.js\'s log, and its report on every early exit',
-    pendingPort(['24f81c6', '579be3d', 'b6cbfca'], () => {
+    pendingPort('b6cbfca', () => {
       for (const text of TEXTS.concat([null, '', 0, {}, new String(ZAWGYI)])) {
         for (const to of FONTS) {
           for (const from of FONTS) {
