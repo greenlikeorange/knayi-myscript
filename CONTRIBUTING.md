@@ -113,6 +113,7 @@ The entries of the exports map and what each exports, the types, the error codes
 
 - New exports and options may come in a minor version, with types, tests, and matrix rows for compat.
 - A change to what a function returns is a deliberate pull request that raises `OUTPUT_VERSION` (`src/version.js`) above that of the last release, with a line on what changed: a dataset can hold only released output, so changes between two releases share one number. CI's compare job checks it when the 3.0 API's output changes (`scripts/next/output-version.mjs`).
+- One exception: a move of compat's 2.x reference to a 2.x commit with other output also raises `OUTPUT_VERSION`, even between two releases, since the number names compat's output too. Each number says which 2.x release compat gives (`src/version.js`, README's table), so a port of the 2.x line that moves the reference ([docs/next/DESIGN.md](docs/next/DESIGN.md) §8) must not leave a number to mean two outputs of compat. The port of 2.11 raised it from 2 to 3 before any 3.0 release. CI's check does not ask for this; the port does.
 - Don't rewrite a regex of the Unicode to Zawgyi rows for style: its `.source` is compat's debugging output.
 
 ### Bundle size

@@ -14,6 +14,10 @@
 // start from. Without a release tag in the base's history (a shallow clone), the change must raise the base's own
 // number. OUTPUT_VERSION never goes down. CI's Compare job runs this after the comparison of the 3.0 API, and
 // test/next/output-version.test.mjs checks outputVersionVerdict.
+//
+// One exception, which this check does not see: a move of compat's 2.x reference to other output raises
+// OUTPUT_VERSION too, even between two releases, since the number names compat's output as well (CONTRIBUTING.md,
+// "The public API stays stable"); the port that moves it raises the number (docs/next/DESIGN.md §8).
 
 import fs from 'node:fs';
 import path from 'node:path';

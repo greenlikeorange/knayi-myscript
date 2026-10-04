@@ -336,7 +336,7 @@ The writers record only when they are handed a log, so the fast paths, and compa
 - **Tie:** equal evidence for Unicode and Zawgyi. 2.x's `fontDetect` returns the fallback, `'zawgyi'` when none is given; the 3.0 `detectEncoding` says `'unknown'`, and `toUnicode` leaves the line as it is. Short Unicode text, such as one consonant or a word whose only sign is a stacked consonant, ties often.
 - **Region:** a part of a text that one pass of the stable normalize reads and writes on its own (see [above](#normalize-the-stable-pipeline)).
 - **Silent mode:** compat's `setGlobalOptions({ silent_mode: true })`, which hides every warning and error it writes ([Module state](#module-state)).
-- **Output version:** `OUTPUT_VERSION`, which goes up with every deliberate change to what any function returns: 1 for 2.10.0's output, 2 since the 3.0 `normalize` settles, and 3 since the port of 2.11's output fixes, in both APIs.
+- **Output version:** `OUTPUT_VERSION`, which goes up with the deliberate changes to what any function returns: 1 for 2.10.0's output, 2 since the 3.0 `normalize` settles, and 3 since the port of 2.11, which gives compat 2.11.0's output and brings 2.11's two fixes of the core into both APIs. Changes between two releases share one number, but a move of compat's 2.x reference to other output raises it too (CONTRIBUTING.md, "The public API stays stable").
 
 ## Stable surfaces
 
