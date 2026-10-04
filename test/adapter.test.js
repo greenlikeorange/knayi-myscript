@@ -477,9 +477,9 @@ describe('myanmar-tools adapter', () => {
       }
     });
 
-    // The ESM build run from a working directory with no myanmar-tools (refactor plan, section 7 item 15): the
-    // lookup finds nothing there, and a detector passed as zawgyiDetector needs none. Under Bun the run has
-    // --no-install, since Bun would otherwise install the package from npm for the lookup.
+    // The ESM build run from a working directory with no myanmar-tools (refactor plan, section 7 item 15): a
+    // detector passed as zawgyiDetector needs none, and without one the build loads nothing (below). Under Bun the
+    // run has --no-install, so that no lookup could fetch the package from npm.
     it('works in the ESM build run from another working directory', () => {
       const dist = require('../scripts/build').builtDist();
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'knayi-elsewhere-'));
@@ -505,15 +505,7 @@ describe('myanmar-tools adapter', () => {
           pathToFileURL(path.join(dist, 'knayi-myscript.mjs')).href, require.resolve('myanmar-tools'));
         const out = JSON.parse(execFileSync(process.execPath, args, { cwd: dir, encoding: 'utf8' }));
         assert.deepEqual(out.passed, { value: 'zawgyi', messages: [] });
-        // Bun looks from the build file (found when the build is in the repository, as with KNAYI_DIST=dist), Node
-        // from the working directory, and Node before 20.16 and 22.3 cannot look.
-        if (typeof process.getBuiltinModule !== 'function') {
-          assert.deepEqual(out.lookup, { value: 'unicode', messages: [['warn', NOT_AVAILABLE]] });
-        } else if (typeof Bun !== 'undefined' && resolvableFrom(dist)) {
-          assert.deepEqual(out.lookup, { value: 'zawgyi', messages: [] });
-        } else {
-          assert.deepEqual(out.lookup, { value: 'unicode', messages: [['warn', NOT_INSTALLED]] });
-        }
+        assert.deepEqual(out.lookup, { value: 'unicode', messages: [['warn', NOT_AVAILABLE]] });
       } finally {
         fs.rmSync(dir, { recursive: true, force: true });
       }
@@ -548,38 +540,66 @@ describe('myanmar-tools adapter', () => {
     });
   });
 
-  // The ESM build has no module.require, so it loads myanmar-tools with process.getBuiltinModule from the
-  // working directory (refactor plan, section 7 item 15). Run from the package root, it finds the dev
-  // dependency. Node before 20.16 and 22.3 has no process.getBuiltinModule: there the ESM build cannot load
-  // the package and uses the rule scorer. Bun gives ES modules a __filename too, so under Bun the ESM build
-  // resolves the package from its own file instead, and a build outside the package (the temporary build the
-  // tests use) does not find it.
-  it('loads it in the ESM build from the working directory', async (t) => {
-    if (!fs.existsSync(path.join(process.cwd(), 'node_modules', 'myanmar-tools', 'package.json'))) {
-      t.skip('myanmar-tools is not installed in the working directory');
-      return;
+  // Only main.js and the files in library/ load myanmar-tools themselves, with module.require, so Node and Bun
+  // resolve it from knayi's own folder. The builds in dist/ have no module.require, and load nothing by name: not
+  // from the working directory, and not from next to the build file (refactor plan, decision 17). There the adapter
+  // needs a detector passed as zawgyiDetector. Each script runs, under the runtime of the test (Bun with
+  // --no-install), in a directory whose node_modules holds a stub myanmar-tools that records that it was loaded and
+  // gives every text the probability 1, with copies of the two builds next to it.
+  describe('what loads the package', () => {
+    let dir;
+    before(() => {
+      dir = fs.mkdtempSync(path.join(os.tmpdir(), 'knayi-stub-'));
+      const stub = path.join(dir, 'node_modules', 'myanmar-tools');
+      fs.mkdirSync(stub, { recursive: true });
+      fs.writeFileSync(path.join(stub, 'package.json'), JSON.stringify({ name: 'myanmar-tools', version: '1.1.3', main: 'index.js' }));
+      fs.writeFileSync(path.join(stub, 'index.js'), [
+        'globalThis.stubLoaded = true;',
+        'function ZawgyiDetector() {}',
+        'ZawgyiDetector.prototype.getZawgyiProbability = function () { return 1; };',
+        'exports.ZawgyiDetector = ZawgyiDetector;'
+      ].join('\n') + '\n');
+      fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'app', private: true }));
+      const dist = require('../scripts/build').builtDist();
+      for (const file of ['knayi-myscript.mjs', 'knayi-myscript.min.js']) {
+        fs.copyFileSync(path.join(dist, file), path.join(dir, file));
+      }
+      // 'က္က' is a tie for the rule scorer, so the fallback 'unicode'; myanmar-tools 1.1.3 gives it 0.93, and the
+      // stub 1, both Zawgyi above 0.9.
+      const call = "knayi.fontDetect('က္က', 'unicode', { adapter: 'myanmartools', myanmartools_zg_threshold: [0.05, 0.9] })";
+      const report = 'process.stdout.write(JSON.stringify({ value: value, messages: messages, stubLoaded: Boolean(globalThis.stubLoaded) }));';
+      const consoleCapture = "const messages = [];\nconsole.warn = (m) => messages.push(['warn', m]);\nconsole.error = (m) => messages.push(['error', m]);";
+      fs.writeFileSync(path.join(dir, 'run.mjs'), [
+        consoleCapture,
+        "const knayi = (await import('./knayi-myscript.mjs')).default;",
+        'const value = ' + call + ';',
+        report
+      ].join('\n') + '\n');
+      fs.writeFileSync(path.join(dir, 'run.cjs'), [
+        consoleCapture,
+        "if (process.argv[2] === 'min') require('./knayi-myscript.min.js');",
+        "const knayi = process.argv[2] === 'min' ? globalThis.knayi : require(" + JSON.stringify(path.join(__dirname, '..', 'main.js')) + ');',
+        'const value = ' + call + ';',
+        report
+      ].join('\n') + '\n');
+    });
+    after(() => fs.rmSync(dir, { recursive: true, force: true }));
+
+    function run(script, arg) {
+      const args = (typeof Bun !== 'undefined' ? ['--no-install'] : []).concat(script, arg ? [arg] : []);
+      return JSON.parse(execFileSync(process.execPath, args, { cwd: dir, encoding: 'utf8' }));
     }
-    const dist = require('../scripts/build').builtDist();
-    const esm = await import(pathToFileURL(path.join(dist, 'knayi-myscript.mjs')).href);
-    const run = capture(() => esm.fontDetect('က္က', 'unicode', { adapter: 'myanmartools', myanmartools_zg_threshold: [0.05, 0.9] }));
-    if (typeof process.getBuiltinModule !== 'function') {
-      assert.equal(run.value, 'unicode');
-      assert.deepEqual(run.messages, [['warn', NOT_AVAILABLE]]);
-    } else if (typeof Bun !== 'undefined' && !resolvableFrom(dist)) {
-      assert.equal(run.value, 'unicode');
-      assert.deepEqual(run.messages, [['warn', NOT_INSTALLED]]);
-    } else {
-      assert.equal(run.value, 'zawgyi');
-      assert.deepEqual(run.messages, []);
-    }
+
+    it('main.js loads the copy installed next to knayi, not one in the working directory', () => {
+      assert.deepEqual(run('run.cjs', 'main'), { value: 'zawgyi', messages: [], stubLoaded: false });
+    });
+
+    it('the ES module build loads nothing', () => {
+      assert.deepEqual(run('run.mjs'), { value: 'unicode', messages: [['warn', NOT_AVAILABLE]], stubLoaded: false });
+    });
+
+    it('the script build loads nothing, also when Node or Bun loads it with require', () => {
+      assert.deepEqual(run('run.cjs', 'min'), { value: 'unicode', messages: [['warn', NOT_AVAILABLE]], stubLoaded: false });
+    });
   });
 });
-
-function resolvableFrom(dir) {
-  try {
-    require.resolve('myanmar-tools', { paths: [dir] });
-    return true;
-  } catch (e) {
-    return false;
-  }
-}

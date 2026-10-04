@@ -34,9 +34,10 @@ export interface ZawgyiDetectorLike {
 /** Detector settings that setGlobalOptions stores. A fontDetect call may set them for itself too. */
 export interface GlobalDetectorOptions {
   /**
-   * Detect with the myanmar-tools package instead of knayi's rule scorer. Install `myanmar-tools@1.1.3` for it. If
-   * the package is not installed or cannot be loaded, fontDetect uses the rule scorer and warns once. Default
-   * `false`.
+   * Detect with the myanmar-tools package instead of knayi's rule scorer: with the detector passed as
+   * `zawgyiDetector`, or else with the package, which only main.js loads, in Node and Bun. Install
+   * `myanmar-tools@1.1.3` for it. Where there is no detector and the package is not installed, cannot be loaded or is
+   * not loaded (as in the builds in dist/), fontDetect uses the rule scorer and warns once. Default `false`.
    */
   use_myanmartools?: boolean;
   /**
@@ -48,11 +49,11 @@ export interface GlobalDetectorOptions {
   myanmartools_zg_threshold?: [number, number];
   /**
    * The detector the myanmar-tools adapter uses, such as `new ZawgyiDetector()` from myanmar-tools. With it, knayi
-   * does not load the package itself, which it can do only in Node and Bun, so the adapter also works in browsers,
-   * in Deno and through the ES module build. It does not choose the adapter: set `use_myanmartools`, or a call's
-   * `adapter`, too. `null` is no detector, and knayi loads the package. For a value without a `getZawgyiProbability`
-   * method, knayi uses the stored detector and writes an error that starts with `[ERR_KNAYI_INVALID_DETECTOR]`,
-   * unless silent. Default `null`.
+   * does not load the package itself, which only main.js does, in Node and Bun, so the adapter also works in
+   * browsers, in Deno, in bundles and through the builds in dist/, which load no package by name. It does not choose
+   * the adapter: set `use_myanmartools`, or a call's `adapter`, too. `null` is no detector, and main.js loads the
+   * package. For a value without a `getZawgyiProbability` method, knayi uses the stored detector and writes an error
+   * that starts with `[ERR_KNAYI_INVALID_DETECTOR]`, unless silent. Default `null`.
    */
   zawgyiDetector?: ZawgyiDetectorLike | null;
 }

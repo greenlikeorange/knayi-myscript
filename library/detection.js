@@ -10,6 +10,11 @@ var myanmartoolZawgyiDetector = null;
 var myanmarToolsLoadAttempted = false;
 var myanmarToolsLoadError = null;
 
+// Loads a package the way main.js and the files in library/ load a dependency: with module.require, which Node and
+// Bun resolve from knayi's own folder. Every other copy of knayi has no module.require and loads nothing by name:
+// the builds in dist/, whose module object is esbuild's, and knayi bundled into an app. There the myanmar-tools
+// adapter needs a detector passed as zawgyiDetector (refactor plan, decision 17); the builds no longer look for the
+// package from the working directory or from their own file.
 // Browsers inside the README floor may have no globalThis (Chrome before 71, Firefox before 65, Safari before 12.1,
 // Edge before 79), so it is read only behind a typeof check. A bare `process` would make webpack 4 and browserify
 // bundle a shim for it.
@@ -22,12 +27,7 @@ function nodeRequire(id) {
   } catch (e) {
     req = null;
   }
-  if (typeof req === 'function') return req.call(module, id);
-  var nodeModule = typeof proc.getBuiltinModule === 'function' && proc.getBuiltinModule('module');
-  if (nodeModule && typeof nodeModule.createRequire === 'function') {
-    return nodeModule.createRequire(typeof __filename === 'string' ? __filename : proc.cwd() + '/package.json')(id);
-  }
-  return null;
+  return typeof req === 'function' ? req.call(module, id) : null;
 }
 
 function loadMyanmarTools() {
@@ -164,7 +164,7 @@ function fontDetect(content, fallback_font_type, options){
   }
 
   // The detector passed as zawgyiDetector, for this call or stored, or else the package, which nodeRequire loads
-  // in Node and Bun only.
+  // in main.js under Node and Bun only.
   var zawgyiDetector = options.zawgyiDetector || loadMyanmarTools();
   if (!zawgyiDetector) {
     if (!globalOptions.isSilentMode() && !warnedMissingMyanmarTools) {

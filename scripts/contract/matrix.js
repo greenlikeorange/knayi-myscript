@@ -24,11 +24,21 @@ const SNAPSHOT = path.join(ROOT, 'test', 'contract', 'api-matrix.json');
 // release build); see builtDist() in scripts/build.js.
 const BUILDS = ['main.js', 'knayi-myscript.mjs', 'knayi-myscript.min.js'];
 
+// The one cell that asks for the myanmar-tools adapter with no detector (section 5, at the end).
+const PACKAGE_CELL = "setGlobalOptions({silent_mode: true}); fontDetect(tie, null, {adapter: 'myanmartools'})";
+
 // Cells in which a build is expected to differ from main.js, with the reason: entries of the form
 // { name, builds: ['knayi-myscript.mjs'], matches: (id) => boolean, reason }. `npm run matrix:update` refuses to
-// record a build difference that no entry here explains. There is none today; the last one went when fontConvert
-// stopped reading its debug flag from `this`, which the strict ES module build read differently.
-const KNOWN_BUILD_DIFFERENCES = [];
+// record a build difference that no entry here explains.
+const KNOWN_BUILD_DIFFERENCES = [
+  {
+    name: 'no package load in dist',
+    builds: ['knayi-myscript.mjs', 'knayi-myscript.min.js'],
+    matches: (id) => id === PACKAGE_CELL,
+    reason: 'With no zawgyiDetector, main.js loads myanmar-tools (the dev dependency) with module.require. The builds ' +
+      'in dist/ load no package by name, so the myanmar-tools adapter uses the rule scorer there.'
+  }
+];
 
 // Probes. Synthetic values only: no corpus text goes into the repository.
 const ZAWGYI = '\u103B\u1019\u1014\u1039\u1019\u102C'; // "Myanmar" in Zawgyi
@@ -237,8 +247,9 @@ function defineCells() {
 
   // 5. A detector passed as zawgyiDetector: a ZawgyiDetector of myanmar-tools 1.1.3, the dev dependency. It is made
   // here and passed as it is, since a copy into the build's realm would lose the methods of its prototype. With it
-  // the adapter loads nothing, so every build gives the same cells, min.js in a vm included. No cell lets a build
-  // load the package itself, which only main.js can do (test/adapter.test.js checks that).
+  // the adapter loads nothing, so every build gives the same cells, min.js in a vm included. Without one, main.js
+  // loads the package and the builds load nothing (test/adapter.test.js checks both); one cell, at the end, records
+  // that difference.
   const { ZawgyiDetector } = require('myanmar-tools');
   const zawgyiDetector = new ZawgyiDetector();
   const DETECTOR = 'new ZawgyiDetector()';
@@ -290,7 +301,8 @@ function defineCells() {
       (k, make) => k.fontDetect(make(zawgyi), null, detectorOptions(make, {}, make(value))));
     add(`setGlobalOptions({detector: {zawgyiDetector: ${label}}})`,
       (k, make) => k.setGlobalOptions(withDetector(make, detectorOptions(make, {}, make(value)))));
-    // null and undefined with a detector stored would let the build load the package.
+    // null and undefined with a detector stored leave the call with none, where main.js loads the package and the
+    // builds load nothing: the cell at the end records that once.
     if (value == null) continue;
     add(STORED + `fontDetect(tie, null, {zawgyiDetector: ${label}})`, (k, make) => {
       storeDetector(k, make, zawgyiDetector);
@@ -311,6 +323,13 @@ function defineCells() {
       return detected;
     });
   }
+  // The adapter with no detector: main.js loads myanmar-tools, which reads the tie as Unicode, and the builds use the
+  // rule scorer, whose tie gives 'zawgyi' (KNOWN_BUILD_DIFFERENCES). Silent mode keeps out the warning, which a copy
+  // of knayi writes only once, so that the cell does not depend on what ran before it.
+  add(PACKAGE_CELL, (k, make) => {
+    k.setGlobalOptions(make({ silent_mode: true }));
+    return k.fontDetect(make(tie), null, make({ adapter: 'myanmartools' }));
+  });
 
   definedCells = cells;
   return cells;

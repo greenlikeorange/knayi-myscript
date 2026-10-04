@@ -112,7 +112,7 @@ knayi.fontDetect('က', 1) // 'zawgyi'  (a number is no fallback)
 knayi.fontDetect(null) // 'en'
 ```
 
-`options.adapter` chooses the detector for that call. `'rules'` is the built-in scorer and the default. `'myanmartools'` uses the `myanmar-tools` package, which knayi loads itself in Node and Bun, or the detector from it that you pass as `zawgyiDetector` ([below](#the-myanmar-tools-detector)). Install it only for that adapter, and use 1.1.x: `myanmar-tools` 1.2.0 on npm was published without its built files and cannot be loaded.
+`options.adapter` chooses the detector for that call. `'rules'` is the built-in scorer and the default. `'myanmartools'` uses the `myanmar-tools` package: the detector from it that you pass as `zawgyiDetector`, or else the package, which `main.js` loads itself in Node and Bun ([below](#the-myanmar-tools-detector)). Install it only for that adapter, and use 1.1.x: `myanmar-tools` 1.2.0 on npm was published without its built files and cannot be loaded.
 
 ```bash
 npm install myanmar-tools@1.1.3
@@ -126,7 +126,7 @@ knayi.fontDetect('မင်္ဂလာပါ', null, {
 }) // 'unicode'
 ```
 
-`use_myanmartools: true` selects the same adapter. A probability below the first threshold returns `'unicode'`. A probability above the second returns `'zawgyi'`. A probability between them returns the fallback. The default pair is `[0.05, 0.95]`. If the package is not installed or cannot be loaded, the call uses the rule scorer and warns once. The warning says which of the two happened.
+`use_myanmartools: true` selects the same adapter. A probability below the first threshold returns `'unicode'`. A probability above the second returns `'zawgyi'`. A probability between them returns the fallback. The default pair is `[0.05, 0.95]`. With no `zawgyiDetector`, if the package is not installed, cannot be loaded, or is not loaded by the copy of knayi you use (any but `main.js`), the call uses the rule scorer and warns once. The warning says which of the three happened.
 
 `setGlobalOptions({ detector: { use_myanmartools: true } })` changes the default. An explicit `adapter` on a later call wins. A later call that only sets `use_myanmartools` keeps a previously stored threshold and `zawgyiDetector`. `null` options, like omitted ones, use the stored settings, and `setGlobalOptions(null)` changes nothing.
 
@@ -142,13 +142,11 @@ The rule scorer does not count a consonant, `U+1039`, consonant sequence such as
 
 ### The myanmar-tools detector
 
-Without a `zawgyiDetector`, knayi loads `myanmar-tools` itself the first time a call uses the adapter, and only in Node and Bun:
+Without a `zawgyiDetector`, only `main.js` loads `myanmar-tools` itself, the first time a call uses the adapter, and so does the deep path `knayi-myscript/library/converter`, which shares its files. `require` and `import` load `main.js` in Node and Bun, and it requires the package from its own folder, as it would a dependency, so it finds the copy installed next to knayi.
 
-- `main.js`, which `require` and `import` load in Node and Bun, resolves the package from its own folder, as it would a dependency, so it finds the copy installed next to knayi.
-- The ES module build, which bundlers load through the `module` field, has no `require` of its own. Under Node it looks for the package from the `package.json` of the working directory, so it finds only a copy in the `node_modules` of the directory the process started in, or above it. Under Bun it looks from the build file, and where Bun finds no `node_modules` folder there or above it, as for a bundle deployed on its own, Bun's auto-install can fetch the latest `myanmar-tools` from npm (1.2.0, which cannot be loaded).
-- Anywhere else, such as in a browser, it loads nothing: the call uses the rule scorer and warns that `myanmar-tools` is not available.
+Every other copy of knayi loads nothing by name: the builds in `dist/`, among them the ES module build that bundlers load through the `module` field, knayi bundled into an app, and knayi in a browser. There a call that asks for the adapter with no `zawgyiDetector` uses the rule scorer, and warns that `myanmar-tools` is not available. Up to 2.10.0, the ES module build looked for the package from the working directory under Node, so the working directory's `node_modules` decided which code ran, and the builds also looked from their own file ([CHANGELOG.md](CHANGELOG.md)).
 
-`zawgyiDetector` skips that search. Make a `ZawgyiDetector` with `myanmar-tools` yourself and pass it, and knayi calls its `getZawgyiProbability` instead of loading the package. So the adapter works wherever your own code can load `myanmar-tools`: in browsers, in Deno and in bundles, through the ES module build too. Pass it with a call, or store it with `setGlobalOptions`, which also gives it to `fontConvert`, `syllBreak`, `spellingFix` and `truncate` when they detect a font. It does not choose the adapter: set `adapter: 'myanmartools'` or `use_myanmartools: true` as well.
+`zawgyiDetector` needs no loading. Make a `ZawgyiDetector` with `myanmar-tools` yourself and pass it, and knayi calls its `getZawgyiProbability` and loads nothing. So the adapter works wherever your own code can load `myanmar-tools`: in browsers, in Deno and in bundles, through the builds in `dist/` too. Pass it with a call, or store it with `setGlobalOptions`, which also gives it to `fontConvert`, `syllBreak`, `spellingFix` and `truncate` when they detect a font. It does not choose the adapter: set `adapter: 'myanmartools'` or `use_myanmartools: true` as well.
 
 ```javascript
 import { ZawgyiDetector } from 'myanmar-tools'
