@@ -1,10 +1,11 @@
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
-var knayi = require('../main');
+// The 2.x API: compat, on the 3.0 core.
+var knayi = require('../src/compat/index.js').default;
 var pangram = 'အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇလွန်ဈေးဘေးဗာဒံပင်ထက် အဓိဋ္ဌာန်လျက် ဂဃနဏဖတ်ခဲ့သည်။';
 
 describe('truncate', () => {
-  it('matches the README pangram cut', () => {
+  it('matches the pangram cut of MIGRATION.md', () => {
     assert.equal(
       knayi.truncate(pangram, { length: 30, omission: '...' }),
       'အာယုဝဍ်ဎနဆေးညွှန်းစာကို...'

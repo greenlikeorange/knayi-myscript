@@ -13,11 +13,15 @@
 //   returns the result as a string. scripts/testing/table-cases.js runs apply with copies of the pattern that
 //   differ in one branch, to find a probe for each branch.
 //
-// The tables are read from fresh copies of the library modules (scripts/testing/internals.js), so the library
-// does not export them.
+// The tables are the 2.x tables of the 2.x reference, which compat follows, read from fresh copies of its library
+// in scripts/reference/library/ (scripts/testing/internals.js), which does not export them. The cases of
+// test/fixtures/tables.json hold what the reference gives for each probe.
 
 const path = require('path');
-const { LIBRARY, loadWithInternals } = require('./internals');
+const { loadWithInternals } = require('./internals');
+
+const REFERENCE_LIBRARY = path.join(__dirname, '..', 'reference', 'library');
+const fromReference = { dir: REFERENCE_LIBRARY };
 
 const ZERO_WIDTH_BREAKS = /[\u200B\u200C]/g;
 
@@ -56,15 +60,16 @@ function replace(re, text, replacement) {
 }
 
 function loadTables() {
-  const syllable = loadWithInternals('syllableRules.js', ['convertRules', 'BREAK_RULES', 'COLLAPSE_MARKS']);
+  const syllable = loadWithInternals('syllableRules.js', ['convertRules', 'BREAK_RULES', 'COLLAPSE_MARKS'],
+    fromReference);
   return {
-    zawgyi: loadWithInternals('zawgyi.js', ['ZAWGYI', 'SEQUENCES']).__internals,
-    win: require(path.join(LIBRARY, 'win.js')).tables,
+    zawgyi: loadWithInternals('zawgyi.js', ['ZAWGYI', 'SEQUENCES'], fromReference).__internals,
+    win: require(path.join(REFERENCE_LIBRARY, 'win.js')).tables,
     syllable: syllable.__internals,
     collapseMarks: syllable.collapseMarks,
-    detector: loadWithInternals('detection.js', ['library']).__internals.library.detect,
-    typingFixes: loadWithInternals('typingFixes.js', ['TYPOS']).__internals,
-    storageOrder: require(path.join(LIBRARY, 'storageOrder.js'))
+    detector: loadWithInternals('detection.js', ['library'], fromReference).__internals.library.detect,
+    typingFixes: loadWithInternals('typingFixes.js', ['TYPOS'], fromReference).__internals,
+    storageOrder: require(path.join(REFERENCE_LIBRARY, 'storageOrder.js'))
   };
 }
 

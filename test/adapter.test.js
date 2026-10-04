@@ -1,22 +1,25 @@
-const { describe, it, before, after, afterEach } = require('node:test');
+const { describe, it, before, after, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const vm = require('vm');
-const Module = require('module');
 const { execFileSync } = require('child_process');
 const { pathToFileURL } = require('url');
 const { inspect } = require('util');
-const knayi = require('../main');
-const globalOptions = require('../library/globalOptions');
+// The 2.x API: compat, on the 3.0 core.
+const knayi = require('../src/compat/index.js').default;
+const { storedDetectorOptions } = require('../src/compat/globalOptions.js');
+const { fontDetectCore } = require('../src/compat/fontDetect.js');
+const { createNoDetectorNotice } = require('../src/compat/zawgyiModel.js');
 const { ZawgyiDetector } = require('myanmar-tools');
-const { loadWithInternals } = require('../scripts/testing/internals');
 
-// The optional myanmar-tools adapter of fontDetect (library/detection.js): the probability thresholds, the
-// options that choose it, a detector passed as zawgyiDetector, and what happens when the package cannot be
-// loaded. myanmar-tools 1.1.3 is a dev dependency; the failures are made with fresh copies of detection.js that
-// load it from a place where it is missing or broken.
+// The optional myanmar-tools adapter of fontDetect, through compat (src/compat/fontDetect.js and zawgyiModel.js): the
+// probability thresholds, the options that choose it, a detector passed as zawgyiDetector, and what loads the
+// package, with the real package. myanmar-tools 1.1.3 is a dev dependency. On the 2.x line main.js loads it itself;
+// compat loads no package by name, as 2.x's builds in dist/ do since 649b2b4, so the cases that 2.x runs on the
+// package main.js loads run here on a ZawgyiDetector of it stored with setGlobalOptions, as an app stores one. A case
+// that needs the warning of its own builds a notice the way test/next/compat-fontDetect.test.mjs does.
 
 const ZAWGYI = 'မဂၤလာပါ';
 const UNICODE = 'မင်္ဂလာပါ';
@@ -44,15 +47,23 @@ function capture(fn) {
 
 afterEach(() => knayi.setGlobalOptions({ silent_mode: false, detector: DEFAULTS }));
 
+// The detector an app passes: a ZawgyiDetector of myanmar-tools 1.1.3, stored for every call.
+function storeDetector() {
+  knayi.setGlobalOptions({ detector: { zawgyiDetector: new ZawgyiDetector() } });
+}
+
 describe('myanmar-tools adapter', () => {
-  it('loads myanmar-tools 1.1.3', () => {
+  it('scores with a ZawgyiDetector of myanmar-tools 1.1.3', () => {
     assert.equal(require('myanmar-tools/package.json').version, '1.1.3');
+    storeDetector();
     const run = capture(() => knayi.fontDetect(ZAWGYI, null, { adapter: 'myanmartools' }));
     assert.equal(run.value, 'zawgyi');
     assert.deepEqual(run.messages, []);
   });
 
   describe('thresholds', () => {
+    beforeEach(storeDetector);
+
     // Probes from clearly Unicode to clearly Zawgyi; the detector is scored on the trimmed text.
     const probes = [UNICODE, 'က', 'ကာ', 'က္က', ZAWGYI];
     const EPSILON = 1e-9;
@@ -116,7 +127,7 @@ describe('myanmar-tools adapter', () => {
       for (const threshold of INVALID) {
         const run = capture(() => knayi.setGlobalOptions({ detector: { use_myanmartools: true, myanmartools_zg_threshold: threshold } }));
         assert.deepEqual(run.messages, [['error', THRESHOLD_ERROR]], inspect(threshold));
-        assert.deepEqual(globalOptions.detector({}).myanmartools_zg_threshold, [0.05, 0.9]);
+        assert.deepEqual(storedDetectorOptions().myanmartools_zg_threshold, [0.05, 0.9]);
         // The rest of the detector options are stored.
         assert.equal(knayi.fontDetect('က္က', 'en'), 'zawgyi');
         knayi.setGlobalOptions({ detector: { use_myanmartools: false } });
@@ -128,7 +139,7 @@ describe('myanmar-tools adapter', () => {
       for (const threshold of [[0.5, 0.5], [0, 1], [-1, 2], [0.05, 0.95]]) {
         const run = capture(() => knayi.setGlobalOptions({ detector: { myanmartools_zg_threshold: threshold } }));
         assert.deepEqual(run.messages, [], JSON.stringify(threshold));
-        assert.deepEqual(globalOptions.detector({}).myanmartools_zg_threshold, threshold);
+        assert.deepEqual(storedDetectorOptions().myanmartools_zg_threshold, threshold);
       }
     });
 
@@ -145,6 +156,8 @@ describe('myanmar-tools adapter', () => {
   });
 
   describe('choosing the adapter', () => {
+    beforeEach(storeDetector);
+
     // 'က္က' is a tie for the rule scorer (the fallback) and Zawgyi for myanmar-tools above p = 0.93.
     const tools = { myanmartools_zg_threshold: [0.05, 0.9] };
 
@@ -221,112 +234,6 @@ describe('myanmar-tools adapter', () => {
     });
   });
 
-  describe('when myanmar-tools cannot be loaded', () => {
-    let root;
-    before(() => {
-      root = fs.mkdtempSync(path.join(os.tmpdir(), 'knayi-adapter-'));
-      // 1.2.0 on npm was published without build_node/, so require() fails inside the package.
-      const broken = path.join(root, 'broken', 'node_modules', 'myanmar-tools');
-      fs.mkdirSync(broken, { recursive: true });
-      fs.writeFileSync(path.join(broken, 'package.json'), JSON.stringify({ name: 'myanmar-tools', version: '1.2.0', main: 'index.js' }));
-      fs.writeFileSync(path.join(broken, 'index.js'), "module.exports = require('./build_node/zawgyi_detector.js');\n");
-      const empty = path.join(root, 'empty', 'node_modules', 'myanmar-tools');
-      fs.mkdirSync(empty, { recursive: true });
-      fs.writeFileSync(path.join(empty, 'package.json'), JSON.stringify({ name: 'myanmar-tools', version: '1.1.3', main: 'index.js' }));
-      fs.writeFileSync(path.join(empty, 'index.js'), 'module.exports = {};\n');
-      fs.mkdirSync(path.join(root, 'missing'));
-    });
-    after(() => fs.rmSync(root, { recursive: true, force: true }));
-
-    // A fresh detection.js whose module.require loads packages as a file in root/<place> would.
-    function detectorIn(place) {
-      const requireFrom = Module.createRequire(path.join(root, place, 'app.js'));
-      return loadWithInternals('detection.js', [], { moduleRequire: (id) => requireFrom(id) }).fontDetect;
-    }
-
-    // Probes and fallbacks for which the rule scorer decides, and ties.
-    const probes = [[ZAWGYI, undefined], [UNICODE, undefined], ['က္က', 'unicode'], ['က', undefined], ['ကျ', 'zawgyi']];
-
-    function assertRuleScorer(fontDetect) {
-      for (const [text, fallback] of probes) {
-        assert.equal(fontDetect(text, fallback, { adapter: 'myanmartools' }), knayi.fontDetect(text, fallback, { adapter: 'rules' }), text);
-      }
-    }
-
-    it('says it is not installed when the package is missing', () => {
-      assert.throws(() => Module.createRequire(path.join(root, 'missing', 'app.js'))('myanmar-tools'),
-        (error) => /MODULE_NOT_FOUND$/.test(String(error.code)), 'myanmar-tools must not resolve from ' + root);
-      const fontDetect = detectorIn('missing');
-      const run = capture(() => assertRuleScorer(fontDetect));
-      assert.deepEqual(run.messages, [['warn', NOT_INSTALLED]]);
-    });
-
-    it('names the error when the package fails inside', () => {
-      const run = capture(() => assertRuleScorer(detectorIn('broken')));
-      assert.equal(run.messages.length, 1);
-      assert.equal(run.messages[0][0], 'warn');
-      assert.match(run.messages[0][1], /^myanmar-tools could not be loaded \([^\n]*build_node[^\n]*\); fontDetect used the rule scorer\. Install myanmar-tools@1\.1\.3\.$/);
-    });
-
-    it('says the package has no ZawgyiDetector export', () => {
-      const run = capture(() => assertRuleScorer(detectorIn('empty')));
-      assert.deepEqual(run.messages, [['warn', 'myanmar-tools could not be loaded (the package has no ZawgyiDetector export); ' +
-        'fontDetect used the rule scorer. Install myanmar-tools@1.1.3.']]);
-    });
-
-    it('says it is not available outside Node', () => {
-      const messages = [];
-      const context = vm.createContext({ console: { warn: (m) => messages.push(['warn', m]), error: (m) => messages.push(['error', m]) } });
-      const fontDetect = loadWithInternals('detection.js', [], { context: context }).fontDetect;
-      assertRuleScorer(fontDetect);
-      assert.deepEqual(messages, [['warn', NOT_AVAILABLE]]);
-    });
-
-    // Browsers inside the README floor may have no globalThis (Chrome before 71, Firefox before 65, Safari before
-    // 12.1, Edge before 79). nodeRequire reads process from it only behind a typeof check, so they get the same
-    // warning as a browser that has it.
-    it('says it is not available where there is no globalThis', () => {
-      const messages = [];
-      const context = vm.createContext({ console: { warn: (m) => messages.push(['warn', m]), error: (m) => messages.push(['error', m]) } });
-      vm.runInContext('delete globalThis.globalThis', context);
-      assert.equal(vm.runInContext('typeof globalThis', context), 'undefined');
-      const fontDetect = loadWithInternals('detection.js', [], { context: context }).fontDetect;
-      assertRuleScorer(fontDetect);
-      assert.deepEqual(messages, [['warn', NOT_AVAILABLE]]);
-    });
-
-    it('tries to load it once, and warns once', () => {
-      let loads = 0;
-      const requireFrom = Module.createRequire(path.join(root, 'missing', 'app.js'));
-      const fontDetect = loadWithInternals('detection.js', [], { moduleRequire: (id) => { loads++; return requireFrom(id); } }).fontDetect;
-      const run = capture(() => {
-        for (let i = 0; i < 3; i++) fontDetect(ZAWGYI, null, { adapter: 'myanmartools' });
-      });
-      assert.equal(loads, 1);
-      assert.deepEqual(run.messages, [['warn', NOT_INSTALLED]]);
-    });
-
-    it('warns after silent mode ends if it has not warned yet', () => {
-      const fontDetect = detectorIn('missing');
-      knayi.setGlobalOptions({ silent_mode: true });
-      const silent = capture(() => fontDetect(ZAWGYI, null, { adapter: 'myanmartools' }));
-      assert.equal(silent.value, 'zawgyi');
-      assert.deepEqual(silent.messages, []);
-      knayi.setGlobalOptions({ silent_mode: false });
-      const loud = capture(() => fontDetect(UNICODE, null, { adapter: 'myanmartools' }));
-      assert.equal(loud.value, 'unicode');
-      assert.deepEqual(loud.messages, [['warn', NOT_INSTALLED]]);
-    });
-
-    it('does not load it for the rule scorer', () => {
-      let loads = 0;
-      const fontDetect = loadWithInternals('detection.js', [], { moduleRequire: () => { loads++; throw new Error('unexpected'); } }).fontDetect;
-      assert.equal(fontDetect(ZAWGYI, null, { adapter: 'rules' }), 'zawgyi');
-      assert.equal(fontDetect(ZAWGYI), 'zawgyi');
-      assert.equal(loads, 0);
-    });
-  });
-
   // A detector passed as zawgyiDetector, for one call or stored with setGlobalOptions. The adapter calls its
   // getZawgyiProbability instead of loading the package, so it also works where knayi cannot load the package
   // itself (refactor plan, decision 17).
@@ -335,10 +242,20 @@ describe('myanmar-tools adapter', () => {
     const tools = { adapter: 'myanmartools', myanmartools_zg_threshold: [0.05, 0.9] };
     // 'ဗုဒ္ဓ' is a tie for the rule scorer, so Zawgyi with no fallback, and Unicode for myanmar-tools (p = 0.02).
     const TIE = 'ဗုဒ္ဓ';
-    // Probes and fallbacks, with what the package that knayi loads gives for them.
+    // Probes and fallbacks, with what a stored myanmar-tools detector gives for them, as the package that 2.x's
+    // main.js loads gives.
     const probes = [[ZAWGYI, undefined], [UNICODE, undefined], ['က္က', 'unicode'], ['က', undefined], ['က', 'en'],
       [TIE, undefined], [' \u200b' + ZAWGYI + ' ', 'en']];
-    const loaded = () => probes.map(([text, fallback]) => knayi.fontDetect(text, fallback, tools));
+    const withStored = (fn) => {
+      const before = storedDetectorOptions().zawgyiDetector;
+      knayi.setGlobalOptions({ detector: { zawgyiDetector: detector } });
+      try {
+        return fn();
+      } finally {
+        knayi.setGlobalOptions({ detector: { zawgyiDetector: before } });
+      }
+    };
+    const loaded = () => withStored(() => probes.map(([text, fallback]) => knayi.fontDetect(text, fallback, tools)));
 
     // A detector that answers one probability, and records the text it was asked about.
     function fixed(p) {
@@ -346,7 +263,7 @@ describe('myanmar-tools adapter', () => {
       return { asked: asked, getZawgyiProbability: (text) => { asked.push(text); return p; } };
     }
 
-    it('gives what the package knayi loads gives, with every threshold', () => {
+    it('gives what the stored detector gives, with every threshold', () => {
       const thresholds = [null, [0.05, 0.95], [0.05, 0.9], [0.5, 0.5], [0, 1], [0.95, 0.05]];
       const answers = new Set();
       const run = capture(() => {
@@ -355,7 +272,8 @@ describe('myanmar-tools adapter', () => {
             const options = { adapter: 'myanmartools' };
             if (threshold) options.myanmartools_zg_threshold = threshold;
             const passed = knayi.fontDetect(text, fallback, Object.assign({ zawgyiDetector: detector }, options));
-            assert.equal(passed, knayi.fontDetect(text, fallback, options), inspect([text, fallback, threshold]));
+            assert.equal(passed, withStored(() => knayi.fontDetect(text, fallback, options)),
+              inspect([text, fallback, threshold]));
             answers.add(passed);
           }
         }
@@ -394,8 +312,9 @@ describe('myanmar-tools adapter', () => {
       knayi.setGlobalOptions({ detector: { myanmartools_zg_threshold: [0.05, 0.9] } });
       assert.equal(knayi.fontDetect(zawgyi), 'unicode');
       assert.equal(knayi.fontDetect(UNICODE, null, { zawgyiDetector: fixed(1) }), 'zawgyi');
-      // null for the call, or stored, is no detector: main.js loads the package. So is undefined where the key is
-      // there, as in a spread of options that holds it; only a key left out keeps the stored detector.
+      // null for the call, or stored, is no detector: main.js loads the package, and compat, which loads none, uses
+      // the rule scorer, which reads this text as Zawgyi too. So is undefined where the key is there, as in a spread
+      // of options that holds it; only a key left out keeps the stored detector.
       assert.equal(knayi.fontDetect(zawgyi, null, { zawgyiDetector: null }), 'zawgyi');
       assert.equal(knayi.fontDetect(zawgyi, null, { zawgyiDetector: undefined }), 'zawgyi');
       assert.equal(knayi.fontDetect(zawgyi, null, {}), 'unicode');
@@ -425,7 +344,7 @@ describe('myanmar-tools adapter', () => {
         assert.deepEqual(call, { value: 'zawgyi', messages: [['error', DETECTOR_ERROR]] }, label);
         const set = capture(() => knayi.setGlobalOptions({ detector: { zawgyiDetector: value } }));
         assert.deepEqual(set, { value: undefined, messages: [['error', DETECTOR_ERROR]] }, label);
-        assert.equal(globalOptions.detector({}).zawgyiDetector, stored, label);
+        assert.equal(storedDetectorOptions().zawgyiDetector, stored, label);
       }
       assert.equal(stored.asked.length, values.length);
       // The options are read only for text with a Myanmar letter; a bad threshold comes first.
@@ -444,38 +363,42 @@ describe('myanmar-tools adapter', () => {
       assert.deepEqual(silent, { value: ['zawgyi', undefined], messages: [] });
     });
 
-    it('loads nothing when it has a detector, and loads the package once it has none', () => {
-      let loads = 0;
-      const fontDetect = loadWithInternals('detection.js', [], {
-        moduleRequire: () => { loads++; throw new Error('unexpected load'); }
-      }).fontDetect;
+    // A notice of its own (test/next/compat-fontDetect.test.mjs), so that the shared one is left as it is.
+    it('warns nothing when it has a detector, and warns once, using the rule scorer, when it has none', () => {
+      const notice = createNoDetectorNotice();
+      const fontDetect = (text, fallback, options) => fontDetectCore(text, fallback || 'zawgyi', options || {}, notice);
       const passed = capture(() => probes.map(([text, fallback]) => fontDetect(text, fallback,
         Object.assign({ zawgyiDetector: detector }, tools))));
       assert.deepEqual(passed, { value: loaded(), messages: [] });
       knayi.setGlobalOptions({ detector: { use_myanmartools: true, zawgyiDetector: detector } });
       assert.equal(fontDetect(TIE), 'unicode');
-      assert.equal(loads, 0);
-      const missing = capture(() => fontDetect(TIE, null, { zawgyiDetector: null }));
-      assert.equal(loads, 1);
-      assert.deepEqual(missing, { value: 'zawgyi', messages: [['warn', 'myanmar-tools could not be loaded (unexpected load); ' +
-        'fontDetect used the rule scorer. Install myanmar-tools@1.1.3.']] });
+      const missing = capture(() => [fontDetect(TIE, null, { zawgyiDetector: null }),
+        fontDetect(TIE, null, { zawgyiDetector: null })]);
+      assert.deepEqual(missing, { value: ['zawgyi', 'zawgyi'], messages: [['warn', NOT_AVAILABLE]] });
     });
 
-    // A browser has no require and, inside the README floor, may have no globalThis; the script build runs as a
-    // browser runs it, as a classic script in a global object of its own.
+    // A browser has no require: compat with a notice of its own (src/compat/zawgyiModel.js), which loads nothing in
+    // any runtime, and the two script builds, run as a browser runs them, as classic scripts in a global object of
+    // their own.
     it('works where knayi cannot load the package', () => {
       const expected = loaded();
-      for (const where of ['no Node', 'no globalThis', 'the script build']) {
+      for (const where of ['no Node', 'knayi-myscript.min.js', 'knayi.min.js']) {
         const messages = [];
-        const context = vm.createContext({ console: { warn: (m) => messages.push(['warn', m]), error: (m) => messages.push(['error', m]) } });
+        const record = { warn: (m) => messages.push(['warn', m]), error: (m) => messages.push(['error', m]) };
         let fontDetect;
-        if (where === 'the script build') {
-          const dist = require('../scripts/build').builtDist();
-          vm.runInContext(fs.readFileSync(path.join(dist, 'knayi-myscript.min.js'), 'utf8'), context);
-          fontDetect = context.knayi.fontDetect;
+        if (where === 'no Node') {
+          const notice = createNoDetectorNotice();
+          const detect = (text, fallback, options) => fontDetectCore(text, fallback || 'zawgyi', options, notice);
+          fontDetect = (text, fallback, options) => {
+            const run = capture(() => detect(text, fallback, options));
+            messages.push(...run.messages);
+            return run.value;
+          };
         } else {
-          if (where === 'no globalThis') vm.runInContext('delete globalThis.globalThis', context);
-          fontDetect = loadWithInternals('detection.js', [], { context: context }).fontDetect;
+          const context = vm.createContext({ console: record });
+          const dist = require('../scripts/build').builtDist();
+          vm.runInContext(fs.readFileSync(path.join(dist, where), 'utf8'), context);
+          fontDetect = (where === 'knayi.min.js' ? context.knayi.compat : context.knayi).fontDetect;
         }
         const actual = probes.map(([text, fallback]) => fontDetect(text, fallback, Object.assign({ zawgyiDetector: detector }, tools)));
         assert.deepEqual({ actual: actual, messages: messages }, { actual: expected, messages: [] }, where);
@@ -484,10 +407,10 @@ describe('myanmar-tools adapter', () => {
       }
     });
 
-    // The ESM build run from a working directory with no myanmar-tools (refactor plan, section 7 item 15): a
-    // detector passed as zawgyiDetector needs none, and without one the build loads nothing (below). Under Bun the
+    // The compat module build run from a working directory with no myanmar-tools (refactor plan, section 7 item 15):
+    // a detector passed as zawgyiDetector needs none, and without one the build loads nothing (below). Under Bun the
     // run has --no-install, so that no lookup could fetch the package from npm.
-    it('works in the ESM build run from another working directory', () => {
+    it('works in the compat module build run from another working directory', () => {
       const dist = require('../scripts/build').builtDist();
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'knayi-elsewhere-'));
       try {
@@ -509,7 +432,7 @@ describe('myanmar-tools adapter', () => {
           'process.stdout.write(JSON.stringify({ passed: passed, lookup: lookup }));'
         ].join('\n') + '\n');
         const args = (typeof Bun !== 'undefined' ? ['--no-install'] : []).concat('run.mjs',
-          pathToFileURL(path.join(dist, 'knayi-myscript.mjs')).href, require.resolve('myanmar-tools'));
+          pathToFileURL(path.join(dist, 'knayi-myscript-compat.min.mjs')).href, require.resolve('myanmar-tools'));
         const out = JSON.parse(execFileSync(process.execPath, args, { cwd: dir, encoding: 'utf8' }));
         assert.deepEqual(out.passed, { value: 'zawgyi', messages: [] });
         assert.deepEqual(out.lookup, { value: 'unicode', messages: [['warn', NOT_AVAILABLE]] });
@@ -518,16 +441,17 @@ describe('myanmar-tools adapter', () => {
       }
     });
 
-    // README's example, as written: its imports become requires, and each call with a comment after it must return
-    // the value in the comment.
-    it('runs the example in README.md', () => {
-      const readme = fs.readFileSync(path.join(__dirname, '..', 'README.md'), 'utf8');
-      const blocks = readme.split('```').filter((block, i) => i % 2 === 1 && block.indexOf("from 'myanmar-tools'") !== -1);
+    // MIGRATION.md's example of the 2.x API, as written: its imports become requires, and each call with a comment
+    // after it must return the value in the comment.
+    it('runs the example in MIGRATION.md', () => {
+      const migration = fs.readFileSync(path.join(__dirname, '..', 'MIGRATION.md'), 'utf8');
+      const blocks = migration.split('```').filter((block, i) => i % 2 === 1 &&
+        block.indexOf("from 'myanmar-tools'") !== -1 && block.indexOf("from 'knayi-myscript/compat'") !== -1);
       assert.equal(blocks.length, 1);
       const body = [];
       const expected = [];
       for (const line of blocks[0].split('\n').slice(1)) {
-        const imported = /^import \{ ([\w, ]+) \} from '([\w-]+)'$/.exec(line);
+        const imported = /^import \{ ([\w, ]+) \} from '([\w/-]+)'$/.exec(line);
         const call = /^(\w.*\))\s*\/\/ (.*?)(\s+\([^()]*\))?$/.exec(line);
         if (imported) {
           body.push('const { ' + imported[1] + ' } = load(' + JSON.stringify(imported[2]) + ');');
@@ -539,7 +463,7 @@ describe('myanmar-tools adapter', () => {
         }
       }
       const results = [];
-      const load = (id) => (id === 'knayi-myscript' ? knayi : require(id));
+      const load = (id) => (id === 'knayi-myscript/compat' ? knayi : require(id));
       const run = capture(() => new Function('load', 'results', body.join('\n'))(load, results));
       assert.ok(expected.length >= 3, 'the example has ' + expected.length + ' checked calls');
       assert.deepEqual(results, expected.map((value) => new Function('return (' + value + ');')()));
@@ -547,12 +471,13 @@ describe('myanmar-tools adapter', () => {
     });
   });
 
-  // Only main.js and the files in library/ load myanmar-tools themselves, with module.require, so Node and Bun
-  // resolve it from knayi's own folder. The builds in dist/ have no module.require, and load nothing by name: not
-  // from the working directory, and not from next to the build file (refactor plan, decision 17). There the adapter
-  // needs a detector passed as zawgyiDetector. Each script runs, under the runtime of the test (Bun with
-  // --no-install), in a directory whose node_modules holds a stub myanmar-tools that records that it was loaded and
-  // gives every text the probability 1, with copies of the two builds next to it.
+  // On the 2.x line only main.js and the files in library/ load myanmar-tools themselves, with module.require, so
+  // Node and Bun resolve it from knayi's own folder; the builds in dist/ load nothing by name (649b2b4). 3.0 has no
+  // main.js: compat is an ES module with no module.require, like 2.x's module build, and it and the builds that hold
+  // it load nothing by name: not from the working directory, and not from next to the build file (refactor plan,
+  // decision 17). There the adapter needs a detector passed as zawgyiDetector. Each script runs, under the runtime of
+  // the test (Bun with --no-install), in a directory whose node_modules holds a stub myanmar-tools that records that
+  // it was loaded and gives every text the probability 1, with copies of the three builds next to it.
   describe('what loads the package', () => {
     let dir;
     before(() => {
@@ -568,7 +493,7 @@ describe('myanmar-tools adapter', () => {
       ].join('\n') + '\n');
       fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'app', private: true }));
       const dist = require('../scripts/build').builtDist();
-      for (const file of ['knayi-myscript.mjs', 'knayi-myscript.min.js']) {
+      for (const file of ['knayi-myscript-compat.min.mjs', 'knayi-myscript.min.js', 'knayi.min.js']) {
         fs.copyFileSync(path.join(dist, file), path.join(dir, file));
       }
       // 'က္က' is a tie for the rule scorer, so the fallback 'unicode'; myanmar-tools 1.1.3 gives it 0.93, and the
@@ -576,16 +501,18 @@ describe('myanmar-tools adapter', () => {
       const call = "knayi.fontDetect('က္က', 'unicode', { adapter: 'myanmartools', myanmartools_zg_threshold: [0.05, 0.9] })";
       const report = 'process.stdout.write(JSON.stringify({ value: value, messages: messages, stubLoaded: Boolean(globalThis.stubLoaded) }));';
       const consoleCapture = "const messages = [];\nconsole.warn = (m) => messages.push(['warn', m]);\nconsole.error = (m) => messages.push(['error', m]);";
+      // run.mjs imports the module it is given: compat itself, or the compat module build.
       fs.writeFileSync(path.join(dir, 'run.mjs'), [
         consoleCapture,
-        "const knayi = (await import('./knayi-myscript.mjs')).default;",
+        'const knayi = (await import(process.argv[2])).default;',
         'const value = ' + call + ';',
         report
       ].join('\n') + '\n');
+      // run.cjs requires a script build: the 2.x API is its global knayi, or knayi.compat in knayi.min.js.
       fs.writeFileSync(path.join(dir, 'run.cjs'), [
         consoleCapture,
-        "if (process.argv[2] === 'min') require('./knayi-myscript.min.js');",
-        "const knayi = process.argv[2] === 'min' ? globalThis.knayi : require(" + JSON.stringify(path.join(__dirname, '..', 'main.js')) + ');',
+        "require('./' + process.argv[2]);",
+        "const knayi = process.argv[2] === 'knayi.min.js' ? globalThis.knayi.compat : globalThis.knayi;",
         'const value = ' + call + ';',
         report
       ].join('\n') + '\n');
@@ -593,20 +520,24 @@ describe('myanmar-tools adapter', () => {
     after(() => fs.rmSync(dir, { recursive: true, force: true }));
 
     function run(script, arg) {
-      const args = (typeof Bun !== 'undefined' ? ['--no-install'] : []).concat(script, arg ? [arg] : []);
+      const args = (typeof Bun !== 'undefined' ? ['--no-install'] : []).concat(script, arg);
       return JSON.parse(execFileSync(process.execPath, args, { cwd: dir, encoding: 'utf8' }));
     }
 
-    it('main.js loads the copy installed next to knayi, not one in the working directory', () => {
-      assert.deepEqual(run('run.cjs', 'main'), { value: 'zawgyi', messages: [], stubLoaded: false });
+    const LOADS_NOTHING = { value: 'unicode', messages: [['warn', NOT_AVAILABLE]], stubLoaded: false };
+
+    it('compat loads nothing', () => {
+      const compat = pathToFileURL(path.join(__dirname, '..', 'src', 'compat', 'index.js')).href;
+      assert.deepEqual(run('run.mjs', compat), LOADS_NOTHING);
     });
 
-    it('the ES module build loads nothing', () => {
-      assert.deepEqual(run('run.mjs'), { value: 'unicode', messages: [['warn', NOT_AVAILABLE]], stubLoaded: false });
+    it('the compat module build loads nothing', () => {
+      assert.deepEqual(run('run.mjs', './knayi-myscript-compat.min.mjs'), LOADS_NOTHING);
     });
 
-    it('the script build loads nothing, also when Node or Bun loads it with require', () => {
-      assert.deepEqual(run('run.cjs', 'min'), { value: 'unicode', messages: [['warn', NOT_AVAILABLE]], stubLoaded: false });
+    it('the script builds load nothing, also when Node or Bun loads them with require', () => {
+      assert.deepEqual(run('run.cjs', 'knayi-myscript.min.js'), LOADS_NOTHING);
+      assert.deepEqual(run('run.cjs', 'knayi.min.js'), LOADS_NOTHING);
     });
   });
 });

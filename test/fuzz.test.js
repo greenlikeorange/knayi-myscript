@@ -1,15 +1,20 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const fc = require('fast-check');
-const knayi = require('../main');
+// The 2.x API: compat, on the 3.0 core.
+const knayi = require('../src/compat/index.js').default;
 const oracle = require('../scripts/oracle');
 const arb = require('../scripts/testing/arbitraries');
 const { SEED, check, runs } = require('../scripts/testing/fuzz-settings');
 
-// Differential fuzz: the library against the frozen 2.10 engine in scripts/oracle/, with the deliberate output
-// changes made since (scripts/oracle/index.js), on short strings over the characters each reader decides on
-// (scripts/testing/arbitraries.js). 60,000 strings in all on a pull request; see scripts/testing/fuzz-settings.js
-// for a longer run. Every output must be the same.
+// Differential fuzz: compat, the 2.x API on the 3.0 core, against the frozen 2.10 engine in scripts/oracle/, with
+// the deliberate output changes the 2.x line made since (scripts/oracle/index.js), on short strings over the
+// characters each reader decides on (scripts/testing/arbitraries.js). 60,000 strings in all on a pull request; see
+// scripts/testing/fuzz-settings.js for a longer run. Every output must be the same.
+//
+// The 2.x line also tested its own private code here, the glyph array of library/storageOrder.js font() and the
+// mark bits of order(), against the oracle. library/ is gone on next; test/next/readers-font.test.mjs and
+// test/next/syllable.fuzz.test.mjs check the 3.0 core's reader and orderSyllable against the same oracle.
 
 function hex(text) {
   return typeof text === 'string' ? text.split('').map((c) => c.charCodeAt(0).toString(16).toUpperCase()).join(' ') : text;
@@ -17,7 +22,7 @@ function hex(text) {
 
 function same(actual, expected, input) {
   if (actual !== expected) {
-    assert.fail('input ' + hex(input) + '\n  library ' + hex(actual) + '\n  oracle  ' + hex(expected));
+    assert.fail('input ' + hex(input) + '\n  compat  ' + hex(actual) + '\n  oracle  ' + hex(expected));
   }
 }
 
@@ -60,14 +65,14 @@ const COUNT = { normalize: 25000, codeUnits: 10000, zawgyi: 10000, win: 5000, de
   debugging: 2000 };
 
 // Inputs: short strings over each reader's characters, Burmese text with typing slips, and that text written
-// in Zawgyi (by the library, which only makes the input here).
+// in Zawgyi (by compat, which only makes the input here).
 const unicode = fc.oneof({ weight: 3, arbitrary: arb.unicodeText() }, { weight: 1, arbitrary: arb.burmeseText });
 const zawgyiWords = arb.burmeseText.map((text) => knayi.fontConvert(text, 'zawgyi', 'unicode'));
 const zawgyi = fc.oneof({ weight: 3, arbitrary: arb.zawgyiText() }, { weight: 1, arbitrary: zawgyiWords });
 const win = arb.winText();
 const detectable = fc.oneof(arb.unicodeText(24), arb.zawgyiText(24), arb.burmeseText, zawgyiWords);
 
-describe('library against the 2.10 oracle', () => {
+describe('compat against the 2.10 oracle', () => {
   it('normalize', () => {
     check(fc.property(unicode, (text) => {
       same(knayi.normalize(text), oracle.normalize(text), text);
@@ -145,34 +150,11 @@ describe('library against the 2.10 oracle', () => {
     }), COUNT.debugging, DEBUGGING_REGRESSIONS);
   });
 
-  // The font reader reads each glyph from an array indexed by character code, which ends at the highest code
-  // with a glyph (library/storageOrder.js, font); 2.10 kept the glyphs in a Map. Every UTF-16 code unit, alone
-  // and after ka, through both fonts with the debugging stages, which include each glyph's text.
-  it('every code unit through the glyph tables', () => {
-    const fonts = {
-      zawgyi: [require('../library/zawgyi'), oracle.fonts.zawgyi],
-      win: [require('../library/win'), oracle.fonts.win]
-    };
-    const KA = String.fromCharCode(0x1000);
-    for (const font of Object.keys(fonts)) {
-      const [library, frozen] = fonts[font];
-      for (let code = 0; code <= 0xFFFF; code++) {
-        const ch = String.fromCharCode(code);
-        for (const text of [ch, KA + ch]) {
-          same(JSON.stringify(library.toUnicode(text, true)), JSON.stringify(frozen.toUnicode(text, true)), text);
-        }
-      }
-    }
-  });
-
-  // order tells which marks a syllable has from one number with the bit 1 << rank of each
-  // (library/storageOrder.js); 2.10 searched the marks. Every run of up to three of the 16 marks it sorts, on
-  // each kind of base it treats apart, through normalize; and the same runs, with two marks outside its table,
-  // through a made-up font whose glyphs are the marks themselves, a stacked consonant, kinzi, a ligature base,
-  // and e and medial ra drawn first.
+  // Every run of up to three of the 16 marks the syllable sort ranks, on each kind of base it treats apart, through
+  // normalize. (2.x also ran them, with two marks outside its table, through a made-up font of library/'s private
+  // font(); test/next/syllable.fuzz.test.mjs checks orderSyllable against the oracle's order.)
   it('every run of up to three marks', () => {
     const MARKS = '\u103B\u103C\u103D\u103E\u1031\u102D\u102E\u102F\u1030\u102B\u102C\u1032\u1036\u1037\u103A\u1038';
-    const OTHER = '\u1033\u0301'; // a Mon vowel sign and a combining acute, which MARK_ORDER does not have
     const runsOf = (marks) => {
       let runs = [''];
       let last = [''];
@@ -189,29 +171,6 @@ describe('library against the 2.10 oracle', () => {
     ];
     for (const run of runsOf(MARKS.split(''))) {
       for (const base of bases) same(knayi.normalize(base + run), oracle.normalize(base + run), base + run);
-    }
-
-    const table = {
-      '\uE000': ['stack', '\u1039\u1000'],
-      '\uE001': ['stack', '\u1039\u1005'],
-      '\uE002': ['kinzi', '\u1004\u103A\u1039'],
-      '\uE003': ['base', '\u100B\u1039\u100C'],
-      '\uE004': ['pre', '\u1031'],
-      '\uE005': ['pre', '\u103C']
-    };
-    for (const mark of MARKS + OTHER) table[mark] = ['mark', mark];
-    const library = require('../library/storageOrder');
-    const font = library.font(table, []);
-    const frozen = oracle.storageOrder.font(table, []);
-    const starts = [
-      '\u1000', '\u1005', '\u1025', '\u1047', // ka, ca, u, seven
-      '\u1000\uE000', '\u1000\uE001', '\u1002\uE002', '\uE003', // a stacked ka, a stacked ca, kinzi, a ligature
-      '\uE004\u1000', '\uE005\u1005' // e before ka, medial ra before ca
-    ];
-    for (const run of runsOf((MARKS + OTHER).split(''))) {
-      for (const start of starts) {
-        same(library.toUnicode(start + run, font), oracle.fontToUnicode(start + run, frozen), start + run);
-      }
     }
   });
 

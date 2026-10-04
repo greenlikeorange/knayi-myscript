@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "types": [],
+    "strict": true,
+    "skipLibCheck": false,
+    "noEmitOnError": true,
+    "outDir": "out/stream"
+  },
+  "files": ["stream.mts"]
+}

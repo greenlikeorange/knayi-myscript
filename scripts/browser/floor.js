@@ -1,11 +1,12 @@
 'use strict';
 // The browser floor: what the dist builds may use, given the oldest browsers README.md promises.
 //
-// test/syntax.test.js parses every build with acorn at ES2015, but README.md also names browsers that shipped
-// only part of ES2015. Each rule below gives the first version of Chrome, Edge, Firefox and Safari with full
-// support, from MDN's browser-compat-data (BCD, read 2026-10), unless the note says otherwise. A rule is active
-// only when the README floor is older than one of those versions, so raising the floor in README.md switches
-// rules off by itself (decision 18).
+// test/syntax.test.js parses every build with acorn at ES2015. 3.0's floor is the first versions with full ES2015
+// support (decision 18): Chrome 51, Edge 15, Firefox 54 and Safari 10.1, where 2.x's was Chrome 49, Edge 14,
+// Firefox 34 and Safari 10, browsers that shipped only part of ES2015. Each rule below gives the first version of
+// Chrome, Edge, Firefox and Safari with full support, from MDN's browser-compat-data (BCD, read 2026-10), unless
+// the note says otherwise. A rule is active only when the README floor is older than one of those versions, so
+// raising the floor in README.md switches rules off by itself.
 //
 // test/dist-floor.test.js runs check() on every build and runs the builds without the removed built-ins
 // (removalScript). `node scripts/browser/floor.js` prints the active rules and what each build uses.
@@ -149,14 +150,15 @@ const RUNTIME_ONLY = [
   { id: 'Array.prototype.values', since: [66, 14, 60, 9], source: 'builtins.Array.values' }
 ];
 
-// Allowlists: the built-ins every browser of the 2.x floor has (Chrome 49, Edge 14, Firefox 34, Safari 10). They
-// come from BCD (read 2026-10): the javascript.builtins entries, static members and prototype members whose first
-// version is at or below the floor in all four browsers, among the names Node 26 has. A rule above names a feature
-// and its versions; the allowlists catch what no rule names. check() flags any other free global and any other
-// static member of these namespaces ('unlisted global', 'unlisted static'), unless the use is behind a typeof
-// guard; removalScript() deletes every other global, static member and prototype member before a build runs. The
-// lists are fixed at the 2.x floor: a higher floor in README.md switches the rules above off, but these lists only
-// grow by hand. To use a built-in they lack, check BCD and add it here.
+// Allowlists: the built-ins every browser of the 2.x floor has (Chrome 49, Edge 14, Firefox 34, Safari 10), so
+// every browser of 3.0's floor has them too. They come from BCD (read 2026-10): the javascript.builtins entries,
+// static members and prototype members whose first version is at or below that floor in all four browsers, among
+// the names Node 26 has. A rule above names a feature and its versions; the allowlists catch what no rule names.
+// check() flags any other free global and any other static member of these namespaces ('unlisted global',
+// 'unlisted static'), unless the use is behind a typeof guard or a rule names it; removalScript() deletes every
+// other global, static member and prototype member before a build runs, but keeps what a rule names and the floor
+// has. A higher floor in README.md switches the rules above off by itself, but these lists only grow by hand. To use
+// a built-in that neither they nor a rule name, check BCD and add it here.
 const FLOOR_GLOBALS = [
   'Array', 'ArrayBuffer', 'Boolean', 'DataView', 'Date', 'Error', 'EvalError', 'Float32Array', 'Float64Array',
   'Function', 'Infinity', 'Int16Array', 'Int32Array', 'Int8Array', 'Intl', 'JSON', 'Map', 'Math', 'NaN', 'Number',
@@ -291,7 +293,7 @@ const ALL = [].concat(
   RUNTIME_ONLY.map((r) => Object.assign({ kind: 'runtime' }, r))
 );
 
-// README.md: "They run in Chrome 49, Edge 14, Firefox 34, Safari 10 (iOS 10), ..."
+// README.md: "They run in Chrome 51, Edge 15, Firefox 54, Safari 10.1 (iOS 10.3), ..."
 function readmeFloor(text) {
   const readme = text === undefined ? fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8') : text;
   const m = /They run in Chrome (\d+(?:\.\d+)?), Edge (\d+(?:\.\d+)?), Firefox (\d+(?:\.\d+)?), Safari (\d+(?:\.\d+)?)/.exec(readme);
@@ -392,23 +394,54 @@ function testDefines(test, key) {
   return op === '===' || op === '==' ? true : null;
 }
 
+// true when `test` is false only if `key` is defined: `typeof key === 'undefined'`, `!key`, or an `||` of tests one
+// of which is such a test. The right side of `test || ...`, and the code after `if (test) return`, run only then.
+function falseOnlyIfDefined(test, key) {
+  if (!test) return false;
+  if (test.type === 'LogicalExpression' && test.operator === '||') {
+    return falseOnlyIfDefined(test.left, key) || falseOnlyIfDefined(test.right, key);
+  }
+  if (test.type === 'UnaryExpression' && test.operator === '!' && exprKey(test.argument) === key) return true;
+  return testDefines(test, key) === false;
+}
+
+// Whether a statement always leaves its function or block: a return or a throw, or a block that ends in one.
+function exits(statement) {
+  if (!statement) return false;
+  if (statement.type === 'ReturnStatement' || statement.type === 'ThrowStatement') return true;
+  return statement.type === 'BlockStatement' && exits(statement.body[statement.body.length - 1]);
+}
+
+// Whether a statement list returns early when `key` is undefined before `child`, one of its statements:
+// `if (typeof key === 'undefined' || ...) return ...;` with no else. The code after it reads key safely.
+function exitsEarlyWithout(statements, child, key) {
+  const index = statements.indexOf(child);
+  for (let i = 0; i < index; i++) {
+    const s = statements[i];
+    if (s.type === 'IfStatement' && !s.alternate && exits(s.consequent) && falseOnlyIfDefined(s.test, key)) return true;
+  }
+  return false;
+}
+
 // Is the node at the end of `ancestors` only reached when `key` is defined? `typeof key` itself is safe, but
 // `typeof key.member` is not: it still reads key.
-function isGuarded(ancestors, key) {
+function isGuarded(ancestors, key, node) {
   const parent = ancestors.length ? ancestors[ancestors.length - 1].node : null;
   if (parent && parent.type === 'UnaryExpression' && parent.operator === 'typeof') return true;
   for (let i = ancestors.length - 1; i >= 0; i--) {
-    const { node, key: childKey } = ancestors[i];
-    if (node.type === 'ConditionalExpression' || node.type === 'IfStatement') {
-      const defines = testDefines(node.test, key);
+    const { node: container, key: childKey } = ancestors[i];
+    const child = i + 1 < ancestors.length ? ancestors[i + 1].node : node;
+    if (container.type === 'ConditionalExpression' || container.type === 'IfStatement') {
+      const defines = testDefines(container.test, key);
       if (childKey === 'consequent' && defines === true) return true;
       if (childKey === 'alternate' && defines === false) return true;
     }
-    if (node.type === 'LogicalExpression' && childKey === 'right') {
-      const defines = testDefines(node.left, key);
-      if (node.operator === '&&' && defines === true) return true;
-      if (node.operator === '||' && defines === false) return true;
+    if (container.type === 'LogicalExpression' && childKey === 'right') {
+      if (container.operator === '&&' && testDefines(container.left, key) === true) return true;
+      if (container.operator === '||' && falseOnlyIfDefined(container.left, key)) return true;
     }
+    if ((container.type === 'BlockStatement' || container.type === 'Program') && childKey === 'body' && child &&
+      exitsEarlyWithout(container.body, child, key)) return true;
   }
   return false;
 }
@@ -428,6 +461,11 @@ function isReference(node, parent, key) {
 // A backslash-u-brace that is not itself escaped.
 function hasCodePointEscape(raw) {
   return /(^|[^\\])(\\\\)*\\u\{/.test(raw);
+}
+
+// Uint8Array.from and the like, which the rule 'TypedArray.from/of' names, so they are not unlisted statics.
+function isTypedArrayFromOf(objectName, name) {
+  return objectName !== null && TYPED_ARRAYS.indexOf(objectName) !== -1 && (name === 'from' || name === 'of');
 }
 
 function newTypedArrayName(node) {
@@ -547,10 +585,10 @@ function scan(code, sourceType) {
             if (a.type === 'FunctionExpression' || a.type === 'FunctionDeclaration') break;
           }
         }
-        if (globalIds.has(node.name) && !declared.has(node.name) && !isGuarded(ancestors, node.name)) {
+        if (globalIds.has(node.name) && !declared.has(node.name) && !isGuarded(ancestors, node.name, node)) {
           add(node.name, 'global', node);
         } else if (!globalIds.has(node.name) && !floorGlobals.has(node.name) && !declared.has(node.name) &&
-          !isGuarded(ancestors, node.name)) {
+          !isGuarded(ancestors, node.name, node)) {
           add('unlisted global', 'global', node, { name: node.name });
         }
         break;
@@ -560,25 +598,23 @@ function scan(code, sourceType) {
         if (name === null) break;
         const k = exprKey(node);
         const objectName = node.object.type === 'Identifier' ? node.object.name : null;
-        if (k && staticIds.has(k) && !declared.has(objectName) && !isGuarded(ancestors, k)) {
+        if (k && staticIds.has(k) && !declared.has(objectName) && !isGuarded(ancestors, k, node)) {
           add(k, 'static', node);
         } else if (objectName && Object.prototype.hasOwnProperty.call(FLOOR_STATICS, objectName) && !declared.has(objectName) &&
           FLOOR_STATICS[objectName].indexOf(name) === -1 && FUNCTION_STATICS.indexOf(name) === -1 && !staticIds.has(k) &&
-          !isGuarded(ancestors, k) && !isGuarded(ancestors, objectName)) {
+          !isTypedArrayFromOf(objectName, name) && !isGuarded(ancestors, k, node) && !isGuarded(ancestors, objectName, node)) {
           add('unlisted static', 'static', node, { name: k });
         }
         if (objectName && ['window', 'self', 'globalThis'].indexOf(objectName) !== -1 && globalIds.has(name)) {
           add(name, 'global', node);
         }
-        if (methodIds.has('.' + name) && !(k && isGuarded(ancestors, k))) add('.' + name, 'method', node);
+        if (methodIds.has('.' + name) && !(k && isGuarded(ancestors, k, node))) add('.' + name, 'method', node);
         const typedObject = newTypedArrayName(node.object) ||
           (objectName && typedReceivers.has(objectName) ? objectName : null);
         if (typedObject && Object.prototype.hasOwnProperty.call(TYPED_ARRAY_METHODS, name)) {
           add('TypedArray method', 'typed-array', node, { since: TYPED_ARRAY_METHODS[name], method: name });
         }
-        if (objectName && TYPED_ARRAYS.indexOf(objectName) !== -1 && (name === 'from' || name === 'of')) {
-          add('TypedArray.from/of', 'typed-array', node);
-        }
+        if (isTypedArrayFromOf(objectName, name)) add('TypedArray.from/of', 'typed-array', node);
         if (objectName && TYPED_ARRAYS.indexOf(objectName) !== -1 && name === 'prototype' && parent &&
           parent.type === 'MemberExpression' && key === 'object') {
           const method = propertyName(parent);
@@ -638,10 +674,29 @@ function regexpProblems(pattern, flags, options) {
   return problems;
 }
 
+// The allowlists at a floor: the lists above, and the globals, static members and methods that a rule names and
+// every browser of the floor has (none at the 2.x floor the lists were made for; Symbol, Reflect and the like at
+// 3.0's).
+function allowedAt(floor) {
+  const globals = FLOOR_GLOBALS.concat(FLOOR_HOST_GLOBALS);
+  const statics = JSON.parse(JSON.stringify(FLOOR_STATICS));
+  const prototypes = JSON.parse(JSON.stringify(FLOOR_PROTOTYPES));
+  GLOBALS.forEach((rule) => { if (!isActive(rule, floor)) globals.push(rule.id); });
+  STATICS.forEach((rule) => {
+    const [owner, name] = rule.id.split('.');
+    if (!isActive(rule, floor) && statics[owner]) statics[owner].push(name);
+  });
+  METHODS.forEach((rule) => {
+    if (isActive(rule, floor)) return;
+    rule.on.forEach((owner) => { if (prototypes[owner]) prototypes[owner].push(rule.id.slice(1)); });
+  });
+  return { globals, statics, prototypes };
+}
+
 // A script for a vm context that deletes every built-in the floor lacks, so a build that calls one throws or
 // takes its fallback: the ones the rules name, and then every global, static member and prototype member the
-// allowlists leave out (one the runtime will not let go of is left, and the script returns only what it removed).
-// It also sets `window`, which the script builds fall back to without globalThis.
+// allowlists at the floor leave out (one the runtime will not let go of is left, and the script returns only what
+// it removed). It also sets `window`, which the script builds fall back to without globalThis.
 function removalScript(options) {
   const floor = (options && options.floor) || readmeFloor();
   const paths = [];
@@ -667,8 +722,8 @@ function removalScript(options) {
     '    if (owner && Object.prototype.hasOwnProperty.call(owner, name)) delete owner[name];\n' +
     '    if (owner && Object.prototype.hasOwnProperty.call(owner, name)) throw new Error("could not remove " + paths[i]);\n' +
     '  }\n' +
-    '  var allow = ' + JSON.stringify({ globals: FLOOR_GLOBALS.concat(FLOOR_HOST_GLOBALS), statics: FLOOR_STATICS,
-    prototypes: FLOOR_PROTOTYPES, functionStatics: FUNCTION_STATICS, keep: KEEP_PROTOTYPE_MEMBERS }) + ';\n' +
+    '  var allow = ' + JSON.stringify(Object.assign(allowedAt(floor),
+    { functionStatics: FUNCTION_STATICS, keep: KEEP_PROTOTYPE_MEMBERS })) + ';\n' +
     '  var removed = paths.slice();\n' +
     '  function prune(owner, label, allowed) {\n' +
     '    var names = Object.getOwnPropertyNames(owner);\n' +
@@ -712,14 +767,13 @@ if (require.main === module) {
   console.log('\nActive rules (' + active.length + '):');
   active.forEach((r) => console.log('  ' + r.kind.padEnd(11) + ' ' + r.id.padEnd(34) + ' ' + blockedAt(r, floor).join(', ')));
   console.log('\nAllowed at this floor: ' + ALL.filter((r) => !isActive(r, floor)).map((r) => r.id).join(', '));
-  const builds = { 'knayi-myscript.min.js': 'script', 'knayi-myscript.js': 'script', 'knayi-myscript.mjs': 'module',
-    'knayi-myscript.es.js': 'module' };
-  for (const file of Object.keys(builds)) {
-    const code = fs.readFileSync(path.join(require('../build').builtDist(), file), 'utf8');
-    const uses = scan(code, builds[file]);
+  const { FILES, SOURCE_TYPES, builtDist } = require('../build');
+  for (const file of FILES) {
+    const code = fs.readFileSync(path.join(builtDist(), file), 'utf8');
+    const uses = scan(code, SOURCE_TYPES[file]);
     const counts = {};
     uses.forEach((u) => { counts[u.id] = (counts[u.id] || 0) + 1; });
-    const violations = check(code, { sourceType: builds[file], floor });
+    const violations = check(code, { sourceType: SOURCE_TYPES[file], floor });
     console.log('\n' + file + ': uses ' + Object.keys(counts).map((k) => k + ' ' + counts[k]).join(', '));
     violations.forEach((v) => console.log('  below the floor: ' + v.id + ' at ' + v.line + ':' + v.column + '  ' + v.text));
   }

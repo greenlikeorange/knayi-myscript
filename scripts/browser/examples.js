@@ -1,21 +1,36 @@
 'use strict';
-// One list of calls for every place that runs a build outside Node's main.js: the browsers
+// One list of calls for every place that runs a build outside Node's ES module sources: the browsers
 // (scripts/browser/smoke.spec.js), the floor emulation (test/dist-floor.test.js) and the RegExp check
-// (test/regex-floor.test.js). It holds the README examples, a few more call forms, and generated inputs over
-// the Myanmar block and Latin-1, and runs of marks (synthetic only, decision 22).
+// (test/regex-floor.test.js). allCalls() calls the 2.x API (compat, knayi.compat in knayi.min.js, and knayi in
+// knayi-myscript.min.js): the examples of README.md and MIGRATION.md, a few more call forms, and generated inputs
+// over the Myanmar block and Latin-1, and runs of marks (synthetic only, decision 22). apiCalls() calls the 3.0 API
+// on the same generated inputs.
 
+const fs = require('fs');
+const path = require('path');
 const { readExamples } = require('../testing/readme-examples');
 
-// Every `knayi.…` call in the code blocks of README.md, as source text: the examples test/readme.test.js runs, read
-// by the same reader (scripts/testing/readme-examples.js).
-function readmeExamples(text) {
-  return readExamples(text).map((example) => example.code);
+// The documents whose examples run in the builds: README.md, which documents the 3.0 API, and MIGRATION.md, which
+// documents the 2.x API call by call beside its 3.0 equivalent.
+const DOCUMENTS = ['README.md', 'MIGRATION.md'];
+
+// The calls in the code blocks of the documents (or of `text`) of one API, 'compat' (the 2.x API) or 'knayi' (the
+// 3.0 API), as source text: the examples test/readme.test.js runs, read by the same reader
+// (scripts/testing/readme-examples.js). runCalls evaluates them with both names bound to the library it runs.
+function readmeExamples(api, text) {
+  const documents = text === undefined
+    ? DOCUMENTS.map((name) => [fs.readFileSync(path.join(__dirname, '..', '..', name), 'utf8'), name])
+    : [[text, 'README.md']];
+  return documents.flatMap(([body, name]) => readExamples(body, name))
+    .filter((example) => example.api === api).map((example) => example.code);
 }
 
-// Call forms the README shows only in prose: the three debugging sources, the rule adapter, options objects,
-// non-string input, and font names that throw (decision 9: compared by error class only).
+// Call forms the documents show only in prose: the three debugging sources, the rule adapter, the myanmar-tools
+// adapter with no detector (which warns once, in Node and in the builds), options objects, non-string input, and
+// font names that throw (decision 9: compared by error class only).
 const EXTRA = [
   'knayi.version',
+  "knayi.fontDetect('မဂၤလာပါ', null, { adapter: 'myanmartools' })",
   "knayi.fontConvert.debugging('မဂၤလာပါ', 'unicode', 'zawgyi')",
   "knayi.fontConvert.debugging('မြန်မာ', 'zawgyi', 'unicode')",
   "knayi.fontConvert.debugging('jrefrm', 'unicode', 'win')",
@@ -38,16 +53,22 @@ const EXTRA = [
   "knayi.spellingFix('ကိုု', 'uni')"
 ];
 
-// [functionName, ...args] calls over generated text.
-function generatedCalls() {
+// Generated text: every character of the Myanmar block alone, after and before ka, and doubled after ka, and a
+// few strings with zero-width characters, spaces, a line break and Latin.
+function generatedTexts() {
   const texts = [];
   for (let cp = 0x1000; cp <= 0x109f; cp++) {
     const c = String.fromCharCode(cp);
     texts.push(c, '\u1000' + c, c + '\u1000', '\u1000' + c + c);
   }
   texts.push('\u1000\u200b\u1001', '\u1000\u200c\u1001', ' \u1000 ', '\u1000\n\u1001', 'abc');
+  return texts;
+}
+
+// [functionName, ...args] calls of the 2.x API over generated text.
+function generatedCalls() {
   const calls = [];
-  for (const t of texts) {
+  for (const t of generatedTexts()) {
     calls.push(
       ['normalize', t],
       ['fontConvert', t, 'unicode', 'zawgyi'],
@@ -62,7 +83,7 @@ function generatedCalls() {
       ['truncate', t, { length: 2, fontType: 'unicode' }]
     );
   }
-  // Runs of marks of two classes, longer than the 30 code units library/nfc.js leaves to the runtime's NFC, so the
+  // Runs of marks of two classes, longer than the 30 code units src/core/nfc.js leaves to the runtime's NFC, so the
   // build puts them in order itself, with the classes it reads from the runtime: Myanmar, Latin, Hebrew, Arabic,
   // Tibetan and astral marks.
   const runs = [[0x1000, 0x1037, 0x1039], [0x1000, 0x103a, 0x1037], [0x61, 0x301, 0x323], [0x5d1, 0x5bc, 0x5b8],
@@ -80,9 +101,37 @@ function generatedCalls() {
   return calls;
 }
 
-// Strings are source text to evaluate with `knayi` in scope; arrays are [functionName, ...args].
+// The calls of the 2.x API. Strings are source text to evaluate with `knayi` and `compat` in scope; arrays are
+// [functionName, ...args].
 function allCalls() {
-  return readmeExamples().concat(EXTRA, generatedCalls());
+  return readmeExamples('compat').concat(EXTRA, generatedCalls());
+}
+
+// The examples of the 3.0 API in the documents, then [functionName, ...args] calls of it over generated text, and
+// calls that it refuses (a thrown error is kept by class, as everywhere here). Win text converts only when named.
+function apiCalls() {
+  const calls = readmeExamples('knayi').concat([['createTrace'], ['normalize', 42], ['toUnicode', 'x', { from: 'Zawgyi' }],
+    ['truncate', 'abc', { length: 1 }]]);
+  for (const t of generatedTexts()) {
+    calls.push(
+      ['normalize', t],
+      ['normalize', t, { report: true }],
+      ['isNormalized', t],
+      ['explain', t],
+      ['detectEncoding', t],
+      ['toUnicode', t],
+      ['toUnicode', t, { from: 'zawgyi', offsets: true }],
+      ['toUnicode', t, { tie: 'zawgyi' }],
+      ['toZawgyi', t],
+      ['segmentSyllables', t],
+      ['segmentSyllables', t, { from: 'zawgyi', bareConsonants: 'pairs' }],
+      ['syllableBoundaries', t],
+      ['truncate', t, { length: 2 }],
+      ['collapseRepeatedMarks', t]
+    );
+  }
+  for (let b = 0x20; b <= 0xff; b++) calls.push(['toUnicode', 'u' + String.fromCharCode(b), { from: 'win' }]);
+  return calls;
 }
 
 // Runs the calls against one copy of the library and returns the results as a JSON string. The function is
@@ -105,7 +154,7 @@ function runCalls(knayi, calls) {
       lines = [];
       try {
         var value = typeof call === 'string' ?
-          Function('knayi', 'return (' + call + ');')(knayi) :
+          Function('knayi', 'compat', 'return (' + call + ');')(knayi, knayi) :
           knayi[call[0]].apply(knayi, call.slice(1));
         entry.type = typeof value;
         if (value !== undefined) entry.value = value;
@@ -153,4 +202,4 @@ function differences(calls, actual, expected, options) {
   return out;
 }
 
-module.exports = { readmeExamples, generatedCalls, allCalls, runCalls, describeCall, differences, EXTRA };
+module.exports = { readmeExamples, generatedCalls, allCalls, apiCalls, runCalls, describeCall, differences, EXTRA };

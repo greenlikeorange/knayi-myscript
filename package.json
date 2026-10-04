@@ -1,31 +1,64 @@
 {
   "name": "knayi-myscript",
-  "version": "2.10.0",
-  "description": "Knayi Myanmar languages JavaScirpt library",
-  "main": "./main.js",
-  "module": "./dist/knayi-myscript.es.js",
-  "types": "./index.d.ts",
+  "version": "3.0.0-next.0",
+  "description": "Knayi Myanmar languages JavaScript library",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.js"
+    },
+    "./compat": {
+      "types": "./src/compat/index.d.ts",
+      "default": "./src/compat/index.js"
+    },
+    "./stream": {
+      "types": "./src/stream.d.ts",
+      "default": "./src/stream.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "unpkg": "./dist/knayi.min.js",
+  "jsdelivr": "./dist/knayi.min.js",
+  "typesVersions": {
+    "*": {
+      "compat": [
+        "./src/compat/index.d.ts"
+      ],
+      "stream": [
+        "./src/stream.d.ts"
+      ]
+    }
+  },
+  "bin": {
+    "knayi": "./bin/knayi.js"
+  },
+  "engines": {
+    "node": ">=22.12"
+  },
   "sideEffects": [
-    "./dist/knayi-myscript.js",
+    "./dist/knayi.min.js",
     "./dist/knayi-myscript.min.js"
   ],
   "files": [
-    "main.js",
-    "index.d.ts",
-    "library",
-    "dist/knayi-myscript.mjs",
-    "dist/knayi-myscript.es.js",
-    "dist/knayi-myscript.js",
+    "bin",
+    "src",
+    "!src/spec",
+    "dist/knayi-myscript.min.mjs",
+    "dist/knayi-myscript-compat.min.mjs",
+    "dist/knayi.min.js",
     "dist/knayi-myscript.min.js"
   ],
   "scripts": {
     "build": "node scripts/build.js",
-    "test": "node --test \"test/**/*.test.js\" && node --test \"test/**/*.timing.js\" && tsc -p typecheck/tsconfig.json --noEmit && tsc -p typecheck/tsconfig.no-interop.json --noEmit",
+    "test": "node --test \"test/**/*.test.js\" \"test/**/*.test.mjs\" && node --test \"test/**/*.timing.js\" \"test/**/*.timing.mjs\" && tsc -p typecheck/tsconfig.json --noEmit && tsc -p typecheck/tsconfig.no-interop.json --noEmit && tsc -p typecheck/next/tsconfig.json --noEmit",
     "posttest": "node scripts/check-size.js",
-    "test:bun": "bun scripts/bun-contract.js && bun scripts/bun-esm.mjs && bun scripts/bun-matrix.js && bun test ./test && bun test ./test/growth.timing.js",
+    "test:bun": "bun scripts/bun-contract.js && bun scripts/bun-esm.mjs && bun scripts/bun-matrix.js && bun test ./test && bun test ./test/growth.timing.js ./test/next/*.timing.mjs ./test/next/api/*.timing.mjs",
     "test:pack": "node scripts/check-packed.mjs",
-    "test:smoke": "node scripts/smoke.js",
-    "test:fuzz": "node --test test/fuzz.test.js test/properties.test.js",
+    "test:fuzz": "node --test test/fuzz.test.js test/properties.test.js \"test/next/**/*.fuzz.test.mjs\"",
+    "test:fuzz:next": "node --test \"test/next/**/*.fuzz.test.mjs\"",
     "test:browser": "playwright test -c scripts/browser/playwright.config.js",
     "check:size": "node scripts/check-size.js --modules",
     "check:dist": "node scripts/check-dist.js",

@@ -1,7 +1,9 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const fc = require('fast-check');
-const knayi = require('../main');
+// The 2.x API: compat, on the 3.0 core.
+const knayi = require('../src/compat/index.js').default;
+const { pendingPort } = require('../scripts/testing/pending-port');
 
 // Super-linear time on structured random input. Each case is a prefix, a short unit repeated many times and a
 // suffix, drawn from the characters the rules care about: Burmese letters and marks, the Zawgyi and Win
@@ -20,12 +22,13 @@ const knayi = require('../main');
 // fast-check shrinks a failing case and prints its seed; KNAYI_GROWTH_SEED replays it and KNAYI_GROWTH_RUNS
 // sets the number of random cases per call form (a nightly job can run many more).
 //
-// NFC: normalize and conversion to Unicode end with NFC, and String.prototype.normalize puts a run of
-// non-starters (marks of a combining class above 0) in order with an insertion sort, in quadratic time, in Node and
-// in Bun: ka followed by 16,000 pairs of dot below and virama took about 250 ms in Node 26 and 700 ms in Bun 1.4.
-// The library runs NFC through library/nfc.js, which puts a long run in order first, in linear time. The tests
-// under 'runs of marks that NFC reorders' check that on such runs in Myanmar and in other scripts, through every
-// call form that runs NFC.
+// NFC has no exemption. String.prototype.normalize takes quadratic time on a long run of combining marks that NFC
+// has to reorder (ka followed by 16,000 pairs of dot below and virama took about 250 ms in Node 26 and 700 ms in
+// Bun 1.4), and normalize and conversion to Unicode end with NFC. 2.10.0 passed such runs to it, so this file
+// used to excuse a call whose growth NFC alone explained. compat puts each long run in canonical order first and
+// gives NFC only short ones (src/core/nfc.js), so its NFC is linear, and the three runs that were known to be
+// quadratic are among the EXAMPLES that every call form runs. The tests under 'runs of marks that NFC reorders' run
+// ten such runs, in Myanmar and in other scripts, through every call form that runs NFC.
 
 const LIMIT = 2.6; // t(2n) / t(n): about 2 in linear time, 4 in quadratic time (growth exponent 1.38)
 const ATTEMPTS = 3;
@@ -88,25 +91,32 @@ function shape(prefix, pump) {
   return { prefix: String.fromCharCode.apply(null, prefix), pump: String.fromCharCode.apply(null, pump), suffix: '' };
 }
 
-// Inputs that took super-linear time in a release run before the random cases: 2.10.0's normalize and its NFC
-// (in every conversion to Unicode too), and 2.9.0's Unicode to Zawgyi conversion.
+// Inputs that took super-linear time in a release run before the random cases: 2.10.0's normalize, 2.9.0's
+// Unicode to Zawgyi conversion, and the runs of marks that 2.10.0's NFC reordered in quadratic time.
 const EXAMPLES = [
   shape([0x1000], [0x1031]), // ka, then e
   shape([0x1000], [0x103C]), // ka, then medial ra
   shape([0x1000], [0x200B, 0x102C]), // ka, then zero-width space and aa
-  shape([0x1000], [0x1037, 0x1039]), // ka, then dot below and virama (NFC)
-  shape([], [0x1037, 0x1039]), // Zawgyi dot below and virama (NFC)
-  shape([], [0x1039, 0x68]), // Win virama and h (NFC)
   shape([0x1000, 0x1060], [0x102C, 0x102D]), // ka with a stacked ka, then aa and i
-  shape([0x1064], [0x102C, 0x102D]) // kinzi, then aa and i
+  shape([0x1064], [0x102C, 0x102D]), // kinzi, then aa and i
+  shape([0x1000], [0x1037, 0x1039]), // ka, then dot below and virama: NFC reorders every pair
+  shape([], [0x1037, 0x1039]), // dot below and virama, as Zawgyi types them
+  shape([], [0x1039, 0x68]) // Win's virama glyph and h
 ].map((example) => [example]);
 
-// Every public call form. `nfc` marks the ones whose output goes through NFC (library/nfc.js).
+// Every public call form. `pumps` marks the ones whose readers walk runs of marks, and `nfc` the ones whose output
+// goes through NFC (src/core/nfc.js). `pending` names the 2.x change a form waits for
+// (scripts/testing/pending-port.js).
 const FORMS = [
-  { name: 'normalize', nfc: true, pumps: true, run: (s) => knayi.normalize(s) },
-  { name: 'fontConvert zawgyi to unicode', nfc: true, pumps: true, run: (s) => knayi.fontConvert(s, 'unicode', 'zawgyi') },
-  { name: 'fontConvert win to unicode', nfc: true, pumps: true, run: (s) => knayi.fontConvert(s, 'unicode', 'win') },
-  { name: 'fontConvert detected to unicode', nfc: true, pumps: true, run: (s) => knayi.fontConvert(s, 'unicode') },
+  { name: 'normalize', pumps: true, nfc: true, run: (s) => knayi.normalize(s) },
+  {
+    name: 'fontConvert zawgyi to unicode',
+    pumps: true,
+    nfc: true,
+    run: (s) => knayi.fontConvert(s, 'unicode', 'zawgyi')
+  },
+  { name: 'fontConvert win to unicode', pumps: true, nfc: true, run: (s) => knayi.fontConvert(s, 'unicode', 'win') },
+  { name: 'fontConvert detected to unicode', pumps: true, nfc: true, run: (s) => knayi.fontConvert(s, 'unicode') },
   { name: 'fontConvert unicode to zawgyi', run: (s) => knayi.fontConvert(s, 'zawgyi', 'unicode') },
   { name: 'fontConvert detected to zawgyi', run: (s) => knayi.fontConvert(s, 'zawgyi') },
   {
@@ -191,12 +201,14 @@ function describeCase(shape, result) {
 
 describe('time grows linearly on structured random input', () => {
   FORMS.forEach((form, index) => {
-    it(form.name, () => {
+    const test = () => {
       fc.assert(fc.property(shapes, (shape) => {
         const result = growth(form.run, shape);
-        assert.ok(result.ok, form.name + ' grows faster than linear: ' + describeCase(shape, result));
+        if (result.ok) return;
+        assert.fail(form.name + ' grows faster than linear: ' + describeCase(shape, result));
       }), { seed: SEED + index, numRuns: RUNS, examples: EXAMPLES });
-    });
+    };
+    it(form.name, form.pending ? pendingPort(form.pending, test) : test);
   });
 });
 
@@ -227,7 +239,8 @@ describe('time grows linearly on a run of one character', () => {
         if (quickRatio(form.run, pump) <= LIMIT) continue;
         measured++;
         const result = growth(form.run, pump);
-        assert.ok(result.ok, form.name + ' grows faster than linear: ' + describeCase(pump, result));
+        if (result.ok) continue;
+        assert.fail(form.name + ' grows faster than linear: ' + describeCase(pump, result));
       }
       t.diagnostic(PUMPS.length + ' pumps, ' + measured + ' measured in full after a high first reading');
     });
@@ -235,8 +248,9 @@ describe('time grows linearly on a run of one character', () => {
 });
 
 // Runs of marks of two combining classes, which NFC has to put in order, in Myanmar and in other scripts (the
-// unit is UTF-16 code units, so an astral mark is a surrogate pair). library/nfc.js puts them in order before
-// String.prototype.normalize sees them; before it did, the first three (in EXAMPLES too) took quadratic time.
+// unit is UTF-16 code units, so an astral mark is a surrogate pair). src/core/nfc.js puts them in order before
+// String.prototype.normalize sees them; before 2.x's helper did, the first three (in EXAMPLES too) took quadratic
+// time. scripts/eval/lib/inputs.mjs has the same runs as perf's growth shapes.
 const NFC_RUNS = [
   ['ka, then dot below and virama', shape([0x1000], [0x1037, 0x1039])],
   ['Zawgyi dot below and virama', shape([], [0x1037, 0x1039])],
@@ -255,7 +269,8 @@ describe('time grows linearly on runs of marks that NFC reorders', () => {
     it(form.name, () => {
       for (const [name, run] of NFC_RUNS) {
         const result = growth(form.run, run);
-        assert.ok(result.ok, form.name + ' on ' + name + ' grows faster than linear: ' + describeCase(run, result));
+        if (result.ok) continue;
+        assert.fail(form.name + ' on ' + name + ' grows faster than linear: ' + describeCase(run, result));
       }
     });
   }

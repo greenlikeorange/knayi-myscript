@@ -11,6 +11,9 @@
 //   --min-ms <n>           a timed run repeats the workload until it takes at least this long (default 10)
 //   --forms a,b            only these call forms (a trailing * matches a prefix)
 //   --workloads a,b        line, word, string, document (default all four)
+//   --long-units <n>       the string and the document repeat the lines until they are n UTF-16 units long (default:
+//                          the lines once, 61,425 units); goals set on long text are read at its size, such as
+//                          2000000
 //   --growth <which>       growth exponents for the head copy (head, the default), both copies, or none
 //   --offline              growth exponents only; they need no corpus cache (the timed rows read only FLORES)
 //   --max-exponent <x>     fail when a head growth exponent is above x (default 1.3)
@@ -24,7 +27,11 @@
 // ratio is the median over the rounds of head/base, each the ratio of the medians of that round's runs. Under Bun
 // a full garbage collection runs before every timed run: without it, identical copies differed by up to a third
 // on single calls that build long strings. Node needs no such step (identical copies stayed within 2%), but runs
-// it too when started with --expose-gc.
+// it too when started with --expose-gc. Under Bun a row of one call (string, document) takes each copy's fastest
+// round instead, the median of its runs: JavaScriptCore compiles a one-pass scanner that has run on lines and words
+// in one of two ways, round to round, and on one long string the 3.0 core's countEvidence then took either about
+// 290 or about 590 µs per call. With the median of three rounds, fontDetect.unicode per string read 1.25 in a full
+// run, where a run of the fontDetect forms alone read 0.38-0.45 in every round.
 //
 // Growth exponents (lib/timing.mjs): every adversarial shape of lib/inputs.mjs through the forms of GROWTH_FORMS,
 // and every single-character run of PUMPS through PUMP_FORMS, at n, 2n and 4n units (n = 8,192 under Node, 1,024
@@ -46,7 +53,8 @@ const HERE = fileURLToPath(import.meta.url);
 
 function parseArgs(argv) {
   const opts = { base: 'origin/main', head: '.', runtimes: ['node', 'bun'], rounds: 3, runs: 7, lines: 400, minMs: 10, forms: [],
-    workloads: WORKLOADS.slice(), growth: 'head', offline: false, maxExponent: 1.3, maxSlowdown: 0.2, json: null };
+    workloads: WORKLOADS.slice(), longUnits: 0, growth: 'head', offline: false, maxExponent: 1.3, maxSlowdown: 0.2,
+    json: null };
   const value = (i) => {
     if (i + 1 >= argv.length || argv[i + 1].startsWith('--')) throw new Error(argv[i] + ' needs a value');
     return argv[i + 1];
@@ -72,6 +80,7 @@ function parseArgs(argv) {
       case '--min-ms': opts.minMs = decimal(arg, value(i++)); break;
       case '--forms': opts.forms.push(...list(value(i++))); break;
       case '--workloads': opts.workloads = list(value(i++)); break;
+      case '--long-units': opts.longUnits = whole(arg, value(i++)); break;
       case '--growth': opts.growth = value(i++); break;
       case '--offline': opts.offline = true; break;
       case '--max-exponent': opts.maxExponent = decimal(arg, value(i++)); break;
@@ -110,7 +119,10 @@ async function measure({ base, head, opts }) {
     // The same calls on the head copy, whose results are not used: both copies then start the timing with the
     // same history of calls, which the engine's optimisations depend on.
     perfTexts(flores, B, opts.lines);
-    const loads = { unicode: workloads(texts.unicode), zawgyi: workloads(texts.zawgyi), win: workloads(texts.win) };
+    const long = opts.longUnits;
+    const loads = {
+      unicode: workloads(texts.unicode, long), zawgyi: workloads(texts.zawgyi, long), win: workloads(texts.win, long)
+    };
     for (const text of Object.keys(loads)) {
       result.workloads[text] = Object.fromEntries(opts.workloads.map((w) => [w, { calls: loads[text][w].length, chars: chars(loads[text][w]) }]));
     }
@@ -118,7 +130,8 @@ async function measure({ base, head, opts }) {
     for (const form of forms.filter((f) => f.text)) {
       for (const workload of opts.workloads) {
         const inputs = loads[form.text][workload];
-        const row = { form: form.id, workload, text: form.text, reps: 1, base: [], head: [], ratios: [] };
+        const row = { form: form.id, workload, text: form.text, reps: 1, base: [], head: [], ratios: [], baseRounds: [],
+          headRounds: [], single: inputs.length === 1 };
         // One timed run passes over the workload `reps` times, so that a run takes at least --min-ms.
         const timed = (lib) => () => {
           for (let r = 0; r < row.reps; r++) {
@@ -141,11 +154,13 @@ async function measure({ base, head, opts }) {
         row.base.push(...t.a.map((ms) => ms / row.reps));
         row.head.push(...t.b.map((ms) => ms / row.reps));
         row.ratios.push(median(t.b) / median(t.a));
+        row.baseRounds.push(median(t.a));
+        row.headRounds.push(median(t.b));
       }
     }
     result.rows = rows.map((r) => ({
       form: r.form, workload: r.workload, text: r.text, reps: r.reps,
-      baseMs: median(r.base), headMs: median(r.head), ratio: median(r.ratios),
+      baseMs: median(r.base), headMs: median(r.head), ratio: rowRatio(r), fastestRounds: fastestRounds(r),
       low: Math.min(...r.ratios), high: Math.max(...r.ratios), roundRatios: r.ratios
     }));
   }
@@ -164,6 +179,18 @@ async function measure({ base, head, opts }) {
     }
   }
   return result;
+}
+
+// Whether a row reads each copy's fastest round: a row of one call under Bun (see the header).
+function fastestRounds(row) {
+  return RUNTIME === 'bun' && row.single;
+}
+
+// A row's ratio: the median of its round ratios, or, for a row that reads each copy's fastest round, the fastest
+// round of the head over the fastest round of the base.
+function rowRatio(row) {
+  if (!fastestRounds(row)) return median(row.ratios);
+  return Math.min(...row.headRounds) / Math.min(...row.baseRounds);
 }
 
 // A reading above the limit is measured twice more and the lowest of the three kept, so a cell fails only when all
@@ -247,6 +274,10 @@ function report(results, opts, base, head) {
       const all = r.rows.map((x) => x.ratio);
       console.log('  rows: ' + all.length + ', ratios ' + fixed(Math.min(...all)) + ' to ' + fixed(Math.max(...all)) +
         '; ! marks a Node row over ' + fixed(1 + opts.maxSlowdown) + ', ? a Bun row over 1.10');
+      if (r.rows.some((x) => x.fastestRounds)) {
+        console.log('  the rows of one call (string, document) read each copy\'s fastest round, since under Bun they ' +
+          'read bimodal round to round');
+      }
     }
     if (r.growth.length) {
       const cells = r.growth.filter((g) => g.head);

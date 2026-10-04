@@ -7,35 +7,15 @@ const { execFileSync } = require('child_process');
 const esbuild = require('esbuild');
 const floor = require('../scripts/browser/floor');
 const examples = require('../scripts/browser/examples');
+const { FILES, SOURCE_TYPES, builtDist } = require('../scripts/build');
 
-// README.md promises the dist builds run in Chrome 49, Edge 14, Firefox 34 and Safari 10. test/syntax.test.js
-// checks ES2015 syntax; this checks the parts of ES2015 and the built-ins those browsers lack (decision 18,
-// option a for 2.x). The rules and their browser versions are in scripts/browser/floor.js.
+// README.md promises the dist builds run in Chrome 51, Edge 15, Firefox 54 and Safari 10.1, the first versions with
+// all of ES2015 (decision 18, option b for 3.0). test/syntax.test.js checks ES2015 syntax; this checks that the
+// builds use no syntax or built-in those browsers lack. The rules and their browser versions are in
+// scripts/browser/floor.js.
 
 // A fresh build of this checkout in a temporary directory, or KNAYI_DIST (scripts/build.js).
-const DIST = require('../scripts/build').builtDist();
-const builds = {
-  'knayi-myscript.min.js': 'script',
-  'knayi-myscript.js': 'script',
-  'knayi-myscript.mjs': 'module',
-  'knayi-myscript.es.js': 'module'
-};
-
-// Known uses below the floor, per build, to fix in Phase 1. The test fails when this list changes either way,
-// so a fix must remove its entry. The library code has none: the builds read globalThis only behind a typeof
-// check, which the checker allows, in library/detection.js's nodeRequire and where scripts/build.js sets the
-// global. What is left comes from scripts/build.js's ESM entry, in the module builds only:
-//
-// - let, for-of: esbuild's CommonJS interop helper `__copyProps` (`for (let key of ...)`), pulled into the
-//   module builds by scripts/build.js's ESM entry (`import knayi from './main.js'`). Firefox before 44 rejects
-//   `let` in a classic script, so this breaks there only when a bundler passes the module build through as is.
-// - destructuring: the same entry's `export const { ... } = knayi`, written as `var { version, ... } = ...`.
-const KNOWN = {
-  'knayi-myscript.min.js': {},
-  'knayi-myscript.js': {},
-  'knayi-myscript.mjs': { let: 1, 'for-of': 1, destructuring: 1 },
-  'knayi-myscript.es.js': { let: 1, 'for-of': 1, destructuring: 1 }
-};
+const DIST = builtDist();
 
 function tally(uses) {
   const counts = {};
@@ -54,13 +34,17 @@ function ids(code, sourceType, at, unlisted) {
 describe('dist builds and the README browser floor', () => {
   const at = floor.readmeFloor();
 
-  for (const [file, sourceType] of Object.entries(builds)) {
-    it(file + ' uses nothing the floor lacks, apart from the known issues', () => {
+  it('README.md states 3.0\'s floor', () => {
+    assert.deepEqual(at, { chrome: 51, edge: 15, firefox: 54, safari: 10.1 });
+  });
+
+  for (const file of FILES) {
+    it(file + ' uses nothing the floor lacks', () => {
       const code = fs.readFileSync(path.join(DIST, file), 'utf8');
-      const violations = floor.check(code, { sourceType, floor: at });
+      const violations = floor.check(code, { sourceType: SOURCE_TYPES[file], floor: at });
       const list = violations.map((v) => '  ' + v.id + ' at ' + v.line + ':' + v.column + ' (' + v.blocked.join(', ') +
         ')  ' + v.text).join('\n');
-      assert.deepEqual(tally(violations), KNOWN[file], file + ' below the floor:\n' + list);
+      assert.deepEqual(tally(violations), {}, file + ' below the floor:\n' + list);
     });
   }
 });
@@ -155,9 +139,32 @@ describe('floor checker', () => {
   });
 
   it('switches rules off when the floor rises', () => {
-    const es2015 = { chrome: 51, edge: 15, firefox: 54, safari: 10 };
-    assert.deepEqual(ids('let a = 1; for (const x of y) f(x); var { b } = c;', 'script', es2015), []);
+    const es2015 = { chrome: 51, edge: 15, firefox: 54, safari: 10.1 };
+    assert.deepEqual(ids('let a = 1; for (const x of y) f(x); var { b } = c; class A {}', 'script', es2015), []);
     assert.deepEqual(ids('globalThis.x;', 'script', es2015), ['globalThis']);
+    // BCD gives Safari 10.1 for classes, which the 3.0 core uses, so Safari 10 is below 3.0's floor.
+    assert.deepEqual(ids('class A {}', 'script', Object.assign({}, es2015, { safari: 10 })), ['class']);
+    assert.deepEqual(ids('var a = [1]; var t = Uint16Array.from(a);', 'script', es2015, true), []);
+  });
+
+  it('sees a read after a typeof guard that returns early, and through a chain of ||', () => {
+    const es2015 = { chrome: 51, edge: 15, firefox: 54, safari: 10.1 };
+    const guarded = [
+      "function f() { if (typeof globalThis === 'undefined') return null; return globalThis.x; }",
+      "function f() { if (typeof globalThis === 'undefined') { g(); return null; } return globalThis.x; }",
+      "function f() { if (typeof globalThis === 'undefined' || !globalThis.x || !globalThis.x.y) throw e; return globalThis; }",
+      'function f(){if(typeof globalThis>"u"||!globalThis.x)return null;let t=globalThis.x;return t}',
+      "var a = typeof globalThis === 'undefined' || !globalThis.x || globalThis.x.y;"
+    ];
+    for (const code of guarded) assert.deepEqual(ids(code, 'script', es2015), [], code);
+    const unguarded = [
+      "function f() { var x = globalThis.x; if (typeof globalThis === 'undefined') return null; return x; }",
+      "function f() { if (typeof globalThis === 'undefined') g(); return globalThis.x; }",
+      "function f() { if (typeof globalThis === 'undefined' && h) return null; return globalThis.x; }",
+      "function f() { if (typeof globalThis === 'undefined') return null; } globalThis.x;",
+      "var a = typeof globalThis === 'undefined' && !globalThis.x;"
+    ];
+    for (const code of unguarded) assert.deepEqual(ids(code, 'script', es2015), ['globalThis'], code);
   });
 
   it('catches what esbuild passes through at target es2015', () => {
@@ -205,43 +212,59 @@ describe('floor checker', () => {
 });
 
 describe('floor emulation', () => {
-  // The script builds run in a vm context with every built-in the floor lacks deleted (globalThis, Symbol,
-  // Reflect, Object.entries, String#includes, TypedArray#fill, Array#values, ...), on the README examples, more
-  // call forms and generated inputs. Their results must equal main.js's. This catches a use the AST check cannot
-  // type, such as Array#values against Map#values.
-  const calls = examples.allCalls();
+  // Each script build runs in a vm context with every built-in the floor lacks deleted (globalThis, Object.entries,
+  // String#padStart, Array#values, ...), on the README examples, more call forms and generated inputs: the 2.x calls
+  // through knayi.compat of knayi.min.js and knayi of knayi-myscript.min.js, the 3.0 calls through knayi of
+  // knayi.min.js. Their results must equal those of the ES module sources in
+  // Node (scripts/browser/node-results.js). This catches a use the AST check cannot type, such as Array#values
+  // against Map#values. The module builds hold the same code in another wrapper, so the check above covers them.
+  const calls = { compat: examples.allCalls(), api: examples.apiCalls() };
   const expected = JSON.parse(execFileSync(process.execPath, [path.join(__dirname, '..', 'scripts', 'browser', 'node-results.js')],
-    { maxBuffer: 1 << 26 }));
+    { maxBuffer: 1 << 27 }));
 
-  // Node with myanmar-tools hidden says "not installed". With no require, the adapter examples warn this instead,
-  // as they do in a browser that has globalThis (scripts/browser/smoke.spec.js).
-  const BROWSER_ADAPTER_WARNING = 'warn: myanmar-tools is not available in this environment; fontDetect used the rule scorer.';
+  // compat loads no package by name (2.11, 649b2b4), so with no detector the adapter warns this in Node as in a
+  // browser.
+  const ADAPTER_WARNING = 'warn: myanmar-tools is not available in this environment; fontDetect used the rule scorer.';
 
-  for (const file of ['knayi-myscript.min.js', 'knayi-myscript.js']) {
-    it(file + ' gives main.js results without the post-floor built-ins', () => {
-      const context = vm.createContext({});
-      vm.runInContext('var console = { log: function () {}, warn: function () {}, error: function () {} };', context);
-      const removed = vm.runInContext(floor.removalScript(), context);
-      assert.ok(removed.length > 50, 'removed ' + removed.length);
-      assert.equal(vm.runInContext('typeof globalThis + typeof Symbol + typeof "".includes', context), 'undefinedundefinedundefined');
-      // What no rule names goes too: the allowlists leave these out.
-      assert.equal(vm.runInContext('[typeof Intl.Segmenter, typeof Object.groupBy, typeof [].at, typeof Iterator, ' +
-        'typeof WeakRef, typeof Error.captureStackTrace].join()', context), 'undefined,undefined,undefined,undefined,undefined,undefined');
-      vm.runInContext(fs.readFileSync(path.join(DIST, file), 'utf8'), context, { filename: file });
-      const actual = JSON.parse(vm.runInContext('(' + examples.runCalls + ')(knayi, JSON.parse(' +
-        JSON.stringify(JSON.stringify(calls)) + '))', context));
-
-      const adapterWarnings = [];
-      const diffs = examples.differences(calls, actual, expected, {
-        same(i, a, b) {
-          const browser = (a.console || []).map((line) => line === BROWSER_ADAPTER_WARNING ? 'adapter warning' : line);
-          const node = (b.console || []).map((line) => /^warn: myanmar-tools is not installed;/.test(line) ? 'adapter warning' : line);
-          if (browser.join('\n') !== (a.console || []).join('\n')) adapterWarnings.push(i);
-          return JSON.stringify(Object.assign({}, a, { console: browser })) === JSON.stringify(Object.assign({}, b, { console: node }));
-        }
-      });
-      assert.deepEqual(diffs, [], diffs.join('\n'));
-      assert.equal(adapterWarnings.length, 1, 'the adapter warning appears once');
-    });
+  // A vm context with the post-floor built-ins removed and the script build `file` run in it.
+  function floorContext(file) {
+    const context = vm.createContext({});
+    vm.runInContext('var console = { log: function () {}, warn: function () {}, error: function () {} };', context);
+    const removed = vm.runInContext(floor.removalScript(), context);
+    assert.ok(removed.length > 50, 'removed ' + removed.length);
+    assert.equal(vm.runInContext('typeof globalThis + typeof Object.entries + typeof "".padStart', context),
+      'undefinedundefinedundefined');
+    // What no rule names goes too: the allowlists leave these out.
+    assert.equal(vm.runInContext('[typeof Intl.Segmenter, typeof Object.groupBy, typeof [].at, typeof Iterator, ' +
+      'typeof WeakRef, typeof Error.captureStackTrace].join()', context), 'undefined,undefined,undefined,undefined,undefined,undefined');
+    vm.runInContext(fs.readFileSync(path.join(DIST, file), 'utf8'), context, { filename: file });
+    return context;
   }
+
+  function runIn(context, target, list) {
+    return JSON.parse(vm.runInContext('(' + examples.runCalls + ')(' + target + ', JSON.parse(' +
+      JSON.stringify(JSON.stringify(list)) + '))', context));
+  }
+
+  // The 2.x API's results, the adapter warning once at the first adapter call.
+  function checkCompat(actual) {
+    const diffs = examples.differences(calls.compat, actual, expected.compat);
+    assert.deepEqual(diffs, [], diffs.join('\n'));
+    const warned = actual.filter((result) => (result.console || []).indexOf(ADAPTER_WARNING) !== -1);
+    assert.equal(warned.length, 1, 'the adapter warning appears once, at the first adapter call');
+  }
+
+  it('knayi.compat in knayi.min.js gives compat\'s results without the post-floor built-ins', () => {
+    checkCompat(runIn(floorContext('knayi.min.js'), 'knayi.compat', calls.compat));
+  });
+
+  it('knayi in knayi-myscript.min.js, 2.x\'s file name, gives compat\'s results without them', () => {
+    checkCompat(runIn(floorContext('knayi-myscript.min.js'), 'knayi', calls.compat));
+  });
+
+  it('knayi in knayi.min.js gives the 3.0 API\'s results without the post-floor built-ins', () => {
+    const actual = runIn(floorContext('knayi.min.js'), 'knayi', calls.api);
+    const diffs = examples.differences(calls.api, actual, expected.api);
+    assert.deepEqual(diffs, [], diffs.join('\n'));
+  });
 });

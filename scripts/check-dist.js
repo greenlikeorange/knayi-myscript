@@ -155,7 +155,9 @@ function checkRelease(override) {
     return;
   }
   const listed = lines(git(['ls-tree', '--name-only', release.sha, '--', 'dist/'])).map((p) => path.posix.basename(p));
-  const names = new Set(FILES.concat(listed, fs.existsSync(dist) ? fs.readdirSync(dist) : []));
+  // The files of the release and of dist/, whatever the build writes now: the build's list changes before the
+  // release that ships it (3.0's file names came in before 3.0.0-next.0).
+  const names = new Set(listed.concat(fs.existsSync(dist) ? fs.readdirSync(dist) : []));
   const problems = [];
   for (const name of Array.from(names).sort()) {
     const committed = path.join(dist, name);

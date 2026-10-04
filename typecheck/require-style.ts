@@ -1,4 +1,4 @@
-import knayi = require("knayi-myscript");
+import knayi = require("knayi-myscript/compat");
 
 const converted: string = knayi.fontConvert("မဂၤလာပါ", "unicode", "zawgyi");
 const detected: string = knayi.fontDetect("ကျ", null, { adapter: "rules" });

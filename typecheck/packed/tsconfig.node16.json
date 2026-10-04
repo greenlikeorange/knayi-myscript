@@ -10,5 +10,5 @@
     "noEmitOnError": true,
     "outDir": "out/node16"
   },
-  "files": ["esm.mts", "cjs.cts"]
+  "files": ["esm.mts"]
 }

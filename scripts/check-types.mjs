@@ -1,15 +1,20 @@
-// Checks index.d.ts and library/converter.d.ts the way users get them: from the packed tarball, under every module
-// resolution.
+// Checks the types of every entry of the exports map the way users get them: from the packed tarball, under every
+// module resolution.
 //
-// npm test type-checks typecheck/*.ts against them through a `paths` mapping with node10 resolution.
-// This script packs the package instead, with a fresh build in dist/ (scripts/pack-fresh.mjs), unpacks the
-// tarball into the node_modules of a scratch project (it has no dependencies, so that is all npm install would
-// do), and:
-// 1. compiles typecheck/packed/ there with tsc under node16 and nodenext resolution (an ES module, esm.mts,
-//    and a CommonJS module, cjs.cts) and under bundler resolution (bundler.ts), with skipLibCheck off;
-// 2. runs the compiled node16 and nodenext modules in Node, and bundler.ts bundled by esbuild, so the types
-//    are checked against what the code does;
-// 3. runs @arethetypeswrong/cli on the tarball for the entry points README documents. Problems listed in
+// npm test type-checks typecheck/*.ts against src/compat/index.d.ts through a `paths` mapping with node10
+// resolution, and typecheck/next/ against src/index.d.ts. This script packs the package instead, with a fresh
+// build in dist/ (scripts/pack-fresh.mjs), unpacks the tarball into the node_modules of a scratch project (it has
+// no dependencies, so that is all npm install would do), and:
+// 1. compiles typecheck/packed/ there with tsc, skipLibCheck off: an ES module (esm.mts) under node16, node20 and
+//    nodenext resolution; a CommonJS module (cjs.cts) under node20 and nodenext, the modes in which TypeScript
+//    lets CommonJS require an ES module, as Node 22.12 and later do, and under `module: commonjs`, whose default
+//    resolution, node10, reads no exports map and finds the subpaths through typesVersions; bundler.ts under
+//    bundler resolution; and the
+//    streams (stream.mts) under nodenext with the DOM library, which has the TransformStream type they name. The
+//    others have only ES2022, so '.' and './compat' are shown to need no DOM or Node types;
+// 2. runs the compiled modules in Node, and bundler.ts bundled by esbuild, so the types are checked against what
+//    the code does;
+// 3. runs @arethetypeswrong/cli on the tarball for every entry of the exports map. Problems listed in
 //    KNOWN_PROBLEMS are reported but do not fail the check; any other problem fails it, and so does a known
 //    one that is gone, so the list stays current.
 //
@@ -26,29 +31,16 @@ const root = path.join(import.meta.dirname, '..');
 const require = createRequire(path.join(root, 'package.json'));
 const keep = process.argv.includes('--keep');
 
-// The entry points README.md lists under "These paths load without an exports map".
-const ENTRYPOINTS = ['.', './library/converter', './dist/knayi-myscript.min.js', './dist/knayi-myscript.es.js'];
+// The entries of the exports map (package.json), each with its types: the 3.0 API, the 2.x API and streaming.
+const ENTRYPOINTS = ['.', './compat', './stream'];
 
-// Problems attw reports today. Each is a gap in what the package ships (index.d.ts, file names, package.json),
-// left for the PRs that may change those files.
+// Problems attw reports by design. Each is a choice of 3.0's packaging (decision 31), with its reason.
+const ESM_ONLY = 'ES modules only: CommonJS loads them with require() in Node 22.12 and later, and TypeScript ' +
+  'allows that under module commonjs, node20 and nodenext (typecheck/packed/cjs.cts), not under node16';
 const KNOWN_PROBLEMS = {
-  // README documents this deep path, which library/converter.d.ts types, but without an exports map Node's ESM
-  // resolver needs the '.js' extension, so the bare path does not resolve from an ES module (esm.mts imports
-  // 'knayi-myscript/library/converter.js').
-  'NoResolution ./library/converter node16-esm': 'ES modules need library/converter.js, with the extension',
-  // The script build is imported for its side effect, the knayi global, so it needs no types of its own.
-  'UntypedResolution ./dist/knayi-myscript.min.js node10': 'script build, imported for the global',
-  'UntypedResolution ./dist/knayi-myscript.min.js node16-cjs': 'script build, imported for the global',
-  'UntypedResolution ./dist/knayi-myscript.min.js node16-esm': 'script build, imported for the global',
-  'UntypedResolution ./dist/knayi-myscript.min.js bundler': 'script build, imported for the global',
-  // Bundlers reach the ESM copy through the `module` field, where index.d.ts types it. Imported by its own
-  // path it has no types, and as a '.js' file in a package without "type": "module" Node reads it as
-  // CommonJS, so it loads in Node only through ES module syntax detection (Node 22.7 and later).
-  'UntypedResolution ./dist/knayi-myscript.es.js node10': 'no types for the path itself',
-  'UntypedResolution ./dist/knayi-myscript.es.js node16-cjs': 'no types for the path itself',
-  'UntypedResolution ./dist/knayi-myscript.es.js node16-esm': 'no types for the path itself',
-  'UntypedResolution ./dist/knayi-myscript.es.js bundler': 'no types for the path itself',
-  'UnexpectedModuleSyntax dist/knayi-myscript.es.js': 'ESM syntax in a .js file of a package without "type"'
+  'CJSResolvesToESM . node16-cjs': ESM_ONLY,
+  'CJSResolvesToESM ./compat node16-cjs': ESM_ONLY,
+  'CJSResolvesToESM ./stream node16-cjs': ESM_ONLY
 };
 
 const failures = [];
@@ -77,7 +69,9 @@ try {
   // ---- tsc under each module resolution.
   const tsc = require.resolve('typescript/bin/tsc');
   const typescriptVersion = require('typescript/package.json').version;
-  for (const project of ['tsconfig.node16.json', 'tsconfig.nodenext.json', 'tsconfig.bundler.json']) {
+  const projects = ['tsconfig.node10.json', 'tsconfig.node16.json', 'tsconfig.node20.json', 'tsconfig.nodenext.json',
+    'tsconfig.bundler.json', 'tsconfig.stream.json'];
+  for (const project of projects) {
     const result = spawnSync(process.execPath, [tsc, '-p', path.join(app, project)], { cwd: app, encoding: 'utf8' });
     if (result.status === 0) {
       console.log('tsc ' + typescriptVersion + ' ' + project + ': ok');
@@ -87,7 +81,8 @@ try {
   }
 
   // ---- Run what tsc compiled, and the bundler consumer through esbuild.
-  const outputs = ['out/node16/esm.mjs', 'out/node16/cjs.cjs', 'out/nodenext/esm.mjs', 'out/nodenext/cjs.cjs'];
+  const outputs = ['out/node10/cjs.cjs', 'out/node16/esm.mjs', 'out/node20/esm.mjs', 'out/node20/cjs.cjs',
+    'out/nodenext/esm.mjs', 'out/nodenext/cjs.cjs', 'out/stream/stream.mjs'];
   try {
     require('esbuild').buildSync({
       absWorkingDir: app,

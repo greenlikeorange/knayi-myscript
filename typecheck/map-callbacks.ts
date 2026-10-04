@@ -1,10 +1,19 @@
-// knayi functions passed straight to Array#map, which calls them with the line, its index and the array. index.d.ts
-// gives fontDetect, spellingFix and truncate an overload for those arguments, before the signature with the options;
-// normalize and detectEncoding read one argument. Without the overloads, an options parameter fails here with "Type
-// 'number' has no properties in common with" its type (TS2559, inside TS2345). npm test compiles this file with and
-// without esModuleInterop; it never runs. test/inputs.test.js checks what the same calls return.
-import knayi, { detectEncoding, fontConvert, fontDetect, normalize, spellingFix, syllBreak, truncate } from "knayi-myscript";
-import type { DetectorOptions, EncodingDetection, FontName, Knayi, TruncateOptions } from "knayi-myscript";
+// Functions of the 2.x API passed straight to Array#map, which calls them with the line, its index and the array.
+// Its types (src/compat/index.d.ts) give fontDetect, spellingFix and truncate an overload for those arguments, before
+// the signature with the options; normalize and detectEncoding read one argument. Without the overloads, an options
+// parameter fails here with "Type 'number' has no properties in common with" its type (TS2559, inside TS2345). npm
+// test compiles this file with and without esModuleInterop; it never runs. test/inputs.test.js checks what the same
+// calls return.
+import knayi, {
+  detectEncoding,
+  fontConvert,
+  fontDetect,
+  normalize,
+  spellingFix,
+  syllBreak,
+  truncate
+} from "knayi-myscript/compat";
+import type { DetectorOptions, EncodingDetection, FontName, Knayi, TruncateOptions } from "knayi-myscript/compat";
 
 // true only when A and B are the same type.
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;

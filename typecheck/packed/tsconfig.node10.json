@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES2022",
+    "lib": [
+      "ES2022"
+    ],
+    "types": [],
+    "strict": true,
+    "skipLibCheck": false,
+    "noEmitOnError": true,
+    "outDir": "out/node10"
+  },
+  "files": [
+    "cjs.cts"
+  ]
+}

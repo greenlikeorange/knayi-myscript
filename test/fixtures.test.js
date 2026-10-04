@@ -1,6 +1,7 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const knayi = require('../main');
+// The 2.x API: compat, on the 3.0 core.
+const knayi = require('../src/compat/index.js').default;
 
 const phrases = [
   { text: 'မြန်မာ', detect: 'unicode', break: 'မြန်|မာ', norm: 'မြန်မာ', zawgyi: 'ျမန္မာ' },

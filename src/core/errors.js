@@ -1,0 +1,39 @@
+// The errors the core throws on purpose (DESIGN.md §2.3, §4 rule 4). Layer L1.
+//
+// Every throw in src/ throws libraryError(...) with a code from ERR; test/next/guards/errors.test.mjs checks
+// this. compat throws its 2.x errors this way too: since the port of 2.11 (DESIGN.md §8), 2.x throws nothing by
+// accident that compat has to copy, and the code is what tells an error knayi throws apart (D13).
+//
+// Messages say where the error comes from and what is wrong, in this form:
+//   knayi.<function>: <what is wrong>
+//   knayi fonts/win.js: glyph U+00D3: <what is wrong>
+
+import { deepFreeze } from '../freeze.js';
+
+export const ERR = /* @__PURE__ */ deepFreeze({
+  // TypeError: an argument has the wrong type.
+  INVALID_ARG_TYPE: 'ERR_KNAYI_INVALID_ARG_TYPE',
+  // RangeError: a value knayi does not accept.
+  INVALID_ARG_VALUE: 'ERR_KNAYI_INVALID_ARG_VALUE',
+  // RangeError: a line of a stream passes its maxLineLength before it ends (§12.4).
+  LINE_TOO_LONG: 'ERR_KNAYI_LINE_TOO_LONG',
+  // Error: the runtime lacks what the call needs, such as TransformStream for a stream, or TextDecoder for bytes
+  // (§12.1, §12.3).
+  UNSUPPORTED_RUNTIME: 'ERR_KNAYI_UNSUPPORTED_RUNTIME',
+  // Error: a font table fails compileFont's checks, at module load (§3.8).
+  INVALID_FONT_TABLE: 'ERR_KNAYI_INVALID_FONT_TABLE',
+  // TypeError, compat only: 2.x's syllBreak or truncate is given a font they have no break rules for, 'win' or an
+  // unknown name (2.x 24f81c6, decision 11). The code and the text are 2.x API.
+  INVALID_FONT: 'ERR_KNAYI_INVALID_FONT',
+  // Error: a function of the skeleton that its module's builder has not written yet (§7.2). None may remain at
+  // the acceptance gate (§6.3).
+  NOT_BUILT: 'ERR_KNAYI_NOT_BUILT'
+});
+
+// new Ctor(message) (Error by default), with an own enumerable string property `code`.
+export function libraryError(code, message, Ctor) {
+  const ErrorType = Ctor || Error;
+  const error = new ErrorType(message);
+  error.code = code;
+  return error;
+}

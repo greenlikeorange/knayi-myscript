@@ -1,7 +1,8 @@
 const { describe, it, before, after, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 const { inspect } = require('util');
-var knayi = require('../main');
+// The 2.x API: compat, on the 3.0 core.
+var knayi = require('../src/compat/index.js').default;
 var myanmarToolsWarnings = [];
 describe('Detector default mode',()=>{
   describe('Detect Zawgyi',()=>{
@@ -57,16 +58,18 @@ describe('detector adapters', () => {
   after(function () {
     knayi.setGlobalOptions({
       silent_mode: false,
-      detector: { use_myanmartools: false, myanmartools_zg_threshold: [0.05, 0.95] }
+      detector: { use_myanmartools: false, myanmartools_zg_threshold: [0.05, 0.95], zawgyiDetector: null }
     });
   });
 
+  // compat loads no package by name (2.x 649b2b4), so the test passes it a detector of the package, as an app does;
+  // 2.x's main.js loads the package itself.
   it('lets the passed adapter win over the global flag', function () {
-    knayi.setGlobalOptions({ detector: { use_myanmartools: true } });
     var tools;
     try {
       tools = require('myanmar-tools');
     } catch (e) {}
+    knayi.setGlobalOptions({ detector: { use_myanmartools: true, zawgyiDetector: tools ? new tools.ZawgyiDetector() : null } });
 
     var toolsOptions = { adapter: 'myanmartools', myanmartools_zg_threshold: [0.05, 0.9] };
 
@@ -76,7 +79,7 @@ describe('detector adapters', () => {
     } else {
       assert.equal(knayi.fontDetect('က္က', 'unicode', toolsOptions), 'unicode');
       assert.ok(myanmarToolsWarnings.some(function (message) {
-        return /myanmar-tools is not installed/.test(String(message));
+        return /myanmar-tools is not available/.test(String(message));
       }));
     }
   });
@@ -155,7 +158,7 @@ describe('detector options', () => {
   afterEach(() => {
     knayi.setGlobalOptions({
       silent_mode: false,
-      detector: { use_myanmartools: false, myanmartools_zg_threshold: [0.05, 0.95] }
+      detector: { use_myanmartools: false, myanmartools_zg_threshold: [0.05, 0.95], zawgyiDetector: null }
     });
   });
 
@@ -172,8 +175,10 @@ describe('detector options', () => {
   });
 
   it('uses the stored adapter and threshold with null options', () => {
-    // myanmar-tools gives က္က a probability of about 0.93: Zawgyi above 0.9, and a rule-score tie.
-    knayi.setGlobalOptions({ detector: { use_myanmartools: true, myanmartools_zg_threshold: [0.05, 0.9] } });
+    // myanmar-tools gives က္က a probability of about 0.93: Zawgyi above 0.9, and a rule-score tie. compat scores with
+    // a stored detector of the package, which 2.x's main.js loads itself.
+    const zawgyiDetector = new (require('myanmar-tools').ZawgyiDetector)();
+    knayi.setGlobalOptions({ detector: { use_myanmartools: true, myanmartools_zg_threshold: [0.05, 0.9], zawgyiDetector } });
     assert.equal(knayi.fontDetect('က္က', 'unicode', null), 'zawgyi');
     knayi.setGlobalOptions(null);
     assert.equal(knayi.fontDetect('က္က', 'unicode', null), 'zawgyi');
@@ -267,26 +272,6 @@ describe('detectEncoding', () => {
         assert.equal(knayi.fontDetect(text, fallback, { adapter: 'rules' }), answer(knayi.detectEncoding(text), given),
           inspect([text, fallback]));
       }
-    }
-  });
-});
-
-// library/detector.js is the 2.x path of fontDetect, which library/detection.js holds. The library requires
-// detection.js, so the builds leave the old path out.
-describe('library/detector.js', () => {
-  it('is fontDetect', () => {
-    assert.equal(require('../library/detector'), knayi.fontDetect);
-    assert.equal(require('../library/detection').fontDetect, knayi.fontDetect);
-  });
-
-  it('is left out of the builds', () => {
-    const fs = require('fs');
-    const path = require('path');
-    const { builtDist } = require('../scripts/build');
-    for (const name of ['knayi-myscript.js', 'knayi-myscript.mjs']) {
-      const source = fs.readFileSync(path.join(builtDist(), name), 'utf8');
-      assert.ok(source.indexOf('// library/detection.js\n') !== -1, name + ' has no detection.js');
-      assert.equal(source.indexOf('// library/detector.js\n'), -1, name + ' has detector.js');
     }
   });
 });

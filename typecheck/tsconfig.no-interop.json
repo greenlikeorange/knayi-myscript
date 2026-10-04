@@ -10,9 +10,8 @@
     "skipLibCheck": false,
     "baseUrl": "..",
     "paths": {
-      "knayi-myscript": ["index.d.ts"],
-      "knayi-myscript/library/converter": ["library/converter.d.ts"]
+      "knayi-myscript/compat": ["src/compat/index.d.ts"]
     }
   },
-  "files": ["require-style.ts", "default-import.ts", "named-import.ts", "font-types.ts", "deep-path.ts", "map-callbacks.ts"]
+  "files": ["require-style.ts", "default-import.ts", "named-import.ts", "font-types.ts", "map-callbacks.ts"]
 }

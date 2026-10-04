@@ -1,7 +1,8 @@
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fc = require('fast-check');
-const knayi = require('../main');
+// The 2.x API: compat, on the 3.0 core.
+const knayi = require('../src/compat/index.js').default;
 const arb = require('../scripts/testing/arbitraries');
 const { check } = require('../scripts/testing/fuzz-settings');
 
@@ -74,8 +75,9 @@ describe('debugging ends with the converted text', () => {
     ['unicode', undefined, fc.oneof(arb.zawgyiText(), arb.unicodeText())],
     ['zawgyi', undefined, fc.oneof(arb.zawgyiText(), arb.unicodeText())]
   ];
+  // Every pair but Win can exit early, where 2.11 reports the text as the one step (b6cbfca); 2.10.0 returned it.
   for (const [to, from, text] of pairs) {
-    it('from ' + (from || 'a detected font') + ' to ' + to, () => {
+    const test = () => {
       check(fc.property(text, (content) => {
         const debug = knayi.fontConvert.debugging(content, to, from);
         const converted = knayi.fontConvert(content, to, from);
@@ -87,7 +89,8 @@ describe('debugging ends with the converted text', () => {
         assert.ok(Array.isArray(debug.matched_patterns));
         assert.equal(debug.steps[debug.steps.length - 1], converted);
       }), 3000);
-    });
+    };
+    it('from ' + (from || 'a detected font') + ' to ' + to, test);
   }
 });
 
@@ -180,6 +183,7 @@ describe('no call form throws', () => {
     'any UTF-16 code units': arb.codeUnits,
     'any code points': fc.string({ unit: 'binary', maxLength: 16 })
   };
+  // The forms include detectEncoding (31eb6b1), and debugging returns a report on every exit (b6cbfca).
   for (const [kind, text] of Object.entries(strings)) {
     it('on ' + kind + ', and returns text', () => {
       check(fc.property(text, (x) => {

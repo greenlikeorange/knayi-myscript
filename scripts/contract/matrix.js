@@ -1,15 +1,16 @@
 'use strict';
-// The API contract matrix: every public function and call form, run on fixed synthetic probes. Each call is one
-// cell, which records the value the call returned and its type, the error it threw and what it wrote to the
-// console. test/contract/api-matrix.test.js (Node) and scripts/bun-matrix.js (Bun) check main.js and the dist
-// builds against test/contract/api-matrix.json, and `npm run matrix:update` rewrites that file from main.js.
+// The API contract matrix of the 2.x API: every public function and call form, run on fixed synthetic probes. Each
+// call is one cell, which records the value the call returned and its type, the error it threw and what it wrote to
+// the console. test/contract/api-matrix.test.js (Node) and scripts/bun-matrix.js (Bun) check compat (the 2.x API on
+// the 3.0 core), the 3.0 builds that hold it and main.js at the 2.x reference against test/contract/api-matrix.json,
+// and `npm run matrix:update` rewrites that file from that main.js.
 //
 // Errors. An error the library throws on purpose carries a string `code` property (libraryError in
-// library/contentGate.js), such as the TypeError ERR_KNAYI_INVALID_FONT that syllBreak and truncate throw for a font
-// they do not break; for those a cell records the class, the code and the full message. Any other throw is an
-// accident of the code, such as a TypeError from reading a property of undefined. The wording of those messages
-// belongs to the runtime and to the build (on Bun, main.js says "evaluating 'rules.length'" where min.js says
-// "'r.length'"), so a cell records only their class.
+// src/core/errors.js; 2.x's in library/contentGate.js), such as the TypeError ERR_KNAYI_INVALID_FONT that syllBreak
+// and truncate throw for a font they do not break; for those a cell records the class, the code and the full
+// message. Any other throw is an accident of the code, such as a TypeError from reading a property of undefined. The
+// wording of those messages belongs to the runtime and to the build (on Bun, main.js says "evaluating
+// 'rules.length'" where min.js says "'r.length'"), so a cell records only their class.
 
 const fs = require('fs');
 const path = require('path');
@@ -19,24 +20,49 @@ const { pathToFileURL } = require('url');
 const ROOT = path.join(__dirname, '..', '..');
 const SNAPSHOT = path.join(ROOT, 'test', 'contract', 'api-matrix.json');
 
-// The builds the matrix runs on. main.js is the source of truth; the dist files come from a fresh build of this
-// checkout in a temporary directory, or from KNAYI_DIST when it is set (`KNAYI_DIST=dist` checks the committed
-// release build); see builtDist() in scripts/build.js.
-const BUILDS = ['main.js', 'knayi-myscript.mjs', 'knayi-myscript.min.js'];
+// The builds the matrix runs on. main.js is the source of truth: 2.x's main.js at the 2.x reference, commit 8923365
+// (until v2.11.0 is tagged), with its library/ beside it in scripts/reference/ (docs/next/DESIGN.md §1.1, §8).
+// `compat` is the 2.x API on the 3.0 core, src/compat/index.js (§5), imported as the ES module it is. The 3.0 dist
+// files that hold the 2.x API come from a fresh build of this checkout in a temporary directory, or from KNAYI_DIST
+// when it is set (`KNAYI_DIST=dist` checks the committed release build); see builtDist() in scripts/build.js: the
+// compat module build, imported, and the two script builds, run in a vm: knayi.compat of knayi.min.js, and knayi of
+// knayi-myscript.min.js, 2.x's name.
+const BUILDS = ['main.js', 'compat', 'knayi-myscript-compat.min.mjs', 'knayi.min.js', 'knayi-myscript.min.js'];
+
+// The 2.x API in the global of each script build (scripts/build.js).
+const SCRIPT_COMPAT = { 'knayi.min.js': (knayi) => knayi.compat, 'knayi-myscript.min.js': (knayi) => knayi };
+
+// The module of each build that is not a dist file.
+const REFERENCE_MAIN = path.join(ROOT, 'scripts', 'reference', 'main.js');
+const COMPAT = path.join(ROOT, 'src', 'compat', 'index.js');
+
+// A build whose known differences are exactly those of another build, so the snapshot records them once, under
+// that build, which comes before it in BUILDS. The 3.0 builds are made from compat's sources, so they differ from
+// main.js in the same cells, the same way (docs/next/DESIGN.md §5.4). `npm run matrix:update` checks that this still
+// holds.
+const SHARES_RECORDED_DIFFERENCES = {
+  'knayi-myscript-compat.min.mjs': 'compat', 'knayi.min.js': 'compat', 'knayi-myscript.min.js': 'compat'
+};
 
 // The one cell that asks for the myanmar-tools adapter with no detector (section 5, at the end).
 const PACKAGE_CELL = "setGlobalOptions({silent_mode: true}); fontDetect(tie, null, {adapter: 'myanmartools'})";
 
 // Cells in which a build is expected to differ from main.js, with the reason: entries of the form
-// { name, builds: ['knayi-myscript.mjs'], matches: (id) => boolean, reason }. `npm run matrix:update` refuses to
-// record a build difference that no entry here explains.
+// { name, builds: ['compat'], matches: (id) => boolean, reason }. `npm run matrix:update` refuses to record a build
+// difference that no entry here explains.
+//
+// 2.x's debug flag read from `this` is gone (d20027a): main.js reads no global `debug` either, so a detached
+// fontConvert call returns text in every build. What stays is where myanmar-tools comes from: 2.x's builds in dist/
+// load no package by name since 649b2b4, and neither do compat, an ES module like 2.x's module build, and the 3.0
+// builds that hold it (docs/next/DESIGN.md §5.4).
 const KNOWN_BUILD_DIFFERENCES = [
   {
-    name: 'no package load in dist',
-    builds: ['knayi-myscript.mjs', 'knayi-myscript.min.js'],
+    name: 'no package load by name',
+    builds: ['compat', 'knayi-myscript-compat.min.mjs', 'knayi.min.js', 'knayi-myscript.min.js'],
     matches: (id) => id === PACKAGE_CELL,
-    reason: 'With no zawgyiDetector, main.js loads myanmar-tools (the dev dependency) with module.require. The builds ' +
-      'in dist/ load no package by name, so the myanmar-tools adapter uses the rule scorer there.'
+    reason: 'With no zawgyiDetector, 2.x\'s main.js loads myanmar-tools (the dev dependency) with module.require. ' +
+      'compat and the 3.0 builds load no package by name, as 2.x\'s builds in dist/ do, so the myanmar-tools ' +
+      'adapter uses the rule scorer there.'
   }
 ];
 
@@ -247,9 +273,9 @@ function defineCells() {
 
   // 5. A detector passed as zawgyiDetector: a ZawgyiDetector of myanmar-tools 1.1.3, the dev dependency. It is made
   // here and passed as it is, since a copy into the build's realm would lose the methods of its prototype. With it
-  // the adapter loads nothing, so every build gives the same cells, min.js in a vm included. Without one, main.js
-  // loads the package and the builds load nothing (test/adapter.test.js checks both); one cell, at the end, records
-  // that difference.
+  // the adapter loads nothing, so every build gives the same cells, the script builds in a vm included. Without one,
+  // main.js loads the package, and compat and the builds load nothing (test/adapter.test.js checks both); one cell,
+  // at the end, records that difference.
   const { ZawgyiDetector } = require('myanmar-tools');
   const zawgyiDetector = new ZawgyiDetector();
   const DETECTOR = 'new ZawgyiDetector()';
@@ -323,9 +349,9 @@ function defineCells() {
       return detected;
     });
   }
-  // The adapter with no detector: main.js loads myanmar-tools, which reads the tie as Unicode, and the builds use the
-  // rule scorer, whose tie gives 'zawgyi' (KNOWN_BUILD_DIFFERENCES). Silent mode keeps out the warning, which a copy
-  // of knayi writes only once, so that the cell does not depend on what ran before it.
+  // The adapter with no detector: main.js loads myanmar-tools, which reads the tie as Unicode, and compat and the
+  // builds use the rule scorer, whose tie gives 'zawgyi' (KNOWN_BUILD_DIFFERENCES). Silent mode keeps out the
+  // warning, which a copy of knayi writes only once, so that the cell does not depend on what ran before it.
   add(PACKAGE_CELL, (k, make) => {
     k.setGlobalOptions(make({ silent_mode: true }));
     return k.fontDetect(make(tie), null, make({ adapter: 'myanmartools' }));
@@ -363,19 +389,24 @@ function runtimeName() {
 async function loadBuild(name) {
   const logs = [];
   if (name === 'main.js') {
-    const knayi = require(path.join(ROOT, 'main.js'));
-    return hostBuild(name, 'main.js', knayi, logs);
+    return hostBuild(name, path.relative(ROOT, REFERENCE_MAIN), require(REFERENCE_MAIN), logs);
+  }
+  if (name === 'compat') {
+    const module = await import(pathToFileURL(COMPAT).href);
+    return hostBuild(name, path.relative(ROOT, COMPAT), module.default, logs);
   }
   const file = path.join(distDir(), name);
   const relative = path.relative(ROOT, file);
   const label = relative && relative.indexOf('..') !== 0 ? relative
     : process.env.KNAYI_DIST ? file : name + ' (temporary build)';
-  if (name === 'knayi-myscript.mjs') {
+  if (name === 'knayi-myscript-compat.min.mjs') {
     const module = await import(pathToFileURL(file).href);
     return hostBuild(name, label, module.default, logs);
   }
-  if (name === 'knayi-myscript.min.js') {
-    // As a browser runs it: a classic script in its own global object, with no `process` or `require`.
+  if (SCRIPT_COMPAT[name]) {
+    // As a browser runs it: a classic script in its own global object, with no `process` or `require`. The global
+    // `knayi` of knayi.min.js is the 3.0 API, and knayi.compat the 2.x API; that of knayi-myscript.min.js the 2.x
+    // API, as in 2.x.
     const consoleObject = {};
     for (const method of CONSOLE_METHODS) {
       consoleObject[method] = function () { logs.push(consoleLine(method, arguments)); };
@@ -387,7 +418,7 @@ async function loadBuild(name) {
     return {
       name: name,
       label: label + ' (in a vm)',
-      knayi: sandbox.knayi,
+      knayi: SCRIPT_COMPAT[name](sandbox.knayi),
       global: sandbox,
       make: copier(realm),
       logs: logs,
@@ -532,7 +563,8 @@ function readSnapshot(file) {
 function formatSnapshot(cells, known) {
   const lines = [
     '{',
-    '  "about": ' + JSON.stringify('API contract matrix. Generated by `npm run matrix:update` from main.js; ' +
+    '  "about": ' + JSON.stringify('API contract matrix of the 2.x API. Generated by `npm run matrix:update` from ' +
+      'main.js at the 2.x reference (scripts/reference/main.js); ' +
       'checked by test/contract/api-matrix.test.js and scripts/bun-matrix.js. Probes are synthetic.') + ',',
     '  "errors": ' + JSON.stringify('An accidental error is recorded by class only; an error the library ' +
       'throws on purpose has a string `code` and is recorded with its code and message.') + ',',
@@ -556,13 +588,25 @@ function formatSnapshot(cells, known) {
   return escapeInvisible(lines.join('\n')) + '\n';
 }
 
-// The cells a build should give: main.js's cells, with that build's known differences put in.
+// The cells a build should give: main.js's cells, with that build's known differences put in (those of the build
+// it shares them with, if any).
 function expectedCells(snapshot, buildName) {
+  const recordedUnder = SHARES_RECORDED_DIFFERENCES[buildName] || buildName;
   const replaced = new Map();
   for (const entry of snapshot.knownBuildDifferences.cells) {
-    if (entry.build === buildName) replaced.set(entry.id, Object.assign({ id: entry.id }, entry.cell));
+    if (entry.build === recordedUnder) replaced.set(entry.id, Object.assign({ id: entry.id }, entry.cell));
   }
   return snapshot.cells.map((cell) => replaced.get(cell.id) || cell);
+}
+
+// The known differences of a build that shares another build's (SHARES_RECORDED_DIFFERENCES) that are not exactly
+// that build's, as cell ids: a cell one of them has and the other lacks, or has with another result.
+function unsharedDifferences(known, sharedKnown) {
+  const key = (entry) => entry.id + '\u0000' + entry.reason + '\u0000' + cellKey(entry.cell);
+  const shared = new Set(sharedKnown.map(key));
+  const own = new Set(known.map(key));
+  return known.filter((entry) => !shared.has(key(entry))).map((entry) => entry.id)
+    .concat(sharedKnown.filter((entry) => !own.has(key(entry))).map((entry) => entry.id));
 }
 
 // Differences between a build's cells and main.js's that KNOWN_BUILD_DIFFERENCES explains, and those it does not.
@@ -756,6 +800,7 @@ module.exports = {
   ROOT,
   SNAPSHOT,
   BUILDS,
+  SHARES_RECORDED_DIFFERENCES,
   // The content probes, which scripts/eval/lib/inputs.mjs also hands to compare.
   CONTENTS,
   defineCells,
@@ -765,6 +810,7 @@ module.exports = {
   formatSnapshot,
   expectedCells,
   buildDifferences,
+  unsharedDifferences,
   compareCells,
   checkBuild,
   formatReport,

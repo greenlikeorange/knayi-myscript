@@ -2,7 +2,8 @@
 // strings over the characters each reader decides on, and structured Burmese text with typing slips.
 
 const fc = require('fast-check');
-const win = require('../../library/win').tables;
+// The keys of the Win table, from the frozen 2.x library (scripts/oracle/), which compat's table equals.
+const win = require('../oracle/win').tables;
 
 function chars(from, to) {
   const out = [];
@@ -14,7 +15,9 @@ const SPACES = [' ', '\u00A0', '\n', '\u200B', '\u200C', '\u200D', '\u2060', '\u
 
 // Unicode text: letters that take marks (some typed for each other), digits typed for letters, every Burmese
 // mark, spaces and zero-width characters, number punctuation, letters and marks of the other languages, and
-// a combining mark from outside the blocks for NFC.
+// combining marks from outside the blocks for NFC: U+0301, and supplementary characters that NFC changes and that
+// share a surrogate (Chakma U+11131 U+11127, which compose to U+1112E; the musical U+1D165 and U+1D16D, which it
+// reorders), so that no edit or change is cut inside a pair.
 const UNICODE = {
   letters: ['\u1000', '\u1001', '\u1004', '\u1005', '\u1006', '\u1009', '\u100A', '\u1010', '\u1011', '\u1012',
     '\u1014', '\u1015', '\u1019', '\u101A', '\u101B', '\u101C', '\u101D', '\u101E', '\u101F', '\u1021', '\u1025',
@@ -22,7 +25,7 @@ const UNICODE = {
   marks: chars(0x102B, 0x103E),
   other: SPACES.concat(['.', ',', '+', '-', '\u104A', 'a', '\u0301', '\u1033', '\u1034', '\u1035', '\u1050',
     '\u105E', '\u1062', '\u1063', '\u1075', '\u1082', '\u1086', '\u1087', '\u1089', '\u108F', '\u109A', '\uA9E0',
-    '\uA9E5', '\uAA60', '\uAA7B'])
+    '\uA9E5', '\uAA60', '\uAA7B', '\uD804\uDD31', '\uD804\uDD27', '\uD834\uDD65', '\uD834\uDD6D'])
 };
 
 // Zawgyi text: Burmese letters and marks, the Zawgyi shapes at U+1060-U+1097, e and the medial ra shapes typed

@@ -1,6 +1,8 @@
 const { describe, it, before, after, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
-const knayi = require('../main');
+// The 2.x API: compat, on the 3.0 core.
+const knayi = require('../src/compat/index.js').default;
+const { pendingPort } = require('../scripts/testing/pending-port');
 
 const missing = [0, false, NaN];
 const others = [123, true, {}, []];
@@ -94,8 +96,11 @@ describe('Array#map callbacks', () => {
     knayi.setGlobalOptions({ silent_mode: false });
   });
 
+  // Each waits for the 2.x change that makes it read map's index and array as setting nothing
+  // (scripts/testing/pending-port.js).
+  const PENDING = {};
   for (const name of ['fontDetect', 'detectEncoding', 'spellingFix', 'truncate', 'normalize']) {
-    it('gives each line of lines.map(' + name + ') what ' + name + '(line) gives', () => {
+    const test = () => {
       for (const silent of [false, true]) {
         knayi.setGlobalOptions({ silent_mode: silent });
         const mapped = capture(() => lines.map(knayi[name]));
@@ -103,7 +108,9 @@ describe('Array#map callbacks', () => {
         assert.deepEqual(mapped, alone, 'silent_mode: ' + silent);
         if (!silent) assert.ok(alone.messages.length > 0, 'the missing lines warn');
       }
-    });
+    };
+    it('gives each line of lines.map(' + name + ') what ' + name + '(line) gives',
+      PENDING[name] ? pendingPort(PENDING[name], test) : test);
   }
 
   it('changes what syllBreak and fontConvert give', () => {

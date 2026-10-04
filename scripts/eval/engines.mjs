@@ -5,6 +5,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { execFileSync, execSync } from 'node:child_process';
 import { CACHE } from './datasets.mjs';
+import { loadKnayi, REPO } from './lib/knayi.mjs';
 
 export const BASELINE = process.env.KNAYI_EVAL_BASELINE || '2.8.3';
 // myanmar-tools 1.2.0 on npm has no build_node/ and cannot be loaded.
@@ -54,13 +55,13 @@ function knayiEngine(lib, name) {
   };
 }
 
-export function loadEngines() {
+// The checkout's engine is its 2.x API (lib/knayi.mjs): main.js of a 2.x checkout, compat of a 3.0 one.
+export async function loadEngines() {
   const dir = path.join(CACHE, 'engines', BASELINE);
   install(dir);
   const requireCache = createRequire(path.join(dir, 'package.json'));
-  const requireHere = createRequire(import.meta.url);
 
-  const local = requireHere('../../main.js');
+  const local = (await loadKnayi(REPO)).lib;
   const baseline = requireCache('knayi-baseline');
   const tools = requireCache('myanmar-tools');
   const rabbit = requireCache('rabbit-node');

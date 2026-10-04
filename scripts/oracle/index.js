@@ -5,8 +5,18 @@
 // storageOrder.js, typingFixes.js, zawgyi.js and win.js are byte-for-byte copies of library/ at 2.10 with the
 // linear-time fix (commit 2eb0988); they load each other by the same relative paths, so nothing in them was
 // changed. signatures.js holds the 29 detector signatures and the rule scorer of 2.10's library/detector.js,
-// which library/detection.js holds now. Do not edit these files to make a test pass: a difference from the
-// library is what the fuzz test is for.
+// which the 2.x line's library/detection.js holds now. Do not edit these files to make a test pass: a difference
+// from the library is what the fuzz test is for.
+//
+// The other files make this directory the whole 2.x library at e5f6e24, 2.10.0's code and the 2.x reference the 3.0
+// core was built against (docs/next/DESIGN.md D18, D19): syllable.js, contentGate.js, converter.js, detector.js,
+// globalOptions.js, normalization.js, spellingCheck.js, syllBreak.js and truncate.js are byte-for-byte copies of
+// library/ there, and main.js is that commit's main.js with its requires pointed at the copies next to it. The
+// module tests of test/next reach their private code through test/next/helpers.mjs `internals`, so a later 2.x
+// change cannot quietly change what those tests compare with. compat's tests compare with the 2.x reference itself,
+// main.js and library/ of the 2.x line's latest release in scripts/reference/. The four copies above are identical
+// to library/ at e5f6e24 too, and test/next/guards/oracle.test.mjs checks all thirteen, and main.js, against the
+// blob ids of e5f6e24.
 //
 // The functions below add the public preamble of 2.10 (library/contentGate.js, converter.js, detector.js and
 // normalization.js) for string input, so the fuzz test can compare them with the public API directly. They also

@@ -2,16 +2,21 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
-const knayi = require('../main');
-const converter = require('../library/converter');
+const { createRequire } = require('module');
+const pkg = require('../package.json');
 const { builtDist } = require('../scripts/build');
+
+// The package by its own name, resolved through its exports map from the root (test/package.test.js says why).
+const requireFromRoot = createRequire(path.join(__dirname, '..', 'package.json'));
+// The 2.x API as a 3.0 user loads it: the package's './compat' entry.
+const knayi = requireFromRoot('knayi-myscript/compat').default;
 
 const zawgyiGreeting = 'မဂၤလာပါ';
 const unicodeGreeting = 'မင်္ဂလာပါ';
 
 describe('runtime contract', () => {
   it('exposes the public functions and the package version', () => {
-    assert.equal(knayi.version, '2.10.0');
+    assert.equal(knayi.version, pkg.version);
     assert.equal(typeof knayi.setGlobalOptions, 'function');
     assert.equal(typeof knayi.fontDetect, 'function');
     assert.equal(typeof knayi.detectEncoding, 'function');
@@ -23,20 +28,18 @@ describe('runtime contract', () => {
     assert.equal(typeof knayi.normalize, 'function');
   });
 
-  it('converts the published Zawgyi greeting from the package and from the deep import', () => {
+  it('converts the published Zawgyi greeting through compat and through the 3.0 API', () => {
     assert.equal(knayi.fontConvert(zawgyiGreeting, 'unicode', 'zawgyi'), unicodeGreeting);
-    assert.equal(converter(zawgyiGreeting, 'unicode', 'zawgyi'), unicodeGreeting);
+    assert.equal(requireFromRoot('knayi-myscript').toUnicode(zawgyiGreeting, { from: 'zawgyi' }), unicodeGreeting);
   });
 
   it('keeps the current public syllable break', () => {
     assert.equal(knayi.syllBreak(unicodeGreeting, null, '|'), 'မင်္ဂလာ|ပါ');
   });
 
-  it('ships the browser file and the module file under the 2.8 names', () => {
+  it('keeps the name and the global of 2.x\'s script build, and names the others for what they hold', () => {
     const dist = builtDist();
-    const es = fs.readFileSync(path.join(dist, 'knayi-myscript.es.js'));
-    const mjs = fs.readFileSync(path.join(dist, 'knayi-myscript.mjs'));
-    assert.ok(fs.existsSync(path.join(dist, 'knayi-myscript.min.js')));
-    assert.deepEqual(es, mjs);
+    assert.deepEqual(fs.readdirSync(dist).sort(),
+      ['knayi-myscript-compat.min.mjs', 'knayi-myscript.min.js', 'knayi-myscript.min.mjs', 'knayi.min.js']);
   });
 });

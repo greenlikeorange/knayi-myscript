@@ -1,0 +1,502 @@
+# Upgrading from knayi 2.x to 3.0
+
+knayi 3.0 has two APIs on one new core:
+
+- **`knayi-myscript/compat`** is the 2.x API, with 2.x's output on every input. Change the import, check your runtime, and nothing else changes: [Keep 2.x's output](#keep-2xs-output-knayi-myscriptcompat).
+- **`knayi-myscript`** is the 3.0 API: new names, options per call, errors with codes, and output that differs from 2.x's where 2.x was wrong or lossy. [Move to the 3.0 API](#move-to-the-30-api) says what changes everywhere, maps each 2.x call to its 3.0 call, and counts the output changes on the eval corpora.
+
+[The 2.x API, call by call](#the-2x-api-call-by-call) documents each 2.x function, as `knayi-myscript/compat` keeps it, next to its 3.0 equivalent. The examples call `compat.` for the 2.x API and `knayi.` for the 3.0 API; the tests run each one and check the value in its comment.
+
+**Contents:** [Keep 2.x's output](#keep-2xs-output-knayi-myscriptcompat) · [Move to the 3.0 API](#move-to-the-30-api) · [What changes in every call](#what-changes-in-every-call) · [Call by call](#call-by-call) · [Output changes, counted](#output-changes-counted) · [The 2.x API, call by call](#the-2x-api-call-by-call)
+
+## Keep 2.x's output: knayi-myscript/compat
+
+`knayi-myscript/compat` gives the output of the last 2.x release on every call form and input: that of the 2.x reference, commit `8923365`, which v2.11.0 will be. `npm run compare` checks it against that commit on every eval corpus and on generated and fuzzed input, and the contract matrix in all 3,915 cells, under Node and Bun. It keeps 2.x's exports, options, console messages, debug output and error codes.
+
+### What to change
+
+| 2.x | 3.0 |
+| --- | --- |
+| `import knayi from 'knayi-myscript'` | `import knayi from 'knayi-myscript/compat'` |
+| `import { fontConvert } from 'knayi-myscript'` | `import { fontConvert } from 'knayi-myscript/compat'` |
+| `const knayi = require('knayi-myscript')` | `const knayi = require('knayi-myscript/compat').default` |
+| `require('knayi-myscript/library/converter')`, which was `fontConvert` | `require('knayi-myscript/compat').fontConvert` |
+| The script build's global `knayi`, from `dist/knayi-myscript.min.js` | the same file and the same global: 3.0's `dist/knayi-myscript.min.js` sets `knayi` to the 2.x API, on the 3.0 core, so a page that loads it from `@master` or an unversioned CDN link keeps working |
+| The 3.0 API in a page | `dist/knayi.min.js`, whose global `knayi` is the 3.0 API, with the 2.x API as `knayi.compat` |
+| `dist/knayi-myscript.mjs`, `dist/knayi-myscript.es.js` | `dist/knayi-myscript-compat.min.mjs`, with the same named exports and default export |
+| `dist/knayi-myscript.js` | `dist/knayi-myscript.min.js`, the same global, minified |
+| `import 'knayi-myscript/dist/knayi-myscript.min.js'` in a bundler | load the file from a CDN or a copy: the exports map serves no `dist/` path |
+| TypeScript: `index.d.ts` at the package root | `src/compat/index.d.ts`, the same declarations, found through `knayi-myscript/compat` under every `moduleResolution`, `node` (node10, the default of `module: commonjs`) included: `require('knayi-myscript/compat').default` compiles as it is |
+
+`import knayi from 'knayi-myscript'` no longer works: the 3.0 API has no default export.
+
+### What else changes
+
+- **Node.js 22.12 or newer**, or Bun. From Node 22.12 on, `require` loads ES modules, so CommonJS code keeps `require`. Node 16 to 22.11 stay on knayi 2.x.
+- **Browsers:** the `dist/` files run in Chrome 51, Edge 15, Firefox 54, Safari 10.1 (iOS 10.3), Samsung Internet 5 and Opera 38, or newer, the first versions with all of ES2015. 2.10's ran in Chrome 49, Edge 14, Firefox 34 and Safari 10. Older browsers stay on 2.x, and Internet Explorer on 2.8.3.
+- **`version`** is the version of the package, a 3.0 version.
+- **One difference from 2.x's `main.js`,** which 2.x's builds in `dist/` have too: compat loads no package by name. For the `myanmartools` adapter, pass a `ZawgyiDetector` of myanmar-tools as `zawgyiDetector` ([below](#the-myanmar-tools-detector)); without one, the adapter uses the rule scorer and warns that myanmar-tools is not available. 2.x's `main.js` loads the package itself, from where knayi is installed.
+- **Removed:** the deep paths such as `knayi-myscript/library/converter`, the `dist/` paths, the `module` field, and `parseUnicode` and `serializeUnicode`, which only 2.x's tests used through `library/syllable.js`.
+- Each `dist/` file holds a copy of the library of its own, so the 2.x `setGlobalOptions` called on one does not reach another, nor `knayi-myscript/compat` loaded from npm. Imports of `knayi-myscript/compat` in one Node or Bun process share one module, and so one option store.
+
+## Move to the 3.0 API
+
+```javascript
+import { normalize, toUnicode } from 'knayi-myscript'
+```
+
+[README.md](README.md#the-30-api) documents the 3.0 API. This part lists what changes for code that called 2.x.
+
+### What changes in every call
+
+| 2.x | 3.0 |
+| --- | --- |
+| Missing content (`null`, `undefined`, `''`, `0`, `false`, `NaN`) prints a warning and returns `''`, or the fallback or `'en'` for `fontDetect` | `''` is a text like any other, and gives its result; every value that is not a string throws a `TypeError` with the code `ERR_KNAYI_INVALID_ARG_TYPE` |
+| Other non-strings come back unchanged; `String` objects work like their strings | They throw the same `TypeError` |
+| Font names `unicode`, `uni`, `zawgyi`, `zaw`, `win`, in any letter case. An unknown name is detected, with a warning, as `fontConvert`'s source; returns the text, with an error, as its target; throws a `TypeError` with the code `ERR_KNAYI_INVALID_FONT` in `syllBreak` and `truncate`; and collapses the Unicode marks in `spellingFix`, with no warning | One name each, exactly as written: `'unicode'`, `'zawgyi'`, `'win'`; any other is a `RangeError` with the code `ERR_KNAYI_INVALID_ARG_VALUE` |
+| `setGlobalOptions` stores `silent_mode` and the detector options for later calls | Every option is an argument of the call that uses it; nothing is kept, and nothing is written to the console |
+| `use_myanmartools`, `adapter: 'myanmartools'`: the detector passed as `zawgyiDetector`, or else the package, which only 2.x's `main.js` loads | `zawgyiDetector`: you pass the detector object; knayi loads no code |
+| `myanmartools_zg_threshold` | `thresholds` |
+| An option a function does not know is ignored | A key the function does not take is a `RangeError` with the code `ERR_KNAYI_INVALID_ARG_VALUE`; for 2.x's names (`fontType`, `use_myanmartools`, `adapter`, `myanmartools_zg_threshold`, `silent_mode`) its message names what replaced them |
+| Converting trims the text; breaking and collapsing trim it and remove U+200B and U+200C first | Nothing is trimmed, and zero-width characters stay |
+| `syllBreak`, `spellingFix` and `truncate` detect the font when none is given | Only `toUnicode` detects; the others take `from`, `'unicode'` by default |
+| A tie in detection reads as Zawgyi | `detectEncoding` says `'unknown'`, and `toUnicode` leaves the line as it is unless `tie: 'zawgyi'` |
+| Detection reads the whole text once | `toUnicode` detects each line on its own |
+| Errors and warnings go to the console | Bad arguments throw errors with a `code` ([README.md](README.md#errors)) |
+| `fontConvert.debugging` returns `{ to, from, matched_patterns, steps }` | The `trace` option of `normalize`, `toUnicode` and `toZawgyi`, with stable ids ([README.md](README.md#traces-createtrace)) |
+
+### Call by call
+
+The 3.0 call, then the 3.0 call that keeps 2.x's output where one exists. `clean(text)` stands for what 2.x read breaks and marks from:
+
+```javascript
+const clean = (text) => text.trim().replace(/[\u200B\u200C]/g, '')
+```
+
+and 2.x returns a text with no character of U+1000–U+109F as it is, untrimmed, from every function but `normalize`, `truncate`, `fontDetect` (which returns its fallback) and `fontConvert` from Win (whose text is ASCII).
+
+| 2.x | 3.0 | Keeps 2.x's output | Still differs |
+| --- | --- | --- | --- |
+| `fontDetect(text)` | `detectEncoding(text).encoding`: `'unknown'` for a tie, `'none'` for no Myanmar | `'none'` as `'en'`, `'unknown'` as `'zawgyi'` | nothing |
+| `fontDetect(text, fallback)` | the same | `'none'` and `'unknown'` as the fallback | nothing |
+| `fontDetect(text, fallback, { adapter: 'myanmartools' })` | `detectEncoding(text, { zawgyiDetector: new ZawgyiDetector() })`, which answers `'unknown'` for a probability between the thresholds | `'none'` and `'unknown'` as the fallback | not compared |
+| `fontConvert(text, 'unicode', 'zawgyi')` | `toUnicode(text, { from: 'zawgyi' })` | `toUnicode(text.trim(), { from: 'zawgyi' })` | nothing |
+| `fontConvert(text, 'unicode', 'win')` | `toUnicode(text, { from: 'win' })` | `toUnicode(text.trim(), { from: 'win' })` | nothing |
+| `fontConvert(text, 'unicode')` | `toUnicode(text)` | `toUnicode(text.trim(), { tie: 'zawgyi' })` | a text of several lines that 2.x read as one encoding and 3.0 reads line by line |
+| `fontConvert(text, 'zawgyi', 'unicode')` | `toZawgyi(text)` | `toZawgyi(text.trim())` | nothing |
+| `fontConvert(text, 'zawgyi')` | `toZawgyi(text)` when `detectEncoding` says the text is Unicode | | not compared |
+| `fontConvert.debugging(...)` | the `trace` option | | not compared: a trace has another shape |
+| `syllBreak(text, font, separator)` | `segmentSyllables(text, { from: font }).join(separator)` | `segmentSyllables(clean(text), { from: font, bareConsonants: 'pairs' }).join(separator)` | an asat typed before a dot below, which 2.x writes after it |
+| `syllBreak(text)` | `segmentSyllables(text, { from })`, with `from` `'zawgyi'` when `detectEncoding` says Zawgyi | `segmentSyllables(clean(text), { from, bareConsonants: 'pairs' })`, with a tie read as Zawgyi | as for a named font |
+| `spellingFix(text, font)` | `collapseRepeatedMarks(text, { from: font })` | `collapseRepeatedMarks(clean(text), { from: font })` | nothing |
+| `truncate(text, { length, omission, fontType })` | `truncate(text, { length, omission, from })` | none: 2.x's appends the omission to text that fits, and cuts between the words of a syllable | |
+| `normalize(text)` | `normalize(text)` | none: 2.x's could change its own output again | |
+| `setGlobalOptions({ silent_mode: true })` | nothing to silence | | |
+| `setGlobalOptions({ detector })` | the detector options of each call | | |
+| `version` | `VERSION`, and `OUTPUT_VERSION` for the output | | |
+
+"Still differs" is what `npm run compare` finds between compat and the call that keeps 2.x's output, on every eval corpus and on generated and fuzzed input ([below](#output-changes-counted)).
+
+### Output changes, counted
+
+What a 2.x user sees who replaces each 2.x call with its plain 3.0 call. The counts are distinct lines of the corpora that `npm run eval` downloads ([scripts/eval/README.md](scripts/eval/README.md)), and of the fuzz sets of `npm run compare` (seed 20261003, 20,000 strings per generator, made distinct); "Wikipedia" is the 4,812-line sample. They are taken with compat at 2.11.0's output. Of 2.11's changes, `truncate`'s prefix brings compat closer to the 3.0 `truncate`, and its row is lower than with 2.10.0's; the typing fixes in `normalize`'s order and the rule for stacked ဈ change the core, so both APIs alike, and no row shows them ([below](#since-300-next0)).
+
+| 2.x call → 3.0 call | FLORES 2,009 | Wikipedia 4,812 | Okell 16,924 | mC4 14,304 | WaitZar 2,390 | Shan 9,923 | Mon 2,270 | S'gaw Karen 673 | Pa'o 770 | Fuzz |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `normalize` → `normalize` | 0 | 0 | 0 | 199 | 0 | 0 | 0 | 0 | 0 | 266 of 35,452 |
+| `fontConvert(t, 'unicode', 'zawgyi')` → `toUnicode(t, { from: 'zawgyi' })` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1,113 of 35,452 |
+| `fontConvert(t, 'unicode', 'win')` → `toUnicode(t, { from: 'win' })` | | | | | | | | | | 1,477 of 53,921 |
+| `fontConvert(t, 'unicode')` → `toUnicode(t)` | 0 | 168 | 550 | 247 | 365 | 531 | 202 | 113 | 85 | 18,540 of 35,452 |
+| `fontConvert(t, 'zawgyi', 'unicode')` → `toZawgyi(t)` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 1,113 of 35,452 |
+| `fontDetect(t)` → `detectEncoding(t).encoding` | 0 | 242 | 1,092 | 355 | 672 | 593 | 230 | 115 | 96 | 19,774 of 35,452 |
+| `syllBreak(t, 'unicode')` → `segmentSyllables(t)` | 2,009 | 4,510 | 16,005 | 13,872 | 473 | 7,450 | 2,200 | 648 | 680 | 10,401 of 35,452 |
+| `syllBreak(t, 'zawgyi')` → `segmentSyllables(t, { from: 'zawgyi' })` | 2,009 | 4,667 | 16,330 | 13,784 | 57 | 7,894 | 2,207 | 645 | 723 | 10,525 of 35,452 |
+| `syllBreak(t)` → `segmentSyllables(t, { from })`, `from` detected | 2,009 | 4,520 | 16,049 | 13,748 | 178 | 7,782 | 2,209 | 645 | 703 | 14,965 of 35,452 |
+| `spellingFix(t, font)` → `collapseRepeatedMarks(t, { from: font })` | 6 | 188 | 1,068 | 159 | 0 | 48 | 0 | 1 | 3 | 6,306 of 35,452 |
+| `truncate(t, { length: 30 })` → `truncate(t, { length: 30 })` | 392 | 2,075 | 6,903 | 8,828 | 2,390 | 3,335 | 1,021 | 279 | 388 | 35,452 of 35,452 |
+
+Why each changes:
+
+- **`normalize`** settles: it is idempotent, and reads ဥ, ၀ and ၇ right after a virama or under a kinzi as ဉ, ဝ and ရ. No line of a Unicode corpus changes. The 199 mC4 lines are raw web text, mostly Zawgyi, which `normalize` is not for: 104 that 2.x's `normalize` changes again on a second pass, now settled, and 95 with ဥ, ၀ or ၇ after U+1039, Zawgyi's asat. This change raises `OUTPUT_VERSION` from 1 to 2 ([research/normalize-idempotence.md](research/normalize-idempotence.md)); 2.11's fixes of the core raise it to 3 in both APIs ([below](#since-300-next0)).
+- **`toUnicode` with `from`** and **`toZawgyi`** convert as 2.x did; they only stop trimming. No corpus line has white space at either end, so only generated and fuzzed input changes. `toUnicode` from Zawgyi also decides line by line whether a line has a Myanmar character, so a line with none, next to one with some, is no longer put in NFC; no corpus line is such a text.
+- **`toUnicode` with no `from`** leaves a line whose evidence ties as it is, where 2.x read it as Zawgyi and damaged it. Every changed line of the Unicode corpora is such a tie, now left intact; mC4 and WaitZar are mostly Zawgyi, and their ties include short Zawgyi text that 3.0 no longer converts. Name the source for short text, or pass `tie: 'zawgyi'` ([research/tie-policy.md](research/tie-policy.md)).
+- **`detectEncoding`** names two answers that 2.x folded into its fallback: every changed corpus line is a tie, `'unknown'` where 2.x said `'zawgyi'` (or the fallback). No corpus line has no Myanmar character, which 3.0 calls `'none'` and 2.x `'en'`.
+- **`segmentSyllables`** reads a bare consonant as a syllable of its own by default, starts a piece at a syllable after white space, keeps every character (2.x trimmed the text and removed U+200B and U+200C), returns the pieces instead of a joined string, does not swap an asat typed before a dot below, and detects nothing ([research/segmentation.md](research/segmentation.md)).
+- **`collapseRepeatedMarks`** keeps zero-width spaces and non-joiners, and white space at the ends: every changed corpus line holds U+200B or U+200C.
+- **`truncate`** returns a text that fits as it is, where 2.x appended the omission (every WaitZar word, and 1,184 of the 2,075 changed Wikipedia lines, are at most 30 units long), and cuts at the syllable breaks of `bareConsonants: 'separate'`. Both cut a text that does not fit to a prefix, 2.11's since 2.11.0; 2.10.0's could keep a later word after a skipped one, and changed 3,102 Wikipedia lines here. compare counts lengths 10, 60 and 120 too: on Wikipedia, they change 1,197, 3,504 and 3,677 lines.
+
+With the options that keep 2.x's output, every row above but `normalize` and `truncate` drops to 0 on every corpus and fuzz set, except these (WaitZar, Mon and Pa'o: 0):
+
+| 2.x call → the 3.0 call that keeps its output | FLORES | Wikipedia | Okell | mC4 | Shan | S'gaw Karen | Fuzz | Why |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| `syllBreak(t, 'unicode')` → `segmentSyllables(clean(t), { bareConsonants: 'pairs' })` | 112 | 0 | 1 | 566 | 59 | 6 | 165 | an asat typed before a dot below, which 2.x's break rule U1 writes after it and `segmentSyllables` keeps as typed |
+| `syllBreak(t)` → the same, with the font detected | 112 | 0 | 1 | 566 | 59 | 1 | 47 | the same |
+| `fontConvert(t, 'unicode')` → `toUnicode(t.trim(), { tie: 'zawgyi' })` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | only generated texts of several lines, whose lines 2.x read as the encoding of the whole text, and 3.0 each as its own |
+
+To count them yourself, with the corpus cache filled by `npm run eval` or `node scripts/eval/datasets.mjs --fetch`:
+
+```bash
+npm run compare -- --base mjs:src/compat/index.js --head mjs:scripts/next/migration/plain.mjs \
+  --forms 'normalize,fontConvert.*,fontDetect*,syllBreak.*,spellingFix.*,truncate.*'
+npm run compare -- --base mjs:src/compat/index.js --head mjs:scripts/next/migration/as-2x.mjs \
+  --forms 'fontConvert.*,fontDetect*,syllBreak.*,spellingFix.*'
+```
+
+`scripts/next/migration/plain.mjs` makes each 2.x call form with the plain 3.0 call of the first table, and `as-2x.mjs` with the call that keeps 2.x's output. compare also reads its generated inputs, which include the strings of these documents' examples, and, where the cache still holds it, Wikipedia's older sample of 10,732 lines. The debugging forms are left out: a trace is not the shape of 2.x's debug object.
+
+#### Since 3.0.0-next.0
+
+The 3.0 API takes the fixes of 2.11.0 that lie in the core, as compat does, so none of them changes a row above; `OUTPUT_VERSION` is 3 for them, in both APIs. Counted against the 3.0 API of 3.0.0-next.0 with `npm run compare -- --base api:<3.0.0-next.0> --head api:.`, on every corpus above and on the generated and fuzz sets:
+
+- **`toUnicode` from Win and Zawgyi makes the typo fixes before the look-alikes,** as `normalize` does: a ra before the digit four of a lagaung stays ra, and the four is lagaung (`toUnicode('&4if;', { from: 'win' })` is `'ရ၎င်း'`, where it was `'၇၄င်း'`). No corpus line changes; 18 generated strings do, the two strings of that example read as Win, alone and next to their neighbours. A `toUnicode` trace records `typos` before `look-alikes`.
+- **`toZawgyi` writes stacked ဈ as U+1069,** Zawgyi's stacked ဈ, where its virama stayed U+1039, which Zawgyi reads as an asat (`toZawgyi('မဇ္ဈိမ')` converts back to `'မဇ္ဈိမ'`, where it came back as `'မဇ်ဈိမ'`). 8 Wikipedia lines change (12 of the older sample), 13 Okell, 14 mC4, 1 Shan and 1 Pa'o, a string of Google's pairs, and 23 generated and 5 fuzz strings; each output is the old one with U+1039 U+1008 written as U+1069. The rule is the trace row `uz.glyphs.24`, and the ids of the rows after it are one higher than in 3.0.0-next.0.
+
+The other changes of 2.11.0 are to the 2.x API, and compat takes each of them ([CHANGELOG.md](CHANGELOG.md#unreleased)). The 3.0 API does not: it covers each in a design of its own, which it had in 3.0.0-next.0, so none changes what it returns. 2.11.0's linear NFC (d170cd8) and its speed wins were in the core already, in both APIs; the rest of 2.11.0 is tests and documentation.
+
+| 2.11.0, with its 2.x commits | What the 3.0 API does instead | Why |
+| --- | --- | --- |
+| Font names follow one policy, with a `TypeError` with the code `ERR_KNAYI_INVALID_FONT` from `syllBreak` and `truncate`, and are read in any letter case (24f81c6, 579be3d) | `from` takes `'unicode'`, `'zawgyi'` or `'win'` exactly as written (`'unicode'` or `'zawgyi'` where text is broken or its marks collapsed), and `undefined` or `null` for the default. Any other string, `'Zawgyi'`, `'uni'` and `'zaw'` included, is a `RangeError` with the code `ERR_KNAYI_INVALID_ARG_VALUE`, and a value that is not a string a `TypeError` with `ERR_KNAYI_INVALID_ARG_TYPE` | The 3.0 API checks every argument and throws on a wrong one: a name has one spelling, and no name is read as another or detected in its place |
+| `fontDetect` ignores a fallback that is not a string (86f0040) | No fallback: `detectEncoding` answers `'unknown'` for a tie and `'none'` for text with no Myanmar character, and `toUnicode` leaves a tie as it is unless `tie: 'zawgyi'` | The answer names the case itself, so there is nothing to fall back on |
+| `null` options are no options, and the threshold pair must be two finite numbers in order (fb6594d) | `null` options are no options in every function. `thresholds` must be two numbers, `[low, high]` with 0 ≤ low ≤ high ≤ 1: anything else throws a coded `RangeError` or `TypeError`, where 2.11.0 writes an error and uses the stored pair | Options are arguments of the call, checked as they are read, and nothing is stored to fall back on |
+| The `zawgyiDetector` option, and no package loaded by name in `dist/` (840c8c5, 649b2b4, 51f1683) | `zawgyiDetector` since 3.0.0-next.0, and nothing is loaded by name anywhere. A value with no `getZawgyiProbability` method is a `TypeError` with `ERR_KNAYI_INVALID_ARG_TYPE` | The core never loads code: the caller makes the detector and passes it |
+| `detectEncoding(content)` (31eb6b1) | Its own `detectEncoding(text, options)`, since 3.0.0-next.0: the same result for a string, with `zawgyiDetector` and `thresholds` | 2.11.0's reads one argument and always the rule scorer, as compat's does; the 3.0 one takes the detector options of every call that detects |
+| `fontConvert` reads no debug flag from `this`, and `fontConvert.debugging` returns a report on every exit with text (d20027a, b6cbfca, 21df0ed) | No function reads its receiver, and the sources are strict code. The `trace` option records a call: where it returns early, the trace's `start` is the input, and it has no `records` | A trace is an argument, not a mode, with one shape on every path |
+| `truncate` returns the start of the text (41984eb) | `truncate` has returned a prefix since 3.0.0-next.0. It also returns a text that fits as it is, takes `0` as a length and `''` as an omission, and never splits a surrogate pair | 2.x keeps its options: `length: 0` and `omission: ''` still give its defaults |
+| Types for font names and `fontDetect`'s result, and `Array#map` overloads for `fontDetect`, `spellingFix` and `truncate` (1e0d592, e200d70, 3ec0619) | `src/index.d.ts` types each `from` with its names, and each result. Every function that takes a text is safe as an `Array#map` callback, as `lines.map(truncate)`: a number in the place of the options, map's index, is no options, and map's array is not read | Each function reads its text and its options, and nothing else, so map's arguments set nothing |
+| The comments on zero-width characters (538be78, b2392da) | The core's comments say the same | Comments only |
+
+## The 2.x API, call by call
+
+This part documents the 2.x API as `knayi-myscript/compat` keeps it, function by function, each with its 3.0 equivalent. Its types are `src/compat/index.d.ts`, 2.x's `index.d.ts`, with documentation for every export that editors show: named imports such as `import { fontConvert } from 'knayi-myscript/compat'` work next to the default import, and the default import compiles with or without `esModuleInterop`. The option types (`DetectorOptions`, `GlobalDetectorOptions`, `GlobalOptions`, `TruncateOptions`, `ZawgyiDetectorLike`), `ConvertDebug`, `EncodingDetection` and `FontName` are exported. A font parameter takes any string, and editors suggest the names in `FontName`. `fontDetect`'s result type is `'unicode' | 'zawgyi' | 'en'`, with the fallback's type in place of `'en'` when you pass a fallback.
+
+`fontDetect`, `detectEncoding`, `spellingFix`, `truncate` and `normalize` type-check as `Array#map` callbacks, as in `lines.map(compat.truncate)`. `Array#map` passes each line's index and the array too, which these functions read as setting nothing, so each line gives what the function gives the line alone. TypeScript types `lines.map(compat.fontDetect)` as `string[]`; write `lines.map((line) => compat.fontDetect(line))` for `'unicode' | 'zawgyi' | 'en'`. The types take map's array as a required third argument, so a call such as `compat.truncate(text, 20)` is still an error, and so is `Array.from(iterable, compat.truncate)`: write `Array.from(iterable, (line) => compat.truncate(line))`. `syllBreak` reads the array as its break point and `fontConvert` the index as its target font (see [syllBreak](#syllbreakcontent-fonttype-breakpoint)), so their types refuse `lines.map(compat.syllBreak)` and `lines.map(compat.fontConvert)`: pass the line alone, as in `lines.map((line) => compat.syllBreak(line))`.
+
+### Font names
+
+`unicode`, `uni`, `zawgyi`, `zaw`, and `win`. `uni` is Unicode. `zaw` is Zawgyi. `win` is the Win Innwa family of legacy fonts, which `fontConvert` converts to Unicode. Names are case-insensitive, so `Unicode`, `ZAWGYI` and `Win` name the same fonts. Any other string is an unknown font. `fontDetect` does not read its fallback as a font name: it returns a string fallback as given, and ignores a fallback that is not a string ([fontDetect](#fontdetectcontent-fallbackfonttype-options)). In `syllBreak`, `spellingFix` and `truncate`, a font that is not a string, such as `null`, an array, or the index `Array#map` passes, and `''` name no font, and `fontDetect` chooses it. `Array#map` also passes the array itself, which `syllBreak` takes as its break point, so `lines.map(compat.syllBreak)` joins each line's syllables with the text of the whole array ([syllBreak](#syllbreakcontent-fonttype-breakpoint)).
+
+| Function | `win` | An unknown font |
+| --- | --- | --- |
+| `fontConvert`, source font | Converts Win text to Unicode | Detects the font. Warns unless silent. |
+| `fontConvert`, target font | Returns the text. An error unless silent. | Returns the text. An error unless silent. |
+| `syllBreak`, `truncate` | Throws a `TypeError` | Throws a `TypeError` |
+| `spellingFix` | Collapses the Unicode marks | Collapses the Unicode marks |
+
+`syllBreak` and `truncate` break Unicode and Zawgyi text only. The `TypeError` they throw has the code `'ERR_KNAYI_INVALID_FONT'`: test `error.code`, not the message, which may change. They throw only for text they would break: missing content, and text with no Myanmar letters, come back as [Missing content](#missing-content) says. Convert Win text to Unicode first:
+
+```javascript
+compat.syllBreak(compat.fontConvert('jrefrm', 'unicode', 'win'), 'unicode', '|') // 'မြန်|မာ'
+compat.fontConvert('ျမန္မာ', 'unicode', 'zg') // 'မြန်မာ'  (unknown source font, detected; warns)
+compat.fontConvert('ျမန္မာ', 'Unicode', 'ZAWGYI') // 'မြန်မာ'
+```
+
+**3.0:** one name each, `'unicode'`, `'zawgyi'` and `'win'`, given as `from` wherever an option names the text's encoding. Any other name, `'uni'` and `'zaw'` included, is a `RangeError`.
+
+### Missing content
+
+`null`, `undefined`, `''`, `0`, `false`, and `NaN` are missing content, as in 2.8.3.
+
+| Function | Missing content |
+| --- | --- |
+| `fontDetect` | The fallback, or `'en'` when there is no fallback. Warns unless silent. |
+| `detectEncoding` | `{ encoding: 'none', unicode: 0, zawgyi: 0 }`. Warns unless silent. |
+| `fontConvert`, `syllBreak`, `spellingFix`, `normalize` | `''`. Warns unless silent. |
+| `truncate` | `''`. Warns unless silent. An empty string `''` returns the omission instead. |
+
+Text with no Myanmar letters (`U+1000`–`U+109F`) is returned unchanged by convert, break, and spelling fix. `fontDetect` returns the fallback or `'en'`, and `detectEncoding` the encoding `'none'`. `truncate` still appends the omission. `normalize` returns it in NFC, so `'e\u0301'` becomes `'é'` (`U+00E9`). A Win source is the exception for convert: Win text is ASCII, so `fontConvert` converts it.
+
+Other values, such as numbers and objects, are returned unchanged the same way (`fontDetect` and `detectEncoding` read them as text with no Myanmar letters), and no function throws on them, with one exception: `truncate` turns them into strings first, like `lodash.truncate`, so it throws a `TypeError` on an object that `String()` cannot convert, such as `Object.create(null)`. `String` objects work like the strings they hold.
+
+**3.0:** `''` is a text: each function gives its result for it, such as `''`, `[]` or `{ encoding: 'none', unicode: 0, zawgyi: 0 }`, and `truncate('')` is `''`. Every other value that is not a string, `String` objects included, throws a `TypeError` with the code `ERR_KNAYI_INVALID_ARG_TYPE`. Nothing warns.
+
+### setGlobalOptions(options)
+
+`setGlobalOptions({ silent_mode: true })` hides every warning and error knayi writes to the console. `setGlobalOptions({ detector: { use_myanmartools, myanmartools_zg_threshold, zawgyiDetector } })` changes the default detector options of later `fontDetect` calls, and of the detection the other functions run. `null`, like `undefined`, sets nothing. The options apply to the copy of the library that received the call.
+
+**3.0:** nothing is stored and nothing is printed. Pass the detector options, `zawgyiDetector` and `thresholds`, to each call that detects: `detectEncoding`, `toUnicode` and `explain`.
+
+### fontDetect(content, fallbackFontType?, options?)
+
+Returns `'unicode'`, `'zawgyi'`, or the fallback / `'en'`.
+
+The fallback is a string, returned as given; a `String` object counts as its string. Any other value is no fallback, and neither is `''`. So `lines.map(compat.fontDetect)`, which passes each line's index as the fallback, gives `'unicode'`, `'zawgyi'` or `'en'` for every line.
+
+When the rule scores tie, including a single consonant such as `က`, the result is the fallback, or `'zawgyi'` if there is no fallback. [detectEncoding](#detectencodingcontent) returns the scores themselves, and tells a tie apart from text with no Myanmar letters.
+
+```javascript
+compat.fontDetect('မဂၤလာပါ') // 'zawgyi'
+compat.fontDetect('မင်္ဂလာပါ') // 'unicode'
+compat.fontDetect('ကျ') // 'unicode'
+compat.fontDetect('က') // 'zawgyi'
+compat.fontDetect('က', 'unicode') // 'unicode'
+compat.fontDetect('က', 1) // 'zawgyi'  (a number is no fallback)
+compat.fontDetect(null) // 'en'
+```
+
+`options.adapter` chooses the detector for that call. `'rules'` is the built-in scorer and the default. `'myanmartools'` uses the `myanmar-tools` package, as the detector from it that you pass as `zawgyiDetector` ([below](#the-myanmar-tools-detector)). Use 1.1.x: `myanmar-tools` 1.2.0 on npm was published without its built files and cannot be loaded.
+
+```bash
+npm install myanmar-tools@1.1.3
+```
+
+`use_myanmartools: true` selects the same adapter. A probability below the first threshold returns `'unicode'`. A probability above the second returns `'zawgyi'`. A probability between them returns the fallback. The default pair is `[0.05, 0.95]`. With no `zawgyiDetector`, the call uses the rule scorer and warns once that myanmar-tools is not available.
+
+`setGlobalOptions({ detector: { use_myanmartools: true } })` changes the default. An explicit `adapter` on a later call wins. A later call that only sets `use_myanmartools` keeps a previously stored threshold and `zawgyiDetector`. `null` options, like omitted ones, use the stored settings, and `setGlobalOptions(null)` changes nothing.
+
+The threshold pair must be two finite numbers in order, `[low, high]`; the two may be equal. For any other value, the call uses the stored pair (`setGlobalOptions` keeps it) and writes an error unless silent. The error starts with its code, `[ERR_KNAYI_INVALID_THRESHOLD]`: match the code, not the words after it, which may change. An `adapter` name other than `'rules'` and `'myanmartools'` warns unless silent, and the call uses the adapter `use_myanmartools` picks, as it does when the `adapter` is not a string or is `''`. `fontDetect` reads its options only for text with a Myanmar letter, so only those calls check them.
+
+```javascript
+compat.fontDetect('ကျ', null, null) // 'unicode'
+compat.fontDetect('ကျ', null, { adapter: 'rule' }) // 'unicode'  (unknown adapter; warns)
+compat.fontDetect('ကျ', null, { myanmartools_zg_threshold: [0.95, 0.05] }) // 'unicode'  (thresholds out of order; an error unless silent)
+```
+
+The rule scorer does not count a consonant, `U+1039`, consonant sequence such as `က္က` as Unicode. In Zawgyi, `U+1039` is the visible asat, so `ပ္က` is a common Zawgyi sequence. A lone stack is a tie and returns the fallback. In longer Unicode text such as `ရန်ကုန်တက္ကသိုလ်`, the other signs decide.
+
+**3.0: `detectEncoding(text, options)`** returns the evidence with the answer, and names the two answers 2.x's `fontDetect` folded into its fallback: `'unknown'` for a tie and `'none'` for text with no Myanmar character. The rule evidence is the same: `fontDetect(text, fallback)` gives `detectEncoding(text).encoding`, with the fallback for `'none'` and `'unknown'`, on every line of the eval corpora and on fuzzed text.
+
+```javascript
+knayi.detectEncoding('မဂၤလာပါ') // { encoding: 'zawgyi', unicode: 0, zawgyi: 1 }
+knayi.detectEncoding('က') // { encoding: 'unknown', unicode: 0, zawgyi: 0 }
+knayi.detectEncoding('') // { encoding: 'none', unicode: 0, zawgyi: 0 }
+```
+
+For myanmar-tools, create its detector yourself and pass it as `zawgyiDetector`; `myanmartools_zg_threshold` is `thresholds`. A probability between the thresholds is `'unknown'`.
+
+```javascript
+import { ZawgyiDetector } from 'myanmar-tools'
+import { detectEncoding } from 'knayi-myscript'
+
+const zawgyiDetector = new ZawgyiDetector()
+detectEncoding('မဂၤလာပါ', { zawgyiDetector, thresholds: [0.05, 0.95] })
+```
+
+#### The myanmar-tools detector
+
+compat loads no package by name, from the working directory or from where knayi is installed, and neither do the builds in `dist/`; 2.x's `main.js` loaded `myanmar-tools` itself, from its own folder, and up to 2.10.0 its ES module build looked for the package from the working directory under Node, so the working directory's `node_modules` decided which code ran ([CHANGELOG.md](CHANGELOG.md)). A call that asks for the adapter with no `zawgyiDetector` uses the rule scorer, and warns that `myanmar-tools` is not available.
+
+Make a `ZawgyiDetector` with `myanmar-tools` yourself and pass it as `zawgyiDetector`, and knayi calls its `getZawgyiProbability` and loads nothing. So the adapter works wherever your own code can load `myanmar-tools`: in Node, in browsers, in Deno and in bundles, through the builds in `dist/` too. Pass it with a call, or store it with `setGlobalOptions`, which also gives it to `fontConvert`, `syllBreak`, `spellingFix` and `truncate` when they detect a font. It does not choose the adapter: set `adapter: 'myanmartools'` or `use_myanmartools: true` as well.
+
+```javascript
+import { ZawgyiDetector } from 'myanmar-tools'
+import { fontConvert, fontDetect, setGlobalOptions } from 'knayi-myscript/compat'
+
+const zawgyiDetector = new ZawgyiDetector()
+fontDetect('ဗုဒ္ဓ', null, { adapter: 'myanmartools', zawgyiDetector }) // 'unicode'
+fontDetect('ဗုဒ္ဓ') // 'zawgyi'  (the rule scores tie)
+
+setGlobalOptions({ detector: { use_myanmartools: true, zawgyiDetector } })
+fontConvert('ဗုဒ္ဓ', 'unicode') // 'ဗုဒ္ဓ'  (detected as Unicode)
+```
+
+Any object with a `getZawgyiProbability(text)` method that returns the probability that the text is Zawgyi works, and gets the text as the rule scorer reads it: trimmed, without zero-width spaces and non-joiners. `null` is no detector, and `setGlobalOptions({ detector: { zawgyiDetector: null } })` removes a stored one. So is `undefined` when the key is there: as with `use_myanmartools`, a key that is present counts, even when it is `undefined`. A call whose options hold `zawgyiDetector: undefined`, as a spread such as `{ ...options }` can, does not use the stored detector, and `setGlobalOptions` with it removes the stored one; leave the key out to keep it. For a value without that method, such as the `ZawgyiDetector` class itself or the `myanmar-tools` module, the call uses the stored detector (`setGlobalOptions` keeps it) and writes an error unless silent. The error starts with its code, `[ERR_KNAYI_INVALID_DETECTOR]`.
+
+### detectEncoding(content)
+
+Returns `{ encoding, unicode, zawgyi }`: what the rule scorer of `fontDetect` finds in the text, with its evidence. `unicode` and `zawgyi` count the matches of knayi's Unicode and Zawgyi signatures, in the text trimmed and without zero-width spaces and non-joiners, as `fontDetect` reads it. `encoding` is:
+
+- `'unicode'` or `'zawgyi'`, whichever has more evidence;
+- `'unknown'` when the two counts tie: for short text with no telling sign, such as a single consonant or a lone stack, and for a line with as much evidence for each;
+- `'none'` for missing content, a value that is not a string, and text with no Myanmar letters, with both counts 0.
+
+```javascript
+compat.detectEncoding('မဂၤလာပါ') // { encoding: 'zawgyi', unicode: 0, zawgyi: 1 }
+compat.detectEncoding('မြန်မာ') // { encoding: 'unicode', unicode: 2, zawgyi: 0 }
+compat.detectEncoding('က') // { encoding: 'unknown', unicode: 0, zawgyi: 0 }
+compat.detectEncoding('ျမန္မာ မြန်မာ') // { encoding: 'unknown', unicode: 1, zawgyi: 1 }
+compat.detectEncoding('abc') // { encoding: 'none', unicode: 0, zawgyi: 0 }
+compat.detectEncoding(null) // { encoding: 'none', unicode: 0, zawgyi: 0 }  (missing content; warns)
+```
+
+`fontDetect` with the rule scorer reads the same result through its fallback: it returns `encoding` when that is `'unicode'` or `'zawgyi'`, and otherwise the fallback, or, with no fallback, `'zawgyi'` for `'unknown'` and `'en'` for `'none'`. So one `detectEncoding` call answers what `fontDetect(text)` and `fontDetect(text, 'unicode')` answer together, and tells a tie apart from text with no Myanmar letters.
+
+`detectEncoding` always uses the rule scorer: the `adapter` and `use_myanmartools` settings choose the detector for `fontDetect` only. It reads one argument, so it works with `Array#map`:
+
+```javascript
+['မြန်မာ', 'ျမန္မာ', 'abc'].map(compat.detectEncoding)
+// [{ encoding: 'unicode', unicode: 2, zawgyi: 0 }, { encoding: 'zawgyi', unicode: 0, zawgyi: 1 }, { encoding: 'none', unicode: 0, zawgyi: 0 }]
+```
+
+**3.0: `detectEncoding(text, options)`,** with the same result for a string. It takes `zawgyiDetector` and `thresholds`, and then lets the detector's probability decide; `''` is `'none'` with no warning, and any other value that is not a string throws a `TypeError` with the code `ERR_KNAYI_INVALID_ARG_TYPE`.
+
+### fontConvert(content, targetFontType, originalFontType?)
+
+Returns a string. `targetFontType` is required. When `originalFontType` is omitted, `fontDetect` chooses it. An unknown `originalFontType` is detected the same way, with a warning unless silent.
+
+Name the source font for short text. When the detector's scores tie, it reads the text as Zawgyi (see [fontDetect](#fontdetectcontent-fallbackfonttype-options)), and short Unicode text often ties: a single consonant, or a word such as `ဗုဒ္ဓ` whose only telling sign is a stacked consonant, which Zawgyi reads as an asat. Converting such text from Zawgyi changes it.
+
+The text is trimmed first. Zero-width characters in it are kept, zero-width spaces (`U+200B`) and non-joiners (`U+200C`) included; trimming removes only a zero-width no-break space (`U+FEFF`) at either end, which JavaScript counts as whitespace. When the two fonts are the same, the trimmed text is returned.
+
+```javascript
+compat.fontConvert('မဂၤလာပါ', 'unicode', 'zawgyi') // 'မင်္ဂလာပါ'
+compat.fontConvert('မဂၤလာပါ', 'unicode') // 'မင်္ဂလာပါ'
+compat.fontConvert('ဗုဒ္ဓ', 'unicode') // 'ဗုဒ်ဓ'  (a tie, read as Zawgyi)
+compat.fontConvert('ဗုဒ္ဓ', 'unicode', 'unicode') // 'ဗုဒ္ဓ'
+compat.fontConvert('မြန်မာ', 'zawgyi', 'unicode') // 'ျမန္မာ'
+compat.fontConvert('မဇ္ဈိမ', 'zawgyi', 'unicode') // 'မဇၩိမ'
+compat.fontConvert('ကျ', 'unicode') // 'ကျ'
+compat.fontConvert(' ကာာ ', 'unicode', 'unicode') // 'ကာာ'
+compat.fontConvert('မဂၤလာပါ', 'uni', 'zaw') // 'မင်္ဂလာပါ'
+compat.fontConvert(null, 'unicode') // ''
+compat.fontConvert('က') // 'က'  (no target font; warns)
+```
+
+The conversion itself is 3.0's: [Zawgyi to Unicode](README.md#zawgyi-to-unicode) and [Win fonts](README.md#win-fonts) in the README describe both.
+
+```javascript
+compat.fontConvert('ေယာက္်ား', 'unicode', 'zawgyi') // 'ယောက်ျား'
+compat.fontConvert('ေစ်း', 'unicode', 'zawgyi') // 'ဈေး'
+compat.fontConvert('ႏို္င္ငံ', 'unicode', 'zawgyi') // 'နိုင်ငံ'
+compat.fontConvert('ၿမိဳ ့', 'unicode', 'zawgyi') // 'မြို့'
+compat.fontConvert('jrefrm', 'unicode', 'win') // 'မြန်မာ'
+compat.fontConvert('ajumifh', 'unicode', 'win') // 'ကြောင့်'
+compat.fontConvert('ZvGefaps;', 'unicode', 'win') // 'ဇလွန်ဈေး'
+compat.fontConvert('jrefrm', 'unicode') // 'jrefrm'  (no source font: plain ASCII)
+```
+
+Win is converted to Unicode only. Any other target returns the text unchanged, with an error unless silent.
+
+**3.0: `toUnicode(text, { from })` and `toZawgyi(text)`.** They never trim, and `toUnicode` with no `from` detects each line on its own and leaves a line whose evidence ties as it is. `tie: 'zawgyi'` and a trim give 2.x's result on every text of one line.
+
+```javascript
+knayi.toUnicode('မဂၤလာပါ', { from: 'zawgyi' }) // 'မင်္ဂလာပါ'
+knayi.toUnicode('ဗုဒ္ဓ') // 'ဗုဒ္ဓ'  (a tie: left as it is)
+knayi.toUnicode(' ဗုဒ္ဓ ', { tie: 'zawgyi' }) // ' ဗုဒ်ဓ '
+knayi.toUnicode(' ကာာ ', { from: 'unicode' }) // ' ကာာ '
+knayi.toZawgyi('မြန်မာ') // 'ျမန္မာ'
+knayi.toUnicode('jrefrm', { from: 'win' }) // 'မြန်မာ'
+```
+
+There is no conversion from Unicode to Win, and no `toUnicode(text, 'uni')`: 3.0 names a font once, as `from`.
+
+### fontConvert.debugging(content, targetFontType, originalFontType)
+
+Returns `{ to, from, matched_patterns, steps }`. `steps` is an array of strings. The last step equals `fontConvert` for the same arguments. From Unicode, `matched_patterns` holds the regex source of each rule that matched (for a rule rewritten for speed, the source it had before). From Zawgyi or Win, it names each stage that changed the text: `sequences`, `glyphs`, `syllables`, `zero as wa`, `typos`, `look-alikes`, `NFC`. Where `fontConvert` returns before converting (missing content, no Myanmar letters, a missing or unknown target, the same font, or a Win direction it does not convert), the object has an empty `matched_patterns` and one step, what `fontConvert` returns. There, `to` or `from` is `''` where the call names no font knayi knows, and `from` is `''` too when the call returns before it detects the source. Content that is not a string, such as a number, comes back unchanged.
+
+```javascript
+compat.fontConvert.debugging(' ကျ ', 'unicode', 'unicode') // { to: 'unicode', from: 'unicode', matched_patterns: [], steps: ['ကျ'] }
+compat.fontConvert.debugging('abc', 'unicode') // { to: 'unicode', from: '', matched_patterns: [], steps: ['abc'] }
+```
+
+Only `fontConvert.debugging` returns this object. `fontConvert` never does, however it is called: also as a plain function (`const convert = compat.fontConvert`) in a page or app with a global variable named `debug`.
+
+**3.0: the `trace` option** of `toUnicode`, `toZawgyi` and `normalize`, with a trace from `createTrace()`. Its `start` is the input, and its `records` hold `{ id, label, text }` for each step that changed the text: `label` is the stage name or regex source 2.x put in `matched_patterns`, and `text` the step 2.x put in `steps`. One difference: from Unicode, 2.x's steps start at the text after the collapse of repeated marks, and 3.0's trace starts at the input, with the collapse as a record `uz.collapse` when it changed something. [README.md](README.md#traces-createtrace) lists the ids.
+
+### syllBreak(content, fontType?, breakPoint?)
+
+Returns one string. The default break character is `U+200B`. This is the current public break, not a split into `မ|င်္ဂ|လာ|ပါ`.
+
+```javascript
+compat.syllBreak('မင်္ဂလာပါ', null, '$$') // 'မင်္ဂလာ$$ပါ'
+compat.syllBreak('မင်္ဂလာပါ') // 'မင်္ဂလာ' + '\u200b' + 'ပါ'
+compat.syllBreak('မြန်မာ', 'unicode', '|') // 'မြန်|မာ'
+compat.syllBreak('ထို့ကြောင့်', 'unicode', '|') // 'ထို့|ကြောင့်'
+compat.syllBreak('က္က', 'unicode', '|') // 'က္က'
+compat.syllBreak('က္က', 'zawgyi', '|') // 'က္|က'
+compat.syllBreak('က္က', 'uni', '|') // 'က္က'
+compat.syllBreak('ကက', 'unicode', '|') // 'ကက'
+compat.syllBreak('ၾကပါ', 'zawgyi', '|') // 'ၾက|ပါ'
+```
+
+When `fontType` is omitted, detection runs first. `win` and unknown font names throw a `TypeError` with the code `'ERR_KNAYI_INVALID_FONT'` (see [Font names](#font-names)).
+
+`Array#map` calls its function with three arguments: the line, its index and the array. So `lines.map(compat.syllBreak)` passes the index as the font, which names no font, and the whole array as the break point: each line's syllables are joined with the text of the array, and no error tells you. Pass the line alone, as in `lines.map((line) => compat.syllBreak(line))`:
+
+```javascript
+['မြန်မာ', 'ျမန္မာ'].map((line) => compat.syllBreak(line, null, '|')) // ['မြန်|မာ', 'ျမန္|မာ']
+['မြန်မာ', 'ျမန္မာ'].map(compat.syllBreak) // ['မြန်မြန်မာ,ျမန္မာမာ', 'ျမန္မြန်မာ,ျမန္မာမာ']  (the array is the break point)
+```
+
+Zawgyi types ေ and the medial ra before the consonant. A consonant typed after them ends its syllable, as ကြ does in Unicode.
+
+**3.0: `segmentSyllables(text, { bareConsonants, from })`** returns the syllables as an array that joins back to the text, and `syllableBoundaries` where each starts. It reads a bare consonant as a syllable of its own unless `bareConsonants: 'pairs'` asks for 2.x's pairs; a syllable after white space starts a piece, where 2.x joined it to the syllable before (`bareConsonants: 'pairs'` still does); it keeps white space and zero-width characters; and it does not detect: `from` is `'unicode'` unless you say `'zawgyi'`.
+
+```javascript
+knayi.segmentSyllables('မင်္ဂလာပါ') // ['မင်္ဂ', 'လာ', 'ပါ']
+knayi.segmentSyllables('မင်္ဂလာပါ', { bareConsonants: 'pairs' }) // ['မင်္ဂလာ', 'ပါ']
+knayi.segmentSyllables('ကက') // ['က', 'က']
+knayi.segmentSyllables('ကက', { bareConsonants: 'pairs' }) // ['ကက']
+knayi.segmentSyllables('ၾကပါ') // ['ၾ', 'က', 'ပါ']  (Zawgyi read as Unicode)
+knayi.segmentSyllables('ၾကပါ', { from: 'zawgyi' }) // ['ၾက', 'ပါ']
+knayi.segmentSyllables(' မြန်\u200bမာ ') // [' ', 'မြန်\u200b', 'မာ ']
+knayi.segmentSyllables('ကောင်း မောင်') // ['ကောင်း ', 'မောင်']
+knayi.segmentSyllables('ကောင်း မောင်', { bareConsonants: 'pairs' }) // ['ကောင်း မောင်']
+```
+
+### spellingFix(content, fontType?)
+
+Collapses a mark repeated two or more times into one mark. It does not reorder marks. `win` and unknown font names collapse the Unicode marks.
+
+```javascript
+compat.spellingFix('မင်္ဂလာာပါါ', 'unicode') // 'မင်္ဂလာပါ'
+compat.spellingFix('ကိီ', 'unicode') // 'ကိီ'
+compat.spellingFix('\u1033\u1033', 'zawgyi') // '\u1033'
+compat.spellingFix('\u1033\u1033', 'zaw') // '\u1033'
+```
+
+**3.0: `collapseRepeatedMarks(text, { from })`**, with no trim, no removal of zero-width characters, and no detection.
+
+```javascript
+knayi.collapseRepeatedMarks('မင်္ဂလာာပါါ') // 'မင်္ဂလာပါ'
+knayi.collapseRepeatedMarks(' ကာာ\u200b ') // ' ကာ\u200b '
+```
+
+### normalize(content)
+
+Unicode only, written for Burmese. Puts every syllable in Unicode storage order ([UTN #11](https://www.unicode.org/notes/tn11/)) with the rules of [Zawgyi to Unicode](README.md#zawgyi-to-unicode), makes a few typing fixes, and returns NFC. It keeps surrounding spaces, zero-width spaces and joiners. It is not the same operation as `spellingFix`. [README.md](README.md#normalizetext-options) lists its rules, which 3.0's `normalize` shares.
+
+```javascript
+compat.normalize('မိြုင်မိြုင်\nဆိုင်ဆုိင်') // 'မြိုင်မြိုင်\nဆိုင်ဆိုင်'
+compat.normalize(' မိြုင် ') // ' မြိုင် '
+compat.normalize('ယောကျ်ား') // 'ယောက်ျား'
+compat.normalize('လည်းေကာင်း') // 'လည်းကောင်း'
+compat.normalize('၂ဝ၁၉') // '၂၀၁၉'
+compat.normalize('ကိီ') // 'ကီ'
+compat.normalize('ဝ') // 'ဝ'
+compat.normalize('e\u0301') // '\u00e9'  (no Myanmar letters: NFC only)
+```
+
+On garbled text, a second call can change the result again:
+
+```javascript
+compat.normalize('၀ွ ှ') // 'ဝွ ှ'
+compat.normalize('ဝွ ှ') // 'ဝွှ'
+```
+
+**3.0: `normalize(text, { report, trace })`** is idempotent: wherever no ဥ, ၀ or ၇ stands after a virama or under a kinzi, it gives at once the text that repeated calls of 2.x's `normalize` settle on. So it differs from 2.x's only on text that 2.x would change again, or that has such a ဥ, ၀ or ၇: on no line of a Unicode corpus.
+
+```javascript
+knayi.normalize('၀ွ ှ') // 'ဝွှ'
+knayi.normalize('ယောကျ်ား') // 'ယောက်ျား'
+```
+
+### truncate(content, options?)
+
+Returns the start of the text, with the omission appended. The start is the longest one that fits in `length`, omission included, and ends at a syllable break or after whitespace: the syllables that fit, then the words of the next syllable that fit with the whitespace after them. It is trimmed. Defaults are `length: 30` and `omission: '...'`; `length` counts UTF-16 code units. The omission is appended even when the text is shorter than `length`. `options.fontType` takes the same font names as `syllBreak`: when omitted, detection runs, and `win` or an unknown name throws a `TypeError` with the code `'ERR_KNAYI_INVALID_FONT'`.
+
+The text is read as `syllBreak` reads it: trimmed, without zero-width spaces and non-joiners (`U+200B`, `U+200C`), and in Unicode with a dot below typed after an asat put before it. When no font is named, `truncate` detects it on the text as given, before that cleaning, and `syllBreak` on the cleaned text, so the two can choose different fonts for a text where removing a zero-width space or non-joiner at either end leaves whitespace there. Only the start of the text is broken into syllables, up to the first whitespace at an index above `length` minus the omission's length, so a long text takes little more time than a short one when you name the font; detection reads the whole text.
+
+```javascript
+compat.truncate('အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇလွန်ဈေးဘေးဗာဒံပင်ထက် အဓိဋ္ဌာန်လျက် ဂဃနဏဖတ်ခဲ့သည်။', { length: 30, omission: '...' })
+// 'အာယုဝဍ်ဎနဆေးညွှန်းစာကို...'
+compat.truncate('အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇလွန်ဈေးဘေးဗာဒံပင်ထက် အဓိဋ္ဌာန်လျက် ဂဃနဏဖတ်ခဲ့သည်။', { length: 35 })
+// 'အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇလွန်ဈေး...'
+compat.truncate('က') // 'က...'
+compat.truncate('') // '...'
+compat.truncate(null) // ''
+```
+
+A `length` or `omission` that is falsy, `0` or `''`, takes its default. Up to 2.10.0 the result was not always a start of the text: a part that did not fit added those of its words that did, so a later word could follow a skipped one, as ဈေး followed the skipped ဇလွန် in the first example.
+
+**3.0: `truncate(text, { length, omission, bareConsonants, from })`** returns a text that fits as it is, and otherwise a prefix cut at a syllable break, then the omission, in at most `length` units. `0` is a length and `''` an omission; `undefined` and `null` take the defaults. The text's encoding is `from`, not `fontType`, and is not detected.
+
+```javascript
+knayi.truncate('အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇလွန်ဈေးဘေးဗာဒံပင်ထက် အဓိဋ္ဌာန်လျက် ဂဃနဏဖတ်ခဲ့သည်။', { length: 30 })
+// 'အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇ...'
+knayi.truncate('က') // 'က'
+knayi.truncate('') // ''
+compat.truncate('abcdef', { length: 3, omission: '' }) // '...'
+knayi.truncate('abcdef', { length: 3, omission: '' }) // 'abc'
+```
+
+The 3.0 cut above ends at the bare consonant ဇ, a syllable of its own under the default policy; `bareConsonants: 'pairs'` cuts before it.

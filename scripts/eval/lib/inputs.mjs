@@ -67,7 +67,7 @@ export function generatedSets() {
 
 // The probes the tests already hold, so that compare sees every one of them under every call form, in every
 // build and runtime it runs: the main and edge probes of the table rows (test/fixtures/tables.json), every
-// string in the examples of README.md and ARCHITECTURE.md, and the matrix's content probes
+// string in the examples of README.md, MIGRATION.md and ARCHITECTURE.md, and the matrix's content probes
 // (scripts/contract/matrix.js). Each is used alone and with ka, the digit one, a space, Win's ka (u) or the
 // digit 1 before or after it. They reach rules of four or more characters, and the branches of each rule, that
 // the generated pairs and the fuzz alphabets do not build: o with e, aa and asat, for example. All of them are
@@ -92,7 +92,7 @@ function rowProbes() {
     })(acorn.parse('(' + code + ')', { ecmaVersion: 'latest' }));
     return found;
   };
-  for (const doc of ['README.md', 'ARCHITECTURE.md']) {
+  for (const doc of ['README.md', 'MIGRATION.md', 'ARCHITECTURE.md']) {
     for (const example of readExamples(fs.readFileSync(new URL(doc, ROOT), 'utf8'))) {
       probes.push(...strings(example.code), ...(example.expected === null ? [] : strings(example.expected)));
     }
@@ -106,8 +106,8 @@ function rowProbes() {
   const num = (n) => n.toLocaleString('en-US');
   return {
     lines,
-    about: num(tables) + ' table probes, ' + num(docs) + ' strings of the README and ARCHITECTURE examples, ' + num(matrix) +
-      ' matrix probes; alone and next to ka, a digit, a space, u and 1'
+    about: num(tables) + ' table probes, ' + num(docs) + ' strings of the README, MIGRATION and ARCHITECTURE examples, ' +
+      num(matrix) + ' matrix probes; alone and next to ka, a digit, a space, u and 1'
   };
 }
 
@@ -201,15 +201,23 @@ export function perfTexts(flores, base, count) {
 }
 
 // The same text in four shapes: a call per line, a call per word, one call on the lines joined by spaces into one
-// long line, and one call on the lines joined by line breaks (a document).
+// long line, and one call on the lines joined by line breaks (a document). With `longUnits`, the string and the
+// document repeat the lines until they are that many UTF-16 units long, and are cut there.
 export const WORKLOADS = ['line', 'word', 'string', 'document'];
-export function workloads(lines) {
+export function workloads(lines, longUnits) {
   return {
     line: lines,
     word: distinct(lines.flatMap((l) => l.split(/\s+/)).filter(Boolean)),
-    string: [lines.join(' ')],
-    document: [lines.join('\n')]
+    string: [repeatedTo(lines.join(' '), ' ', longUnits)],
+    document: [repeatedTo(lines.join('\n'), '\n', longUnits)]
   };
+}
+
+function repeatedTo(text, joiner, units) {
+  if (!units) return text;
+  let out = text;
+  while (out.length < units) out += joiner + text;
+  return out.slice(0, units);
 }
 
 // Inputs that once took, or could take, super-linear time. make(n) returns about n UTF-16 units.

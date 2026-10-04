@@ -1,6 +1,7 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const knayi = require('../main');
+// The 2.x API: compat, on the 3.0 core.
+const knayi = require('../src/compat/index.js').default;
 
 // Zawgyi strings are written in the order Zawgyi text is typed. Most come from real web text.
 const toUnicode = (zawgyi) => knayi.fontConvert(zawgyi, 'unicode', 'zawgyi');

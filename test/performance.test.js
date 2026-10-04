@@ -1,6 +1,7 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const knayi = require('../main');
+// The 2.x API: compat, on the 3.0 core.
+const knayi = require('../src/compat/index.js').default;
 
 // Each input took several seconds in 2.9.0 because a regex retried from every position (quadratic time).
 // Linear code finishes these in a few milliseconds, so the limit only fails on a real regression.

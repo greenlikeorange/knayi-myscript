@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict');
-const knayi = require('../main');
+// The 2.x API, compat, through a CommonJS require of its ES module source, as a CommonJS user of 3.0 loads it.
+const knayi = require('../src/compat/index.js').default;
 
 const converted = knayi.fontConvert('မဂၤလာပါ', 'unicode', 'zawgyi');
 assert.equal(converted, 'မင်္ဂလာပါ');

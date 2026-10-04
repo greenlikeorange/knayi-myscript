@@ -1,7 +1,8 @@
-// The finer types of index.d.ts: fontDetect's literal results, detectEncoding's result, the font names on font
-// parameters, DetectorOptions as an extension of GlobalDetectorOptions, and zawgyiDetector. npm test compiles this
-// file with and without esModuleInterop; it never runs.
-import { detectEncoding, fontConvert, fontDetect, spellingFix, syllBreak, truncate } from "knayi-myscript";
+// The finer types of the 2.x API (src/compat/index.d.ts, 2.x's index.d.ts): fontDetect's literal results,
+// detectEncoding's result, the font names on font parameters, DetectorOptions as an extension of
+// GlobalDetectorOptions, and zawgyiDetector. npm test compiles this file with and without esModuleInterop; it never
+// runs.
+import { detectEncoding, fontConvert, fontDetect, spellingFix, syllBreak, truncate } from "knayi-myscript/compat";
 import type {
   DetectorOptions,
   EncodingDetection,
@@ -9,7 +10,7 @@ import type {
   GlobalDetectorOptions,
   TruncateOptions,
   ZawgyiDetectorLike
-} from "knayi-myscript";
+} from "knayi-myscript/compat";
 
 // true only when A and B are the same type.
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;

@@ -1,6 +1,6 @@
 const { describe, it, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
-const knayi = require('../main');
+const knayi = require('../src/compat/index.js').default;
 
 // Font names (README, "Font names"). A name is a string other than '': 'unicode', 'zawgyi', their aliases 'uni'
 // and 'zaw', and 'win', in any case. A font that is not a string, or '', means "detect the font". syllBreak and

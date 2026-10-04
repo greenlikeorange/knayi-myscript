@@ -1,58 +1,66 @@
-// Checks the gzip size of knayi-myscript.min.js against the 2.x bundle budget: at most 1,024 B over the
-// 2.10 build. Prints the size and the change from 2.10, and fails above the limit.
+// Checks the gzip size of each 3.0 dist file against its budget, and fails above it.
 //
 //   node scripts/check-size.js [dir] [--modules]
 //
 // dir holds the dist files to measure (default: KNAYI_DIST, or a fresh build of this checkout in a temporary
-// directory). --modules also lists each module's share of the minified file, from the esbuild metafile.
+// directory). --modules also lists each module's share of each file, from the esbuild metafile. The sizes of an
+// import of each package entry, and the tree-shaking check, are scripts/next/size.mjs's.
 //
-// Sizes are Node's zlib at level 9 (`zlib.gzipSync(file, { level: 9 })`), which is how the 2.10 baseline was
-// measured. The gzip command line gives a slightly different number for the same file (it may store the file
-// name, and its deflate may differ), so compare only numbers from this script.
+// Sizes are Node's zlib at level 9 (`zlib.gzipSync(file, { level: 9 })`), as 2.x's baseline was measured. The gzip
+// command line gives a slightly different number for the same file (it may store the file name, and its deflate
+// may differ), so compare only numbers from this script.
 
 const esbuild = require('esbuild');
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
-const { builtDist, configs } = require('./build');
+const { FILES, builtDist, configs } = require('./build');
 
-// knayi-myscript.min.js at 2.10.0 plus the Shan zero fix (f6f3c7b): 29,051 B, 9,830 B with gzip level 9.
-const BASELINE = 9830;
-const BUDGET = 1024;
-const LIMIT = BASELINE + BUDGET;
+// The budgets of 3.0, proposed with its packaging and still to be confirmed by the maintainer (docs/next/DESIGN.md
+// §6.4): `measured` is the size when the builds were first made from src/ (3.0.0-next.0's sources), and `limit`
+// about 5% above it, rounded up to 100 B, so the 2.x ports, the stream entry and Extended-C fit while a mistake
+// such as a table pulled in twice does not. 2.x's min.js was 9,830 B at 2.10, with a limit of 10,854 B; the 3.0
+// script build, knayi.min.js, holds both APIs (its budget is the one the script build had when it was named
+// knayi-myscript.min.js), and knayi-myscript.min.js now holds the 2.x API alone, as 2.x's did, measured when it got
+// that content back (docs/next/DESIGN.md §14.3).
+const BUDGETS = {
+  'knayi-myscript.min.mjs': { measured: 20890, limit: 22000 },
+  'knayi-myscript-compat.min.mjs': { measured: 17408, limit: 18300 },
+  'knayi.min.js': { measured: 23782, limit: 25000 },
+  'knayi-myscript.min.js': { measured: 17778, limit: 18700 }
+};
 
 const args = process.argv.slice(2);
-const dir = args.find((arg) => !arg.startsWith('--')) || builtDist();
-const file = path.join(path.resolve(dir), 'knayi-myscript.min.js');
-
-const min = fs.readFileSync(file);
-const size = zlib.gzipSync(min, { level: 9 }).length;
-const delta = size - BASELINE;
+const dir = path.resolve(args.find((arg) => !arg.startsWith('--')) || builtDist());
 
 const n = (value) => value.toLocaleString('en-US') + ' B';
 const signed = (value) => (value > 0 ? '+' : value < 0 ? '-' : '±') + n(Math.abs(value));
 
-console.log(
-  'knayi-myscript.min.js: ' + n(size) + ' gzip (level 9), ' + n(min.length) + ' minified. ' +
-  signed(delta) + ' against 2.10 (' + n(BASELINE) + '); limit ' + n(LIMIT) +
-  (size <= LIMIT ? ', ' + n(LIMIT - size) + ' to spare.' : '.')
-);
+// Each module's share of one file: the file rebuilt in memory with a metafile; bytesInOutput is before gzip.
+function moduleShares(file) {
+  const result = esbuild.buildSync(Object.assign({}, configs(dir)[file], { write: false, metafile: true }));
+  const output = Object.values(result.metafile.outputs)[0];
+  return Object.entries(output.inputs)
+    .map(([name, { bytesInOutput }]) => [name, bytesInOutput, 100 * bytesInOutput / output.bytes])
+    .sort((a, b) => b[1] - a[1]);
+}
 
-if (args.includes('--modules')) {
-  // Rebuild the min.js in memory with a metafile; bytesInOutput is each module's share before gzip.
-  const result = esbuild.buildSync(Object.assign({}, configs(path.dirname(file)).min, { write: false, metafile: true }));
-  const output = Object.values(result.metafile.outputs).find((entry) => entry.entryPoint);
-  const inputs = Object.entries(output.inputs).sort((a, b) => b[1].bytesInOutput - a[1].bytesInOutput);
-  for (const [name, { bytesInOutput }] of inputs) {
-    const share = (100 * bytesInOutput / output.bytes).toFixed(1).padStart(5);
-    console.log('  ' + share + '%  ' + n(bytesInOutput).padStart(9) + '  ' + name);
+let over = 0;
+for (const file of FILES) {
+  const bytes = fs.readFileSync(path.join(dir, file));
+  const size = zlib.gzipSync(bytes, { level: 9 }).length;
+  const { measured, limit } = BUDGETS[file];
+  console.log(file + ': ' + n(size) + ' gzip (level 9), ' + n(bytes.length) + ' minified. ' + signed(size - measured) +
+    ' against ' + n(measured) + '; limit ' + n(limit) + (size <= limit ? ', ' + n(limit - size) + ' to spare.' : '.'));
+  if (args.includes('--modules')) {
+    for (const [name, inOutput, share] of moduleShares(file)) {
+      console.log('  ' + share.toFixed(1).padStart(5) + '%  ' + n(inOutput).padStart(9) + '  ' + name);
+    }
+  }
+  if (size > limit) {
+    console.error(file + ' is ' + n(size - limit) + ' over its limit. Make the change smaller, or agree a new budget ' +
+      'with the maintainer and change it here and in docs/next/DESIGN.md §6.4.');
+    over++;
   }
 }
-
-if (size > LIMIT) {
-  console.error(
-    'knayi-myscript.min.js is ' + n(size - LIMIT) + ' over the limit. The 2.x budget allows ' + n(BUDGET) +
-    ' of gzip growth over 2.10 in total; make the change smaller, or agree a new budget with the maintainer.'
-  );
-  process.exitCode = 1;
-}
+if (over) process.exitCode = 1;
