@@ -18,7 +18,8 @@
 //   GLYPHS             lagaung, tall aa with asat, great sa, stacked and joined consonants, the medials and asat
 //   NARROW_TA          the narrow stacked ta
 //   MEDIAL_RA_SHAPES   the wide and cut medial ra: the eight repeat rows
-// That is 57 rows applied once, then 8 repeat rows, exactly 2.x's convertRules.unicode.zawgyi (syllable.js).
+// That is 58 rows applied once, then 8 repeat rows, exactly 2.11's convertRules.unicode.zawgyi: 2.10's (syllable.js)
+// with the row for stacked jha that 2.x 05de555 added (uz.glyphs.24).
 //
 // A row is { id, re, to, repeat, needs, label? } (core/rules.js). Its why is the comment above it, and its example is
 // in test/next/unicodeToZawgyi.test.mjs under its id (D17). `needs` names units of which every match of `re` holds at
@@ -32,7 +33,7 @@
 // The glyph table is the one source of the glyph that a fixed Unicode text becomes. A section names such a row by
 // that text alone, and tableRows makes the row: the text's \u escapes are its regex, as 2.x wrote them, and the
 // glyph the table draws the text with, read backwards (tableGlyph), is its replacement. That gives the kinzi row and
-// 37 of the 38 rows of GLYPHS. A row with one fixed text and one fixed replacement is written by hand only where the
+// 38 of the 39 rows of GLYPHS. A row with one fixed text and one fixed replacement is written by hand only where the
 // table read backwards does not give it, with the reason above it: uz.order.5, uz.small.2, uz.glyphs.23 and
 // uz.medial-ra.8. test/next/unicodeToZawgyi.test.mjs checks both ways.
 //
@@ -215,8 +216,12 @@ const GLYPHS = /* @__PURE__ */ tableRows('glyphs', [
   '\u100B\u1039\u100B', '\u1039\u100B',
   // Stacked ca with medial ya is the stacked jha U+1069, which Zawgyi draws that way (research/zawgyi-to-unicode.md
   // §3, letters Zawgyi draws alike); it comes before stacked ca. Written by hand: the table reads U+1069 as stacked
-  // jha, U+1039 U+1008, so read backwards it gives U+1069 for stacked jha, which 2.x leaves alone (uz.glyphs.34).
+  // jha, U+1039 U+1008, so read backwards it gives U+1069 for stacked jha, the next row.
   { id: 'uz.glyphs.23', re: /\u1039\u1005\u103b/g, to: '\u1069', repeat: false, needs: '\u1039' },
+  // Stacked jha is U+1069 too (research/zawgyi-to-unicode.md §2, glyph table: stacked consonants). 2.10 had no row
+  // for it, so its virama stayed U+1039, which Zawgyi reads as an asat; 2.11 added this one (2.x 05de555), before the
+  // row that writes asat as U+1039, as the other stacked consonants come.
+  '\u1039\u1008',
   // The stacked consonants ja, cha, ca, gha, ga and kha (research/zawgyi-to-unicode.md §2, glyph table: stacked
   // consonants).
   '\u1039\u1007', '\u1039\u1006', '\u1039\u1005', '\u1039\u1003', '\u1039\u1002', '\u1039\u1001',
@@ -226,8 +231,7 @@ const GLYPHS = /* @__PURE__ */ tableRows('glyphs', [
   '\u103D\u103E', '\u103E\u1030', '\u1039\u1000', '\u103E\u102F',
   // Asat takes Zawgyi's code point for it, U+1039, which is Unicode's virama, now that every row that reads a
   // virama has run (research/zawgyi-to-unicode.md §2, glyph table: U+1039, "asat"). A virama that no row read stays
-  // U+1039 and so reads as asat, as in 2.x: stacked jha typed with U+1008, for one, since only stacked ca with
-  // medial ya becomes U+1069.
+  // U+1039 and so reads as asat, as in 2.x: stacked sa, U+1039 U+101E, for one, which the table has no glyph for.
   '\u103A',
   // Medial ya takes U+103A, now free (research/zawgyi-to-unicode.md §2, glyph table: U+103A, "ya").
   '\u103B',
@@ -373,7 +377,7 @@ function tableGlyph(text) {
 // ---------------------------------------------------------------------------------------------------------------
 // The rows and their runner.
 
-// 57 once rows, then 8 repeat rows, in 2.x order.
+// 58 once rows, then 8 repeat rows, in 2.11's order.
 export const UNICODE_TO_ZAWGYI_RULES = /* @__PURE__ */ joinSections(
   SHAPES_IN_CONTEXT, KINZI, VISUAL_ORDER, SMALL_LETTERS, GLYPHS, NARROW_TA, MEDIAL_RA_SHAPES
 );

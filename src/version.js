@@ -6,12 +6,13 @@ export const PACKAGE_VERSION = '3.0.0-next.0';
 
 // The version of knayi's output (decision 33). Each deliberate output change adds 1, so a cache keyed on it knows
 // when stored results are stale:
-// 1  the output of 2.10.0 at the reference commit e5f6e24, which compat keeps (DESIGN.md §1.1);
+// 1  the output of 2.10.0 at the reference commit e5f6e24, which compat kept until 3;
 // 2  3.0's normalize settles: it repeats its pass until it changes nothing (decision 36), and reads u, zero and
 //    seven after a virama or under a kinzi as nya, wa and ra (DESIGN.md §11.2). It differs from 1 on no line of the
 //    Unicode corpora, and on 199 of 14,304 raw mC4 lines, mostly Zawgyi.
 // 3  the output fixes of the 2.x line's 2.11, ported into the core (DESIGN.md §8): Zawgyi and Win to Unicode make
-//    the typos before the look-alikes, as normalize does (decision 15). Both APIs change alike.
+//    the typos before the look-alikes, as normalize does (decision 15), and Unicode to Zawgyi writes stacked jha as
+//    U+1069, as myanmar-tools does (2.x 05de555). Both APIs change alike.
 // A dataset holds only released output, so changes between two releases share one number: the first change after
 // a release raises it (scripts/next/output-version.mjs checks this in CI). The 3.0 API's other changes before 3.0.0,
 // such as white space ending a syllable (DESIGN.md §11.6), are part of 2. The port of 2.11 raises it all the same:

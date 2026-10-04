@@ -332,6 +332,7 @@ Converts Unicode text to Zawgyi. It never trims. It collapses a mark typed twice
 ```javascript
 knayi.toZawgyi('မြန်မာ') // 'ျမန္မာ'
 knayi.toZawgyi('မင်္ဂလာပါ') // 'မဂၤလာပါ'
+knayi.toZawgyi('မဇ္ဈိမ') // 'မဇၩိမ'  (stacked ဈ is Zawgyi's U+1069)
 knayi.toZawgyi('က\nေ') // 'ေက\n'  (the ေ moves across the line break)
 ```
 
@@ -423,7 +424,7 @@ knayi.OUTPUT_VERSION // 3
 | --- | --- |
 | 1 | 2.10.0's, which `knayi-myscript/compat` kept until 3 |
 | 2 | 3.0's `normalize` settles: it is idempotent, and reads ဥ, ၀ and ၇ after a virama or under a kinzi as ဉ, ဝ and ရ |
-| 3 | 2.x's output fixes of 2.11, in both APIs: Zawgyi and Win conversion make the typo fixes before the look-alikes, as `normalize` does |
+| 3 | 2.x's output fixes of 2.11, in both APIs: Zawgyi and Win conversion make the typo fixes before the look-alikes, as `normalize` does, and Unicode to Zawgyi writes stacked ဈ as U+1069 |
 
 [CHANGELOG.md](CHANGELOG.md) lists every output change under "Output changes", with the lines of each corpus it changes.
 

@@ -54,7 +54,7 @@ describe('Converter',()=>{
       assert.equal(knayi.fontConvert('ကြွ', 'zawgyi', 'unicode'), 'ႂကြ');
       assert.equal(knayi.fontConvert('ပြွတ်', 'zawgyi', 'unicode'), 'ႁပြတ္');
     })
-    it('writes stacked jha as Zawgyi stacked jha, which converts back', pendingPort('05de555', () => {
+    it('writes stacked jha as Zawgyi stacked jha, which converts back', () => {
       // U+1069 is stacked jha in Zawgyi, and is also written for stacked ca with medial ya. A virama left before
       // jha would read as an asat in Zawgyi.
       assert.equal(knayi.fontConvert('မဇ္ဈိမ', 'zawgyi', 'unicode'), '\u1019\u1007\u1069\u102d\u1019');
@@ -66,7 +66,7 @@ describe('Converter',()=>{
       assert.ok(knayi.fontConvert.debugging('မဇ္ဈိမ', 'zawgyi', 'unicode').matched_patterns.includes('\\u1039\\u1008'));
       // An asat before jha makes no stack: it becomes Zawgyi's asat, U+1039.
       assert.equal(knayi.fontConvert('က်ဈ', 'zawgyi', 'unicode'), '\u1000\u1039\u1008');
-    }))
+    })
   })
 
   describe('content gate', () => {

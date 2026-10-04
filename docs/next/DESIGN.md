@@ -652,7 +652,7 @@ The policies of `BARE_CONSONANTS`: `PAIRS` is 2.x (`legacyBareConsonantPair`: a 
 #### `src/rules/unicodeToZawgyi.js` (L3 rules)
 
 ```ts
-export const UNICODE_TO_ZAWGYI_RULES: readonly RuleRow[]   // 57 once rows, then 8 repeat rows, in 2.x order
+export const UNICODE_TO_ZAWGYI_RULES: readonly RuleRow[]   // 58 once rows, then 8 repeat rows, in 2.11's order
 export function unicodeToZawgyi(text: string): string     // collapseRepeatedMarks(text, 'unicode'), then the rows that can match (§3.10, gate 3), GLYPHS in one pass (§3.9)
 export function traceUnicodeToZawgyi(text: string, trace: Trace): string   // trace.start = the collapsed text; every row on its own
 ```
@@ -1067,12 +1067,12 @@ All of this goes in flat typed arrays, built at load. There are no per-glyph obj
 ### 3.9 Rule rows and traces
 
 **Rule rows** (`RuleRow`, §2.3) replace 2.x's bare tuples. A row ships only what the code reads: `id`, `re`, `to`, `repeat`, `needs` on the Unicode to Zawgyi rows (§3.10, gate 3), and `label` on six rows (D17). The row tables are:
-- Unicode to Zawgyi: 65 rows in 2.x order. The source holds them in named section arrays, SHAPES_IN_CONTEXT, KINZI, VISUAL_ORDER, SMALL_LETTERS, GLYPHS, NARROW_TA and MEDIAL_RA_SHAPES (PR 3.5 of the plan). They are joined in 2.x order by a `/* @__PURE__ */` builder (§2.4). The rows of one fixed text whose glyph the Zawgyi glyph table gives are read from it (below). Each row has a `why` comment above it, a run of table texts one comment for the run, and each id has an example in `test/next/unicodeToZawgyi.test.mjs`.
+- Unicode to Zawgyi: 66 rows in 2.11's order: 2.10's 65 and the row for stacked jha that 2.11 added (§8). The source holds them in named section arrays, SHAPES_IN_CONTEXT, KINZI, VISUAL_ORDER, SMALL_LETTERS, GLYPHS, NARROW_TA and MEDIAL_RA_SHAPES (PR 3.5 of the plan). They are joined in 2.x order by a `/* @__PURE__ */` builder (§2.4). The rows of one fixed text whose glyph the Zawgyi glyph table gives are read from it (below). Each row has a `why` comment above it, a run of table texts one comment for the run, and each id has an example in `test/next/unicodeToZawgyi.test.mjs`.
 - the font sequences, with their 2.x comments.
 
 **Rows read from the Zawgyi glyph table** (plan Phase 6 #5, §7.12). 42 of 2.x's 65 rows replace one fixed Unicode text with one fixed text. For 38 of them, the replacement is the glyph that `fonts/zawgyi.js` draws that text with: the table read backwards, taking the first glyph whose row is exactly the text, its attached marks included (where several glyphs draw one text, the table lists the plain shape first). A section lists such a row by its Unicode text alone, and `tableRows` builds the row at load: its regex is the text's `\u` escapes in lowercase, as 2.x wrote them, so its label is 2.x's source, and a text that starts at U+1000-U+1010 gets the wrapped regex and the label of decision 29. Its `needs` is the text's virama, or its first unit. That is the kinzi row and 37 of the 38 rows of GLYPHS. The other four are written by hand, each with the reason above it, because the table read backwards does not give them: `uz.order.5` moves e and writes no glyph; `uz.small.2` writes the short na, which the table gives for every na, only after medial ra; `uz.glyphs.23` writes the stacked jha glyph U+1069 for stacked ca with medial ya, while the table reads U+1069 as stacked jha, which 2.x leaves alone; `uz.medial-ra.8` writes two glyphs, each chosen by the other. The test checks both ways: the rows the source lists as texts are exactly the 2.x rows whose replacement is the table's glyph for their text. The order of the rows stays 2.x's and is written out: it decides the output where two rows can match the same units, and `fontConvert.debugging` lists the rows that changed the text in it.
 
-**GLYPHS in one pass.** `unicodeToZawgyi` does not run the 38 GLYPHS rows one by one. `writeGlyphs` reads the text once, from left to right, and at each unit writes the glyph of the first row, in row order, whose text starts there, then goes on after that text. That is the rows' own result whenever two facts hold, and the test checks both on every pair of rows:
+**GLYPHS in one pass.** `unicodeToZawgyi` does not run the 39 GLYPHS rows one by one. `writeGlyphs` reads the text once, from left to right, and at each unit writes the glyph of the first row, in row order, whose text starts there, then goes on after that text. That is the rows' own result whenever two facts hold, and the test checks both on every pair of rows:
 - no row reads a unit that a row before it writes, so each row matches only units of the text GLYPHS is given, left as the rows before it left them, and a row's match never spans a glyph;
 - where the matches of two rows overlap, the one that starts first belongs to the earlier row; two that start at the same unit are tried in row order.
 
@@ -1310,7 +1310,7 @@ Each row is a behaviour of the reference library that the contract matrix or com
 | C15 | `fontConvert`'s order of checks, messages and trims (converter.js:11-59; §5.1). The source is detected on the trimmed text, with the global detector options. The same font returns the trimmed text. Win as a target, or Win to anything but Unicode, is an error that returns the trimmed text. | `fontConvert` |
 | C16 | The debug flag is `this && this.debug`, read after the early exits. `debugging` is `fontConvert.apply({debug: true}, [a, b, c])`. A detached call: §5.4. | `fontConvert` |
 | C17 | Zawgyi and Win to Unicode (storageOrder.js:462-485). Debug object `{to: 'unicode', from, matched_patterns, steps}` with the stage names of §2.3. `'glyphs'` appears only when debugging. | core `fontToUnicode`, `traceFontToUnicode` |
-| C18 | Unicode to Zawgyi (converter.js:57-58; syllable.js:301-327): the Unicode mark collapse, then 57 once rows and 8 repeat rows of at most 40 passes. Debug object `{to: 'zawgyi', from: 'unicode', matched_patterns: labels, steps: [collapsed text, …]}` (§3.9). | core `unicodeToZawgyi`, `traceUnicodeToZawgyi` |
+| C18 | Unicode to Zawgyi (converter.js:57-58; syllable.js:301-327): the Unicode mark collapse, then 58 once rows (2.10's 57 and 2.11's row for stacked jha) and 8 repeat rows of at most 40 passes. Debug object `{to: 'zawgyi', from: 'unicode', matched_patterns: labels, steps: [collapsed text, …]}` (§3.9). | core `unicodeToZawgyi`, `traceUnicodeToZawgyi` |
 | C19 | `debugging` returns what `fontConvert` returns on every early exit: strings, `''`, non-strings (§10 Q3) | the same flow |
 | C20 | `syllBreak`'s separator (syllable.js:272-275): a falsy separator, or U+200B, means U+200B. Anything else is converted as `Array#join` converts it: `toString` before `valueOf`, and a Symbol throws a TypeError. | `toJoinSeparator(value)` = `['', ''].join(value)`, called after the rule-table lookup, as in 2.x |
 | C21 | The break output: Unicode rows U1-U7; Zawgyi rows Z1-Z8, with row Z6 off for text that `looksLikeSgawKaren`; bare consonants joined only in pairs (§10 Q11); no break at the start | core `breakString`, `breakParts` |
@@ -1892,7 +1892,7 @@ W8 compat              after all of them; its option, input and legacy files nee
 - **Owns:** `src/rules/unicodeToZawgyi.js`, `test/next/unicodeToZawgyi.test.mjs`.
 - **May assume:** W0, W1 (rows, traces), W3 (`collapseRepeatedMarks`).
 - **Done:**
-  - There are 57 once rows and 8 repeat rows, in 2.x order. For each row: `ruleLabel(row)` equals the 2.x `RegExp#source`; `to` equals the 2.x replacement; the flag is `g`; `repeat` is right; and `re` is the 2.x literal, or for the six rows of §3.9 its wrapped-first-unit form. Only those six rows have a `label`.
+  - There are 57 once rows and 8 repeat rows, in 2.x order (58 once rows since the port of 2.11's row for stacked jha, §8). For each row: `ruleLabel(row)` equals the 2.x `RegExp#source`; `to` equals the 2.x replacement; the flag is `g`; `repeat` is right; and `re` is the 2.x literal, or for the six rows of §3.9 its wrapped-first-unit form. Only those six rows have a `label`.
   - Each row sits in its section array, under a `why` comment, and the test table has an example for each id (D17).
   - The atom lint passes.
   - Every repeat row's matches change the text (§3.9).

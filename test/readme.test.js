@@ -18,7 +18,7 @@ const LIBRARIES = {
 // The number of examples in each file is pinned, so an example the reader stops seeing fails here. When you add or
 // remove an example, change its count.
 const FILES = {
-  'README.md': { knayi: 61, compat: 1 },
+  'README.md': { knayi: 62, compat: 1 },
   'MIGRATION.md': { knayi: 26, compat: 72 },
   'ARCHITECTURE.md': { knayi: 0, compat: 11 },
   'src/compat/index.d.ts': { knayi: 0, compat: 24 }

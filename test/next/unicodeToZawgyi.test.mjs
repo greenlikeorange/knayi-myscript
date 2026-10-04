@@ -14,7 +14,7 @@ import {
 } from '../../src/core/rules.js';
 import { collapseRepeatedMarks } from '../../src/rules/segment.js';
 import { ZAWGYI_GLYPHS } from '../../src/fonts/zawgyi.js';
-import { pendingPort, srcText, tableProbes } from './helpers.mjs';
+import { srcText, tableProbes } from './helpers.mjs';
 import {
   TWO_X_ROWS, TWO_X_PROBE_IDS, twoXUnicodeToZawgyi, twoXDebugLog, traceAsDebugLog, asFontConvert
 } from './unicodeToZawgyi.oracle.mjs';
@@ -24,7 +24,7 @@ const ROWS = UNICODE_TO_ZAWGYI_RULES;
 // The sections in the order they run, with the id prefix and the row count of each (DESIGN.md §3.9).
 const SECTIONS = [
   ['SHAPES_IN_CONTEXT', 'shapes', 5], ['KINZI', 'kinzi', 5], ['VISUAL_ORDER', 'order', 5],
-  ['SMALL_LETTERS', 'small', 3], ['GLYPHS', 'glyphs', 38], ['NARROW_TA', 'narrow-ta', 1],
+  ['SMALL_LETTERS', 'small', 3], ['GLYPHS', 'glyphs', 39], ['NARROW_TA', 'narrow-ta', 1],
   ['MEDIAL_RA_SHAPES', 'medial-ra', 8]
 ];
 
@@ -88,25 +88,27 @@ const EXAMPLES = [
   // majjhima, typed with ca and medial ya for jha
   ['uz.glyphs.23', '\u1019\u1007\u1039\u1005\u103B\u102D\u1019',
     '\u1019\u1007\u1069\u102D\u1019'],
-  ['uz.glyphs.24', '\u101D\u102D\u1007\u1039\u1007\u102C', '\u101D\u102D\u1007\u1068\u102C'], // wizza, science
-  ['uz.glyphs.25', '\u1019\u102D\u1005\u1039\u1006\u102C', '\u1019\u102D\u1005\u1066\u102C'], // meiksa, wrong view
+  // majjhima, typed with jha: 2.11's row (2.x 05de555)
+  ['uz.glyphs.24', '\u1019\u1007\u1039\u1008\u102D\u1019', '\u1019\u1007\u1069\u102D\u1019'],
+  ['uz.glyphs.25', '\u101D\u102D\u1007\u1039\u1007\u102C', '\u101D\u102D\u1007\u1068\u102C'], // wizza, science
+  ['uz.glyphs.26', '\u1019\u102D\u1005\u1039\u1006\u102C', '\u1019\u102D\u1005\u1066\u102C'], // meiksa, wrong view
   // pyissi, thing
-  ['uz.glyphs.26', '\u1015\u1005\u1039\u1005\u100A\u103A\u1038',
+  ['uz.glyphs.27', '\u1015\u1005\u1039\u1005\u100A\u103A\u1038',
     '\u1015\u1005\u1065\u100A\u1039\u1038'],
-  ['uz.glyphs.27', '\u1021\u1002\u1039\u1003', '\u1021\u1002\u1063'], // aggha, price (Pali)
+  ['uz.glyphs.28', '\u1021\u1002\u1039\u1003', '\u1021\u1002\u1063'], // aggha, price (Pali)
   // magazine
-  ['uz.glyphs.28', '\u1019\u1002\u1039\u1002\u1007\u1004\u103A\u1038',
+  ['uz.glyphs.29', '\u1019\u1002\u1039\u1002\u1007\u1004\u103A\u1038',
     '\u1019\u1002\u1062\u1007\u1004\u1039\u1038'],
-  ['uz.glyphs.29', '\u1012\u102F\u1000\u1039\u1001', '\u1012\u102F\u1000\u1061'], // dukkha, suffering
-  ['uz.glyphs.30', '\u1019\u103D\u103E\u1031\u1038', '\u1031\u1019\u108A\u1038'], // hmwe, fragrant
-  ['uz.glyphs.31', '\u1019\u103E\u1030\u1038', '\u1019\u1089\u1038'], // hmu, chief
-  ['uz.glyphs.32', '\u1005\u1000\u1039\u1000\u1030', '\u1005\u1000\u1060\u1034'], // sekku, paper
-  ['uz.glyphs.33', '\u1019\u103E\u102F', '\u1019\u1088'], // hmu, affair
-  ['uz.glyphs.34', '\u1019\u1004\u103A', '\u1019\u1004\u1039'], // min, king
-  ['uz.glyphs.35', '\u1000\u103B\u102C\u1038', '\u1000\u103A\u102C\u1038'], // kya, tiger
-  ['uz.glyphs.36', '\u1015\u103C', '\u103B\u1015'], // pya, to show
-  ['uz.glyphs.37', '\u1000\u103D\u102C', '\u1000\u103C\u102C'], // kwa, to differ
-  ['uz.glyphs.38', '\u1019\u103E\u102C', '\u1019\u103D\u102C'], // hma, at
+  ['uz.glyphs.30', '\u1012\u102F\u1000\u1039\u1001', '\u1012\u102F\u1000\u1061'], // dukkha, suffering
+  ['uz.glyphs.31', '\u1019\u103D\u103E\u1031\u1038', '\u1031\u1019\u108A\u1038'], // hmwe, fragrant
+  ['uz.glyphs.32', '\u1019\u103E\u1030\u1038', '\u1019\u1089\u1038'], // hmu, chief
+  ['uz.glyphs.33', '\u1005\u1000\u1039\u1000\u1030', '\u1005\u1000\u1060\u1034'], // sekku, paper
+  ['uz.glyphs.34', '\u1019\u103E\u102F', '\u1019\u1088'], // hmu, affair
+  ['uz.glyphs.35', '\u1019\u1004\u103A', '\u1019\u1004\u1039'], // min, king
+  ['uz.glyphs.36', '\u1000\u103B\u102C\u1038', '\u1000\u103A\u102C\u1038'], // kya, tiger
+  ['uz.glyphs.37', '\u1015\u103C', '\u103B\u1015'], // pya, to show
+  ['uz.glyphs.38', '\u1000\u103D\u102C', '\u1000\u103C\u102C'], // kwa, to differ
+  ['uz.glyphs.39', '\u1019\u103E\u102C', '\u1019\u103D\u102C'], // hma, at
   ['uz.narrow-ta.1', '\u101E\u1014\u1039\u1010\u102C', '\u101E\u108F\u1072\u102C'], // thanda, coral
   ['uz.medial-ra.1', '\u1000\u103C\u102C\u1038', '\u107E\u1000\u102C\u1038'], // kya, to hear
   ['uz.medial-ra.2', '\u1015\u103C\u103D\u102D', '\u1083\u1015\u103C\u102D'], // synthetic: pa with medial ra, wa and i
@@ -171,12 +173,12 @@ const textOf = (source) => String.fromCharCode(...literalUnits(source));
 const STACK_ON_STACK = /\u1039[\s\S]\u1039/;
 
 describe('the Unicode to Zawgyi rows (DESIGN.md §7.9)', () => {
-  it('are 57 rows applied once, then 8 repeat rows, as 2.x has them', () => {
-    assert.equal(ROWS.length, 65);
-    assert.equal(TWO_X_ROWS.length, 65);
+  it('are 58 rows applied once, then 8 repeat rows, as 2.11 has them', () => {
+    assert.equal(ROWS.length, 66);
+    assert.equal(TWO_X_ROWS.length, 66);
     assert.deepEqual(ROWS.map((row) => row.repeat), TWO_X_ROWS.map((two) => two.repeat));
-    assert.equal(ROWS.filter((row) => !row.repeat).length, 57);
-    assert.ok(ROWS.slice(57).every((row) => row.repeat), 'the repeat rows come last');
+    assert.equal(ROWS.filter((row) => !row.repeat).length, 58);
+    assert.ok(ROWS.slice(58).every((row) => row.repeat), 'the repeat rows come last');
   });
 
   it('each row is its 2.x rule: label, replacement, flags and pattern', () => {
@@ -319,8 +321,8 @@ describe('the rows read from the Zawgyi glyph table (DESIGN.md §3.9)', () => {
 
   it('are the 2.x rows of one fixed text whose glyph is the table\'s for that text, and only those', () => {
     const inverse = LITERAL_ROWS.filter(([, text, to]) => tableGlyph(text) === to).map(([id]) => id);
-    assert.equal(LITERAL_ROWS.length, 42);
-    assert.equal(inverse.length, 38);
+    assert.equal(LITERAL_ROWS.length, 43);
+    assert.equal(inverse.length, 39);
     assert.deepEqual(READ_FROM_TABLE, inverse);
   });
 
@@ -511,9 +513,9 @@ describe('the table probes (test/fixtures/tables.json)', () => {
     for (const probeId of TWO_X_PROBE_IDS) assert.ok(probes[probeId], 'no probe ' + probeId);
   });
 
-  // The probes are the 2.x reference's: 2.11 added a row for stacked jha (05de555) as 'oneTime 41', and numbers the
-  // rows after it one higher than the 2.10 rows of the oracle. The core's rows and this map follow with its port.
-  it('give 2.x\'s output, and fire the rows 2.x fired, through the 2.x call form', pendingPort('05de555', () => {
+  // The probes are the 2.x reference's, numbered as 2.11 numbers its rules: its row for stacked jha (05de555) is
+  // 'oneTime 41', and the rows after it are one higher than in 2.10, as the oracle's rows and the core's are.
+  it('give 2.x\'s output, and fire the rows 2.x fired, through the 2.x call form', () => {
     for (const probeId of TWO_X_PROBE_IDS) {
       const entry = probes[probeId];
       for (const { probe, expect } of [entry].concat(entry.edges || [])) {
@@ -523,7 +525,7 @@ describe('the table probes (test/fixtures/tables.json)', () => {
           probeId + ' on ' + codes(probe));
       }
     }
-  }));
+  });
 });
 
 describe('unicodeToZawgyi and traceUnicodeToZawgyi (DESIGN.md §2.3, §3.9)', () => {
@@ -551,7 +553,7 @@ describe('unicodeToZawgyi and traceUnicodeToZawgyi (DESIGN.md §2.3, §3.9)', ()
         id: 'uz.order.1', label: '([\\u1000-\\u1021][^\\u1000-\\u1021]*)([\\u103c\\u1082])',
         text: '\u103C\u1000\u102C'
       },
-      { id: 'uz.glyphs.36', label: '\\u103c', text: '\u103B\u1000\u102C' },
+      { id: 'uz.glyphs.37', label: '\\u103c', text: '\u103B\u1000\u102C' },
       { id: 'uz.medial-ra.1', label: '\\u103b([\\u1000\\u1003\\u1006\\u100f\\u1010\\u1011\\u1018\\u1021\\u101a' +
         '\\u101c\\u101e\\u101f])', text: '\u107E\u1000\u102C' }
     ]);

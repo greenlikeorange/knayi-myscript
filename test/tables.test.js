@@ -22,7 +22,7 @@ const UPDATE = 'node scripts/testing/table-cases.js --write';
 
 // The rows and cases are those of the 2.x reference (scripts/testing/rows.js). A row of a 2.x change compat does not
 // have yet waits for its port (scripts/testing/pending-port.js).
-const PENDING_ROWS = { 'unicode-to-zawgyi oneTime 41': '05de555' };
+const PENDING_ROWS = {};
 
 const tables = [];
 for (const row of rows) {
