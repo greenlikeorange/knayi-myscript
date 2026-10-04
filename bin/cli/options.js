@@ -40,10 +40,11 @@ const DETECTORS = Object.freeze(['rules', 'myanmar-tools']);
 
 // The options only some commands take: for each, the commands that take it, with the values each one accepts. The
 // values are the 3.0 API's: to-unicode's from and tie (toUnicode), segment's from and bare-consonants
-// (segmentSyllables' from and bareConsonants). to-zawgyi reads Unicode, or Zawgyi, which it copies as it is.
+// (segmentSyllables' from and bareConsonants), check's from (explain's). to-zawgyi reads Unicode, or Zawgyi, which
+// it copies as it is.
 const COMMAND_CHOICES = Object.freeze({
   from: { 'to-unicode': ['unicode', 'zawgyi', 'win'], 'to-zawgyi': ['unicode', 'zawgyi'],
-    segment: ['unicode', 'zawgyi'] },
+    segment: ['unicode', 'zawgyi'], check: ['unicode', 'zawgyi'] },
   tie: { 'to-unicode': ['unicode', 'zawgyi'] },
   detector: { 'to-unicode': DETECTORS, detect: DETECTORS, check: DETECTORS },
   'bare-consonants': { segment: ['separate', 'chains', 'pairs'] },

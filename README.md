@@ -185,7 +185,7 @@ It does not tell Zawgyi from Unicode; [explain](#explaintext-options) and [detec
 
 ### explain(text, options)
 
-Lists what is wrong with a text, for checking the output of a language model or auditing a corpus. It reads the text line by line. A line that reads as Zawgyi, as `detectEncoding` reads it, is one issue, whose fix is the line in Unicode. In every other line, each thing `normalize` would change is an issue. Issues come in order of `start`, each as `{ kind, rule, start, end, text, fix }`: `text.slice(start, end)` is `text`, and `fix` is what belongs there.
+Lists what is wrong with a text, for checking the output of a language model or auditing a corpus. It reads the text line by line. A line that reads as Zawgyi, as `detectEncoding` reads it, is one issue, whose fix is the line in Unicode; `from` says what the text is instead. In every other line, each thing `normalize` would change is an issue. Issues come in order of `start`, each as `{ kind, rule, start, end, text, fix }`: `text.slice(start, end)` is `text`, and `fix` is what belongs there.
 
 ```javascript
 knayi.explain('ယောကျ်ား') // [{ kind: 'order', rule: 'order.marks', start: 3, end: 8, text: 'ကျ်ား', fix: 'က်ျား' }]
@@ -194,6 +194,8 @@ knayi.explain('ယောကျ်ား\nေကာင္း ေမာင္')
 knayi.explain('ဘ၀ ၄ဝဝ')
 // [{ kind: 'look-alike', rule: 'look-alike.zero-as-wa', start: 1, end: 2, text: '၀', fix: 'ဝ' }, { kind: 'look-alike', rule: 'look-alike.wa-as-zero', start: 4, end: 5, text: 'ဝ', fix: '၀' }, { kind: 'look-alike', rule: 'look-alike.wa-as-zero', start: 5, end: 6, text: 'ဝ', fix: '၀' }]
 knayi.explain('မြန်မာ') // []
+knayi.explain('ကၤၢ်') // [{ kind: 'zawgyi', rule: 'encoding.zawgyi', start: 0, end: 4, text: 'ကၤၢ်', fix: 'င်္က္ဂျ' }]  (S'gaw Karen, read as Zawgyi)
+knayi.explain('ကၤၢ်', { from: 'unicode' }) // []
 ```
 
 | Rule | Kind | What it names |
@@ -209,7 +211,10 @@ knayi.explain('မြန်မာ') // []
 | `typo.ii`, `typo.uu`, `typo.au`, `typo.lagaung` | `typo` | ိ with ီ, ု with ူ, ဩ with ော် for ဪ, and ၄ before င်း for ၎ |
 | `nfc.order` | `nfc` | what NFC puts in canonical order or composes |
 
-Outside the Zawgyi lines, the fixes written over their spans give `normalize`'s result, so explain names exactly what normalize changes; the tests check this on fuzzed text and on every line of FLORES, Wikipedia and Okell that does not read as Zawgyi. `options.zawgyiDetector` and `options.thresholds` are those of [detectEncoding](#detectencodingtext-options).
+Outside the Zawgyi lines, the fixes written over their spans give `normalize`'s result, so explain names exactly what normalize changes; the tests check this on fuzzed text and on every line of FLORES, Wikipedia and Okell that does not read as Zawgyi.
+
+- **`from`**, the text's encoding, is `'unicode'` or `'zawgyi'`; not given, each line is detected. `'unicode'` reads no line as Zawgyi, so every line gets `normalize`'s issues; `'zawgyi'` makes every line with a Myanmar character one `encoding.zawgyi` issue. Pass `from: 'unicode'` for text you know is Unicode, above all in other languages of the script: S'gaw Karen's tone mark ၤ is Zawgyi's kinzi to the detector, so with no `from`, 493 of the 673 S'gaw Karen lines of the GlotCC sample read as Zawgyi, and so do 13 Mon and 9 Shan lines, each with a fix, the Zawgyi conversion, that would corrupt it.
+- **`zawgyiDetector`** and **`thresholds`** are those of [detectEncoding](#detectencodingtext-options), for the lines it detects.
 
 ### detectEncoding(text, options)
 
@@ -522,7 +527,7 @@ knayi --version
 
 | Option | Commands | Meaning |
 | --- | --- | --- |
-| `--from <encoding>` | `to-unicode`: `unicode`, `zawgyi` or `win`. `to-zawgyi`, `segment`: `unicode` or `zawgyi`. | The encoding of the input text. Default: detect each line (`to-unicode`), `unicode` (the others). |
+| `--from <encoding>` | `to-unicode`: `unicode`, `zawgyi` or `win`. `to-zawgyi`, `segment`, `check`: `unicode` or `zawgyi`. | The encoding of the input text. Default: detect each line (`to-unicode`, `check`), `unicode` (the others). `check --from unicode` reads no line as Zawgyi, as `explain`'s `from: 'unicode'`. |
 | `--to <encoding>` | `convert` | `unicode` or `zawgyi`. |
 | `--tie <reading>` | `to-unicode` | How a line whose evidence ties is read: `unicode` (left as it is, the default) or `zawgyi`, as 2.x did. |
 | `--detector <name>` | `to-unicode`, `detect`, `check` | `rules` (the default) or `myanmar-tools`, Google's detector, which must be installed next to knayi-myscript (`npm install myanmar-tools@1.1.3`). |

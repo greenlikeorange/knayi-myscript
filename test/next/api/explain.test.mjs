@@ -101,6 +101,24 @@ describe('explain, one issue per thing normalize changes (DESIGN.md §11.8)', ()
       .indexOf('zawgyi'), -1);
   });
 
+  it('takes the text\'s encoding as `from`: \'unicode\' reads no line as Zawgyi, \'zawgyi\' every Myanmar line', () => {
+    const zawgyi = '\u1031\u1000\u102C\u1004\u1039\u1038 \u1031\u1019\u102C\u1004\u1039';
+    const unicode = CONTEXT + '\u1000\u102F\u102D';
+    const text = zawgyi + '\nabc\n' + unicode;
+    assert.deepEqual(explain(text).map((issue) => issue.rule), ['encoding.zawgyi', 'order.marks']);
+    // Read as Unicode, the Zawgyi line gets normalize's issues instead, and the text's fixes are normalize's result.
+    const asUnicode = explain(text, { from: 'unicode' });
+    assert.equal(asUnicode.filter((issue) => issue.kind === 'zawgyi').length, 0);
+    assert.equal(applyFixes(text, asUnicode), normalize(text));
+    // Read as Zawgyi, every line with a Myanmar-block character is one issue, and a line with none is not.
+    const asZawgyi = explain(text, { from: 'zawgyi' });
+    assert.deepEqual(asZawgyi.map((issue) => [issue.rule, issue.start]),
+      [['encoding.zawgyi', 0], ['encoding.zawgyi', zawgyi.length + 5]]);
+    assert.equal(asZawgyi[1].fix, fontToUnicode(unicode, 'zawgyi'));
+    assert.throws(() => explain('a', { from: 'win' }), { name: 'RangeError', code: 'ERR_KNAYI_INVALID_ARG_VALUE' });
+    assert.throws(() => explain('a', { from: 1 }), { name: 'TypeError', code: 'ERR_KNAYI_INVALID_ARG_TYPE' });
+  });
+
   it('throws coded errors for bad arguments, and is map-safe', () => {
     assert.throws(() => explain(1), { name: 'TypeError', code: 'ERR_KNAYI_INVALID_ARG_TYPE' });
     assert.throws(() => explain('a', 'x'), { name: 'TypeError', code: 'ERR_KNAYI_INVALID_ARG_TYPE' });
@@ -147,5 +165,26 @@ describe('explain covers exactly what normalize changes', () => {
       }
     }
     t.diagnostic(lines + ' lines, ' + issues + ' issues');
+  });
+
+  // The lines of each corpus that explain reads as Zawgyi with no `from`: every one is Unicode. S'gaw Karen's tone
+  // mark U+1064 is Zawgyi's kinzi to the detector (DESIGN.md §11.5), so those lines got one issue whose fix, the
+  // Zawgyi conversion, corrupts them. With from: 'unicode', none does, and the fixes give normalize's result.
+  const READ_AS_ZAWGYI = { ksw: 493, mnw: 13, shn: 9 };
+
+  it('reads no line of S\'gaw Karen, Mon or Shan as Zawgyi with from: \'unicode\'', async (t) => {
+    const corpora = await cachedCorpora();
+    if (corpora.skip) return t.skip(corpora.skip);
+    const counts = {};
+    for (const id of Object.keys(READ_AS_ZAWGYI)) {
+      counts[id] = 0;
+      for (const line of corpora.sets[id]) {
+        if (explain(line).some((issue) => issue.rule === 'encoding.zawgyi')) counts[id]++;
+        const found = explain(line, { from: 'unicode' });
+        assert.ok(found.every((issue) => issue.kind !== 'zawgyi'), id + ': ' + units(line));
+        assert.equal(applyFixes(line, found), normalize(line), id + ': ' + units(line));
+      }
+    }
+    assert.deepEqual(counts, READ_AS_ZAWGYI);
   });
 });

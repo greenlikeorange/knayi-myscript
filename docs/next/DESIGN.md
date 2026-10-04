@@ -2042,7 +2042,7 @@ compat must give the reference's output on every input (§1.2 rule 1), so the co
 |---|---|---|
 | `normalize(text, {report, trace})` | the text in UTN #11 storage order, typing slips and look-alikes fixed, NFC; idempotent. With `report: true`, `{text, changes}` | 11.2, 11.3 |
 | `isNormalized(text)` | whether `normalize` keeps the text | 11.8 |
-| `explain(text, {zawgyiDetector, thresholds})` | the issues: Zawgyi lines, and each thing `normalize` changes, with offsets, rule ids and fixes | 11.8 |
+| `explain(text, {from, zawgyiDetector, thresholds})` | the issues: Zawgyi lines, and each thing `normalize` changes, with offsets, rule ids and fixes | 11.8 |
 | `detectEncoding(text, {zawgyiDetector, thresholds})` | `{encoding: 'unicode' \| 'zawgyi' \| 'unknown' \| 'none', unicode, zawgyi}`, and `zawgyiProbability` with a detector | 11.5 |
 | `toUnicode(text, {from, tie, trace, offsets, zawgyiDetector, thresholds})` | the text in Unicode; with `offsets: true`, `{text, offsets}` | 11.5 |
 | `toZawgyi(text, {trace})` | Unicode text in Zawgyi | 11.5 |
@@ -2167,7 +2167,7 @@ The counts, recounted through the API on the cached corpora (distinct lines with
 
 `isNormalized(text)` is `normalize(text) === text`. It does not tell Zawgyi from Unicode.
 
-`explain(text)` reads the text line by line. A line that reads as Zawgyi (as `detectEncoding` reads it, with the same detector options) is one issue, from its first character to its last that is not white space, whose fix is the line in Unicode. In every other line, each stage of each pass of `normalize` runs with a log, each of its edits is carried back to the line and named, and each issue takes the span and the fix of the change of `normalize`'s report that holds it. An issue is `{kind, rule, start, end, text, fix}`, by start:
+`explain(text)` reads the text line by line. A line in Zawgyi is one issue, from its first character to its last that is not white space, whose fix is the line in Unicode. Each line is detected (as `detectEncoding` reads it, with the same detector options), unless `from` says what the text is, as `toUnicode`'s does: with `'unicode'` no line is Zawgyi, and with `'zawgyi'` every line with a Myanmar-block character is, a line with none having nothing to convert. As first built, `explain` always detected, so a text the caller knew was Unicode could not say so: 493 of the 673 cached S'gaw Karen lines (U+1064, its tone mark, is Zawgyi's kinzi to the detector, §11.5), 13 Mon and 9 Shan lines came back as one `encoding.zawgyi` issue each, whose fix corrupts the line, and with none of `normalize`'s issues. With `from: 'unicode'` they have no Zawgyi issue, and their fixes give `normalize`'s result (`explain.test.mjs` recounts both on the cache). The command line's `check` takes `--from unicode` and `--from zawgyi` too. In every other line, each stage of each pass of `normalize` runs with a log, each of its edits is carried back to the line and named, and each issue takes the span and the fix of the change of `normalize`'s report that holds it. An issue is `{kind, rule, start, end, text, fix}`, by start:
 
 | Rule | Kind | What it names |
 |---|---|---|

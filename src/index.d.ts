@@ -160,10 +160,19 @@ export interface Issue {
   fix: string;
 }
 
+export interface ExplainOptions extends DetectorOptions {
+  /**
+   * The text's encoding. Not given: each line is detected, and one that reads as Zawgyi is one issue. 'unicode'
+   * reads no line as Zawgyi: pass it for text known to be Unicode, since S'gaw Karen, and some Mon and Shan, reads as
+   * Zawgyi. 'zawgyi': every line with a character of U+1000-U+109F is one issue.
+   */
+  from?: 'unicode' | 'zawgyi' | null;
+}
+
 /**
- * The issues of a text, by start: lines that read as Zawgyi, and in the other lines each thing normalize changes.
+ * The issues of a text, by start: lines in Zawgyi, and in the other lines each thing normalize changes.
  */
-export declare function explain(text: string, options?: DetectorOptions | number | null): Issue[];
+export declare function explain(text: string, options?: ExplainOptions | number | null): Issue[];
 
 // ---------------------------------------------------------------------------------------------------------------
 // toUnicode and toZawgyi

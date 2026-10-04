@@ -111,6 +111,16 @@ describe('knayi check', () => {
     assert.deepEqual(spawnKnayi(['check'], { input: UNICODE + '\nabc\n' }), { status: 0, stdout: '', stderr: '' });
     assert.match(spawnKnayi(['check'], { input: ZAWGYI }).stdout, /^<stdin>:1:1: encoding\.zawgyi: /);
   });
+
+  it('takes --from: unicode reads no line as Zawgyi, as explain does with from: \'unicode\'', () => {
+    // S'gaw Karen's tone mark U+1064 reads as Zawgyi's kinzi: the line is Unicode, and has no issue.
+    const karen = '\u1000\u1064\u1062\u103A';
+    assert.match(spawnKnayi(['check'], { input: karen }).stdout, /^<stdin>:1:1: encoding\.zawgyi: /);
+    assert.deepEqual(spawnKnayi(['check', '--from', 'unicode'], { input: karen + '\n' }),
+      { status: 0, stdout: '', stderr: '' });
+    assert.equal(spawnKnayi(['check', '--from', 'zawgyi'], { input: UNICODE + '\nabc\n' }).status, 1);
+    assert.equal(spawnKnayi(['check', '--from', 'win'], { input: 'abc' }).status, 2);
+  });
 });
 
 describe('knayi line breaks and inputs', () => {

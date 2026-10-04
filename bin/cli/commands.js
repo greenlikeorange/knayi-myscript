@@ -24,7 +24,7 @@ export function createCommand(name, settings, zawgyiDetector) {
     case 'to-zawgyi': return toZawgyiCommand(settings);
     case 'detect': return detectCommand(zawgyiDetector);
     case 'segment': return segmentCommand(settings);
-    case 'check': return checkCommand(zawgyiDetector);
+    case 'check': return checkCommand(settings, zawgyiDetector);
     default: throw new Error('knayi: no command ' + name); // options.js lets no other name through
   }
 }
@@ -113,8 +113,9 @@ function segmentCommand(settings) {
 // strings do. The two differ only after a character above U+FFFF, such as an emoji. With --jsonl, each record gets
 // its issues, whose start and end count characters too.
 
-function checkCommand(zawgyiDetector) {
-  const options = Object.freeze({ zawgyiDetector: zawgyiDetector });
+// explain with --from, or with each line detected (--detector) when --from is not given.
+function checkCommand(settings, zawgyiDetector) {
+  const options = Object.freeze({ from: settings.from, zawgyiDetector: zawgyiDetector });
   return Object.freeze({
     run: (text) => explain(text, options),
     writesLines: false,

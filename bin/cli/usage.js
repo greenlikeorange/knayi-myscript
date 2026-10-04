@@ -25,6 +25,7 @@ Options:
   --from <encoding>      the encoding of the text: unicode, zawgyi or win for
                          to-unicode (default: detect each line); unicode or
                          zawgyi for to-zawgyi and segment (default: unicode)
+                         and for check (default: detect each line)
   --to <encoding>        convert: unicode or zawgyi
   --tie <reading>        to-unicode: how a line whose evidence ties is read,
                          unicode (left as it is; the default) or zawgyi

@@ -17,7 +17,7 @@ const same = (line) => line;
 // Each function of the API and of the streams, called with an options object, and the keys it takes.
 const CALLS = {
   normalize: [(options) => knayi.normalize(KA, options), ['report', 'trace']],
-  explain: [(options) => knayi.explain(KA, options), ['zawgyiDetector', 'thresholds']],
+  explain: [(options) => knayi.explain(KA, options), ['from', 'zawgyiDetector', 'thresholds']],
   detectEncoding: [(options) => knayi.detectEncoding(KA, options), ['zawgyiDetector', 'thresholds']],
   toUnicode: [(options) => knayi.toUnicode(KA, options),
     ['from', 'tie', 'trace', 'offsets', 'zawgyiDetector', 'thresholds']],

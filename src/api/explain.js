@@ -4,7 +4,9 @@
 // explain(text) lists what is wrong with a Unicode Burmese text, as a checker of LLM output or a corpus audit needs
 // it: each issue with its offsets in the text, a stable rule id, and the text normalize writes there. It reads the
 // text line by line:
-// - a line the detector reads as Zawgyi is one issue, 'encoding.zawgyi', whose fix is the line in Unicode;
+// - a line in Zawgyi is one issue, 'encoding.zawgyi', whose fix is the line in Unicode. Each line is detected, unless
+//   options.from says what the text is: 'unicode' reads no line as Zawgyi, and 'zawgyi' every line with a
+//   Myanmar-block character, as toUnicode reads `from` (DESIGN.md §11.8);
 // - every other line gets one issue for each thing normalize changes in it: typing order, repeated marks, slips,
 //   look-alike letters and digits, typos and NFC. These come from the edits each stage of each pass of normalize
 //   records (DESIGN.md §11.3), carried back to the input and named by what the stage changed.
@@ -14,18 +16,26 @@ import { EditLog, composeEdits } from '../core/edits.js';
 import {
   STABLE_NORMALIZE_STAGES, STABLE_NORMALIZE_LOGGED_RUNS, MOST_NORMALIZE_PASSES
 } from '../stages/normalize.js';
+import { hasMyanmarBlockChar } from '../core/input.js';
 import { fontToUnicode } from '../stages/fonts.js';
-import { requireString, readOptions } from './args.js';
-import { DETECTOR_OPTIONS, readDetector, encodingOf } from './encoding.js';
+import { requireString, readOptions, readChoice } from './args.js';
+import { readDetector, encodingOf } from './encoding.js';
 
 /** @typedef {import('../index.js').Issue} Issue */
 /** @typedef {import('../index.js').IssueKind} IssueKind */
 /** @typedef {import('../index.js').IssueRule} IssueRule */
-/** @typedef {import('../index.js').DetectorOptions} DetectorOptions */
+/** @typedef {import('../index.js').ExplainOptions} ExplainOptions */
 /** @typedef {import('./encoding.js').Detector} Detector */
+/** @typedef {{ from: 'unicode' | 'zawgyi' | null, detector: Detector }} Reading what a line is read as */
 /** @typedef {import('../core/edits.js').Edit} Edit */
 /** @typedef {{ rule: IssueRule, start: number, end: number }} NamedEdit an edit of a stage, named, in the line */
 /** @typedef {{ units: Int32Array, spaces: number }} Census how many of each unit a text holds (unitCensus) */
+
+// The options of explain (api/args.js readOptions refuses any other key), and the encodings `from` names.
+/** @type {readonly string[]} */
+const EXPLAIN_OPTIONS = /* @__PURE__ */ deepFreeze(['from', 'zawgyiDetector', 'thresholds']);
+/** @type {readonly ('unicode' | 'zawgyi')[]} */
+const ENCODINGS = /* @__PURE__ */ deepFreeze(['unicode', 'zawgyi']);
 
 // What each rule is about: 'zawgyi', 'order', 'mark', 'look-alike', 'typo' or 'nfc', by the rule's first part.
 /** @type {Readonly<Record<string, IssueKind>>} */
@@ -46,21 +56,28 @@ const LOOK_ALIKE_LETTERS = /* @__PURE__ */ deepFreeze([[0x1025, 0x1009, 'look-al
 
 // explain(text, options?): the issues of the text, by where they start. Each is { kind, rule, start, end, text, fix }:
 // text[start, end), which is `text`, has the issue, and normalize writes `fix` there (toUnicode, for a Zawgyi line).
-// options.zawgyiDetector and options.thresholds are those of detectEncoding.
+//   from                        the text's encoding, 'unicode' or 'zawgyi'. Not given: each line is detected.
+//   zawgyiDetector, thresholds  those of detectEncoding, for the lines it detects.
+// A text known to be Unicode should say so: S'gaw Karen, and some Mon and Shan, reads as Zawgyi (DESIGN.md §11.5).
 /**
  * @param {string} text
- * @param {DetectorOptions | number | null} [options]
+ * @param {ExplainOptions | number | null} [options]
  * @returns {Issue[]}
  */
 export function explain(text, options) {
   requireString('explain', 'text', text);
-  const detector = readDetector('explain', readOptions('explain', options, DETECTOR_OPTIONS));
+  const settings = readOptions('explain', options, EXPLAIN_OPTIONS);
+  /** @type {Reading} */
+  const reading = {
+    from: readChoice('explain', settings, 'from', ENCODINGS, null),
+    detector: readDetector('explain', settings)
+  };
   /** @type {Issue[]} */
   const issues = [];
   for (let start = 0; start <= text.length;) {
     let end = text.indexOf('\n', start);
     if (end === -1) end = text.length;
-    explainLine(text.slice(start, end), start, detector, issues);
+    explainLine(text.slice(start, end), start, reading, issues);
     start = end + 1;
   }
   return issues;
@@ -70,13 +87,12 @@ export function explain(text, options) {
 /**
  * @param {string} line
  * @param {number} offset
- * @param {Detector} detector
+ * @param {Reading} reading
  * @param {Issue[]} issues
  */
-function explainLine(line, offset, detector, issues) {
+function explainLine(line, offset, reading, issues) {
   if (line === '') return;
-  const read = encodingOf(line, detector);
-  if (read.encoding === 'zawgyi') {
+  if (isZawgyiLine(line, reading)) {
     issues.push(zawgyiIssue(line, offset));
     return;
   }
@@ -87,6 +103,18 @@ function explainLine(line, offset, detector, issues) {
     issue.end += offset;
     issues.push(issue);
   }
+}
+
+// Whether a line is in Zawgyi: as `from` says, a line with a Myanmar-block character for 'zawgyi' (a line with
+// none has nothing to convert); else as the detector reads it.
+/**
+ * @param {string} line
+ * @param {Reading} reading
+ * @returns {boolean}
+ */
+function isZawgyiLine(line, reading) {
+  if (reading.from !== null) return reading.from === 'zawgyi' && hasMyanmarBlockChar(line);
+  return encodingOf(line, reading.detector).encoding === 'zawgyi';
 }
 
 // A line in Zawgyi: the span from its first character to its last that is not white space. The end comes from trim

@@ -55,6 +55,9 @@ const kinds: IssueKind[] = issues.map((issue) => issue.kind);
 const fixes: string[] = issues.map((issue) => issue.fix);
 // @ts-expect-error: explain takes no report
 explain(lines[0], { report: true });
+const unicodeIssues: Issue[] = explain(lines[0], { from: 'unicode' });
+// @ts-expect-error: explain reads Unicode or Zawgyi, not Win
+explain(lines[0], { from: 'win' });
 
 // toUnicode: a string, or { text, offsets } with { offsets: true }; toZawgyi
 import { toUnicode, toZawgyi } from '../../src/index.js';
