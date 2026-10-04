@@ -18,7 +18,10 @@ import { report, MESSAGES } from './globalOptions.js';
 // 1. missing content warns and returns ''; a value that is not a string comes back as it is;
 // 2. text with no unit of U+1000-U+109F comes back unchanged, unless the source is Win, whose text is ASCII;
 // 3. no target prints an error and returns the text, untrimmed;
-// 4. the text is trimmed (zero-width spaces stay: they mark word breaks); an unknown target prints an error;
+// 4. the text is trimmed, and only trimmed: conversion keeps U+200B and U+200C, which syllBreak, spellingFix and
+//    truncate remove (cleanText), and the other zero-width characters, apart from a U+FEFF at either end, which trim
+//    removes as white space. From Zawgyi and Win, the font reader moves each one out of the syllable it was typed in
+//    (engine/syllable.js writeHeld; 2.x converter.js convert). An unknown target prints an error;
 // 5. a missing source is detected on the trimmed text, with the global detector options, and so is an unknown one,
 //    after a warning (2.x 24f81c6). Font names are read in any letter case (resolveFont);
 // 6. the same font returns the trimmed text; Win as a target, or Win to anything but Unicode, prints an error.

@@ -52,8 +52,9 @@ export function hasMyanmarScriptChar(text) {
   return MYANMAR_SCRIPT_PATTERN.test(text);
 }
 
-// Zero-width space and zero-width non-joiner: the word and syllable breaks 2.x removes before it reads text
-// (contentGate.js cleanText). The other zero-width characters stay.
+// Zero-width space and zero-width non-joiner, which 2.x removes before it reads breaks, marks or evidence
+// (contentGate.js cleanText). Only the zero-width space marks a word break; the non-joiner changes how letters
+// join. The other zero-width characters stay.
 const ZERO_WIDTH_BREAKS = /[\u200B\u200C]/g;
 
 // text without U+200B and U+200C.

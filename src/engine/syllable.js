@@ -560,8 +560,14 @@ function writeKinziAndBase(buf, sink) {
 }
 
 // Writes what was held after the syllable: the zero-width units held before it last went on, then everything
-// held since (2.x `out += order(syllable) + syllable.after`). Zero-width spaces and joiners mark word breaks, so
-// they stay, after the syllable they were typed in (research/zawgyi-to-unicode.md §3, "Zero-width spaces").
+// held since (2.x `out += order(syllable) + syllable.after`). The readers keep all five zero-width characters, and
+// only the zero-width space (U+200B) marks a word break: the non-joiner and joiner (U+200C, U+200D) change how
+// letters join, and the word joiner (U+2060) and the zero-width no-break space (U+FEFF) forbid a break. One that
+// the reader holds (`heldZeroWidth`) and that was typed inside a syllable is written here, after the syllable. The
+// font reader holds all five, and writes one typed between an e or medial ra and its base before that syllable
+// (`prebaseCrossesZeroWidth`); the Unicode reader holds U+200B, U+2060 and U+FEFF, and leaves U+200C and U+200D
+// where they were typed, where they end the syllable (research/zawgyi-to-unicode.md §3, "Zero-width spaces and
+// non-joiners"; research/normalize.md §3, "Spaces and joiners").
 export function writeHeld(buf, sink) {
   for (let k = 0; k < buf.keptUpTo; k++) {
     if (zeroWidthBit(buf.held[k]) !== 0) sink.push(buf.held[k]);
