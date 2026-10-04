@@ -99,7 +99,7 @@ The module build has the same functions as named exports:
 </script>
 ```
 
-With a bundler, import from `knayi-myscript` as in Node: an import of `normalize` alone adds about 9 KB gzipped, and the whole API about 21 KB ([Runtimes and browsers](#runtimes-and-browsers)).
+With a bundler, import from `knayi-myscript` as in Node: an import of `normalize` alone adds about 10 KB gzipped, and the whole API about 22 KB ([Runtimes and browsers](#runtimes-and-browsers)).
 
 ## The 3.0 API
 
@@ -634,7 +634,7 @@ They are ES2015. They run in Chrome 51, Edge 15, Firefox 54, Safari 10.1 (iOS 10
 
 The builds hold no streams: a TransformStream needs Safari 14.1 or Firefox 102. A page that wants them bundles `knayi-myscript/stream`, and on an older browser uses `mapLines`. Each `dist/` file is a copy of the library of its own, so the 2.x `setGlobalOptions` called on one does not reach another, nor `knayi-myscript/compat` loaded from npm.
 
-With a bundler, an import takes only what it uses. Measured with esbuild at ES2015, minified and gzipped at level 9 (`node scripts/next/size.mjs`): `import { normalize } from 'knayi-myscript'` adds 9,200 B, the whole 3.0 API 21,291 B, `createNormalizer` alone 10,315 B and the whole of `knayi-myscript/stream` 16,082 B.
+With a bundler, an import takes only what it uses. Measured with esbuild at ES2015, minified and gzipped at level 9 (`node scripts/next/size.mjs`): `import { normalize } from 'knayi-myscript'` adds 9,637 B, the whole 3.0 API 21,868 B, `createNormalizer` alone 10,722 B and the whole of `knayi-myscript/stream` 16,459 B.
 
 ## The 2.x API: knayi-myscript/compat
 
