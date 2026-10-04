@@ -1,6 +1,5 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const { pendingPort } = require('../scripts/testing/pending-port');
 // The 2.x API: compat, on the 3.0 core.
 const knayi = require('../src/compat/index.js').default;
 
@@ -63,13 +62,13 @@ describe('Win', () => {
       assert.equal(toUnicode('7;30'), '၇း၃၀');
     });
 
-    it('reads the digit four after ra as lagaung, as normalize does', pendingPort('ab3676e', () => {
+    it('reads the digit four after ra as lagaung, as normalize does', () => {
       // The typos come before the look-alikes, in both pipelines (ARCHITECTURE.md, Typing fixes and their order):
       // once the four is lagaung, the ra is next to no digit and stays ra.
       assert.equal(toUnicode('&4if;'), 'ရ၎င်း');
       assert.equal(knayi.normalize('ရ၄င်း'), 'ရ၎င်း');
       assert.deepEqual(knayi.fontConvert.debugging('&4if;', 'unicode', 'win').matched_patterns, ['glyphs', 'typos']);
-    }));
+    });
 
     it('returns marks in Unicode order, dot below before asat', () => {
       // Win types asat (f) before the dot below (h).

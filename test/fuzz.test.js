@@ -98,17 +98,17 @@ describe('compat against the 2.10 oracle', () => {
     }), COUNT.codeUnits);
   });
 
-  it('Zawgyi to Unicode', pendingPort('ab3676e', () => {
+  it('Zawgyi to Unicode', () => {
     check(fc.property(zawgyi, (text) => {
       same(knayi.fontConvert(text, 'unicode', 'zawgyi'), oracle.toUnicode(text, 'zawgyi'), text);
     }), COUNT.zawgyi, ZAWGYI_REGRESSIONS);
-  }));
+  });
 
-  it('Win to Unicode', pendingPort('ab3676e', () => {
+  it('Win to Unicode', () => {
     check(fc.property(win, (text) => {
       same(knayi.fontConvert(text, 'unicode', 'win'), oracle.toUnicode(text, 'win'), text);
     }), COUNT.win, WIN_REGRESSIONS);
-  }));
+  });
 
   it('fontDetect with the rule scorer', () => {
     const fallback = fc.constantFrom(undefined, 'unicode', 'zawgyi');
@@ -133,7 +133,7 @@ describe('compat against the 2.10 oracle', () => {
       ['\u1031\u1031 \u103B\u1000', 'unicode']]);
   }));
 
-  it('the debugging stages of Zawgyi and Win', pendingPort(['b6cbfca', 'ab3676e'], () => {
+  it('the debugging stages of Zawgyi and Win', pendingPort('b6cbfca', () => {
     const text = fc.oneof(zawgyi.map((t) => ['zawgyi', t]), win.map((t) => ['win', t]));
     check(fc.property(text, ([font, content]) => {
       const debug = knayi.fontConvert.debugging(content, 'unicode', font);

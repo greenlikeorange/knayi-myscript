@@ -1,7 +1,8 @@
 // Differential fuzz of the font pipeline (docs/next/DESIGN.md §6.1, §7.8). Owner: W6 (engine-fonts).
 //
 // fontToUnicode against 2.x zawgyi.toUnicode and win.toUnicode, and traceFontToUnicode against their debug log
-// (matched_patterns and steps), in the frozen copies of scripts/oracle/ (D19). The Zawgyi strings are short
+// (matched_patterns and steps), in the frozen copies of scripts/oracle/ (D19), with the typing fixes in normalize's
+// order, as scripts/oracle/index.js makes them (2.x ab3676e; DESIGN.md §8). The Zawgyi strings are short
 // strings over the Zawgyi alphabet and Burmese text with typing slips written in Zawgyi by the 2.x converter; the
 // Win strings are over the Win alphabet; both get any UTF-16 units too. Then the seeded fuzz sets of
 // `npm run compare` (scripts/eval/lib/inputs.mjs). The counts (D23):
@@ -21,10 +22,10 @@ import { zeroAsWa, fixLookAlikes, fixTypos } from '../../src/rules/typingFixes.j
 import { ZAWGYI_FONT } from '../../src/fonts/zawgyi.js';
 import { WIN_FONT } from '../../src/fonts/win.js';
 import { fuzzSets } from '../../scripts/eval/lib/inputs.mjs';
-import { arb, fuzz } from './helpers.mjs';
+import { arb, fuzz, oracle } from './helpers.mjs';
 
 const require = createRequire(import.meta.url);
-const ORACLE = { zawgyi: require('../../scripts/oracle/zawgyi.js'), win: require('../../scripts/oracle/win.js') };
+const ORACLE = oracle.fonts;
 const syllable2x = require('../../scripts/oracle/syllable.js');
 
 const hexOf = (text) => Array.from(text, (ch) => ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')).join(' ');
@@ -83,7 +84,7 @@ describe('fontToUnicode against 2.x toUnicode (DESIGN.md §6.1)', () => {
     fuzz.check(fc.property(input, ([font, text]) => {
       // The stages before 'NFC', run by hand on the font compiled here.
       const read = readFontNoting(applyRuleRows(text, compiled[font].sequences), compiled[font]);
-      const beforeNfc = fixTypos(fixLookAlikes(zeroAsWa(read.text)));
+      const beforeNfc = fixLookAlikes(fixTypos(zeroAsWa(read.text)));
       if (!read.nfcMayChange) {
         closed[font]++;
         assert.equal(hexOf(toNfc(beforeNfc)), hexOf(beforeNfc), font + ' ' + hexOf(text));

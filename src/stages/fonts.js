@@ -28,16 +28,16 @@ const WIN = /* @__PURE__ */ compileFont(WIN_FONT);
 // text, so they are the typing-fix and NFC functions themselves, as in NORMALIZE_STAGES:
 // - 'zero as wa': Zawgyi and Win have no glyph for wa and type it as zero, so a zero that is not part of a number
 //   is wa (research/zawgyi-to-unicode.md §2; research/win-fonts.md §5, "Zero").
-// - 'look-alikes', then 'typos': the typing fixes normalize makes too, look-alikes first in this pipeline and typos
-//   first in normalize's (research/normalize.md §4; ARCHITECTURE.md, "Typing fixes and their two orders").
+// - 'typos', then 'look-alikes': the typing fixes normalize makes too, in normalize's order, so that the two
+//   pipelines agree (research/normalize.md §4; ARCHITECTURE.md, "Typing fixes and their order"; 2.x ab3676e).
 // - 'NFC': the result is NFC (research/zawgyi-to-unicode.md §2), gated (finalNfcMayChangeText).
 export const FONT_STAGES = /* @__PURE__ */ deepFreeze([
   { id: 'sequences', label: 'sequences', run: replaceSequences },
   { id: 'glyphs', label: 'glyphs', run: showGlyphs, traceOnly: true },
   { id: 'syllables', label: 'syllables', run: readSyllables },
   { id: 'zero as wa', label: 'zero as wa', run: zeroAsWa },
-  { id: 'look-alikes', label: 'look-alikes', run: fixLookAlikes },
   { id: 'typos', label: 'typos', run: fixTypos },
+  { id: 'look-alikes', label: 'look-alikes', run: fixLookAlikes },
   { id: 'NFC', label: 'NFC', run: toNfc, gate: finalNfcMayChangeText }
 ]);
 
@@ -47,8 +47,8 @@ const FONT_LOGGED_RUNS = /* @__PURE__ */ deepFreeze({
   sequences: replaceSequencesLogged,
   syllables: readSyllablesLogged,
   'zero as wa': zeroAsWaStageLogged,
-  'look-alikes': fixLookAlikesStageLogged,
   typos: fixTyposStageLogged,
+  'look-alikes': fixLookAlikesStageLogged,
   NFC: toNfcLogged
 });
 
@@ -87,12 +87,12 @@ function zeroAsWaStageLogged(text, ctx, log) {
   return zeroAsWaLogged(text, log);
 }
 
-function fixLookAlikesStageLogged(text, ctx, log) {
-  return fixLookAlikesLogged(text, log);
-}
-
 function fixTyposStageLogged(text, ctx, log) {
   return fixTyposLogged(text, log);
+}
+
+function fixLookAlikesStageLogged(text, ctx, log) {
+  return fixLookAlikesLogged(text, log);
 }
 
 function toNfcLogged(text, ctx, log) {

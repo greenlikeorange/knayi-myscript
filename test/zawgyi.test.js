@@ -1,6 +1,5 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const { pendingPort } = require('../scripts/testing/pending-port');
 // The 2.x API: compat, on the 3.0 core.
 const knayi = require('../src/compat/index.js').default;
 
@@ -138,7 +137,7 @@ describe('Zawgyi', () => {
 
     // The stage names and their order are 2.x API (ARCHITECTURE.md, Stable surfaces): one input that goes through
     // all seven.
-    it('names all seven stages in their order', pendingPort('ab3676e', () => {
+    it('names all seven stages in their order', () => {
       const c = (...codes) => String.fromCharCode(...codes);
       const input = [
         c(0x1044, 0x1004, 0x1039, 0x1038), // sequences: the digit four typed for lagaung
@@ -155,11 +154,11 @@ describe('Zawgyi', () => {
         c(0x104E, 0x1004, 0x103A, 0x1038), c(0x1000, 0x1031), c(0x1000, 0x101D, 0x1004, 0x103B),
         c(0x1000, 0x102E), c(0x1041, 0x1047, 0x1041), c(0x1026)
       ].join(' '));
-    }));
+    });
 
     // Conversion makes the typos first, then the look-alikes, as normalize does (ARCHITECTURE.md, Typing fixes
     // and their order).
-    it('makes the typing fixes in the order normalize makes them', pendingPort('ab3676e', () => {
+    it('makes the typing fixes in the order normalize makes them', () => {
       const c = (...codes) => String.fromCharCode(...codes);
       // Ra, the digit four and nga, with the visarga typed before the asat: no sequence matches, so the four is
       // still a digit when the syllables are in order. It is lagaung, and the ra, next to no digit, stays ra.
@@ -177,6 +176,6 @@ describe('Zawgyi', () => {
         c(0x1004, 0x103A, 0x1039, 0x102E, 0x1047, 0x101B),
         c(0x1004, 0x103A, 0x1039, 0x102E, 0x1047, 0x1047)
       ]);
-    }));
+    });
   });
 });

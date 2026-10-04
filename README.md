@@ -406,7 +406,7 @@ toUnicode('ေကာင္း', { from: 'zawgyi', trace })
 | Function | Ids, in the order the steps run |
 | --- | --- |
 | `normalize` | `nfc.input`, `syllables`, `typos`, `look-alikes`, `nfc.final`, for each pass over the text |
-| `toUnicode` | `sequences`, `glyphs`, `syllables`, `zero as wa`, `look-alikes`, `typos`, `NFC` |
+| `toUnicode` | `sequences`, `glyphs`, `syllables`, `zero as wa`, `typos`, `look-alikes`, `NFC` |
 | `toZawgyi` | `uz.collapse`, then the rules, `uz.<section>.<n>` |
 
 The ids are part of the API: they change only in a major version.
@@ -416,13 +416,14 @@ The ids are part of the API: they change only in a major version.
 `VERSION` is the package version, as in `package.json`. `OUTPUT_VERSION` is the version of knayi's output. It goes up with every deliberate change to what any function returns, so a dataset that records it knows when its text needs processing again.
 
 ```javascript
-knayi.OUTPUT_VERSION // 2
+knayi.OUTPUT_VERSION // 3
 ```
 
 | `OUTPUT_VERSION` | Output |
 | --- | --- |
-| 1 | 2.10.0's, which `knayi-myscript/compat` keeps |
+| 1 | 2.10.0's, which `knayi-myscript/compat` kept until 3 |
 | 2 | 3.0's `normalize` settles: it is idempotent, and reads ဥ, ၀ and ၇ after a virama or under a kinzi as ဉ, ဝ and ရ |
+| 3 | 2.x's output fixes of 2.11, in both APIs: Zawgyi and Win conversion make the typo fixes before the look-alikes, as `normalize` does |
 
 [CHANGELOG.md](CHANGELOG.md) lists every output change under "Output changes", with the lines of each corpus it changes.
 

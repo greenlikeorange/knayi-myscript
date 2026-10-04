@@ -18,7 +18,10 @@ Counts below are distinct lines of the corpora that `npm run eval` downloads (se
 
 ### Output changes
 
-None.
+- **`OUTPUT_VERSION` is 3.** The port of 2.11.0 ([below](#2110)) brings its two fixes of the core into both APIs; 3.0.0-next.0 had 2.
+- **Zawgyi and Win conversion make the typo fixes before the look-alikes, in both APIs**, as `normalize` does and as 2.11.0 converts (decision 15; 2.11.0's entry has the example and its counts against 2.10.0). A ra before the digit four of a lagaung shows it: `toUnicode('&4if;', { from: 'win' })` and `compat.fontConvert('&4if;', 'unicode', 'win')` returned `'၇၄င်း'`, and now return `'ရ၎င်း'`, as `normalize('ရ၄င်း')` does.
+  - **The 3.0 API:** the output comparison of the 3.0 API with `next` before the port (`npm run compare -- --base api:<next> --head api:.`, every call form but `debugging.*` on every corpus, mC4 included, and on the generated and fuzz sets) finds 18 differences in 2,243,979 comparisons, all `toUnicode(t, { from: 'win' })` on the two strings of the example, `&4if;` and `ရ၄င်း`, read as Win, alone and next to ka, a digit, a space, u and 1; no corpus line changes. A trace of `toUnicode` records the stage `typos` before `look-alikes`, so where both change the text, the text recorded between them changes too. `explain`'s fix of a Zawgyi line, `createConverter` and `knayi to-unicode` convert as `toUnicode` does.
+  - **compat:** `fontConvert` from Zawgyi and Win converts as 2.11.0 does, and `fontConvert.debugging` names `typos` before `look-alikes`. Of the differences that `npm run compare` found between compat and 2.11.0's code (commit 8923365), the 104 of this change are gone: all 18 of `fontConvert` from Win and all 71 of `debugging` from Win, and 3 of `debugging` from Zawgyi (one mC4 line, one Shan line, one fuzz string) and 12 from a detected font (the mC4 line and 11 generated strings).
 
 ### Changed
 

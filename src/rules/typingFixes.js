@@ -2,9 +2,9 @@
 // look alike, and zero typed as wa (DESIGN.md §2.3, §3.9; research/normalize.md §2-3). Layer L3 rules: imports
 // only L0. Owner: W2 (typing-fixes).
 //
-// The two pipelines run the fixes in different orders, on purpose until 3.0 decides (DESIGN.md §10 Q8):
-// normalize runs typos, then look-alikes; Zawgyi and Win conversion run zero as wa, then look-alikes, then typos.
-// The stage lists own that order (DESIGN.md §7.4). This module only provides the functions.
+// Both pipelines run the typos first, then the look-alikes (decision 15): normalize after its reader, and Zawgyi and
+// Win conversion after zero as wa. The stage lists own that order (DESIGN.md §7.4). This module only provides the
+// functions.
 //
 // How the functions read:
 // - Each pass finds its candidates with one regex scan from left to right, or indexOf, and decides by char code.

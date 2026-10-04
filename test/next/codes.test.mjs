@@ -518,8 +518,8 @@ describe('version.js', () => {
     assert.equal(PACKAGE_VERSION, require('../../package.json').version);
   });
 
-  it('OUTPUT_VERSION is 2: the output of 2.10.0 at the reference, then 3.0\'s settled normalize', () => {
-    assert.equal(OUTPUT_VERSION, 2);
+  it('OUTPUT_VERSION is 3: 2.10.0\'s output, 3.0\'s settled normalize, then the port of 2.11\'s fixes', () => {
+    assert.equal(OUTPUT_VERSION, 3);
   });
 });
 

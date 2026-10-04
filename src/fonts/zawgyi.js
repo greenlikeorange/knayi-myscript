@@ -17,8 +17,8 @@
 //    syllable is written in the storage order of UTN #11 (engine/fontReader.js readFont). A trace first shows the
 //    glyphs still in typed order (the trace-only stage 'glyphs').
 // 3. zero as wa: a zero that is not part of a number becomes wa, since Zawgyi has no glyph for wa.
-// 4. look-alikes, then typos: the typing fixes that normalize makes too, in this pipeline's order (normalize runs
-//    typos first; ARCHITECTURE.md, "Typing fixes and their two orders").
+// 4. typos, then look-alikes: the typing fixes that normalize makes too, in its order (ARCHITECTURE.md, "Typing
+//    fixes and their order").
 // 5. NFC.
 
 import { deepFreeze } from '../freeze.js';

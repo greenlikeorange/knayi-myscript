@@ -2,8 +2,8 @@
 // normalization.js normalize). Layer L3 stages. Owner: W5 (engine-unicode); the stable pipeline of 3.0 (§11.2).
 //
 // NFC comes first as well as last: it can move a dot below in front of an asat or virama, which changes what they
-// attach to, so the syllables are read from NFC text (research/normalize.md §2). Typos run before look-alikes here,
-// while the font pipeline runs them the other way round (ARCHITECTURE.md, "Typing fixes and their two orders").
+// attach to, so the syllables are read from NFC text (research/normalize.md §2). Typos run before look-alikes, as in
+// the font pipeline (ARCHITECTURE.md, "Typing fixes and their order").
 //
 // Two gates skip work that provably cannot change the text (§3.10, decision 28), and no others:
 // 1. the no-Myanmar fast path, in normalizeText;

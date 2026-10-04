@@ -7,7 +7,7 @@ How knayi-myscript 3.0 is built, on the `next` branch: one core of ES modules un
 - [What each 3.0 call does](#what-each-30-call-does)
 - [What each 2.x call does](#what-each-2x-call-does)
 - [The syllable engine](#the-syllable-engine)
-- [Typing fixes and their two orders](#typing-fixes-and-their-two-orders)
+- [Typing fixes and their order](#typing-fixes-and-their-order)
 - [Detection, breaks and the Unicode to Zawgyi rules](#detection-breaks-and-the-unicode-to-zawgyi-rules)
 - [Edit logs](#edit-logs)
 - [Streams and the command line](#streams-and-the-command-line)
@@ -131,7 +131,7 @@ Neighbouring lines join one piece, line break included, since the font pipeline 
 
 compat gives 2.x's output on every input. The core does the work; compat adds 2.x's preamble.
 
-What follows is compat's code today, which gives 2.10.0's output. The 2.x reference has moved on to 2.11 (commit `8923365`): one policy for font names, in any letter case, with a coded `TypeError`; a `fontDetect` fallback that is a string or none; `null` options and checked detector options; no debug flag read from `this`; a report from `fontConvert.debugging` on every exit with text; the typing fixes in `normalize`'s order in the font pipeline; a Unicode to Zawgyi rule for stacked jha; a `truncate` that returns the start of the text; `detectEncoding`; the `zawgyiDetector` option; and no package loaded by name outside `main.js`. Each is ported into `src/` on its own, and until then the 2.x tests of it wait for it (`scripts/testing/pending-port.js`). compat's types, `src/compat/index.d.ts`, are 2.11's already. Every function starts the same way, with small differences (`compat/input.js`): `unboxString` unwraps `String` objects, and `enter` treats `null`, `undefined`, `''`, `0`, `false` and `NaN` as missing: the function warns (unless silent) and returns `''`, or the fallback or `'en'` for `fontDetect`. `truncate` does not count `''` as missing. Other non-strings are returned unchanged; `fontDetect` returns the fallback or `'en'` for them, and `truncate` turns them into strings. `hasMyanmarBlockChar` tests for a character in U+1000–U+109F.
+What follows is compat's code today, which gives 2.10.0's output but for the 2.11 changes ported so far: the typing fixes in `normalize`'s order in the font pipeline, a change to the core ([below](#typing-fixes-and-their-order)). The 2.x reference has moved on to 2.11 (commit `8923365`): one policy for font names, in any letter case, with a coded `TypeError`; a `fontDetect` fallback that is a string or none; `null` options and checked detector options; no debug flag read from `this`; a report from `fontConvert.debugging` on every exit with text; a Unicode to Zawgyi rule for stacked jha; a `truncate` that returns the start of the text; `detectEncoding`; the `zawgyiDetector` option; and no package loaded by name outside `main.js`. Each is ported into `src/` on its own, and until then the 2.x tests of it wait for it (`scripts/testing/pending-port.js`). compat's types, `src/compat/index.d.ts`, are 2.11's already. Every function starts the same way, with small differences (`compat/input.js`): `unboxString` unwraps `String` objects, and `enter` treats `null`, `undefined`, `''`, `0`, `false` and `NaN` as missing: the function warns (unless silent) and returns `''`, or the fallback or `'en'` for `fontDetect`. `truncate` does not count `''` as missing. Other non-strings are returned unchanged; `fontDetect` returns the fallback or `'en'` for them, and `truncate` turns them into strings. `hasMyanmarBlockChar` tests for a character in U+1000–U+109F.
 
 ### fontConvert(content, to, from)
 
@@ -154,8 +154,8 @@ Both APIs convert to Unicode through `FONT_STAGES`; the ids are the stage names.
 | `glyphs` | Traced only: each glyph's Unicode text, still in typed order. |
 | `syllables` | `readFont`: the font reader. |
 | `zero as wa` | `zeroAsWa`: a zero that is not part of a number becomes wa. |
-| `look-alikes` | `fixLookAlikes`. |
 | `typos` | `fixTypos`. |
+| `look-alikes` | `fixLookAlikes`. |
 | `NFC` | `toNfc`, which runs only when the reader wrote a unit NFC may change. |
 
 With `debug`, `fontConvert` returns `{ to, from, matched_patterns, steps }`: `matched_patterns` names each stage that changed the text, in order, and `steps` holds the input followed by the text after each of those stages. MIGRATION.md documents these stage names.
@@ -267,28 +267,28 @@ The 3.0 API's `toUnicode` and `normalize` give the same results on these: they r
 
 One more difference follows from the encodings, not from a choice: in the fonts, e and medial ra always belong to the next base, while in Unicode they may also belong to the syllable before (`TO_OPEN_SYLLABLE`). That is why the converters write an e or medial ra with no base after it where it was typed, and `normalize` can move it into the syllable before. On the 10,166 distinct mC4 lines that `fontDetect` calls Zawgyi, compat's `normalize` changes the converted output of 31, each with an e or medial ra where the two first differ; on the 9,811 that `detectEncoding` calls Zawgyi, the 3.0 `normalize` changes that of 24.
 
-## Typing fixes and their two orders
+## Typing fixes and their order
 
 `rules/typingFixes.js` holds the fixes both pipelines use:
 
 - **`fixLookAlikes`:** zero and seven are typed for wa and ra, and the other way round. A zero or seven that carries a mark, or starts a closed syllable, is a letter; a zero inside a word with no digit next to it is a letter too. A bare wa or ra inside a run of digits is a digit. The marks and consonants here cover every language in the Myanmar blocks, so Shan and Karen text gets the same reading (#43).
 - **`fixTypos`:** four rules, in order: i with ii is ii; u with uu is uu; o with e, aa and asat is au; the digit four before nga, asat and visarga is lagaung. `spec/typoRows.js` documents them. `settleTypos`, which the 3.0 `normalize` runs instead, reads a whole run of i and ii, or u and uu, as repeating the first two rules would end.
 
-The two pipelines run them in opposite orders, as 2.x did (DESIGN.md §10 Q8):
+Both pipelines run them in one order, the typos first (decision 15), as the 2.x line does since 2.11:
 
 | Pipeline | Order |
 | --- | --- |
-| Zawgyi and Win (`FONT_STAGES`, `stages/fonts.js`) | `zero as wa` → `look-alikes` → `typos` → `NFC` |
+| Zawgyi and Win (`FONT_STAGES`, `stages/fonts.js`) | `zero as wa` → `typos` → `look-alikes` → `NFC` |
 | `normalize` (`NORMALIZE_STAGES` and `STABLE_NORMALIZE_STAGES`, `stages/normalize.js`) | `NFC` → syllables → `typos` → `look-alikes` → `NFC` |
 
-On the eval corpora the order makes no difference: the two orders give the same result on every Unicode line read by the Unicode reader (FLORES-200, the Wikipedia sample, Okell, mC4, and the GlotCC Shan, Mon, S'gaw Karen and Pa'o sets) and on every mC4 line converted from Zawgyi. Synthetic input shows the difference, for example a ra before the digit four of a lagaung:
+The order counts only where a typo fix and a look-alike read the same characters, as with a ra before the digit four of a lagaung. Made first, the typo fix reads the four, which follows no digit, as lagaung, and the ra, next to no digit, stays ra:
 
 ```javascript
-compat.fontConvert('&4if;', 'unicode', 'win') // '၇၄င်း'
+compat.fontConvert('&4if;', 'unicode', 'win') // 'ရ၎င်း'
 compat.normalize('ရ၄င်း') // 'ရ၎င်း'
 ```
 
-The font pipeline reads the ra next to a digit as seven first, so the four no longer follows a non-digit and stays a digit. `normalize` fixes the lagaung first. The debug stage order is part of the 2.x API (see [Stable surfaces](#stable-surfaces)), so changing either order is a deliberate output change.
+Until the port of 2.11 the font pipeline made the look-alikes first: it read the ra next to the four as seven, and the four, then after a digit, stayed a digit, so the Win text gave `'၇၄င်း'`. On the eval corpora the order makes no difference: the two orders give the same result on every Unicode line read by the Unicode reader (FLORES-200, the Wikipedia sample, Okell, mC4, and the GlotCC Shan, Mon, S'gaw Karen and Pa'o sets) and on every mC4 line converted from Zawgyi. The debug stage order is part of the 2.x API (see [Stable surfaces](#stable-surfaces)), so a change to it is deliberate: 2.11 made this one, and `fontConvert.debugging` names `typos` before `look-alikes`.
 
 The fonts also have a stage `normalize` does not: `zeroAsWa`. Its idea of a zero in a number (a Burmese digit or one of `+ - * /` next to it, or a digit across `.` or `,`) differs from `fixLookAlikes`' (Burmese, Shan or Tai Laing digits, and `.` or `,`, but no arithmetic signs), as 2.x's did (DESIGN.md §10 Q20).
 
@@ -332,7 +332,7 @@ The writers record only when they are handed a log, so the fast paths, and compa
 - **Tie:** equal evidence for Unicode and Zawgyi. 2.x's `fontDetect` returns the fallback, `'zawgyi'` when none is given; the 3.0 `detectEncoding` says `'unknown'`, and `toUnicode` leaves the line as it is. Short Unicode text, such as one consonant or a word whose only sign is a stacked consonant, ties often.
 - **Region:** a part of a text that one pass of the stable normalize reads and writes on its own (see [above](#normalize-the-stable-pipeline)).
 - **Silent mode:** compat's `setGlobalOptions({ silent_mode: true })`, which hides the warnings and errors (all but one, see [Module state](#module-state)).
-- **Output version:** `OUTPUT_VERSION`, which goes up with every deliberate change to what any function returns: 1 for 2.10.0's output, which compat keeps, and 2 since the 3.0 `normalize` settles.
+- **Output version:** `OUTPUT_VERSION`, which goes up with every deliberate change to what any function returns: 1 for 2.10.0's output, 2 since the 3.0 `normalize` settles, and 3 since the port of 2.11's output fixes, in both APIs.
 
 ## Stable surfaces
 

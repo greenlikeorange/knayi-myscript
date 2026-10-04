@@ -2,7 +2,8 @@
 // (docs/next/DESIGN.md §2.3, §3.9, §3.10, §7.8). Owner: W6 (engine-fonts).
 //
 // Both functions are compared with 2.x zawgyi.toUnicode and win.toUnicode, with and without debug, in the frozen
-// copies of scripts/oracle/ (D19): on the regressions of test/fuzz.test.js, the table probes of
+// copies of scripts/oracle/ (D19), with the typing fixes in normalize's order, as scripts/oracle/index.js makes them
+// for the 2.x line's change since 2.10 (2.x ab3676e; DESIGN.md §8): on the regressions of test/fuzz.test.js, the table probes of
 // test/fixtures/tables.json, and every generated input set of scripts/eval/lib/inputs.mjs (every Myanmar-block
 // pair, Extended-A/B/C, the row probes with the strings of the documents' examples, and the generated Win sets).
 // fontToUnicode.fuzz.test.mjs adds random strings; `npm run compare` adds the corpora, mC4 included. The Win
@@ -10,14 +11,12 @@
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { createRequire } from 'node:module';
 import { FONT_STAGES, fontToUnicode, traceFontToUnicode } from '../../src/stages/fonts.js';
 import { createTrace } from '../../src/core/rules.js';
 import { generatedSets } from '../../scripts/eval/lib/inputs.mjs';
-import { tableProbes } from './helpers.mjs';
+import { oracle, tableProbes } from './helpers.mjs';
 
-const require = createRequire(import.meta.url);
-const ORACLE = { zawgyi: require('../../scripts/oracle/zawgyi.js'), win: require('../../scripts/oracle/win.js') };
+const ORACLE = oracle.fonts;
 
 const hexOf = (text) => Array.from(text, (ch) => ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')).join(' ');
 
@@ -54,8 +53,8 @@ function assertAgreesWith2x(inputs, font, what) {
 }
 
 describe('FONT_STAGES (DESIGN.md §2.3, §3.10)', () => {
-  it('has the 2.x stage names as ids and labels, in the 2.x order', () => {
-    const names = ['sequences', 'glyphs', 'syllables', 'zero as wa', 'look-alikes', 'typos', 'NFC'];
+  it('has the 2.x stage names as ids and labels, in the 2.x order, the typing fixes in normalize\'s', () => {
+    const names = ['sequences', 'glyphs', 'syllables', 'zero as wa', 'typos', 'look-alikes', 'NFC'];
     assert.deepEqual(FONT_STAGES.map((stage) => stage.id), names);
     assert.deepEqual(FONT_STAGES.map((stage) => stage.label), names);
   });
@@ -82,7 +81,7 @@ describe('fontToUnicode and traceFontToUnicode (DESIGN.md §2.3, §3.9)', () => 
       ['\u1041 \u102C', 'zawgyi', '\u1041\u102C'],
       ['\u1031\u200B\u1000', 'zawgyi', '\u200B\u1000\u1031'],
       ['\u101C\u1032\u1025\u1039\u1038', 'zawgyi', '\u101C\u1032\u1009\u103A\u1038'],
-      ['&4if;', 'win', '\u1047\u1044\u1004\u103A\u1038']
+      ['&4if;', 'win', '\u101B\u104E\u1004\u103A\u1038']
     ];
     for (const [text, font, expected] of examples) assert.equal(fontToUnicode(text, font), expected, hexOf(text));
   });

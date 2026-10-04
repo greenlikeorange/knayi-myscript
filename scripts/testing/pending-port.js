@@ -21,7 +21,6 @@ const PENDING = Object.freeze({
   'fb6594d': 'null options, and checked detector options with coded console errors (PR 4.5)',
   'd20027a': 'fontConvert reads no debug flag from this (PR 4.1)',
   'b6cbfca': 'fontConvert.debugging reports every exit with text (PR 4.2)',
-  'ab3676e': 'the font pipeline makes the typing fixes in normalize\'s order (PR 4.7)',
   '05de555': 'Unicode to Zawgyi writes stacked jha as U+1069 (PR 4.8)',
   '41984eb': 'truncate returns a start of the text, and breaks only that start (PR 4.9)',
   '31eb6b1': 'the detectEncoding export (Phase 5 item 1)',
