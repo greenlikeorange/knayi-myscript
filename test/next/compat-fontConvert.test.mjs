@@ -3,7 +3,7 @@
 
 import { describe, it, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { assertSameAsReference, compat, pendingPort, reference, resetOptions } from './compat-helpers.mjs';
+import { assertSameAsReference, compat, reference, resetOptions } from './compat-helpers.mjs';
 
 const UNICODE = '\u1019\u103C\u1014\u103A\u1019\u102C';
 const ZAWGYI = '\u103B\u1019\u1014\u1039\u1019\u102C';
@@ -29,7 +29,7 @@ describe('compat: fontConvert (C15-C19)', () => {
 
   // And debugging's report on every exit with text (b6cbfca).
   it('C17-C19: debugging gives main.js\'s log, and its report on every early exit',
-    pendingPort('b6cbfca', () => {
+    () => {
       for (const text of TEXTS.concat([null, '', 0, {}, new String(ZAWGYI)])) {
         for (const to of FONTS) {
           for (const from of FONTS) {
@@ -37,7 +37,7 @@ describe('compat: fontConvert (C15-C19)', () => {
           }
         }
       }
-    }));
+    });
 
   it('C17: the font log names its stages in 2.x order, with \'glyphs\' only when debugging', () => {
     // Zero before i is wa, and i typed twice and then ii is a typo for ii.
@@ -59,13 +59,13 @@ describe('compat: fontConvert (C15-C19)', () => {
   });
 
   // 2.x read the debug flag from the receiver until d20027a; 2.11's fontConvert returns text whatever `this` is.
-  it('C16: reads no debug flag from its receiver', pendingPort('d20027a', () => {
+  it('C16: reads no debug flag from its receiver', () => {
     const receiver = { debug: 1 };
     assert.deepEqual(compat.fontConvert.call(receiver, ZAWGYI, 'unicode'),
       reference.fontConvert.call(receiver, ZAWGYI, 'unicode'));
     assert.equal(compat.fontConvert.call(receiver, ZAWGYI, 'unicode'), UNICODE);
     assert.equal(compat.fontConvert.call({ debug: 0 }, ZAWGYI, 'unicode'), UNICODE);
-  }));
+  });
 });
 
 describe('compat: the debug flag of a detached call (§5.4)', () => {

@@ -1,6 +1,5 @@
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
-const { pendingPort } = require('../scripts/testing/pending-port');
 // The 2.x API: compat, on the 3.0 core.
 var knayi = require('../src/compat/index.js').default;
 function toCharCode(letter) {
@@ -118,7 +117,7 @@ describe('Converter',()=>{
       });
     })
 
-    it('returns text from fontConvert whatever `this` is', pendingPort('d20027a', () => {
+    it('returns text from fontConvert whatever `this` is', () => {
       var convert = knayi.fontConvert;
       globalThis.debug = true;
       try {
@@ -131,11 +130,11 @@ describe('Converter',()=>{
       var debugging = knayi.fontConvert.debugging;
       var log = debugging('ျမန္မာ', 'unicode', 'zawgyi');
       assert.equal(log.steps[log.steps.length - 1], 'မြန်မာ');
-    }))
+    })
 
     // index.d.ts promises a ConvertDebug; 2.10 returned the text itself on these exits (refactor plan, section 7
     // item 3). The one step is what fontConvert returns, trimmed or not.
-    it('reports the exits before converting, with no pattern and one step', pendingPort('b6cbfca', () => {
+    it('reports the exits before converting, with no pattern and one step', () => {
       var report = (to, from, text) => ({ to: to, from: from, matched_patterns: [], steps: [text] });
       var cases = [
         [[null, 'unicode', 'zawgyi'], report('unicode', 'zawgyi', '')],
@@ -168,7 +167,7 @@ describe('Converter',()=>{
       } finally {
         knayi.setGlobalOptions({ silent_mode: false });
       }
-    }))
+    })
   })
 
   describe('digit zero from Zawgyi', () => {

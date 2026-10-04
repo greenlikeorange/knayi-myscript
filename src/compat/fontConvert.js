@@ -4,7 +4,7 @@
 // 2.x converter.js checks its input, trims it, resolves both font names, detects a missing source, and then
 // converts in one of two directions: a font stored in drawing order (Zawgyi, Win) to Unicode through the font
 // reader (stages/fonts.js), or Unicode to Zawgyi through the rule rows (rules/unicodeToZawgyi.js). Every early exit
-// returns text, also when debugging (C19).
+// returns text, and debugging a report with that text as its one step (C19; 2.x b6cbfca).
 
 import { FONTS, hasMyanmarBlockChar } from '../core/input.js';
 import { createTrace } from '../core/rules.js';
@@ -22,16 +22,31 @@ import { report, MESSAGES } from './globalOptions.js';
 // 5. a missing source is detected on the trimmed text, with the global detector options, and so is an unknown one,
 //    after a warning (2.x 24f81c6). Font names are read in any letter case (resolveFont);
 // 6. the same font returns the trimmed text; Win as a target, or Win to anything but Unicode, prints an error.
-// The debug flag is `this && this.debug`, read after the early exits (C16). A function, not an arrow, so that
-// `this` is the receiver; compat is a strict module, so a detached call has none (§5.4).
+// Only fontConvert.debugging debugs: the debug flag is an argument, not `this.debug` (C16; 2.x d20027a), so a call
+// with any receiver, or none, returns text.
 export const fontConvert = /* @__PURE__ */ withDebugging(function fontConvert(content, to, from) {
+  return convert(content, to, from, false);
+});
+
+// 2.x fontConvert.debugging (converter.js): the same checks, with a report for every text it returns.
+function withDebugging(fontConvert) {
+  fontConvert.debugging = function (content, to, from) {
+    return convert(content, to, from, true);
+  };
+  return fontConvert;
+}
+
+// fontConvert and fontConvert.debugging (2.x converter.js convert). A value that is not a string comes back as it
+// is, from debugging too.
+function convert(content, to, from, debug) {
   const input = enter('fontConvert', content);
-  if (input.kind !== 'text') return input.value;
+  if (input.kind === 'missing') return unconverted('', to, from, debug);
+  if (input.kind === 'other') return input.value;
   let text = input.value;
-  if (!drawsOnAscii(resolveFont(from)) && !hasMyanmarBlockChar(text)) return text;
+  if (!drawsOnAscii(resolveFont(from)) && !hasMyanmarBlockChar(text)) return unconverted(text, to, from, debug);
   if (!to) {
     report('error', MESSAGES.noTarget);
-    return text;
+    return unconverted(text, to, from, debug);
   }
   text = text.trim();
   const sourceName = givenName(from);
@@ -39,26 +54,31 @@ export const fontConvert = /* @__PURE__ */ withDebugging(function fontConvert(co
   let source = resolveFont(from);
   if (!target) {
     report('error', MESSAGES.unknownTarget);
-    return text;
+    return unconverted(text, target, source, debug);
   }
   if (!source) {
     if (sourceName !== null) report('warn', MESSAGES.unknownSource(sourceName));
     source = detectForRouting(text);
   }
-  if (target === source) return text;
+  if (target === source) return unconverted(text, target, source, debug);
   if (FONTS[target].sourceOnly || (FONTS[source].sourceOnly && target !== 'unicode')) {
     report('error', MESSAGES.winSourceOnly);
-    return text;
+    return unconverted(text, target, source, debug);
   }
-  return convertText(text, source, this && this.debug);
-});
+  return convertText(text, source, debug);
+}
 
-// 2.x fontConvert.debugging (converter.js): the same call with { debug: true } as its receiver.
-function withDebugging(convert) {
-  convert.debugging = function (content, to, from) {
-    return convert.apply({ debug: true }, [content, to, from]);
-  };
-  return convert;
+// What an exit before the conversion returns (2.x converter.js unconverted): the text, or with debug the report of
+// a conversion in which nothing matched, its one step the text. to and from are what the call has read so far: the
+// arguments before resolveFont reads them, the resolved names after; each is reported as a font name ('unicode',
+// 'zawgyi' or 'win') or '' (givenName, then resolveFont), so a value that is not a string is never converted.
+function unconverted(text, to, from, debug) {
+  if (!debug) return text;
+  return { to: reportedFont(to), from: reportedFont(from), matched_patterns: [], steps: [text] };
+}
+
+function reportedFont(font) {
+  return resolveFont(givenName(font)) || '';
 }
 
 // Whether a font draws on ASCII and Windows-1252 code points (Win), so that its text has no Myanmar-block unit to

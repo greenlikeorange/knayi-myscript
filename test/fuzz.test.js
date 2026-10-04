@@ -1,6 +1,5 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const { pendingPort } = require('../scripts/testing/pending-port');
 const fc = require('fast-check');
 // The 2.x API: compat, on the 3.0 core.
 const knayi = require('../src/compat/index.js').default;
@@ -133,7 +132,7 @@ describe('compat against the 2.10 oracle', () => {
       ['\u1031\u1031 \u103B\u1000', 'unicode']]);
   });
 
-  it('the debugging stages of Zawgyi and Win', pendingPort('b6cbfca', () => {
+  it('the debugging stages of Zawgyi and Win', () => {
     const text = fc.oneof(zawgyi.map((t) => ['zawgyi', t]), win.map((t) => ['win', t]));
     check(fc.property(text, ([font, content]) => {
       const debug = knayi.fontConvert.debugging(content, 'unicode', font);
@@ -149,7 +148,7 @@ describe('compat against the 2.10 oracle', () => {
       assert.deepEqual(debug.matched_patterns, frozen.matched_patterns, 'stages for ' + hex(content));
       assert.deepEqual(debug.steps, frozen.steps, 'steps for ' + hex(content));
     }), COUNT.debugging, DEBUGGING_REGRESSIONS);
-  }));
+  });
 
   // Every run of up to three of the 16 marks the syllable sort ranks, on each kind of base it treats apart, through
   // normalize. (2.x also ran them, with two marks outside its table, through a made-up font of library/'s private

@@ -111,7 +111,7 @@ The recommended option of each decision below is adopted.
 | 9 | (b) Accidental TypeErrors count by class only | compat threw a `TypeError` wherever 2.10 threw one by accident, with a free message (D13). The port of 2.11's font-name policy (§8) took them out: 2.11 throws a coded `TypeError` there instead (decision 11). |
 | 10 | Shims for every moved 2.x path | `library/` stayed untouched on `next`, so no shim was ever needed. Phase 6 packaging deleted `library/` behind an exports map (§14), and with it the deep paths the shims were for. |
 | 11 | Font-name policy (a coded TypeError for `'win'` and unknown names; case-insensitive names) | Ported from 2.x 24f81c6 and 579be3d (§8): compat's `resolveFont` reads a name in any letter case, `givenName` reads a font that is not a string as none, and `breakFont` throws `libraryError(ERR.INVALID_FONT, …, TypeError)` for `syllBreak` and `truncate` (C11, C12). Core `FONTS` needed no change. The 3.0 API keeps its own policy: `from` takes `'unicode'`, `'zawgyi'` or `'win'` as written, and anything else is a `RangeError` with `ERR_KNAYI_INVALID_ARG_VALUE` (§11.1). |
-| 12 | `debugging` always returns ConvertDebug in 2.11 | Ported later. compat still returns strings on early exits (C19). |
+| 12 | `debugging` always returns ConvertDebug in 2.11 | Ported from 2.x b6cbfca (§8): compat's `fontConvert.debugging` returns a report on every exit that returns text (C19, §10 Q3). |
 | 13 | Keep the `'zawgyi'` tie fallback in 2.x | compat passes `ON_TIE_ASSUME_ZAWGYI` explicitly. Core `decide(evidence, fallback)` takes the fallback as an argument, so 3.0's `tie` option needs no core change. 3.0's `toUnicode` detects each line and leaves a tie as it is unless `tie: 'zawgyi'`; §11.5 recounts the damage on the cached corpora. |
 | 14 | truncate's prefix fix ships in 2.11 as its own pull request; the option changes (`''`, `0`, `== null`) wait for 3.0 | compat keeps 2.10.0's `truncate`, which is not always a prefix (§10 Q5, C23). 3.0's `truncate` is a prefix that stops early, takes `''` as an omission and `0` as a length, and reads `undefined` and `null` as the defaults (§11.7). |
 | 15 | Typos before look-alikes in both pipelines | 2.11 made it (2.x ab3676e), and the port puts `typos` before `look-alikes` in `FONT_STAGES`, so compat and the 3.0 API convert alike (§8, §10 Q8). `OUTPUT_VERSION` is 3 since. |
@@ -1264,22 +1264,27 @@ fontDetectCore(text, fallback, options, notice = noDetectorNotice)   // compat n
 detectForRouting(text)                                          // 2.x fontDetect(text), called on text with Myanmar
   return fontDetectCore(text, ON_TIE_ASSUME_ZAWGYI, NO_OPTIONS)
 
-fontConvert(content, to, from)                                  // a function, not an arrow: `this` is the receiver; length 3
-  input = enter('fontConvert', content); if input.kind !== 'text': return input.value
+fontConvert(content, to, from) = convert(content, to, from, false)   // length 3; reads no `this` (2.11, d20027a)
+fontConvert.debugging(content, to, from) = convert(content, to, from, true)
+convert(content, to, from, debug)
+  input = enter('fontConvert', content)
+  if input.kind === 'missing': return unconverted('', to, from, debug)
+  if input.kind === 'other': return input.value                 // from debugging too
   text = input.value
-  if resolveFont(from) !== 'win' and !hasMyanmarBlockChar(text): return text
-  if !to: report('error', MESSAGES.noTarget); return text
+  if resolveFont(from) !== 'win' and !hasMyanmarBlockChar(text): return unconverted(text, to, from, debug)
+  if !to: report('error', MESSAGES.noTarget); return unconverted(text, to, from, debug)
   text = text.trim(); sourceName = givenName(from); target = resolveFont(to); source = resolveFont(from)
-  if !target: report('error', MESSAGES.unknownTarget); return text
+  if !target: report('error', MESSAGES.unknownTarget); return unconverted(text, target, source, debug)
   if !source:                                                   // on the trimmed text (C15)
     if sourceName !== null: report('warn', MESSAGES.unknownSource(sourceName))   // 2.11
     source = detectForRouting(text)
-  if target === source: return text
-  if target === 'win' or (source === 'win' and target !== 'unicode'): report('error', MESSAGES.winSourceOnly); return text
-  debug = this && this.debug                                    // read here, as converter.js:53 does
+  if target === source: return unconverted(text, target, source, debug)
+  if target === 'win' or (source === 'win' and target !== 'unicode'): report('error', MESSAGES.winSourceOnly); return unconverted(...)
   if FONTS[source].visualOrder: return debug ? fontDebug(...) : fontToUnicode(text, source)
   return debug ? zawgyiDebug(...) : unicodeToZawgyi(text)
-fontConvert.debugging = function (content, to, from) { return fontConvert.apply({ debug: true }, [content, to, from]) }
+unconverted(text, to, from, debug)                              // 2.11, b6cbfca
+  if !debug: return text
+  return { to: resolveFont(givenName(to)) || '', from: resolveFont(givenName(from)) || '', matched_patterns: [], steps: [text] }
 ```
 
 `syllBreak`, `spellingFix`, `truncate` and `normalize` follow C8-C24 below in the same style.
@@ -1310,10 +1315,10 @@ Each row is a behaviour of the reference library that the contract matrix or com
 | C13 | `fontDetect` (2.11's detection.js), length 3:<ul><li>the fallback is a string other than `''`, or a `String` object's string, returned as given; any other value is none (86f0040), so `fallback \|\| 'zawgyi'` for detection and `fallback \|\| 'en'` with no Myanmar text;</li><li>`undefined` and `null` options are none, and `options.adapter` is read before the merge (fb6594d);</li><li>the adapter is the requested one when its name (read as `givenName` reads it) is `'rules'` or `'myanmartools'`; another name warns, unless silent; otherwise myanmar-tools when the merged `use_myanmartools` is truthy, else the rules;</li><li>the myanmar-tools path scores with the merged `zawgyiDetector` against the merged threshold (840c8c5);</li><li>with no detector, warn once and use the rules (C26).</li></ul> | `fontDetect`, `fontDetectCore`, `pickAdapter`; core `scoreByZawgyiModel` |
 | C14 | The rule scorer: the `String#match` counts of the 29 signatures on the cleaned text; unicode > zawgyi, unicode < zawgyi, else the fallback. 2.11's `detectEncoding(content)` returns the counts and the side, `'unknown'` for a tie, and `'none'` with two zeros for missing content (which warns), a value that is not a string, or no Myanmar text; it reads one argument and always the rules. | core `countEvidence`, `decide`, `detectEncoding` |
 | C15 | `fontConvert`'s order of checks, messages and trims (converter.js:11-59; §5.1). The source is detected on the trimmed text, with the global detector options. The same font returns the trimmed text. Win as a target, or Win to anything but Unicode, is an error that returns the trimmed text. | `fontConvert` |
-| C16 | The debug flag is `this && this.debug`, read after the early exits. `debugging` is `fontConvert.apply({debug: true}, [a, b, c])`. A detached call: §5.4. | `fontConvert` |
+| C16 | Only `debugging` debugs: the debug flag is an argument, and no call reads it from `this` (2.11, d20027a), so `fontConvert.call({debug: true}, …)` and a detached call return text. Until the port compat read `this && this.debug`, as 2.10 did, after the early exits. | `fontConvert`, `convert` |
 | C17 | Zawgyi and Win to Unicode (storageOrder.js:462-485). Debug object `{to: 'unicode', from, matched_patterns, steps}` with the stage names of §2.3. `'glyphs'` appears only when debugging. | core `fontToUnicode`, `traceFontToUnicode` |
 | C18 | Unicode to Zawgyi (converter.js:57-58; syllable.js:301-327): the Unicode mark collapse, then 58 once rows (2.10's 57 and 2.11's row for stacked jha) and 8 repeat rows of at most 40 passes. Debug object `{to: 'zawgyi', from: 'unicode', matched_patterns: labels, steps: [collapsed text, …]}` (§3.9). | core `unicodeToZawgyi`, `traceUnicodeToZawgyi` |
-| C19 | `debugging` returns what `fontConvert` returns on every early exit: strings, `''`, non-strings (§10 Q3) | the same flow |
+| C19 | `debugging` returns a report on every early exit that returns text (2.11, b6cbfca; §10 Q3): `{to, from, matched_patterns: [], steps: [text]}`, the text `fontConvert` returns as its one step, and `to` and `from` the fonts read so far, as font names or `''`: the arguments read as `resolveFont(givenName(x))` before the call resolves them, its resolved names after, and `from` `''` before a source is detected. Content that is not a string comes back as it is. | `unconverted` |
 | C20 | `syllBreak`'s separator (syllable.js:272-275): a falsy separator, or U+200B, means U+200B. Anything else is converted as `Array#join` converts it: `toString` before `valueOf`, and a Symbol throws a TypeError. | `toJoinSeparator(value)` = `['', ''].join(value)`, called after the rule-table lookup, as in 2.x |
 | C21 | The break output: Unicode rows U1-U7; Zawgyi rows Z1-Z8, with row Z6 off for text that `looksLikeSgawKaren`; bare consonants joined only in pairs (§10 Q11); no break at the start | core `breakString`, `breakParts` |
 | C22 | `spellingFix` detects on the raw text, then cleans, then collapses each run of one repeated mark (per font set, syllable.js:210-213) | core `collapseRepeatedMarks` |
@@ -2023,7 +2028,6 @@ compat must give the reference's output on every input (§1.2 rule 1), so the co
 
 | # | Quirk | Example | Size | Kept in | Planned fix |
 |---|---|---|---|---|---|
-| Q3 | `fontConvert.debugging` returns what `fontConvert` returns on every early exit: strings, `''` and non-strings, not a debug object (C19). index.d.ts promises an object. | `debugging('abc', 'unicode')` is `'abc'`; `debugging('က', 'unicode', 'unicode')` is `'က'` | 190 matrix cells; the demo's string check depends on it | `compat/fontConvert.js` | 2.11, decision 12 (§8: "always-an-object `debugging`") |
 | Q5 | `truncate` is not always a prefix of its input: a part that does not fit adds those of its words that do, so a later word can follow a skipped one (truncate.js `reduce`, C23). | The pangram of MIGRATION.md's `truncate` examples (README.md's in 2.x), cut at 30, drops ဇလွန် and keeps the later ဈေး | 29% of Myanmar lines at length 30 | `compat/text.js` `fitParts` | 2.11, its own pull request; 3.0's truncate is a prefix that stops early (§11.7) |
 | Q10 | Unicode to Zawgyi moves an e or a medial ra before the nearest consonant before it, past anything that is not a consonant, a space or a line break included (syllable.js:22, :26; rows `uz.order.1` and `uz.order.3`). So a line does not convert to Zawgyi as it would alone, and streaming to Zawgyi is refused (§12.2). | `toZawgyi('က\nေ')` gives U+1031 U+1000 U+000A, where its lines alone give U+1000 U+000A U+1031 | 839 of the 48,105 pairs of neighbouring lines of the Unicode corpora convert otherwise as one text (2,622 of 64,797 with mC4 and WaitZar) | `rules/unicodeToZawgyi.js` `VISUAL_ORDER` | a deliberate 2.x pull request (Phase 4), then streaming to Zawgyi, with a boundary test |
 | Q11 | Bare consonants join only in pairs: one global replace never looks again at the consonant it has just taken, though the comment of syllable.js says every bare consonant joins (rows U7 and Z8, C21). | `syllBreak('ကကက', 'unicode', '\|')` is `ကက\|က`; ပထမဆုံး breaks as ပထ\|မဆုံး | 6,032 of 34,285 lines would change | `rules/segment.js` `legacyBareConsonantPair`; `spec/breakRules.js` U7, Z8 | decision 34: 3.0 reads a bare consonant as a syllable of its own by default (§11.6) |
@@ -2036,6 +2040,7 @@ The 2.x line has fixed these since, and the port of 2.11 (§8) brought each fix 
 
 | # | Quirk | Example | Fixed by |
 |---|---|---|---|
+| Q3 | `fontConvert.debugging` returned what `fontConvert` returns on every early exit: strings, `''` and non-strings, not a debug object (C19), where index.d.ts promises an object. | `debugging('abc', 'unicode')` was `'abc'`; `debugging('က', 'unicode', 'unicode')` was `'က'` | 2.x b6cbfca, decision 12: a report with the text as its one step, on every exit that returns text (`compat/fontConvert.js` `unconverted`) |
 | Q15 | The 2.x ES module build, and compat with it, looked myanmar-tools up from the working directory, where `main.js` looks from `library/` (§5.4; C26). | A worker started from another directory found the package "not installed" | 2.x 840c8c5 and 649b2b4, decision 17: compat takes a detector as `zawgyiDetector` and loads no package (`compat/zawgyiModel.js`) |
 | Q8 | The two pipelines ran the typing fixes in different orders: normalize typos then look-alikes, and the font pipeline look-alikes then typos (C24; ARCHITECTURE.md, "Typing fixes and their order"). | The Win text `&4if;` gave U+1047 U+1044 (digits), where `normalize('ရ၄င်း')` gives U+101B U+104E (lagaung) | 2.x ab3676e, decision 15: typos first in both, in `stages/fonts.js`; both APIs, `OUTPUT_VERSION` 3 |
 

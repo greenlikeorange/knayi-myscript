@@ -63,11 +63,9 @@ describe('compat: the export object (C1)', () => {
 });
 
 // lines.map(knayi.f) passes (value, index, array): the index and the array land in the fallback, target, source,
-// font, separator and options positions. Where 2.11 reads them otherwise, the form waits for its port: debugging's
-// report (b6cbfca).
-const MAP_PENDING = {
-  'fontConvert.debugging': 'b6cbfca'
-};
+// font, separator and options positions. Where 2.11 reads them otherwise than compat, the form waits for its port
+// (scripts/testing/pending-port.js); since the port of 2.11 none does.
+const MAP_PENDING = {};
 
 describe('compat: every function as an Array#map callback (C27)', () => {
   const LINES = ['\u1019\u103C\u1014\u103A\u1019\u102C', '\u103B\u1019\u1014\u1039\u1019\u102C', 'jrefrm', '', null, 7,

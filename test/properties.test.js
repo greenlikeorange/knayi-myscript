@@ -76,7 +76,7 @@ describe('debugging ends with the converted text', () => {
     ['unicode', undefined, fc.oneof(arb.zawgyiText(), arb.unicodeText())],
     ['zawgyi', undefined, fc.oneof(arb.zawgyiText(), arb.unicodeText())]
   ];
-  // Every pair but Win can exit early, where 2.11 reports and 2.10.0 returned the text (b6cbfca).
+  // Every pair but Win can exit early, where 2.11 reports the text as the one step (b6cbfca); 2.10.0 returned it.
   for (const [to, from, text] of pairs) {
     const test = () => {
       check(fc.property(text, (content) => {
@@ -91,7 +91,7 @@ describe('debugging ends with the converted text', () => {
         assert.equal(debug.steps[debug.steps.length - 1], converted);
       }), 3000);
     };
-    it('from ' + (from || 'a detected font') + ' to ' + to, from === 'win' ? test : pendingPort('b6cbfca', test));
+    it('from ' + (from || 'a detected font') + ' to ' + to, test);
   }
 });
 
@@ -186,11 +186,11 @@ describe('no call form throws', () => {
   };
   // The forms include detectEncoding (31eb6b1), and debugging returns a report on every exit (b6cbfca).
   for (const [kind, text] of Object.entries(strings)) {
-    it('on ' + kind + ', and returns text', pendingPort('b6cbfca', () => {
+    it('on ' + kind + ', and returns text', () => {
       check(fc.property(text, (x) => {
         for (const [name, call] of forms) returnsText(name, call(x));
       }), 400, [[''], [' '], ['\u200B'], ['\uD800'], ['\u1031'.repeat(3)]]);
-    }));
+    });
   }
 
   // README: other values, such as numbers and objects, are returned unchanged, and no function throws on them;
