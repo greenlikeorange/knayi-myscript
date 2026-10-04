@@ -20,6 +20,16 @@
   },
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "compat": [
+        "./src/compat/index.d.ts"
+      ],
+      "stream": [
+        "./src/stream.d.ts"
+      ]
+    }
+  },
   "bin": {
     "knayi": "./bin/knayi.js"
   },

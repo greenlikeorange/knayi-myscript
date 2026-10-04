@@ -26,7 +26,7 @@ knayi 3.0 has two APIs on one new core:
 | `dist/knayi-myscript.mjs`, `dist/knayi-myscript.es.js` | `dist/knayi-myscript-compat.min.mjs`, with the same named exports and default export |
 | `dist/knayi-myscript.js` | `dist/knayi-myscript.min.js`, as above |
 | `import 'knayi-myscript/dist/knayi-myscript.min.js'` in a bundler | load the file from a CDN or a copy: the exports map serves no `dist/` path |
-| TypeScript: `index.d.ts` at the package root | `src/compat/index.d.ts`, the same declarations, found through `knayi-myscript/compat` under `moduleResolution` `node16`, `nodenext` or `bundler` |
+| TypeScript: `index.d.ts` at the package root | `src/compat/index.d.ts`, the same declarations, found through `knayi-myscript/compat` under every `moduleResolution`, `node` (node10, the default of `module: commonjs`) included: `require('knayi-myscript/compat').default` compiles as it is |
 
 `import knayi from 'knayi-myscript'` no longer works: the 3.0 API has no default export.
 

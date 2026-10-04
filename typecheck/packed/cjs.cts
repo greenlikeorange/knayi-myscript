@@ -1,7 +1,7 @@
 // A CommonJS module that uses the packed package. 3.0 is ES modules only, which CommonJS loads with require() in
-// Node 22.12 and later, and TypeScript allows under node20 and nodenext resolution (5.8 and later), not under
-// node16. scripts/check-types.mjs compiles it in a project that has the tarball installed, under node20 and
-// nodenext, then runs the output in Node.
+// Node 22.12 and later, and TypeScript allows under module commonjs, whose node10 resolution finds the subpaths
+// through typesVersions, and under node20 and nodenext (5.8 and later), not under node16. scripts/check-types.mjs
+// compiles it in a project that has the tarball installed, under the three, then runs the output in Node.
 import knayi = require("knayi-myscript");
 import compat = require("knayi-myscript/compat");
 import type { ConvertDebug, Knayi, TruncateOptions } from "knayi-myscript/compat";

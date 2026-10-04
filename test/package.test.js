@@ -65,6 +65,14 @@ describe('package.json', () => {
     assert.equal(pkg.types, ENTRIES['.'].types);
   });
 
+  it('maps each subpath to its types for node10 resolution, the default of `module: commonjs`', () => {
+    // node10 reads no exports map; typesVersions maps 'knayi-myscript/compat' and '/stream' to their types, so a
+    // CommonJS project that requires the subpaths compiles as it is (typecheck/packed/tsconfig.node10.json).
+    const subpaths = Object.keys(ENTRIES).filter((entry) => entry !== '.');
+    assert.deepEqual(pkg.typesVersions, { '*': Object.fromEntries(subpaths.map((entry) =>
+      [entry.slice(2), [ENTRIES[entry].types]])) });
+  });
+
   it('ships the command, the sources, their types and the browser builds, and no spec, tests or scripts', () => {
     assert.deepEqual(pkg.files,
       ['bin', 'src', '!src/spec'].concat(require('../scripts/build').FILES.map((f) => 'dist/' + f)));

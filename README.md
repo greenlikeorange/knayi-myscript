@@ -615,7 +615,7 @@ The package has one entry per API, each with its own types:
 | `knayi-myscript/stream` | the 3.0 API's streams, [above](#streams-knayi-myscriptstream) | `src/stream.d.ts` |
 | `knayi-myscript/compat` | the 2.x API, with 2.x's output ([MIGRATION.md](MIGRATION.md)) | `src/compat/index.d.ts` |
 
-No other path loads: 2.x's `knayi-myscript/library/converter` and its `dist/` imports are gone. The package also installs the command `knayi` ([Command line](#command-line)). TypeScript finds the subpaths under `moduleResolution` `node16`, `nodenext` or `bundler`, and CommonJS code in TypeScript can `require` them under `module` `node20` or `nodenext` (TypeScript 5.9 has both). The types of `knayi-myscript` and `knayi-myscript/compat` need neither the DOM library nor `@types/node`.
+No other path loads: 2.x's `knayi-myscript/library/converter` and its `dist/` imports are gone. The package also installs the command `knayi` ([Command line](#command-line)). TypeScript finds every entry's types under any `moduleResolution`: `node16`, `nodenext` and `bundler` through the exports map, and `node` (node10), the default of `module: commonjs`, through `typesVersions`. CommonJS code in TypeScript can `require` the package under `module` `commonjs`, `node20` or `nodenext` (TypeScript 5.9 has all three), and runs on Node 22.12 and later, which `require` an ES module. The types of `knayi-myscript` and `knayi-myscript/compat` need neither the DOM library nor `@types/node`.
 
 ### Browsers
 

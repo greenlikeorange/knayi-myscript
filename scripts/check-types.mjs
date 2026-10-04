@@ -7,7 +7,9 @@
 // no dependencies, so that is all npm install would do), and:
 // 1. compiles typecheck/packed/ there with tsc, skipLibCheck off: an ES module (esm.mts) under node16, node20 and
 //    nodenext resolution; a CommonJS module (cjs.cts) under node20 and nodenext, the modes in which TypeScript
-//    lets CommonJS require an ES module, as Node 22.12 and later do; bundler.ts under bundler resolution; and the
+//    lets CommonJS require an ES module, as Node 22.12 and later do, and under `module: commonjs`, whose default
+//    resolution, node10, reads no exports map and finds the subpaths through typesVersions; bundler.ts under
+//    bundler resolution; and the
 //    streams (stream.mts) under nodenext with the DOM library, which has the TransformStream type they name. The
 //    others have only ES2022, so '.' and './compat' are shown to need no DOM or Node types;
 // 2. runs the compiled modules in Node, and bundler.ts bundled by esbuild, so the types are checked against what
@@ -34,15 +36,11 @@ const ENTRYPOINTS = ['.', './compat', './stream'];
 
 // Problems attw reports by design. Each is a choice of 3.0's packaging (decision 31), with its reason.
 const ESM_ONLY = 'ES modules only: CommonJS loads them with require() in Node 22.12 and later, and TypeScript ' +
-  'allows that under node20 and nodenext resolution (typecheck/packed/cjs.cts), not under node16';
-const NO_EXPORTS_MAP = 'node10 resolution reads no exports map, so it finds only ".", through main and types; ' +
-  'a subpath needs node16, node20, nodenext or bundler resolution';
+  'allows that under module commonjs, node20 and nodenext (typecheck/packed/cjs.cts), not under node16';
 const KNOWN_PROBLEMS = {
   'CJSResolvesToESM . node16-cjs': ESM_ONLY,
   'CJSResolvesToESM ./compat node16-cjs': ESM_ONLY,
-  'CJSResolvesToESM ./stream node16-cjs': ESM_ONLY,
-  'NoResolution ./compat node10': NO_EXPORTS_MAP,
-  'NoResolution ./stream node10': NO_EXPORTS_MAP
+  'CJSResolvesToESM ./stream node16-cjs': ESM_ONLY
 };
 
 const failures = [];
@@ -71,8 +69,8 @@ try {
   // ---- tsc under each module resolution.
   const tsc = require.resolve('typescript/bin/tsc');
   const typescriptVersion = require('typescript/package.json').version;
-  const projects = ['tsconfig.node16.json', 'tsconfig.node20.json', 'tsconfig.nodenext.json', 'tsconfig.bundler.json',
-    'tsconfig.stream.json'];
+  const projects = ['tsconfig.node10.json', 'tsconfig.node16.json', 'tsconfig.node20.json', 'tsconfig.nodenext.json',
+    'tsconfig.bundler.json', 'tsconfig.stream.json'];
   for (const project of projects) {
     const result = spawnSync(process.execPath, [tsc, '-p', path.join(app, project)], { cwd: app, encoding: 'utf8' });
     if (result.status === 0) {
@@ -83,8 +81,8 @@ try {
   }
 
   // ---- Run what tsc compiled, and the bundler consumer through esbuild.
-  const outputs = ['out/node16/esm.mjs', 'out/node20/esm.mjs', 'out/node20/cjs.cjs', 'out/nodenext/esm.mjs',
-    'out/nodenext/cjs.cjs', 'out/stream/stream.mjs'];
+  const outputs = ['out/node10/cjs.cjs', 'out/node16/esm.mjs', 'out/node20/esm.mjs', 'out/node20/cjs.cjs',
+    'out/nodenext/esm.mjs', 'out/nodenext/cjs.cjs', 'out/stream/stream.mjs'];
   try {
     require('esbuild').buildSync({
       absWorkingDir: app,
