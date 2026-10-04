@@ -11,6 +11,18 @@
  */
 export type FontName = 'unicode' | 'uni' | 'zawgyi' | 'zaw' | 'win';
 
+/**
+ * A Zawgyi detector for the myanmar-tools adapter: a `ZawgyiDetector` of the myanmar-tools package, made with
+ * `new ZawgyiDetector()`, or any object with the same method.
+ */
+export interface ZawgyiDetectorLike {
+  /**
+   * The probability that the text is Zawgyi rather than Unicode, from 0 to 1. knayi passes the text trimmed and
+   * without zero-width spaces and non-joiners, and compares the result with `myanmartools_zg_threshold`.
+   */
+  getZawgyiProbability(text: string): number;
+}
+
 /** Detector settings that setGlobalOptions stores. A fontDetect call may set them for itself too. */
 export interface GlobalDetectorOptions {
   /**
@@ -26,14 +38,24 @@ export interface GlobalDetectorOptions {
    * silent. Default `[0.05, 0.95]`.
    */
   myanmartools_zg_threshold?: [number, number];
+  /**
+   * The detector the myanmar-tools adapter uses, such as `new ZawgyiDetector()` from myanmar-tools. With it, knayi
+   * does not load the package itself, which it can do only in Node and Bun, so the adapter also works in browsers,
+   * in Deno and through the ES module build. It does not choose the adapter: set `use_myanmartools`, or a call's
+   * `adapter`, too. `null` is no detector, and knayi loads the package. For a value without a `getZawgyiProbability`
+   * method, knayi uses the stored detector and writes an error that starts with `[ERR_KNAYI_INVALID_DETECTOR]`,
+   * unless silent. Default `null`.
+   */
+  zawgyiDetector?: ZawgyiDetectorLike | null;
 }
 
 /** Detector settings for a single fontDetect call. Settings it leaves out come from setGlobalOptions. */
 export interface DetectorOptions extends GlobalDetectorOptions {
   /**
    * The detector for this call: `'rules'`, knayi's rule scorer and the default, or `'myanmartools'`, the
-   * myanmar-tools package. It wins over `use_myanmartools`. Any other name warns unless silent, and the call uses
-   * the detector `use_myanmartools` picks. setGlobalOptions does not store it.
+   * myanmar-tools package, or the detector from it passed as `zawgyiDetector`. It wins over `use_myanmartools`. Any
+   * other name warns unless silent, and the call uses the detector `use_myanmartools` picks. setGlobalOptions does
+   * not store it.
    */
   adapter?: 'rules' | 'myanmartools';
 }
@@ -104,8 +126,8 @@ export declare const version: string;
 
 /**
  * Sets options for this copy of knayi. `silent_mode: true` hides every warning and error knayi writes to the console.
- * `detector` sets the detector settings; a later call that sets only `use_myanmartools` keeps the stored threshold.
- * `null`, like `undefined`, sets nothing.
+ * `detector` sets the detector settings; a later call that sets only `use_myanmartools` keeps the stored threshold
+ * and `zawgyiDetector`. `null`, like `undefined`, sets nothing.
  *
  * In Node, `require` and `import` share one copy, main.js. A bundler that follows the `module` field loads
  * dist/knayi-myscript.es.js instead, a second copy with options of its own.

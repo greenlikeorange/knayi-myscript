@@ -13,7 +13,15 @@ import {
   truncate,
   version
 } from "knayi-myscript";
-import type { ConvertDebug, DetectorOptions, EncodingDetection, GlobalOptions, Knayi, TruncateOptions } from "knayi-myscript";
+import type {
+  ConvertDebug,
+  DetectorOptions,
+  EncodingDetection,
+  GlobalOptions,
+  Knayi,
+  TruncateOptions,
+  ZawgyiDetectorLike
+} from "knayi-myscript";
 // Without an exports map, an ES module names the deep path's file with its extension.
 import deepConvert from "knayi-myscript/library/converter.js";
 
@@ -43,6 +51,9 @@ check(fontDetect(zawgyi, null, detectorOptions) === "zawgyi", "fontDetect");
 check(fontDetect(zawgyi, null, null) === "zawgyi", "fontDetect with null options");
 const evidence: EncodingDetection = detectEncoding(zawgyi);
 check(evidence.encoding === "zawgyi" && evidence.zawgyi > evidence.unicode, "detectEncoding");
+// The project has no myanmar-tools: a detector passed as zawgyiDetector needs none.
+const unicodeDetector: ZawgyiDetectorLike = { getZawgyiProbability: () => 0 };
+check(fontDetect(zawgyi, null, { adapter: "myanmartools", zawgyiDetector: unicodeDetector }) === "unicode", "zawgyiDetector");
 setGlobalOptions(null);
 check(syllBreak(unicode, null, "|") === "မင်္ဂလာ|ပါ", "syllBreak");
 check(typeof spellingFix(unicode, "unicode") === "string", "spellingFix");

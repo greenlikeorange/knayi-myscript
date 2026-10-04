@@ -109,8 +109,8 @@ function decide(evidence, fallback) {
   return evidence.encoding === 'unknown' ? fallback : evidence.encoding;
 }
 
-function scoreWithMyanmarTools(content, fallback, threshold) {
-  var probability = myanmartoolZawgyiDetector.getZawgyiProbability(content);
+function scoreWithMyanmarTools(zawgyiDetector, content, fallback, threshold) {
+  var probability = zawgyiDetector.getZawgyiProbability(content);
 
   if (probability < threshold[0]) return 'unicode';
   if (probability > threshold[1]) return 'zawgyi';
@@ -163,7 +163,10 @@ function fontDetect(content, fallback_font_type, options){
     return decide(countEvidence(content), fallback_font_type);
   }
 
-  if (!loadMyanmarTools()) {
+  // The detector passed as zawgyiDetector, for this call or stored, or else the package, which nodeRequire loads
+  // in Node and Bun only.
+  var zawgyiDetector = options.zawgyiDetector || loadMyanmarTools();
+  if (!zawgyiDetector) {
     if (!globalOptions.isSilentMode() && !warnedMissingMyanmarTools) {
       console.warn(missingMyanmarToolsMessage());
       warnedMissingMyanmarTools = true;
@@ -171,7 +174,7 @@ function fontDetect(content, fallback_font_type, options){
     return decide(countEvidence(content), fallback_font_type);
   }
 
-  return scoreWithMyanmarTools(content, fallback_font_type, options.myanmartools_zg_threshold);
+  return scoreWithMyanmarTools(zawgyiDetector, content, fallback_font_type, options.myanmartools_zg_threshold);
 };
 
 // The rule scorer's evidence in the text, { encoding, unicode, zawgyi }; for missing content, a value that is not a

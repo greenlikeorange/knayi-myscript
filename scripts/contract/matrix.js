@@ -114,7 +114,7 @@ const SILENT_VALUES = [1, 0, 'false', '', null, undefined];
 // The state every cell starts from.
 const DEFAULT_OPTIONS = {
   silent_mode: false,
-  detector: { use_myanmartools: false, myanmartools_zg_threshold: [0.05, 0.95] }
+  detector: { use_myanmartools: false, myanmartools_zg_threshold: [0.05, 0.95], zawgyiDetector: null }
 };
 
 const CONSOLE_METHODS = ['log', 'info', 'warn', 'error', 'debug', 'trace'];
@@ -234,6 +234,83 @@ function defineCells() {
     k.setGlobalOptions();
     return k.fontConvert(undefined, 'unicode');
   });
+
+  // 5. A detector passed as zawgyiDetector: a ZawgyiDetector of myanmar-tools 1.1.3, the dev dependency. It is made
+  // here and passed as it is, since a copy into the build's realm would lose the methods of its prototype. With it
+  // the adapter loads nothing, so every build gives the same cells, min.js in a vm included. No cell lets a build
+  // load the package itself, which only main.js can do (test/adapter.test.js checks that).
+  const { ZawgyiDetector } = require('myanmar-tools');
+  const zawgyiDetector = new ZawgyiDetector();
+  const DETECTOR = 'new ZawgyiDetector()';
+  // Options in the build's realm, with zawgyiDetector set to a value that is already there (a probe copied with
+  // make, or the detector).
+  function detectorOptions(make, options, value) {
+    const copy = make(options);
+    copy.zawgyiDetector = value;
+    return copy;
+  }
+  // setGlobalOptions' argument, in the build's realm, with these detector options.
+  function withDetector(make, detector) {
+    const options = make({});
+    options.detector = detector;
+    return options;
+  }
+  function storeDetector(k, make, value) {
+    k.setGlobalOptions(withDetector(make, detectorOptions(make, { use_myanmartools: true }, value)));
+  }
+  const STORED = `setGlobalOptions({detector: {use_myanmartools: true, zawgyiDetector: ${DETECTOR}}}); `;
+  for (const [name, content] of CONTENTS) {
+    add(`fontDetect(${name}, null, {adapter: 'myanmartools', zawgyiDetector: ${DETECTOR}})`, (k, make) =>
+      k.fontDetect(make(content), null, detectorOptions(make, { adapter: 'myanmartools' }, zawgyiDetector)));
+    add(STORED + `fontConvert(${name}, 'unicode')`, (k, make) => {
+      storeDetector(k, make, zawgyiDetector);
+      return k.fontConvert(make(content), 'unicode');
+    });
+    add(STORED + `syllBreak(${name}, null, '|')`, (k, make) => {
+      storeDetector(k, make, zawgyiDetector);
+      return k.syllBreak(make(content), null, '|');
+    });
+  }
+  // The detector does not choose the adapter, and the thresholds apply to what it gives.
+  const tie = probe('tie');
+  const zawgyi = probe('zawgyi');
+  for (const options of [{}, { adapter: 'rules' }, { adapter: 'myanmartools', myanmartools_zg_threshold: [0.01, 0.02] },
+    { adapter: 'myanmartools', myanmartools_zg_threshold: [0.95, 0.05] }]) {
+    const shown = show(options);
+    add(`fontDetect(tie, null, ${shown.slice(0, -1)}${shown === '{}' ? '' : ', '}zawgyiDetector: ${DETECTOR}})`,
+      (k, make) => k.fontDetect(make(tie), null, detectorOptions(make, options, zawgyiDetector)));
+  }
+  // Values that are no detector, and null and undefined, which are none. With no detector stored, the rule scorer
+  // decides; with one, the call uses it and setGlobalOptions keeps it. Labelled by hand: show() writes a function's
+  // source.
+  const values = [['{}', {}], ['1', 1], ["'x'", 'x'], ['ZawgyiDetector', ZawgyiDetector],
+    ['{getZawgyiProbability: 0.5}', { getZawgyiProbability: 0.5 }], ['null', null], ['undefined', undefined]];
+  for (const [label, value] of values) {
+    add(`fontDetect(zawgyi, null, {zawgyiDetector: ${label}})`,
+      (k, make) => k.fontDetect(make(zawgyi), null, detectorOptions(make, {}, make(value))));
+    add(`setGlobalOptions({detector: {zawgyiDetector: ${label}}})`,
+      (k, make) => k.setGlobalOptions(withDetector(make, detectorOptions(make, {}, make(value)))));
+    // null and undefined with a detector stored would let the build load the package.
+    if (value == null) continue;
+    add(STORED + `fontDetect(tie, null, {zawgyiDetector: ${label}})`, (k, make) => {
+      storeDetector(k, make, zawgyiDetector);
+      return k.fontDetect(make(tie), null, detectorOptions(make, {}, make(value)));
+    });
+    add(STORED + `setGlobalOptions({detector: {zawgyiDetector: ${label}}}); fontDetect(tie)`, (k, make) => {
+      storeDetector(k, make, zawgyiDetector);
+      k.setGlobalOptions(withDetector(make, detectorOptions(make, {}, make(value))));
+      return k.fontDetect(make(tie));
+    });
+  }
+  for (const silent of [true, false]) {
+    add(`setGlobalOptions({silent_mode: ${silent}}); fontDetect(zawgyi, null, {zawgyiDetector: {}}); ` +
+      'setGlobalOptions({detector: {zawgyiDetector: {}}})', (k, make) => {
+      k.setGlobalOptions(make({ silent_mode: silent }));
+      const detected = k.fontDetect(make(zawgyi), null, detectorOptions(make, {}, make({})));
+      k.setGlobalOptions(withDetector(make, detectorOptions(make, {}, make({}))));
+      return detected;
+    });
+  }
 
   definedCells = cells;
   return cells;

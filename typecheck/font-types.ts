@@ -1,8 +1,15 @@
 // The finer types of index.d.ts: fontDetect's literal results, detectEncoding's result, the font names on font
-// parameters, and DetectorOptions as an extension of GlobalDetectorOptions. npm test compiles this file with and without
-// esModuleInterop; it never runs.
+// parameters, DetectorOptions as an extension of GlobalDetectorOptions, and zawgyiDetector. npm test compiles this
+// file with and without esModuleInterop; it never runs.
 import { detectEncoding, fontConvert, fontDetect, spellingFix, syllBreak, truncate } from "knayi-myscript";
-import type { DetectorOptions, EncodingDetection, FontName, GlobalDetectorOptions, TruncateOptions } from "knayi-myscript";
+import type {
+  DetectorOptions,
+  EncodingDetection,
+  FontName,
+  GlobalDetectorOptions,
+  TruncateOptions,
+  ZawgyiDetectorLike
+} from "knayi-myscript";
 
 // true only when A and B are the same type.
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;
@@ -64,6 +71,21 @@ const detectorOptions: DetectorOptions = {
 const stored: GlobalDetectorOptions = detectorOptions;
 const extendsGlobal: DetectorOptions extends GlobalDetectorOptions ? true : false = true;
 
+// zawgyiDetector takes a myanmar-tools ZawgyiDetector, which has more members than ZawgyiDetectorLike, any object
+// with its method, or null.
+declare class ToolsDetector {
+  model: unknown;
+  getZawgyiProbability(input: string): number;
+}
+const passed: DetectorOptions = { adapter: "myanmartools", zawgyiDetector: new ToolsDetector() };
+const storedDetector: GlobalDetectorOptions = { use_myanmartools: true, zawgyiDetector: { getZawgyiProbability: () => 0.5 } };
+const noDetector: GlobalDetectorOptions = { zawgyiDetector: null };
+const detectorType: Equal<GlobalDetectorOptions["zawgyiDetector"], ZawgyiDetectorLike | null | undefined> = true;
+// @ts-expect-error the class is no detector; an instance is
+const notInstance: GlobalDetectorOptions = { zawgyiDetector: ToolsDetector };
+// @ts-expect-error a detector returns a probability
+const notProbability: ZawgyiDetectorLike = { getZawgyiProbability: (text: string) => text };
+
 export {
   noFallback,
   nullFallback,
@@ -89,5 +111,11 @@ export {
   shortened,
   anyName,
   stored,
-  extendsGlobal
+  extendsGlobal,
+  passed,
+  storedDetector,
+  noDetector,
+  detectorType,
+  notInstance,
+  notProbability
 };

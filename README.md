@@ -37,7 +37,7 @@ import knayi from 'knayi-myscript'
 import knayi from 'knayi-myscript'
 ```
 
-TypeScript types are `index.d.ts`, with documentation for every export that editors show. Named imports such as `import { fontConvert } from 'knayi-myscript'` work in Node and in bundlers, next to the default import. The default import compiles with or without `esModuleInterop`. The option types (`DetectorOptions`, `GlobalDetectorOptions`, `GlobalOptions`, `TruncateOptions`), `ConvertDebug`, `EncodingDetection` and `FontName` are exported. A font parameter takes any string, and editors suggest the names in `FontName`. `fontDetect`'s result type is `'unicode' | 'zawgyi' | 'en'`, with the fallback's type in place of `'en'` when you pass a fallback.
+TypeScript types are `index.d.ts`, with documentation for every export that editors show. Named imports such as `import { fontConvert } from 'knayi-myscript'` work in Node and in bundlers, next to the default import. The default import compiles with or without `esModuleInterop`. The option types (`DetectorOptions`, `GlobalDetectorOptions`, `GlobalOptions`, `TruncateOptions`, `ZawgyiDetectorLike`), `ConvertDebug`, `EncodingDetection` and `FontName` are exported. A font parameter takes any string, and editors suggest the names in `FontName`. `fontDetect`'s result type is `'unicode' | 'zawgyi' | 'en'`, with the fallback's type in place of `'en'` when you pass a fallback.
 
 In Node, `require` and `import` both load `main.js` and share `setGlobalOptions`. A bundler that follows the `module` field loads `dist/knayi-myscript.es.js` instead. That file is a second copy. If one part of an app uses `main.js` and another uses `dist/knayi-myscript.es.js`, silent mode and detector settings do not cross between them.
 
@@ -108,7 +108,7 @@ knayi.fontDetect('က', 1) // 'zawgyi'  (a number is no fallback)
 knayi.fontDetect(null) // 'en'
 ```
 
-`options.adapter` chooses the detector for that call. `'rules'` is the built-in scorer and the default. `'myanmartools'` uses the `myanmar-tools` package. Install it only for that adapter, and use 1.1.x: `myanmar-tools` 1.2.0 on npm was published without its built files and cannot be loaded.
+`options.adapter` chooses the detector for that call. `'rules'` is the built-in scorer and the default. `'myanmartools'` uses the `myanmar-tools` package, which knayi loads itself in Node and Bun, or the detector from it that you pass as `zawgyiDetector` ([below](#the-myanmar-tools-detector)). Install it only for that adapter, and use 1.1.x: `myanmar-tools` 1.2.0 on npm was published without its built files and cannot be loaded.
 
 ```bash
 npm install myanmar-tools@1.1.3
@@ -124,7 +124,7 @@ knayi.fontDetect('မင်္ဂလာပါ', null, {
 
 `use_myanmartools: true` selects the same adapter. A probability below the first threshold returns `'unicode'`. A probability above the second returns `'zawgyi'`. A probability between them returns the fallback. The default pair is `[0.05, 0.95]`. If the package is not installed or cannot be loaded, the call uses the rule scorer and warns once. The warning says which of the two happened.
 
-`setGlobalOptions({ detector: { use_myanmartools: true } })` changes the default. An explicit `adapter` on a later call wins. A later call that only sets `use_myanmartools` keeps a previously stored threshold. `null` options, like omitted ones, use the stored settings, and `setGlobalOptions(null)` changes nothing.
+`setGlobalOptions({ detector: { use_myanmartools: true } })` changes the default. An explicit `adapter` on a later call wins. A later call that only sets `use_myanmartools` keeps a previously stored threshold and `zawgyiDetector`. `null` options, like omitted ones, use the stored settings, and `setGlobalOptions(null)` changes nothing.
 
 The threshold pair must be two finite numbers in order, `[low, high]`; the two may be equal. For any other value, the call uses the stored pair (`setGlobalOptions` keeps it) and writes an error unless silent. The error starts with its code, `[ERR_KNAYI_INVALID_THRESHOLD]`: match the code, not the words after it, which may change. An `adapter` name other than `'rules'` and `'myanmartools'` warns unless silent, and the call uses the adapter `use_myanmartools` picks, as it does when the `adapter` is not a string or is `''`. `fontDetect` reads its options only for text with a Myanmar letter, so only those calls check them.
 
@@ -135,6 +135,30 @@ knayi.fontDetect('ကျ', null, { myanmartools_zg_threshold: [0.95, 0.05] }) //
 ```
 
 The rule scorer does not count a consonant, `U+1039`, consonant sequence such as `က္က` as Unicode. In Zawgyi, `U+1039` is the visible asat, so `ပ္က` is a common Zawgyi sequence. A lone stack is a tie and returns the fallback. In longer Unicode text such as `ရန်ကုန်တက္ကသိုလ်`, the other signs decide.
+
+### The myanmar-tools detector
+
+Without a `zawgyiDetector`, knayi loads `myanmar-tools` itself the first time a call uses the adapter, and only in Node and Bun:
+
+- `main.js`, which `require` and `import` load in Node and Bun, resolves the package from its own folder, as it would a dependency, so it finds the copy installed next to knayi.
+- The ES module build, which bundlers load through the `module` field, has no `require` of its own. Under Node it looks for the package from the `package.json` of the working directory, so it finds only a copy in the `node_modules` of the directory the process started in, or above it. Under Bun it looks from the build file, and where Bun finds no `node_modules` folder there or above it, as for a bundle deployed on its own, Bun's auto-install can fetch the latest `myanmar-tools` from npm (1.2.0, which cannot be loaded).
+- Anywhere else, such as in a browser, it loads nothing: the call uses the rule scorer and warns that `myanmar-tools` is not available.
+
+`zawgyiDetector` skips that search. Make a `ZawgyiDetector` with `myanmar-tools` yourself and pass it, and knayi calls its `getZawgyiProbability` instead of loading the package. So the adapter works wherever your own code can load `myanmar-tools`: in browsers, in Deno and in bundles, through the ES module build too. Pass it with a call, or store it with `setGlobalOptions`, which also gives it to `fontConvert`, `syllBreak`, `spellingFix` and `truncate` when they detect a font. It does not choose the adapter: set `adapter: 'myanmartools'` or `use_myanmartools: true` as well.
+
+```javascript
+import { ZawgyiDetector } from 'myanmar-tools'
+import { fontConvert, fontDetect, setGlobalOptions } from 'knayi-myscript'
+
+const zawgyiDetector = new ZawgyiDetector()
+fontDetect('ဗုဒ္ဓ', null, { adapter: 'myanmartools', zawgyiDetector }) // 'unicode'
+fontDetect('ဗုဒ္ဓ') // 'zawgyi'  (the rule scores tie)
+
+setGlobalOptions({ detector: { use_myanmartools: true, zawgyiDetector } })
+fontConvert('ဗုဒ္ဓ', 'unicode') // 'ဗုဒ္ဓ'  (detected as Unicode)
+```
+
+Any object with a `getZawgyiProbability(text)` method that returns the probability that the text is Zawgyi works, and gets the text as the rule scorer reads it: trimmed, without zero-width spaces and non-joiners. `null` is no detector, and `setGlobalOptions({ detector: { zawgyiDetector: null } })` removes a stored one. For a value without that method, such as the `ZawgyiDetector` class itself or the `myanmar-tools` module, the call uses the stored detector (`setGlobalOptions` keeps it) and writes an error unless silent. The error starts with its code, `[ERR_KNAYI_INVALID_DETECTOR]`.
 
 ## detectEncoding(content)
 
