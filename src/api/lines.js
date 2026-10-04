@@ -35,6 +35,10 @@ const MORE_TO_COME = /* @__PURE__ */ deepFreeze({ stream: true });
 
 const CHUNK_KINDS = 'a string or bytes (an ArrayBuffer or a view of one, such as a Uint8Array or a Buffer)';
 
+// The options of mapLines, lineTransform and createNormalizer (api/args.js readOptions refuses any other key).
+/** @type {readonly string[]} */
+export const LINE_OPTIONS = /* @__PURE__ */ deepFreeze(['maxLineLength']);
+
 // Whether a chunk is bytes: a view of an ArrayBuffer, or one, from this realm or another (a worker's, a vm's).
 /**
  * @param {unknown} chunk
@@ -53,18 +57,20 @@ function isBytes(chunk) {
  * @returns {LineMapper}
  */
 export function mapLines(fn, options) {
-  return createLineMapper('mapLines', requireFunction('mapLines', 'fn', fn), options);
+  return createLineMapper('mapLines', requireFunction('mapLines', 'fn', fn), options, LINE_OPTIONS);
 }
 
-// A LineMapper for the public function `api`, which names it in messages, with that function's options checked.
+// A LineMapper for the public function `api`, which names it in messages, with that function's options checked:
+// `keys` are its options, maxLineLength among them.
 /**
  * @param {string} api
  * @param {LineFunction} fn
  * @param {LineOptions | number | null | undefined} options
+ * @param {readonly string[]} keys
  * @returns {LineMapper}
  */
-export function createLineMapper(api, fn, options) {
-  const settings = readOptions(api, options);
+export function createLineMapper(api, fn, options, keys) {
+  const settings = readOptions(api, options, keys);
   return new LineMapper(api, fn, readLimit(api, settings, 'maxLineLength', DEFAULT_MAX_LINE_LENGTH));
 }
 

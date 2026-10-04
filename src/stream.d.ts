@@ -4,9 +4,10 @@
 // A stream cuts its text into lines at '\n'; a '\r' right before it belongs to the line's ending. Each line goes
 // through a function without its ending, and the ending goes out after the result as it came. A bad argument, chunk
 // or result throws a KnayiError (src/index.d.ts): a TypeError with the code 'ERR_KNAYI_INVALID_ARG_TYPE', a RangeError
-// with 'ERR_KNAYI_INVALID_ARG_VALUE', or, for a line longer than maxLineLength, 'ERR_KNAYI_LINE_TOO_LONG'; with no
-// TransformStream, or bytes and no TextDecoder, an Error with 'ERR_KNAYI_UNSUPPORTED_RUNTIME'. A stream that throws
-// is errored: its readable side rejects, and stream.pipeline calls back with the error.
+// with 'ERR_KNAYI_INVALID_ARG_VALUE' (an option key the function does not take included), or, for a line longer
+// than maxLineLength, 'ERR_KNAYI_LINE_TOO_LONG'; with no TransformStream, or bytes and no TextDecoder, an Error with
+// 'ERR_KNAYI_UNSUPPORTED_RUNTIME'. A stream that throws is errored: its readable side rejects, and stream.pipeline
+// calls back with the error.
 //
 // The streams are the runtime's TransformStream, so these types name the global TransformStream type, which a
 // project has from TypeScript's DOM library or from @types/node (typecheck/packed/stream.mts compiles with the

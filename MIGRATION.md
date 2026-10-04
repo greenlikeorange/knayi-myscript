@@ -59,6 +59,7 @@ import { normalize, toUnicode } from 'knayi-myscript'
 | `setGlobalOptions` stores `silent_mode` and the detector options for later calls | Every option is an argument of the call that uses it; nothing is kept, and nothing is written to the console |
 | `use_myanmartools`, `adapter: 'myanmartools'`: knayi loads myanmar-tools | `zawgyiDetector`: you pass the detector object; knayi loads no code |
 | `myanmartools_zg_threshold` | `thresholds` |
+| An option a function does not know is ignored | A key the function does not take is a `RangeError` with the code `ERR_KNAYI_INVALID_ARG_VALUE`; for 2.x's names (`fontType`, `use_myanmartools`, `adapter`, `myanmartools_zg_threshold`, `silent_mode`) its message names what replaced them |
 | Converting trims the text; breaking and collapsing trim it and remove U+200B and U+200C first | Nothing is trimmed, and zero-width characters stay |
 | `syllBreak`, `spellingFix` and `truncate` detect the font when none is given | Only `toUnicode` detects; the others take `from`, `'unicode'` by default |
 | A tie in detection reads as Zawgyi | `detectEncoding` says `'unknown'`, and `toUnicode` leaves the line as it is unless `tie: 'zawgyi'` |
@@ -90,7 +91,7 @@ and 2.x returns a text with no character of U+1000–U+109F as it is, untrimmed,
 | `syllBreak(text, font, separator)` | `segmentSyllables(text, { from: font }).join(separator)` | `segmentSyllables(clean(text), { from: font, bareConsonants: 'pairs' }).join(separator)` | an asat typed before a dot below, which 2.x writes after it |
 | `syllBreak(text)` | `segmentSyllables(text, { from })`, with `from` `'zawgyi'` when `detectEncoding` says Zawgyi | `segmentSyllables(clean(text), { from, bareConsonants: 'pairs' })`, with a tie read as Zawgyi | as for a named font |
 | `spellingFix(text, font)` | `collapseRepeatedMarks(text, { from: font })` | `collapseRepeatedMarks(clean(text), { from: font })` | nothing |
-| `truncate(text, { length, omission, fontType })` | `truncate(text, { length, omission, font })` | none: 2.x's is not always a prefix, and appends the omission to text that fits | |
+| `truncate(text, { length, omission, fontType })` | `truncate(text, { length, omission, from })` | none: 2.x's is not always a prefix, and appends the omission to text that fits | |
 | `normalize(text)` | `normalize(text)` | none: 2.x's could change its own output again | |
 | `setGlobalOptions({ silent_mode: true })` | nothing to silence | | |
 | `setGlobalOptions({ detector })` | the detector options of each call | | |

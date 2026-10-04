@@ -5,7 +5,9 @@
 // that is undefined or null takes its default. Every function is map-safe: lines.map(normalize) passes an index
 // where the options go, which counts as no options. A bad argument throws a KnayiError: a TypeError with the code
 // 'ERR_KNAYI_INVALID_ARG_TYPE' for a wrong type, a RangeError with 'ERR_KNAYI_INVALID_ARG_VALUE' for a value knayi
-// does not accept.
+// does not accept. A key a function does not take is that RangeError too, at run time, also where TypeScript cannot
+// see it (a stored options object, JavaScript): its message names the option meant, such as `from` for 2.x's
+// `fontType`.
 
 /** The package version, as in package.json. */
 export declare const VERSION: string;

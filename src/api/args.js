@@ -8,8 +8,10 @@
 //
 // Options are per call, in camelCase, and read once; nothing is kept. Every function is map-safe: lines.map(f)
 // passes an index where the options go, and an index is no options (core/options.js optionsObject does the same for
-// the core). An option that is undefined or null takes its default.
+// the core). An option that is undefined or null takes its default; a key the function does not take is a
+// RangeError that names what the caller most likely meant.
 
+import { deepFreeze } from '../freeze.js';
 import { ERR, libraryError } from '../core/errors.js';
 import { NO_OPTIONS } from '../core/options.js';
 
@@ -30,16 +32,69 @@ export function requireString(api, name, value) {
 }
 
 // The options of a call: an object, or NO_OPTIONS for undefined, null and a number (an index from Array#map).
-// Anything else, an array included, is a TypeError.
+// Anything else, an array included, is a TypeError. `keys` are the function's options: an own enumerable key that is
+// not one of them is a RangeError (unknownOption), since a misspelt option, another function's or 2.x's would
+// otherwise be ignored without a word, and the call would read the text otherwise than its caller asked.
 /**
  * @param {string} api
  * @param {unknown} value
+ * @param {readonly string[]} keys
  * @returns {Options}
  */
-export function readOptions(api, value) {
+export function readOptions(api, value, keys) {
   if (value === undefined || value === null || typeof value === 'number') return NO_OPTIONS;
-  if (typeof value === 'object' && !Array.isArray(value)) return /** @type {Options} */ (value);
-  throw libraryError(ERR.INVALID_ARG_TYPE, wrongType(api, 'options', 'an object', value), TypeError);
+  if (typeof value !== 'object' || Array.isArray(value)) {
+    throw libraryError(ERR.INVALID_ARG_TYPE, wrongType(api, 'options', 'an object', value), TypeError);
+  }
+  const options = /** @type {Options} */ (value);
+  const own = Object.keys(options);
+  for (let k = 0; k < own.length; k++) {
+    if (keys.indexOf(own[k]) !== -1) continue;
+    throw libraryError(ERR.INVALID_ARG_VALUE, unknownOption(api, own[k], keys), RangeError);
+  }
+  return options;
+}
+
+// The options of 2.x and the names 3.0 changed, and the option of 3.0 each stands for (MIGRATION.md): 2.x
+// truncate's fontType, the first 3.0 names font and policy, and 2.x's detector options.
+/** @type {Readonly<Record<string, string>>} */
+const RENAMED_OPTIONS = /* @__PURE__ */ deepFreeze({
+  font: 'from', fontType: 'from', policy: 'bareConsonants', use_myanmartools: 'zawgyiDetector',
+  adapter: 'zawgyiDetector', myanmartools_zg_threshold: 'thresholds'
+});
+
+// The message for an option the function does not take: 'knayi.<api>: options.<key> is not an option of <api>',
+// then what the caller most likely meant, or the options the function takes.
+/**
+ * @param {string} api
+ * @param {string} key
+ * @param {readonly string[]} keys
+ * @returns {string}
+ */
+function unknownOption(api, key, keys) {
+  return where(api, 'options.' + key + ' is not an option of ' + api + optionHint(key, keys));
+}
+
+// What the caller most likely meant: the 3.0 name of the key, when the function takes it, or else the function's
+// options. The 3.0 API has nothing to silence.
+/**
+ * @param {string} key
+ * @param {readonly string[]} keys
+ * @returns {string}
+ */
+function optionHint(key, keys) {
+  if (key === 'silent_mode') return ': the 3.0 API writes nothing to the console';
+  const renamed = hasOwn(RENAMED_OPTIONS, key) ? RENAMED_OPTIONS[key] : '';
+  if (keys.indexOf(renamed) !== -1) return '; did you mean options.' + renamed + '?';
+  return ', which takes ' + listOf(keys, '');
+}
+
+/**
+ * @param {object} object
+ * @param {string} key
+ */
+function hasOwn(object, key) {
+  return Object.prototype.hasOwnProperty.call(object, key);
 }
 
 // options[name] when it is one of `allowed`, `fallback` when it is undefined or null; else a TypeError for a value
@@ -62,7 +117,7 @@ export function readChoice(api, options, name, allowed, fallback) {
   }
   const choice = /** @type {T} */ (value);
   if (allowed.indexOf(choice) === -1) {
-    const what = 'options.' + name + ' must be ' + listOf(allowed) + ', not ' + JSON.stringify(value);
+    const what = 'options.' + name + ' must be ' + listOf(allowed, '\'') + ', not ' + JSON.stringify(value);
     throw libraryError(ERR.INVALID_ARG_VALUE, where(api, what), RangeError);
   }
   return choice;
@@ -230,11 +285,15 @@ function isWholeNumber(value) {
   return value >= 0 && value <= 0x1FFFFFFFFFFFFF && Math.floor(value) === value;
 }
 
-// 'a', 'a or b', 'a, b or c', each quoted.
-/** @param {readonly string[]} values */
-function listOf(values) {
-  const quoted = values.map((value) => '\'' + value + '\'');
-  return quoted.length === 1 ? quoted[0] : quoted.slice(0, -1).join(', ') + ' or ' + quoted[quoted.length - 1];
+// 'a', 'a or b', 'a, b or c', each between two `quote`s (values) or none (option names, joined by 'and').
+/**
+ * @param {readonly string[]} values
+ * @param {string} quote
+ */
+function listOf(values, quote) {
+  const quoted = values.map((value) => quote + value + quote);
+  const last = quote === '' ? ' and ' : ' or ';
+  return quoted.length === 1 ? quoted[0] : quoted.slice(0, -1).join(', ') + last + quoted[quoted.length - 1];
 }
 
 // What a value is, for a message: 'null', 'undefined', 'an array', 'an object', or 'a' and its type.

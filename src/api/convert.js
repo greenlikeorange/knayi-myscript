@@ -39,6 +39,13 @@ const SOURCES = /* @__PURE__ */ deepFreeze(['unicode', 'zawgyi', 'win']);
 /** @type {readonly ('unicode' | 'zawgyi')[]} */
 const TIE_READINGS = /* @__PURE__ */ deepFreeze(['unicode', 'zawgyi']);
 
+// The options of toUnicode and toZawgyi (api/args.js readOptions refuses any other key).
+/** @type {readonly string[]} */
+const TO_UNICODE_OPTIONS = /* @__PURE__ */ deepFreeze(['from', 'tie', 'trace', 'offsets', 'zawgyiDetector',
+  'thresholds']);
+/** @type {readonly string[]} */
+const TO_ZAWGYI_OPTIONS = /* @__PURE__ */ deepFreeze(['trace']);
+
 const NEWLINE = 0x0A;
 
 // toUnicode(text, options?): the text in Unicode, or with { offsets: true }, { text, offsets }.
@@ -56,7 +63,7 @@ const NEWLINE = 0x0A;
  */
 export function toUnicode(text, options) {
   requireString('toUnicode', 'text', text);
-  const settings = readOptions('toUnicode', options);
+  const settings = readOptions('toUnicode', options, TO_UNICODE_OPTIONS);
   const reading = readUnicodeReading('toUnicode', settings);
   const trace = readTrace('toUnicode', settings);
   const withOffsets = readFlag('toUnicode', settings, 'offsets');
@@ -98,7 +105,7 @@ export function convertToUnicode(text, reading) {
  */
 export function toZawgyi(text, options) {
   requireString('toZawgyi', 'text', text);
-  const trace = readTrace('toZawgyi', readOptions('toZawgyi', options));
+  const trace = readTrace('toZawgyi', readOptions('toZawgyi', options, TO_ZAWGYI_OPTIONS));
   if (trace === null) return unicodeToZawgyi(text);
   // The core's trace starts at the collapsed text, as 2.x's debug log does (DESIGN.md §3.9); 3.0's starts at the
   // input, so the collapse is a record of its own.

@@ -29,6 +29,14 @@ const ENCODINGS = /* @__PURE__ */ deepFreeze(['unicode', 'zawgyi']);
 /** @type {readonly BareConsonantPolicy[]} */
 const POLICIES = /* @__PURE__ */ deepFreeze(['separate', 'chains', 'pairs']);
 
+// The options of each function (api/args.js readOptions refuses any other key).
+/** @type {readonly string[]} */
+const SYLLABLE_OPTIONS = /* @__PURE__ */ deepFreeze(['bareConsonants', 'from']);
+/** @type {readonly string[]} */
+const TRUNCATE_OPTIONS = /* @__PURE__ */ deepFreeze(['length', 'omission', 'bareConsonants', 'from']);
+/** @type {readonly string[]} */
+const COLLAPSE_OPTIONS = /* @__PURE__ */ deepFreeze(['from']);
+
 // How a bare consonant, one with no mark, is read by default: as a syllable of its own, with its inherent vowel
 // (decision 34; DESIGN.md §11.6). It is the only policy whose pieces are the syllables of UTN #11 (ပ|ထ|မ|ဆုံး),
 // whatever the consonants around it; 'chains' joins a run of bare consonants to the syllable after it (ပထမဆုံး), and
@@ -47,7 +55,7 @@ const DEFAULT_POLICY = 'separate'; // BARE_CONSONANTS.SEPARATE
  */
 export function segmentSyllables(text, options) {
   requireString('segmentSyllables', 'text', text);
-  const settings = readBreakSettings('segmentSyllables', options);
+  const settings = readBreakSettings('segmentSyllables', readOptions('segmentSyllables', options, SYLLABLE_OPTIONS));
   return coreSegments(text, settings.from, settings.bareConsonants);
 }
 
@@ -61,7 +69,8 @@ export function segmentSyllables(text, options) {
  */
 export function syllableBoundaries(text, options) {
   requireString('syllableBoundaries', 'text', text);
-  const settings = readBreakSettings('syllableBoundaries', options);
+  const settings = readBreakSettings('syllableBoundaries',
+    readOptions('syllableBoundaries', options, SYLLABLE_OPTIONS));
   return coreBoundaries(text, settings.from, settings.bareConsonants);
 }
 
@@ -75,8 +84,8 @@ export function syllableBoundaries(text, options) {
  */
 export function collapseRepeatedMarks(text, options) {
   requireString('collapseRepeatedMarks', 'text', text);
-  const from = readChoice('collapseRepeatedMarks', readOptions('collapseRepeatedMarks', options), 'from', ENCODINGS,
-    'unicode');
+  const settings = readOptions('collapseRepeatedMarks', options, COLLAPSE_OPTIONS);
+  const from = readChoice('collapseRepeatedMarks', settings, 'from', ENCODINGS, 'unicode');
   return coreCollapse(text, from);
 }
 
@@ -96,7 +105,7 @@ export function collapseRepeatedMarks(text, options) {
  */
 export function truncate(text, options) {
   requireString('truncate', 'text', text);
-  const settings = readOptions('truncate', options);
+  const settings = readOptions('truncate', options, TRUNCATE_OPTIONS);
   const length = readCount('truncate', settings, 'length', DEFAULTS.truncate.length);
   const omission = readText('truncate', settings, 'omission', DEFAULTS.truncate.omission);
   const breaks = readBreakSettings('truncate', settings);
@@ -109,14 +118,13 @@ export function truncate(text, options) {
   return withoutTrailingSpace(text.slice(0, cut)) + omission;
 }
 
-// The bare-consonant policy and the encoding of a call's options.
+// The bare-consonant policy and the encoding of a call's options, as readOptions gave them.
 /**
  * @param {string} api
- * @param {unknown} options
+ * @param {import('./args.js').Options} settings
  * @returns {BreakSettings}
  */
-function readBreakSettings(api, options) {
-  const settings = readOptions(api, options);
+function readBreakSettings(api, settings) {
   return {
     bareConsonants: readChoice(api, settings, 'bareConsonants', POLICIES, DEFAULT_POLICY),
     from: readChoice(api, settings, 'from', ENCODINGS, 'unicode')

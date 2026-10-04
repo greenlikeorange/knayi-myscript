@@ -15,7 +15,7 @@ import { deepFreeze } from '../freeze.js';
 import { ERR, libraryError } from '../core/errors.js';
 import { normalize } from './normalize.js';
 import { readUnicodeReading, convertToUnicode } from './convert.js';
-import { createLineMapper } from './lines.js';
+import { LINE_OPTIONS, createLineMapper } from './lines.js';
 import { readOptions, readChoice, requireFunction, where } from './args.js';
 
 /** @typedef {import('../stream.js').Chunk} Chunk */
@@ -27,6 +27,12 @@ import { readOptions, readChoice, requireFunction, where } from './args.js';
 /** @type {readonly 'unicode'[]} */
 const TARGETS = /* @__PURE__ */ deepFreeze(['unicode']);
 
+// The options of createConverter: toUnicode's but trace and offsets, `to`, and maxLineLength (api/args.js readOptions
+// refuses any other key).
+/** @type {readonly string[]} */
+const CONVERTER_OPTIONS = /* @__PURE__ */ deepFreeze(['from', 'to', 'tie', 'zawgyiDetector', 'thresholds',
+  'maxLineLength']);
+
 // lineTransform(fn, options?): a TransformStream that gives each line to fn, as mapLines does (api/lines.js), and
 // writes what fn returns, then the line's ending. options.maxLineLength as for mapLines.
 /**
@@ -35,7 +41,7 @@ const TARGETS = /* @__PURE__ */ deepFreeze(['unicode']);
  * @returns {TransformStream<Chunk, string>}
  */
 export function lineTransform(fn, options) {
-  const mapper = createLineMapper('lineTransform', requireFunction('lineTransform', 'fn', fn), options);
+  const mapper = createLineMapper('lineTransform', requireFunction('lineTransform', 'fn', fn), options, LINE_OPTIONS);
   return lineStream('lineTransform', mapper);
 }
 
@@ -47,7 +53,7 @@ export function lineTransform(fn, options) {
  * @returns {TransformStream<Chunk, string>}
  */
 export function createNormalizer(options) {
-  return lineStream('createNormalizer', createLineMapper('createNormalizer', normalizeLine, options));
+  return lineStream('createNormalizer', createLineMapper('createNormalizer', normalizeLine, options, LINE_OPTIONS));
 }
 
 /** @param {string} line */
@@ -64,12 +70,12 @@ function normalizeLine(line) {
  * @returns {TransformStream<Chunk, string>}
  */
 export function createConverter(options) {
-  const settings = readOptions('createConverter', options);
+  const settings = readOptions('createConverter', options, CONVERTER_OPTIONS);
   requireUnicodeTarget(settings);
   const reading = readUnicodeReading('createConverter', settings);
   /** @param {string} line */
   const convertLine = (line) => convertToUnicode(line, reading);
-  return lineStream('createConverter', createLineMapper('createConverter', convertLine, options));
+  return lineStream('createConverter', createLineMapper('createConverter', convertLine, options, CONVERTER_OPTIONS));
 }
 
 // options.to: 'unicode', the default. Zawgyi is refused, and the message says why: the Unicode to Zawgyi rules

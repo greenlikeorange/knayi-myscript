@@ -76,7 +76,7 @@ compat's console output: missing content warns (`console.warn`), conversion erro
 
 ## What each 3.0 call does
 
-`src/index.js` re-exports the functions of `src/api/`, one file per group, with `VERSION`, `OUTPUT_VERSION` (`src/version.js`) and `createTrace` (`core/rules.js`). Every function starts the same way, in `api/args.js`: `requireString` refuses a text that is not a string; `readOptions` takes an object, or `NO_OPTIONS` for `undefined`, `null` or a number (the index `Array#map` passes); and one reader per option (`readChoice`, `readFlag`, `readCount`, `readLimit`, `readText`, `readTrace`, `readZawgyiDetector`, `readThresholds`) gives its value, its default for `undefined` or `null`, or a coded error. Each error is `libraryError(code, 'knayi.<function>: ...', TypeError or RangeError)`. The options are read once, and nothing is kept.
+`src/index.js` re-exports the functions of `src/api/`, one file per group, with `VERSION`, `OUTPUT_VERSION` (`src/version.js`) and `createTrace` (`core/rules.js`). Every function starts the same way, in `api/args.js`: `requireString` refuses a text that is not a string; `readOptions` takes an object, or `NO_OPTIONS` for `undefined`, `null` or a number (the index `Array#map` passes), and refuses an own key that is not one of the function's options, naming the option meant; and one reader per option (`readChoice`, `readFlag`, `readCount`, `readLimit`, `readText`, `readTrace`, `readZawgyiDetector`, `readThresholds`) gives its value, its default for `undefined` or `null`, or a coded error. Each error is `libraryError(code, 'knayi.<function>: ...', TypeError or RangeError)`. The options are read once, and nothing is kept.
 
 | File | Exports | What it runs in the core |
 | --- | --- | --- |

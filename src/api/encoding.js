@@ -5,6 +5,7 @@
 // (rules/detect.js countEvidence), on the text trimmed and without U+200B and U+200C, which is how 2.x cleaned it.
 // myanmar-tools' ZawgyiDetector, when the caller passes one, decides instead; the core never loads it.
 
+import { deepFreeze } from '../freeze.js';
 import { DEFAULTS } from '../core/options.js';
 import { stripZeroWidthBreaks } from '../core/input.js';
 import { detectEncoding as detectByRules, decideByProbability } from '../rules/detect.js';
@@ -16,6 +17,11 @@ import { requireString, readOptions, readZawgyiDetector, readThresholds } from '
 /** @typedef {import('./args.js').Options} Options */
 /** @typedef {import('../index.js').ZawgyiDetector} ZawgyiDetector */
 /** @typedef {{ zawgyiDetector: ZawgyiDetector | null, thresholds: readonly number[] }} Detector */
+
+// The options of detectEncoding (api/args.js readOptions refuses any other key), which toUnicode and explain take
+// too.
+/** @type {readonly string[]} */
+export const DETECTOR_OPTIONS = /* @__PURE__ */ deepFreeze(['zawgyiDetector', 'thresholds']);
 
 // detectEncoding(text, options?): { encoding, unicode, zawgyi }. encoding is 'none' when the text has no character
 // of U+1000-U+109F, 'unknown' when the evidence ties (or the detector's probability lies between the thresholds),
@@ -29,7 +35,7 @@ import { requireString, readOptions, readZawgyiDetector, readThresholds } from '
  */
 export function detectEncoding(text, options) {
   requireString('detectEncoding', 'text', text);
-  const detector = readDetector('detectEncoding', readOptions('detectEncoding', options));
+  const detector = readDetector('detectEncoding', readOptions('detectEncoding', options, DETECTOR_OPTIONS));
   return encodingOf(text, detector);
 }
 

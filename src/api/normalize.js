@@ -6,6 +6,7 @@
 // normalize(x) for every string, because it repeats its pass where the pass changed the text, until the pass changes
 // nothing (stages/normalize.js normalizeTextStable). It never trims, and keeps zero-width characters.
 
+import { deepFreeze } from '../freeze.js';
 import { EditLog } from '../core/edits.js';
 import { normalizeTextStable, normalizeTextStableLogged, traceNormalizeTextStable } from '../stages/normalize.js';
 import { requireString, readOptions, readFlag, readTrace } from './args.js';
@@ -15,6 +16,10 @@ import { requireString, readOptions, readFlag, readTrace } from './args.js';
 /** @typedef {import('../index.js').NormalizeChange} NormalizeChange */
 /** @typedef {import('../index.js').NormalizeStageId} NormalizeStageId */
 /** @typedef {{ start: number, end: number, outStart: number, outEnd: number, rules: string[] }} Edit */
+
+// The options of normalize (api/args.js readOptions refuses any other key).
+/** @type {readonly string[]} */
+const NORMALIZE_OPTIONS = /* @__PURE__ */ deepFreeze(['report', 'trace']);
 
 // normalize(text, options?): the normalized text, or with { report: true }, { text, changes }.
 // options.trace, a trace from createTrace(), gets the text after each stage of each pass that changed it.
@@ -26,7 +31,7 @@ import { requireString, readOptions, readFlag, readTrace } from './args.js';
 export function normalize(text, options) {
   requireString('normalize', 'text', text);
   if (options === undefined) return normalizeTextStable(text); // the common call, with no option to read
-  const settings = readOptions('normalize', options);
+  const settings = readOptions('normalize', options, NORMALIZE_OPTIONS);
   const report = readFlag('normalize', settings, 'report');
   const trace = readTrace('normalize', settings);
   if (trace !== null) traceNormalizeTextStable(text, trace);

@@ -16,7 +16,7 @@ import {
 } from '../stages/normalize.js';
 import { fontToUnicode } from '../stages/fonts.js';
 import { requireString, readOptions } from './args.js';
-import { readDetector, encodingOf } from './encoding.js';
+import { DETECTOR_OPTIONS, readDetector, encodingOf } from './encoding.js';
 
 /** @typedef {import('../index.js').Issue} Issue */
 /** @typedef {import('../index.js').IssueKind} IssueKind */
@@ -54,7 +54,7 @@ const LOOK_ALIKE_LETTERS = /* @__PURE__ */ deepFreeze([[0x1025, 0x1009, 'look-al
  */
 export function explain(text, options) {
   requireString('explain', 'text', text);
-  const detector = readDetector('explain', readOptions('explain', options));
+  const detector = readDetector('explain', readOptions('explain', options, DETECTOR_OPTIONS));
   /** @type {Issue[]} */
   const issues = [];
   for (let start = 0; start <= text.length;) {
