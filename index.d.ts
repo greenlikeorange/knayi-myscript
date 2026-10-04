@@ -63,6 +63,20 @@ export interface TruncateOptions {
   fontType?: Exclude<FontName, 'win'> | (string & {}) | null;
 }
 
+/** What detectEncoding returns: the encoding knayi's rule scorer finds in the text, and its evidence. */
+export interface EncodingDetection {
+  /**
+   * `'unicode'` or `'zawgyi'`: the encoding with more evidence. `'unknown'`: the two counts tie, as they do for short
+   * text such as one consonant, or for a line with as much of each. `'none'`: missing content, a value that is not a
+   * string, or text with no Myanmar letters (U+1000 to U+109F).
+   */
+  encoding: 'unicode' | 'zawgyi' | 'unknown' | 'none';
+  /** The evidence for Unicode: how many times knayi's Unicode signatures match the text. 0 for `'none'`. */
+  unicode: number;
+  /** The evidence for Zawgyi: how many times knayi's Zawgyi signatures match the text. 0 for `'none'`. */
+  zawgyi: number;
+}
+
 /** What fontConvert.debugging reports. */
 export interface ConvertDebug {
   /**
@@ -104,7 +118,8 @@ export declare function setGlobalOptions(options?: GlobalOptions | null): void;
  * When the rule scores tie, or a myanmar-tools probability falls between the thresholds, it returns the fallback, or
  * `'zawgyi'` if there is none. Short Unicode text, such as one consonant, often ties. Missing content (`null`,
  * `undefined`, `''`, `0`, `false`, `NaN`) and text with no Myanmar letters (U+1000 to U+109F) return the fallback,
- * or `'en'` if there is none.
+ * or `'en'` if there is none. detectEncoding gives the rule scorer's evidence, and tells a tie apart from text with no
+ * Myanmar letters.
  *
  * @param content The text.
  * @param fallbackFontType What to return when the text does not decide. It is returned as given. A value that is not
@@ -124,6 +139,29 @@ export declare function fontDetect<Fallback extends string | null | undefined = 
   fallbackFontType?: Fallback,
   options?: DetectorOptions | null
 ): 'unicode' | 'zawgyi' | (Fallback extends '' | null | undefined ? 'en' : Fallback);
+
+/**
+ * Tells whether text is Unicode or Zawgyi, with the evidence: returns `{ encoding, unicode, zawgyi }`
+ * (EncodingDetection). The encoding is never `'win'`.
+ *
+ * It scores the text as fontDetect's rule scorer does, after trimming it and removing zero-width spaces and
+ * non-joiners, and tells a tie (`'unknown'`) apart from text with no Myanmar letters (`'none'`). fontDetect with the
+ * rule scorer returns `encoding` when it is `'unicode'` or `'zawgyi'`, and otherwise the fallback, or, with none,
+ * `'zawgyi'` for `'unknown'` and `'en'` for `'none'`. detectEncoding always uses the rule scorer, whatever the
+ * detector settings say. Missing content warns unless silent.
+ *
+ * It reads one argument, so `lines.map(knayi.detectEncoding)` works.
+ *
+ * @param content The text.
+ * @example
+ * ```js
+ * knayi.detectEncoding('မဂၤလာပါ') // { encoding: 'zawgyi', unicode: 0, zawgyi: 1 }
+ * knayi.detectEncoding('မြန်မာ') // { encoding: 'unicode', unicode: 2, zawgyi: 0 }
+ * knayi.detectEncoding('က') // { encoding: 'unknown', unicode: 0, zawgyi: 0 }
+ * knayi.detectEncoding('abc') // { encoding: 'none', unicode: 0, zawgyi: 0 }
+ * ```
+ */
+export declare function detectEncoding(content: string | null | undefined): EncodingDetection;
 
 /**
  * Converts text between Unicode and Zawgyi, and from Win to Unicode.
@@ -262,6 +300,8 @@ export interface Knayi {
   setGlobalOptions: typeof setGlobalOptions;
   /** Tells whether text is Unicode or Zawgyi. */
   fontDetect: typeof fontDetect;
+  /** Tells whether text is Unicode or Zawgyi, with the evidence. */
+  detectEncoding: typeof detectEncoding;
   /** Converts text between Unicode and Zawgyi, and from Win to Unicode. */
   fontConvert: typeof fontConvert;
   /** Puts a break between syllables. */

@@ -65,6 +65,10 @@ const FONTS = [undefined, null, '', 'unicode', 'uni', 'zawgyi', 'zaw', 'win', 'U
 const DETECTOR_OPTIONS = [undefined, null, {}, { adapter: 'rules' }, { adapter: 'foo' },
   { myanmartools_zg_threshold: 'x' }, { myanmartools_zg_threshold: [NaN, NaN] }];
 
+// Options that choose myanmar-tools for fontDetect. detectEncoding never uses it, in any build.
+const TOOLS_ADAPTER = { adapter: 'myanmartools' };
+const TOOLS_SETTING = { detector: { use_myanmartools: true } };
+
 const TRUNCATE_OPTIONS = [undefined, null, 0, {}, { length: 0 }, { omission: '' }, { length: 4, omission: '\u2026' },
   { fontType: 'win' }, { fontType: 'Unicode' }, { fontType: 'toString' }, { fontType: ['unicode'] }];
 
@@ -77,6 +81,7 @@ const DEBUG_FONTS = [undefined, null, 'unicode', 'zawgyi', 'win', 'foo', 'constr
 // Functions passed straight to Array#map, which calls them with (value, index, array).
 const MAP_FUNCTIONS = [
   ['fontDetect', (k) => k.fontDetect],
+  ['detectEncoding', (k) => k.detectEncoding],
   ['fontConvert', (k) => k.fontConvert],
   ['fontConvert.debugging', (k) => k.fontConvert.debugging],
   ['syllBreak', (k) => k.syllBreak],
@@ -92,6 +97,7 @@ const SILENT_FORMS = [
   [(c) => `fontDetect(${c})`, (k, content) => k.fontDetect(content)],
   [(c) => `fontDetect(${c}, null, {myanmartools_zg_threshold: 'x'})`,
     (k, content, make) => k.fontDetect(content, null, make({ myanmartools_zg_threshold: 'x' }))],
+  [(c) => `detectEncoding(${c})`, (k, content) => k.detectEncoding(content)],
   [(c) => `fontConvert(${c})`, (k, content) => k.fontConvert(content)],
   [(c) => `fontConvert(${c}, 'unicode')`, (k, content) => k.fontConvert(content, 'unicode')],
   [(c) => `fontConvert(${c}, 'foo', 'unicode')`, (k, content) => k.fontConvert(content, 'foo', 'unicode')],
@@ -144,6 +150,10 @@ function defineCells() {
     for (const options of DETECTOR_OPTIONS) {
       add(`fontDetect(${name}, null, ${show(options)})`, (k, make) => k.fontDetect(make(content), null, make(options)));
     }
+    // detectEncoding reads one argument: a fallback and options after it change nothing.
+    add(`detectEncoding(${name})`, (k, make) => k.detectEncoding(make(content)));
+    add(`detectEncoding(${name}, 'unicode', ${show(TOOLS_ADAPTER)})`,
+      (k, make) => k.detectEncoding(make(content), 'unicode', make(TOOLS_ADAPTER)));
     for (const options of TRUNCATE_OPTIONS) {
       add(`truncate(${name}, ${show(options)})`, (k, make) => k.truncate(make(content), make(options)));
     }
@@ -164,6 +174,13 @@ function defineCells() {
   }
   for (const options of GLOBAL_OPTIONS) {
     add(`setGlobalOptions(${show(options)})`, (k, make) => k.setGlobalOptions(make(options)));
+  }
+  // detectEncoding scores with the rules whatever the stored detector settings say.
+  for (const [name, content] of CONTENTS) {
+    add(`setGlobalOptions(${show(TOOLS_SETTING)}); detectEncoding(${name})`, (k, make) => {
+      k.setGlobalOptions(make(TOOLS_SETTING));
+      return k.detectEncoding(make(content));
+    });
   }
 
   // 2. The other two debugging forms: no source font, and Unicode to Zawgyi, whose rule labels are debug output.

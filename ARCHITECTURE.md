@@ -1,6 +1,6 @@
 # Architecture
 
-How knayi-myscript is built today: version 2.10.0, including the Shan look-alike fix (#73), the fix for `normalize`'s quadratic time on runs of e and medial ra (#74), NFC in linear time (`library/nfc.js`), one policy for font names, in any letter case (`resolveFont`, `breakFont` and `givenName` in `library/contentGate.js`), a `fontDetect` fallback that is a string or none, detector options that may be `null` and are checked (thresholds in order, adapter names), with every message silenced by silent mode, a `fontConvert` that reads no debug flag from `this`, a `fontConvert.debugging` that returns its report on every exit with text, as the types promise, the typing fixes in one order, typos then look-alikes, in conversion and `normalize`, a Unicode to Zawgyi rule for stacked jha, a `truncate` that returns the start of the text and breaks only that start, and builds without the Unicode syllable parser that only the tests use. This is a map of the current code, not a target design. A pull request that changes something described here updates this file in the same PR.
+How knayi-myscript is built today: version 2.10.0, including the Shan look-alike fix (#73), the fix for `normalize`'s quadratic time on runs of e and medial ra (#74), NFC in linear time (`library/nfc.js`), one policy for font names, in any letter case (`resolveFont`, `breakFont` and `givenName` in `library/contentGate.js`), a `fontDetect` fallback that is a string or none, detector options that may be `null` and are checked (thresholds in order, adapter names), with every message silenced by silent mode, a `fontConvert` that reads no debug flag from `this`, a `fontConvert.debugging` that returns its report on every exit with text, as the types promise, the typing fixes in one order, typos then look-alikes, in conversion and `normalize`, a Unicode to Zawgyi rule for stacked jha, a `truncate` that returns the start of the text and breaks only that start, a `detectEncoding` that returns the rule scorer's evidence, and builds without the Unicode syllable parser that only the tests use. This is a map of the current code, not a target design. A pull request that changes something described here updates this file in the same PR.
 
 - [Entry points and builds](#entry-points-and-builds)
 - [Module map](#module-map)
@@ -17,9 +17,9 @@ How knayi-myscript is built today: version 2.10.0, including the Shan look-alike
 
 ## Entry points and builds
 
-`main.js` is the package entry. It exports eight names: `version`, `setGlobalOptions`, `fontDetect`, `fontConvert`, `syllBreak`, `spellingFix`, `truncate` and `normalize`. It also sets a non-enumerable `default` that points back at the exports, for TypeScript without `esModuleInterop`. The export object is written with shorthand properties only, because Node finds the named exports for `import { … }` by scanning that object literal.
+`main.js` is the package entry. It exports nine names: `version`, `setGlobalOptions`, `fontDetect`, `detectEncoding`, `fontConvert`, `syllBreak`, `spellingFix`, `truncate` and `normalize`. It also sets a non-enumerable `default` that points back at the exports, for TypeScript without `esModuleInterop`. The export object is written with shorthand properties only, because Node finds the named exports for `import { … }` by scanning that object literal.
 
-`index.d.ts` holds the types, with JSDoc on every export; `test/readme.test.js` runs the examples in it. `library/converter.d.ts` types the deep path with `index.d.ts`'s `fontConvert`. A font parameter is `FontName | (string & {})`, so an editor suggests the names and any string still compiles; `syllBreak`, `truncate`'s `fontType` and `fontConvert`'s target leave `'win'` out of the names, since they do not read it. `fontDetect` has a literal result type: `'unicode' | 'zawgyi'` and the type of the fallback, or `'en'` when there is none. `typecheck/` compiles five small consumers against the types, with and without `esModuleInterop`, and `typecheck/packed/` three more against the packed package (`npm run check:types`).
+`index.d.ts` holds the types, with JSDoc on every export; `test/readme.test.js` runs the examples in it. `library/converter.d.ts` types the deep path with `index.d.ts`'s `fontConvert`. A font parameter is `FontName | (string & {})`, so an editor suggests the names and any string still compiles; `syllBreak`, `truncate`'s `fontType` and `fontConvert`'s target leave `'win'` out of the names, since they do not read it. `fontDetect` has a literal result type: `'unicode' | 'zawgyi'` and the type of the fallback, or `'en'` when there is none. `detectEncoding` returns an `EncodingDetection`, whose `encoding` is `'unicode' | 'zawgyi' | 'unknown' | 'none'`. `typecheck/` compiles five small consumers against the types, with and without `esModuleInterop`, and `typecheck/packed/` three more against the packed package (`npm run check:types`).
 
 `scripts/build.js` bundles `main.js` with esbuild, `target: 'es2015'`:
 
@@ -43,7 +43,7 @@ All library code is CommonJS in `library/`. Every file there is strict code: it 
 | Module | Exports | What it holds |
 | --- | --- | --- |
 | `converter.js` | `fontConvert`, `fontConvert.debugging` | Input checks and font routing for conversion. Both exports call `convert`, which takes the debug flag as an argument: `false` from `fontConvert`, `true` from `debugging`. Every exit that returns text before converting goes through `unconverted`, which gives `debugging` its report there. |
-| `detection.js` | `fontDetect` | 29 signature patterns (12 Unicode, 17 Zawgyi) compiled to global regexes at load; the rule scorer, `countEvidence`, and `decide`, which gives `fontDetect`'s answer for its evidence; the optional myanmar-tools adapter and its lazy loader. |
+| `detection.js` | `fontDetect`, `detectEncoding` | 29 signature patterns (12 Unicode, 17 Zawgyi) compiled to global regexes at load; the rule scorer, `countEvidence`, and `decide`, which gives `fontDetect`'s answer for its evidence; the optional myanmar-tools adapter and its lazy loader. |
 | `normalization.js` | `normalize` | Input checks, then NFC and, for text with a character of the Myanmar blocks, `arrangeUnicode`, typos, look-alikes, NFC. |
 | `syllBreak.js` | `syllBreak` | Input checks, font choice, then `breakText`. |
 | `spellingCheck.js` | `spellingFix` | Input checks, font choice, then `collapseMarks`. The file name differs from the export name. |
@@ -99,7 +99,7 @@ Errors: knayi throws on purpose in one place, `breakFont` (below), and builds th
 
 ## What each call does
 
-Every public function starts the same way, with small differences. `toText` unwraps `String` objects. `isMissing` treats `null`, `undefined`, `''`, `0`, `false` and `NaN` as missing: the function warns (unless silent) and returns `''`, or the fallback or `'en'` for `fontDetect`. `truncate` does not count `''` as missing. Other non-strings are returned unchanged; `fontDetect` returns the fallback or `'en'` for them, and `truncate` turns them into strings. `hasMyanmar` tests for a character in U+1000–U+109F.
+Every public function starts the same way, with small differences. `toText` unwraps `String` objects. `isMissing` treats `null`, `undefined`, `''`, `0`, `false` and `NaN` as missing: the function warns (unless silent) and returns `''`, or the fallback or `'en'` for `fontDetect`, and the encoding `'none'` for `detectEncoding`. `truncate` does not count `''` as missing. Other non-strings are returned unchanged; `fontDetect` returns the fallback or `'en'` for them, `detectEncoding` the encoding `'none'`, and `truncate` turns them into strings. `hasMyanmar` tests for a character in U+1000–U+109F.
 
 ### fontConvert(content, to, from)
 
@@ -149,6 +149,16 @@ Text with no character of those blocks after the first NFC returns there, since 
 7. **myanmar-tools:** loaded on first use through `nodeRequire`, which only works in Node: `module.require`, or `process.getBuiltinModule('module').createRequire(...)` from `__filename` or, where that is missing, from the working directory's `package.json`. It finds Node by `process.versions.node`, and reads `process` from `globalThis` behind a `typeof` check, since browsers inside the README floor may have no `globalThis` (Chrome before 71, Firefox before 65, Safari before 12.1, Edge before 79). Anywhere else, such as in any browser, it loads nothing, and the warning says myanmar-tools is not available in this environment. A probability below the first threshold is `'unicode'`, above the second `'zawgyi'`, and in between the fallback. If the package cannot be loaded, the call uses the rules and warns once.
 
 `fontDetect` never returns `'win'`.
+
+### detectEncoding(content)
+
+`textToDetect(content, 'detectEncoding')` reads the text as for `fontDetect`, and missing content warns the same way. Where it gives null (missing content, any other value that is not a string, text with no Myanmar character), the result is `{ encoding: 'none', unicode: 0, zawgyi: 0 }`, a new object each time; otherwise it is `countEvidence`'s object for the cleaned text, `{ encoding, unicode, zawgyi }`. It always uses the rules and reads no detector option, so `use_myanmartools` changes nothing here, and it reads only its first argument. `fontDetect(content, fallback)` with the rules reads the same evidence through its fallback, with `decide`, so the two agree on every input:
+
+| `encoding` | `fontDetect(content)` | `fontDetect(content, fallback)` |
+| --- | --- | --- |
+| `'unicode'`, `'zawgyi'` | the encoding | the encoding |
+| `'unknown'` | `'zawgyi'` | the fallback |
+| `'none'` | `'en'` | the fallback |
 
 ### syllBreak, spellingFix and truncate
 
@@ -294,7 +304,7 @@ These live in regex tables, applied one pass per pattern:
 - **Pending:** e or medial ra waiting for the base that comes after it.
 - **Slip:** an asat that `order` drops, because it was typed early for the next consonant's asat.
 - **Look-alikes:** zero (U+1040) and wa (U+101D), and seven (U+1047) and ra (U+101B), typed for each other.
-- **Tie:** equal rule scores in `fontDetect`. The result is the fallback, `'zawgyi'` when none is given. Short Unicode text, such as one consonant or a word whose only sign is a stacked consonant, ties often.
+- **Tie:** equal rule scores in `fontDetect`, which `detectEncoding` reports as the encoding `'unknown'`. The result of `fontDetect` is the fallback, `'zawgyi'` when none is given. Short Unicode text, such as one consonant or a word whose only sign is a stacked consonant, ties often.
 - **Silent mode:** `setGlobalOptions({ silent_mode: true })`, which hides every warning and error knayi writes to the console (see [Module state](#module-state)).
 
 ## Stable surfaces
@@ -324,7 +334,7 @@ The 2.x code keeps these so that refactors stay byte-identical. Each one changes
 - **`fontConvert` reads a font that is not a string by its string form:** `resolveFont` looks the value up as a property name, with no case folding, so `['zawgyi']` is Zawgyi and `['ZAWGYI']` is detected, where `syllBreak`, `spellingFix` and `truncate` detect the font for any value that is not a string. Only an unknown name that is a string warns.
 - **`truncate` throws on an object that `String()` cannot convert,** such as `Object.create(null)` or `{ toString: undefined }`: it turns non-strings into strings with `String(content)` (`truncate.js`), where the other functions return them unchanged. `test/properties.test.js` pins the `TypeError`.
 - **`syllBreak` detects the font on the cleaned text, and `spellingFix` and `truncate` on the text as given.** `fontDetect` cleans the text it scores as `cleanText(content, true)` does, so for `syllBreak` it scores the text cleaned twice. The two differ where removing a U+200B or U+200C at either end of the text leaves whitespace there, which only the second cleaning trims: on U+200B U+FEFF U+1084 U+1000 U+103F U+1000, `truncate` detects Unicode and `syllBreak` Zawgyi. `test/properties.test.js` checks `truncate` against `syllBreak` with the font `truncate` detects.
-- **Only U+1000–U+109F counts as Myanmar** for the input checks (`contentGate.js`). The extended blocks (U+A9E0–U+A9FF, U+AA60–U+AA7F) are read by the typing fixes and by `arrangeUnicode`, and count for `normalize`'s shortcut ([above](#normalizecontent)), but `fontDetect`, `fontConvert`, `syllBreak`, `spellingFix` and `truncate` treat text made only of them as having no Myanmar character. Myanmar Extended-C (U+116D0–U+116E3) is not read anywhere. The ranges are written by hand, not generated from Unicode data. They match Unicode 15.1, apart from the classes `test/unicode.test.js` lists, and that test fails when the runtime knows Myanmar code points they miss.
+- **Only U+1000–U+109F counts as Myanmar** for the input checks (`contentGate.js`). The extended blocks (U+A9E0–U+A9FF, U+AA60–U+AA7F) are read by the typing fixes and by `arrangeUnicode`, and count for `normalize`'s shortcut ([above](#normalizecontent)), but `fontDetect`, `detectEncoding`, `fontConvert`, `syllBreak`, `spellingFix` and `truncate` treat text made only of them as having no Myanmar character. Myanmar Extended-C (U+116D0–U+116E3) is not read anywhere. The ranges are written by hand, not generated from Unicode data. They match Unicode 15.1, apart from the classes `test/unicode.test.js` lists, and that test fails when the runtime knows Myanmar code points they miss.
 
 ## Where the rules are justified
 

@@ -30,6 +30,9 @@ const checks = [
   ['fontDetect Zawgyi', (k) => k.fontDetect('မဂၤလာပါ'), 'zawgyi'],
   ['fontDetect Unicode', (k) => k.fontDetect('မင်္ဂလာပါ'), 'unicode'],
   ['fontDetect null', (k) => k.fontDetect(null), 'en'],
+  ['detectEncoding Zawgyi', (k) => k.detectEncoding('မဂၤလာပါ').encoding, 'zawgyi'],
+  ['detectEncoding tie', (k) => k.detectEncoding('က').encoding, 'unknown'],
+  ['detectEncoding null', (k) => k.detectEncoding(null).encoding, 'none'],
   ['syllBreak', (k) => k.syllBreak('မြန်မာ', 'unicode', '|'), 'မြန်|မာ'],
   ['syllBreak Zawgyi', (k) => k.syllBreak('ၾကပါ', 'zawgyi', '|'), 'ၾက|ပါ'],
   ['syllBreak default breakpoint', (k) => k.syllBreak('မင်္ဂလာပါ'), 'မင်္ဂလာ' + String.fromCharCode(0x200b) + 'ပါ'],
@@ -66,7 +69,8 @@ function attempt(label, fn) {
 }
 
 attempt('main.js exports', () => {
-  for (const name of ['setGlobalOptions', 'fontDetect', 'fontConvert', 'syllBreak', 'spellingFix', 'truncate', 'normalize']) {
+  for (const name of ['setGlobalOptions', 'fontDetect', 'detectEncoding', 'fontConvert', 'syllBreak', 'spellingFix', 'truncate',
+    'normalize']) {
     assert.equal(typeof knayi[name], 'function', name);
   }
   assert.equal(knayi.version, pkg.version);

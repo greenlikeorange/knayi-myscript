@@ -14,6 +14,7 @@ describe('runtime contract', () => {
     assert.equal(knayi.version, '2.10.0');
     assert.equal(typeof knayi.setGlobalOptions, 'function');
     assert.equal(typeof knayi.fontDetect, 'function');
+    assert.equal(typeof knayi.detectEncoding, 'function');
     assert.equal(typeof knayi.fontConvert, 'function');
     assert.equal(typeof knayi.fontConvert.debugging, 'function');
     assert.equal(typeof knayi.syllBreak, 'function');

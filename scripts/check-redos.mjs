@@ -190,6 +190,7 @@ function runCallForms(knayi) {
     knayi.fontDetect(text, null, { adapter: 'rules' });
     knayi.fontDetect(text, null, { adapter: 'myanmartools' });
     knayi.fontDetect(text, 'zawgyi', { use_myanmartools: true });
+    knayi.detectEncoding(text);
     for (const to of fonts) {
       for (const from of fonts) {
         attempt(() => knayi.fontConvert(text, to, from));
@@ -210,6 +211,7 @@ function runCallForms(knayi) {
   for (const value of [null, undefined, '', 0, 42, true, {}, new String('ကြ')]) {
     attempt(() => knayi.normalize(value));
     attempt(() => knayi.fontDetect(value));
+    attempt(() => knayi.detectEncoding(value));
     attempt(() => knayi.fontConvert(value, 'unicode', 'zawgyi'));
     attempt(() => knayi.syllBreak(value));
     attempt(() => knayi.spellingFix(value));

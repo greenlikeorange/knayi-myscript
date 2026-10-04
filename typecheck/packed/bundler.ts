@@ -2,7 +2,7 @@
 // the tarball installed, under bundler resolution, then bundles it with esbuild (which follows the `module`
 // field to dist/knayi-myscript.es.js) and runs the bundle in Node.
 import knayi from "knayi-myscript";
-import { fontConvert, fontDetect, normalize, setGlobalOptions, syllBreak, version } from "knayi-myscript";
+import { detectEncoding, fontConvert, fontDetect, normalize, setGlobalOptions, syllBreak, version } from "knayi-myscript";
 import type { ConvertDebug, DetectorOptions, Knayi } from "knayi-myscript";
 // The deep path is CommonJS, library/converter.js, bundled apart from dist/knayi-myscript.es.js: a copy of its own.
 import deepConvert from "knayi-myscript/library/converter";
@@ -23,6 +23,7 @@ const debug: ConvertDebug = fontConvert.debugging(zawgyi, "unicode", "zawgyi");
 check(debug.steps.length > 0, "fontConvert.debugging");
 const options: DetectorOptions = { adapter: "rules" };
 check(fontDetect(unicode, null, options) === "unicode", "fontDetect");
+check(detectEncoding(unicode).encoding === "unicode", "detectEncoding");
 check(syllBreak(unicode, "unicode", "|") === "မင်္ဂလာ|ပါ", "syllBreak");
 check(normalize(unicode) === unicode, "normalize");
 check(version === knayi.version, "version");

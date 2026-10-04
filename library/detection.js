@@ -88,7 +88,7 @@ Object.keys(library.detect).forEach((type) => {
 
 // The rule scorer. The evidence in a text for each encoding is the number of matches of its signatures (String#match
 // with the g flag, so the matches of one signature do not overlap); the encoding is the one with more evidence, or
-// 'unknown' when the two counts tie.
+// 'unknown' when the two counts tie. detectEncoding returns this object as it is.
 function countEvidence(content) {
   var evidence = { encoding: 'unknown', unicode: 0, zawgyi: 0 };
 
@@ -117,8 +117,8 @@ function scoreWithMyanmarTools(content, fallback, threshold) {
   return fallback;
 }
 
-// The text fontDetect scores: trimmed, and without U+200B and U+200C. null for missing content, which warns unless
-// silent, for any other value that is not a string, and for text with no Myanmar letter.
+// The text fontDetect and detectEncoding score: trimmed, and without U+200B and U+200C. null for missing content,
+// which warns unless silent, for any other value that is not a string, and for text with no Myanmar letter.
 function textToDetect(content, apiName) {
   content = gate.toText(content);
   if (gate.isMissing(content) && !globalOptions.isSilentMode()) {
@@ -174,6 +174,16 @@ function fontDetect(content, fallback_font_type, options){
   return scoreWithMyanmarTools(content, fallback_font_type, options.myanmartools_zg_threshold);
 };
 
+// The rule scorer's evidence in the text, { encoding, unicode, zawgyi }; for missing content, a value that is not a
+// string and text with no Myanmar letter, 'none' and two zeros. It scores with the rules whatever the detector
+// options say, and reads one argument, so lines.map(knayi.detectEncoding) works. fontDetect with the rules reads the
+// same evidence through its fallback (decide).
+function detectEncoding(content) {
+  content = textToDetect(content, 'detectEncoding');
+  return content === null ? { encoding: 'none', unicode: 0, zawgyi: 0 } : countEvidence(content);
+}
+
 module.exports = {
-  fontDetect
+  fontDetect,
+  detectEncoding
 };

@@ -3,7 +3,7 @@
 import knayi = require("knayi-myscript");
 import knayiDefault from "knayi-myscript";
 import { fontConvert, normalize, setGlobalOptions } from "knayi-myscript";
-import type { ConvertDebug, Knayi, TruncateOptions } from "knayi-myscript";
+import type { ConvertDebug, EncodingDetection, Knayi, TruncateOptions } from "knayi-myscript";
 import deepConvert = require("knayi-myscript/library/converter");
 
 function check(ok: boolean, what: string): void {
@@ -22,6 +22,8 @@ check(fontConvert(zawgyi, "unicode", "zawgyi") === unicode, "named import");
 
 const debug: ConvertDebug = knayi.fontConvert.debugging(zawgyi, "unicode", "zawgyi");
 check(debug.from === "zawgyi" && debug.to === "unicode", "fontConvert.debugging");
+const evidence: EncodingDetection = knayi.detectEncoding(zawgyi);
+check(evidence.encoding === "zawgyi", "detectEncoding");
 const options: TruncateOptions = { length: 10, omission: "" };
 check(typeof knayi.truncate(unicode, options) === "string", "truncate");
 check(normalize(unicode) === unicode, "normalize");

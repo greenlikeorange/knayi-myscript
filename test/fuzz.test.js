@@ -56,7 +56,8 @@ const DEBUGGING_REGRESSIONS = [
 ].map((pair) => [pair]);
 
 // Strings per comparison on a pull request: 60,000 in all.
-const COUNT = { normalize: 25000, codeUnits: 10000, zawgyi: 10000, win: 5000, detect: 8000, debugging: 2000 };
+const COUNT = { normalize: 25000, codeUnits: 10000, zawgyi: 10000, win: 5000, detect: 5000, encoding: 3000,
+  debugging: 2000 };
 
 // Inputs: short strings over each reader's characters, Burmese text with typing slips, and that text written
 // in Zawgyi (by the library, which only makes the input here).
@@ -108,6 +109,22 @@ describe('library against the 2.10 oracle', () => {
     check(fc.property(detectable, fallback, (text, fb) => {
       same(knayi.fontDetect(text, fb, { adapter: 'rules' }), oracle.fontDetect(text, fb), text);
     }), COUNT.detect);
+  });
+
+  // detectEncoding's counts are the rule scorer's, and fontDetect reads the same result through its fallback:
+  // 'unicode' and 'zawgyi' as they are, a tie ('unknown') as the fallback or 'zawgyi', and 'none' as the fallback
+  // or 'en'. Random code units seldom hold a Myanmar letter, and give 'none'. '' is missing content, which warns.
+  it('detectEncoding, and fontDetect read from it', () => {
+    const fallback = fc.constantFrom(undefined, 'unicode', 'tie');
+    const answer = (result, fb) => (result.encoding === 'unicode' || result.encoding === 'zawgyi' ? result.encoding
+      : fb || (result.encoding === 'none' ? 'en' : 'zawgyi'));
+    const text = fc.oneof(detectable, arb.codeUnits).filter((s) => s !== '');
+    check(fc.property(text, fallback, (content, fb) => {
+      const result = knayi.detectEncoding(content);
+      assert.deepEqual(result, oracle.detectEncoding(content), 'input ' + hex(content));
+      same(knayi.fontDetect(content, fb, { adapter: 'rules' }), answer(result, fb), content);
+    }), COUNT.encoding, [[' \u200B ', 'tie'], ['\u1000', undefined],
+      ['\u1031\u1031 \u103B\u1000', 'unicode']]);
   });
 
   it('the debugging stages of Zawgyi and Win', () => {

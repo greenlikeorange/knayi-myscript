@@ -1,8 +1,8 @@
-// The finer types of index.d.ts: fontDetect's literal results, the font names on font parameters, and
-// DetectorOptions as an extension of GlobalDetectorOptions. npm test compiles this file with and without
+// The finer types of index.d.ts: fontDetect's literal results, detectEncoding's result, the font names on font
+// parameters, and DetectorOptions as an extension of GlobalDetectorOptions. npm test compiles this file with and without
 // esModuleInterop; it never runs.
-import { fontConvert, fontDetect, spellingFix, syllBreak, truncate } from "knayi-myscript";
-import type { DetectorOptions, FontName, GlobalDetectorOptions, TruncateOptions } from "knayi-myscript";
+import { detectEncoding, fontConvert, fontDetect, spellingFix, syllBreak, truncate } from "knayi-myscript";
+import type { DetectorOptions, EncodingDetection, FontName, GlobalDetectorOptions, TruncateOptions } from "knayi-myscript";
 
 // true only when A and B are the same type.
 type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false;
@@ -24,6 +24,17 @@ const withAnyFallback = fontDetect("ကျ", anyFallback);
 const stringFallback: Equal<typeof withAnyFallback, string> = true;
 // @ts-expect-error fontDetect never returns 'win'
 const win: "win" = fontDetect("ကျ");
+
+// detectEncoding returns the encoding, one of four, and the two counts; it takes the text alone.
+const evidence: EncodingDetection = detectEncoding("ကျ");
+const encodings: Equal<EncodingDetection["encoding"], "unicode" | "zawgyi" | "unknown" | "none"> = true;
+const counts: Equal<EncodingDetection["unicode"] | EncodingDetection["zawgyi"], number> = true;
+const mapped: EncodingDetection[] = ["ကျ", "abc"].map(detectEncoding);
+const missing: EncodingDetection = detectEncoding(null);
+// @ts-expect-error detectEncoding never returns 'win'
+const noWin: "win" = detectEncoding("ကျ").encoding;
+// @ts-expect-error detectEncoding takes no fallback
+detectEncoding("ကျ", "unicode");
 
 // Font parameters suggest the names knayi reads, 'win' only where knayi reads it, and take any other string, such
 // as a name in capitals.
@@ -61,6 +72,12 @@ export {
   maybeFallback,
   stringFallback,
   win,
+  evidence,
+  encodings,
+  counts,
+  mapped,
+  missing,
+  noWin,
   breakFonts,
   targetFonts,
   sourceFonts,

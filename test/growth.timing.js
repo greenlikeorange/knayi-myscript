@@ -122,6 +122,7 @@ const FORMS = [
   { name: 'fontConvert.debugging unicode to zawgyi', run: (s) => knayi.fontConvert.debugging(s, 'zawgyi', 'unicode') },
   { name: 'fontDetect', run: (s) => knayi.fontDetect(s) },
   { name: 'fontDetect with a unicode fallback', run: (s) => knayi.fontDetect(s, 'unicode') },
+  { name: 'detectEncoding', run: (s) => knayi.detectEncoding(s) },
   { name: 'syllBreak unicode', run: (s) => knayi.syllBreak(s, 'unicode', '|') },
   { name: 'syllBreak zawgyi', run: (s) => knayi.syllBreak(s, 'zawgyi', '|') },
   { name: 'syllBreak detected', run: (s) => knayi.syllBreak(s) },

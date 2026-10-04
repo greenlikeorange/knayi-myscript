@@ -1,5 +1,5 @@
 const globalOptions = require('./library/globalOptions');
-const fontDetect = require('./library/detection').fontDetect;
+const detection = require('./library/detection');
 const fontConvert = require('./library/converter');
 const syllBreak = require('./library/syllBreak');
 const spellingFix = require('./library/spellingCheck');
@@ -9,11 +9,14 @@ const normalize = require('./library/normalization');
 const version = '2.10.0';
 // Shorthand properties only: Node finds the named exports for `import { … }` by scanning this object.
 const setGlobalOptions = globalOptions.setOptions;
+const fontDetect = detection.fontDetect;
+const detectEncoding = detection.detectEncoding;
 
 module.exports = {
   version,
   setGlobalOptions,
   fontDetect,
+  detectEncoding,
   fontConvert,
   syllBreak,
   spellingFix,

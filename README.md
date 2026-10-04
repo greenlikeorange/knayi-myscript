@@ -37,7 +37,7 @@ import knayi from 'knayi-myscript'
 import knayi from 'knayi-myscript'
 ```
 
-TypeScript types are `index.d.ts`, with documentation for every export that editors show. Named imports such as `import { fontConvert } from 'knayi-myscript'` work in Node and in bundlers, next to the default import. The default import compiles with or without `esModuleInterop`. The option types (`DetectorOptions`, `GlobalDetectorOptions`, `GlobalOptions`, `TruncateOptions`), `ConvertDebug` and `FontName` are exported. A font parameter takes any string, and editors suggest the names in `FontName`. `fontDetect`'s result type is `'unicode' | 'zawgyi' | 'en'`, with the fallback's type in place of `'en'` when you pass a fallback.
+TypeScript types are `index.d.ts`, with documentation for every export that editors show. Named imports such as `import { fontConvert } from 'knayi-myscript'` work in Node and in bundlers, next to the default import. The default import compiles with or without `esModuleInterop`. The option types (`DetectorOptions`, `GlobalDetectorOptions`, `GlobalOptions`, `TruncateOptions`), `ConvertDebug`, `EncodingDetection` and `FontName` are exported. A font parameter takes any string, and editors suggest the names in `FontName`. `fontDetect`'s result type is `'unicode' | 'zawgyi' | 'en'`, with the fallback's type in place of `'en'` when you pass a fallback.
 
 In Node, `require` and `import` both load `main.js` and share `setGlobalOptions`. A bundler that follows the `module` field loads `dist/knayi-myscript.es.js` instead. That file is a second copy. If one part of an app uses `main.js` and another uses `dist/knayi-myscript.es.js`, silent mode and detector settings do not cross between them.
 
@@ -80,12 +80,13 @@ knayi.fontConvert('ျမန္မာ', 'Unicode', 'ZAWGYI') // 'မြန်မ
 | Function | Missing content |
 | --- | --- |
 | `fontDetect` | The fallback, or `'en'` when there is no fallback. Warns unless silent. |
+| `detectEncoding` | `{ encoding: 'none', unicode: 0, zawgyi: 0 }`. Warns unless silent. |
 | `fontConvert`, `syllBreak`, `spellingFix`, `normalize` | `''`. Warns unless silent. |
 | `truncate` | `''`. Warns unless silent. An empty string `''` returns the omission instead. |
 
-Text with no Myanmar letters (`U+1000`–`U+109F`) is returned unchanged by convert, break, and spelling fix. `fontDetect` returns the fallback or `'en'`. `truncate` still appends the omission. `normalize` returns it in NFC, so `'e\u0301'` becomes `'é'` (`U+00E9`). A Win source is the exception for convert: Win text is ASCII, so `fontConvert` converts it.
+Text with no Myanmar letters (`U+1000`–`U+109F`) is returned unchanged by convert, break, and spelling fix. `fontDetect` returns the fallback or `'en'`, and `detectEncoding` the encoding `'none'`. `truncate` still appends the omission. `normalize` returns it in NFC, so `'e\u0301'` becomes `'é'` (`U+00E9`). A Win source is the exception for convert: Win text is ASCII, so `fontConvert` converts it.
 
-Other values, such as numbers and objects, are returned unchanged the same way, and no function throws on them, with one exception: `truncate` turns them into strings first, like `lodash.truncate`, so it throws a `TypeError` on an object that `String()` cannot convert, such as `Object.create(null)`. `String` objects work like the strings they hold.
+Other values, such as numbers and objects, are returned unchanged the same way (`fontDetect` and `detectEncoding` read them as text with no Myanmar letters), and no function throws on them, with one exception: `truncate` turns them into strings first, like `lodash.truncate`, so it throws a `TypeError` on an object that `String()` cannot convert, such as `Object.create(null)`. `String` objects work like the strings they hold.
 
 `setGlobalOptions({ silent_mode: true })` hides those warnings. The option applies to the copy of the library that received the call.
 
@@ -95,7 +96,7 @@ Returns `'unicode'`, `'zawgyi'`, or the fallback / `'en'`.
 
 The fallback is a string, returned as given; a `String` object counts as its string. Any other value is no fallback, and neither is `''`. So `lines.map(knayi.fontDetect)`, which passes each line's index as the fallback, gives `'unicode'`, `'zawgyi'` or `'en'` for every line.
 
-When the rule scores tie, including a single consonant such as `က`, the result is the fallback, or `'zawgyi'` if there is no fallback.
+When the rule scores tie, including a single consonant such as `က`, the result is the fallback, or `'zawgyi'` if there is no fallback. [detectEncoding](#detectencodingcontent) returns the scores themselves, and tells a tie apart from text with no Myanmar letters.
 
 ```javascript
 knayi.fontDetect('မဂၤလာပါ') // 'zawgyi'
@@ -134,6 +135,32 @@ knayi.fontDetect('ကျ', null, { myanmartools_zg_threshold: [0.95, 0.05] }) //
 ```
 
 The rule scorer does not count a consonant, `U+1039`, consonant sequence such as `က္က` as Unicode. In Zawgyi, `U+1039` is the visible asat, so `ပ္က` is a common Zawgyi sequence. A lone stack is a tie and returns the fallback. In longer Unicode text such as `ရန်ကုန်တက္ကသိုလ်`, the other signs decide.
+
+## detectEncoding(content)
+
+Returns `{ encoding, unicode, zawgyi }`: what the rule scorer of `fontDetect` finds in the text, with its evidence. `unicode` and `zawgyi` count the matches of knayi's Unicode and Zawgyi signatures, in the text trimmed and without zero-width spaces and non-joiners, as `fontDetect` reads it. `encoding` is:
+
+- `'unicode'` or `'zawgyi'`, whichever has more evidence;
+- `'unknown'` when the two counts tie: for short text with no telling sign, such as a single consonant or a lone stack, and for a line with as much evidence for each;
+- `'none'` for missing content, a value that is not a string, and text with no Myanmar letters, with both counts 0.
+
+```javascript
+knayi.detectEncoding('မဂၤလာပါ') // { encoding: 'zawgyi', unicode: 0, zawgyi: 1 }
+knayi.detectEncoding('မြန်မာ') // { encoding: 'unicode', unicode: 2, zawgyi: 0 }
+knayi.detectEncoding('က') // { encoding: 'unknown', unicode: 0, zawgyi: 0 }
+knayi.detectEncoding('ျမန္မာ မြန်မာ') // { encoding: 'unknown', unicode: 1, zawgyi: 1 }
+knayi.detectEncoding('abc') // { encoding: 'none', unicode: 0, zawgyi: 0 }
+knayi.detectEncoding(null) // { encoding: 'none', unicode: 0, zawgyi: 0 }  (missing content; warns)
+```
+
+`fontDetect` with the rule scorer reads the same result through its fallback: it returns `encoding` when that is `'unicode'` or `'zawgyi'`, and otherwise the fallback, or, with no fallback, `'zawgyi'` for `'unknown'` and `'en'` for `'none'`. So one `detectEncoding` call answers what `fontDetect(text)` and `fontDetect(text, 'unicode')` answer together, and tells a tie apart from text with no Myanmar letters.
+
+`detectEncoding` always uses the rule scorer: the `adapter` and `use_myanmartools` settings choose the detector for `fontDetect` only. It reads one argument, so it works with `Array#map`:
+
+```javascript
+['မြန်မာ', 'ျမန္မာ', 'abc'].map(knayi.detectEncoding)
+// [{ encoding: 'unicode', unicode: 2, zawgyi: 0 }, { encoding: 'zawgyi', unicode: 0, zawgyi: 1 }, { encoding: 'none', unicode: 0, zawgyi: 0 }]
+```
 
 ## fontConvert(content, targetFontType, originalFontType?)
 

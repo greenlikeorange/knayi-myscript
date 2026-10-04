@@ -88,6 +88,23 @@ function fontDetect(text, fallback) {
   return signatures.scoreWithRules(text.trim().replace(/[\u200B\u200C]/g, ''), fallback || 'zawgyi');
 }
 
+// knayi.detectEncoding(text) for a string, which 2.10 did not have: the number of matches of each side's signatures
+// in the text fontDetect scores, and the side with more, or 'unknown' when they tie; 'none' and two zeros for text
+// with no Myanmar letter. signatures.scoreWithRules adds up the same counts.
+function detectEncoding(text) {
+  var result = { encoding: 'none', unicode: 0, zawgyi: 0 };
+  if (!MYANMAR.test(text)) return result;
+  var content = text.trim().replace(/[\u200B\u200C]/g, '');
+  for (var type in signatures.detect) {
+    for (var i = 0; i < signatures.detect[type].length; i++) {
+      var found = content.match(signatures.detect[type][i]);
+      result[type] += (found && found.length) || 0;
+    }
+  }
+  result.encoding = result.unicode > result.zawgyi ? 'unicode' : result.unicode < result.zawgyi ? 'zawgyi' : 'unknown';
+  return result;
+}
+
 module.exports = {
   storageOrder: storageOrder,
   typingFixes: typingFixes,
@@ -96,5 +113,6 @@ module.exports = {
   fontToUnicode: fontToUnicode,
   normalize: normalize,
   toUnicode: toUnicode,
-  fontDetect: fontDetect
+  fontDetect: fontDetect,
+  detectEncoding: detectEncoding
 };

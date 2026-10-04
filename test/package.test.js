@@ -11,6 +11,13 @@ describe('package', () => {
     assert.equal(knayi.version, pkg.version);
   });
 
+  // A new export comes in a minor version, with types, matrix rows and tests (ARCHITECTURE.md, "Stable surfaces");
+  // this list changes with it. scripts/build.js names the ESM exports from these keys.
+  it('exports these names, in this order', () => {
+    assert.deepEqual(Object.keys(knayi), ['version', 'setGlobalOptions', 'fontDetect', 'detectEncoding', 'fontConvert',
+      'syllBreak', 'spellingFix', 'truncate', 'normalize']);
+  });
+
   it('gives the ESM builds a named export for every main.js export', async () => {
     // The `module` field names a file in dist/; the test reads that file from a fresh build of this checkout.
     assert.equal(path.posix.dirname(pkg.module), './dist');

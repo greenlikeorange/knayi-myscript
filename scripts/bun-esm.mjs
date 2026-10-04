@@ -10,4 +10,5 @@ const { default: knayi } = await import(pathToFileURL(path.join(builtDist(), "kn
 
 const converted = knayi.fontConvert("မဂၤလာပါ", "unicode", "zawgyi");
 assert.equal(converted, "မင်္ဂလာပါ");
+assert.deepEqual(knayi.detectEncoding("မဂၤလာပါ"), { encoding: "zawgyi", unicode: 0, zawgyi: 1 });
 console.log("bun esm contract ok", knayi.version);

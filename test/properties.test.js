@@ -141,6 +141,7 @@ describe('no call form throws', () => {
     ['fontDetect(x)', (x) => knayi.fontDetect(x)],
     ['fontDetect(x, "unicode")', (x) => knayi.fontDetect(x, 'unicode')],
     ['fontDetect(x, null, myanmartools)', (x) => knayi.fontDetect(x, null, { adapter: 'myanmartools' })],
+    ['detectEncoding(x)', (x) => knayi.detectEncoding(x)],
     ['syllBreak(x)', (x) => knayi.syllBreak(x)],
     ['syllBreak(x, "unicode", "|")', (x) => knayi.syllBreak(x, 'unicode', '|')],
     ['syllBreak(x, "zawgyi", "|")', (x) => knayi.syllBreak(x, 'zawgyi', '|')],
@@ -158,9 +159,13 @@ describe('no call form throws', () => {
     forms.push(['fontConvert.debugging(x, ' + to + ', ' + from + ')', (x) => knayi.fontConvert.debugging(x, to, from)]);
   }));
 
-  // fontConvert.debugging returns a ConvertDebug for every string, whatever the fonts.
+  // fontConvert.debugging returns a ConvertDebug for every string, whatever the fonts, and detectEncoding an
+  // encoding with two counts.
   function returnsText(name, value) {
-    if (/debugging/.test(name)) {
+    if (/^detectEncoding/.test(name)) {
+      assert.ok(['unicode', 'zawgyi', 'unknown', 'none'].includes(value.encoding), name + ' gave ' + value.encoding);
+      assert.ok(Number.isInteger(value.unicode) && Number.isInteger(value.zawgyi), name);
+    } else if (/debugging/.test(name)) {
       assert.ok(value && typeof value === 'object' && value.steps.length > 0, name + ' returned ' + typeof value);
       assert.ok(value.steps.every((step) => typeof step === 'string'), name);
     } else {

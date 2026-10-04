@@ -3,6 +3,7 @@
 import knayi from "knayi-myscript";
 import * as namespace from "knayi-myscript";
 import {
+  detectEncoding,
   fontConvert,
   fontDetect,
   normalize,
@@ -12,7 +13,7 @@ import {
   truncate,
   version
 } from "knayi-myscript";
-import type { ConvertDebug, DetectorOptions, GlobalOptions, Knayi, TruncateOptions } from "knayi-myscript";
+import type { ConvertDebug, DetectorOptions, EncodingDetection, GlobalOptions, Knayi, TruncateOptions } from "knayi-myscript";
 // Without an exports map, an ES module names the deep path's file with its extension.
 import deepConvert from "knayi-myscript/library/converter.js";
 
@@ -40,6 +41,8 @@ const debug: ConvertDebug = fontConvert.debugging(zawgyi, "unicode", "zawgyi");
 check(debug.steps[debug.steps.length - 1] === unicode, "fontConvert.debugging");
 check(fontDetect(zawgyi, null, detectorOptions) === "zawgyi", "fontDetect");
 check(fontDetect(zawgyi, null, null) === "zawgyi", "fontDetect with null options");
+const evidence: EncodingDetection = detectEncoding(zawgyi);
+check(evidence.encoding === "zawgyi" && evidence.zawgyi > evidence.unicode, "detectEncoding");
 setGlobalOptions(null);
 check(syllBreak(unicode, null, "|") === "မင်္ဂလာ|ပါ", "syllBreak");
 check(typeof spellingFix(unicode, "unicode") === "string", "spellingFix");
