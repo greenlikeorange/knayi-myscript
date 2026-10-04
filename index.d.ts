@@ -54,8 +54,10 @@ export interface GlobalDetectorOptions {
    * does not load the package itself, which only main.js does, in Node and Bun, so the adapter also works in
    * browsers, in Deno, in bundles and through the builds in dist/, which load no package by name. It does not choose
    * the adapter: set `use_myanmartools`, or a call's `adapter`, too. `null` is no detector, and main.js loads the
-   * package. For a value without a `getZawgyiProbability` method, knayi uses the stored detector and writes an error
-   * that starts with `[ERR_KNAYI_INVALID_DETECTOR]`, unless silent. Default `null`.
+   * package. So is `undefined` when the key is there, as in a spread of options that holds it: it drops a stored
+   * detector for the call, and setGlobalOptions removes the stored one. Leave the key out to keep it. For a value
+   * without a `getZawgyiProbability` method, knayi uses the stored detector and writes an error that starts with
+   * `[ERR_KNAYI_INVALID_DETECTOR]`, unless silent. Default `null`.
    */
   zawgyiDetector?: ZawgyiDetectorLike | null;
 }

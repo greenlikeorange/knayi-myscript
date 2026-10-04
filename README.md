@@ -160,7 +160,7 @@ setGlobalOptions({ detector: { use_myanmartools: true, zawgyiDetector } })
 fontConvert('ဗုဒ္ဓ', 'unicode') // 'ဗုဒ္ဓ'  (detected as Unicode)
 ```
 
-Any object with a `getZawgyiProbability(text)` method that returns the probability that the text is Zawgyi works, and gets the text as the rule scorer reads it: trimmed, without zero-width spaces and non-joiners. `null` is no detector, and `setGlobalOptions({ detector: { zawgyiDetector: null } })` removes a stored one. For a value without that method, such as the `ZawgyiDetector` class itself or the `myanmar-tools` module, the call uses the stored detector (`setGlobalOptions` keeps it) and writes an error unless silent. The error starts with its code, `[ERR_KNAYI_INVALID_DETECTOR]`.
+Any object with a `getZawgyiProbability(text)` method that returns the probability that the text is Zawgyi works, and gets the text as the rule scorer reads it: trimmed, without zero-width spaces and non-joiners. `null` is no detector, and `setGlobalOptions({ detector: { zawgyiDetector: null } })` removes a stored one. So is `undefined` when the key is there: as with `use_myanmartools`, a key that is present counts, even when it is `undefined`. A call whose options hold `zawgyiDetector: undefined`, as a spread such as `{ ...options }` can, does not use the stored detector, and `setGlobalOptions` with it removes the stored one; leave the key out to keep it. For a value without that method, such as the `ZawgyiDetector` class itself or the `myanmar-tools` module, the call uses the stored detector (`setGlobalOptions` keeps it) and writes an error unless silent. The error starts with its code, `[ERR_KNAYI_INVALID_DETECTOR]`.
 
 ## detectEncoding(content)
 

@@ -394,11 +394,18 @@ describe('myanmar-tools adapter', () => {
       knayi.setGlobalOptions({ detector: { myanmartools_zg_threshold: [0.05, 0.9] } });
       assert.equal(knayi.fontDetect(zawgyi), 'unicode');
       assert.equal(knayi.fontDetect(UNICODE, null, { zawgyiDetector: fixed(1) }), 'zawgyi');
-      // null for the call, or stored, is no detector: knayi loads the package.
+      // null for the call, or stored, is no detector: main.js loads the package. So is undefined where the key is
+      // there, as in a spread of options that holds it; only a key left out keeps the stored detector.
       assert.equal(knayi.fontDetect(zawgyi, null, { zawgyiDetector: null }), 'zawgyi');
+      assert.equal(knayi.fontDetect(zawgyi, null, { zawgyiDetector: undefined }), 'zawgyi');
+      assert.equal(knayi.fontDetect(zawgyi, null, {}), 'unicode');
+      assert.equal(unicode.asked.length, 7);
       knayi.setGlobalOptions({ detector: { zawgyiDetector: null } });
       assert.equal(knayi.fontDetect(zawgyi), 'zawgyi');
-      assert.equal(unicode.asked.length, 6);
+      knayi.setGlobalOptions({ detector: { zawgyiDetector: unicode } });
+      knayi.setGlobalOptions({ detector: { zawgyiDetector: undefined } });
+      assert.equal(knayi.fontDetect(zawgyi), 'zawgyi');
+      assert.equal(unicode.asked.length, 7);
       // With myanmar-tools, a short Unicode word that the rule scorer ties on converts as Unicode.
       knayi.setGlobalOptions({ detector: { zawgyiDetector: detector } });
       assert.equal(knayi.fontConvert(TIE, 'unicode'), TIE);
