@@ -8,7 +8,7 @@
 import { hasMyanmarBlockChar } from '../core/input.js';
 import { DEFAULTS } from '../core/options.js';
 import { normalizeText } from '../stages/normalize.js';
-import { prepareBreakText, breakParts, breakString, collapseRepeatedMarks } from '../rules/segment.js';
+import { prepareBreakText, forEachBreak, breakString, collapseRepeatedMarks } from '../rules/segment.js';
 import { detectForRouting } from './fontDetect.js';
 import { enter, cleanText, resolveFont, givenName, breakFont } from './input.js';
 import { toJoinSeparator } from './legacy.js';
@@ -51,10 +51,10 @@ export function spellingFix(content, fontType) {
   return collapseRepeatedMarks(cleanText(input.value), font === 'zawgyi' ? 'zawgyi' : 'unicode');
 }
 
-// truncate(content, options) (2.x truncate.js, C23): at most `length` units, the omission included, cut at a
-// syllable break. It reads every option before it looks at the content, and detects a missing font on the content
-// as given (before trim and zero-width removal), then breaks the cleaned text (§5.1); 'win' and an unknown font
-// throw (breakFont). Not always a prefix: a part that does not fit adds the words of it that do (DESIGN.md §10 Q5).
+// truncate(content, options) (2.x truncate.js, C23): at most `length` units, the omission included: the start of the
+// cleaned text that fits, trimmed, then the omission (2.11, 41984eb). It reads every option before it looks at the
+// content, and detects a missing font on the content as given (before trim and zero-width removal), then breaks the
+// cleaned text (§5.1); 'win' and an unknown font throw (breakFont).
 export function truncate(content, options) {
   const settings = options || {};
   const fontType = settings.fontType;
@@ -66,29 +66,26 @@ export function truncate(content, options) {
   const text = input.value;
   if (text === '' || !hasMyanmarBlockChar(text)) return text.substr(0, budget) + omission;
   const font = breakFont(fontType, 'truncate') || detectForRouting(text);
-  return fitParts(breakParts(cleanText(text), font), budget).trim() + omission;
+  return startThatFits(prepareBreakText(cleanText(text), font), font, budget).trim() + omission;
 }
 
-// 2.x truncate's reduce (truncate.js): whole parts while they fit in the budget; a part that does not fit
-// adds each of its words, split on \s, that still fits, with a space after it. Nothing is added once the budget is
-// used up, or when it is NaN.
-function fitParts(parts, budget) {
-  let kept = '';
-  for (let i = 0; i < parts.length; i++) {
-    const left = budget - kept.length;
-    if (!(left > 0)) break;
-    kept += parts[i].length <= left ? parts[i] : fittingWords(parts[i], left);
-  }
-  return kept;
-}
+// The last white space of a text, and the units after it, which are not white space: JavaScript's \s, as 2.x reads it.
+const LAST_WHITE_SPACE = /\s\S*$/;
 
-// The words of a part that fit in `left` units, each with a space after it, in order; a word that does not fit is
-// skipped, and later ones may still fit.
-function fittingWords(part, left) {
-  const words = part.split(/\s/);
-  let fitted = '';
-  for (let i = 0; i < words.length; i++) {
-    if (words[i].length + 1 <= left - fitted.length) fitted += words[i] + ' ';
-  }
-  return fitted;
+// 2.11 truncate's fitParts over the syllables of the prepared text (2.x truncate.js fitParts, syllableRules.js
+// breakStart): the syllables while they fit in the budget, then, of the first syllable that does not fit, the longest
+// start that ends in white space and fits, so the words of it that fit with the white space after them. That is the
+// longest start within the budget that ends at a syllable break or after white space. The breaks are read only up to
+// the first one past the budget (forEachBreak stops there), as 2.11 breaks only the start of the text. Written so that
+// a budget that is not a number (NaN) keeps nothing, as 2.x's comparisons do.
+function startThatFits(prepared, font, budget) {
+  if (prepared.length <= budget) return prepared;
+  let kept = 0;
+  forEachBreak(prepared, font, (index) => {
+    if (!(index <= budget)) return false;
+    kept = index;
+    return true;
+  });
+  if (!(budget - kept > 0)) return prepared.slice(0, kept);
+  return prepared.slice(0, kept + prepared.slice(kept, budget).search(LAST_WHITE_SPACE) + 1);
 }

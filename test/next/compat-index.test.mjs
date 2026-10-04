@@ -44,12 +44,11 @@ describe('compat: the export object (C1)', () => {
 
   // setGlobalOptions and fontDetect lost their default options with fb6594d (null options), so their lengths are 1
   // and 3; detectEncoding's is 1.
-  it('gives each function the length of its 2.x function, debugging included',
-    () => {
-      for (const name of FUNCTIONS) assert.equal(compat[name].length, reference[name].length, name);
-      assert.equal(typeof compat.fontConvert.debugging, 'function');
-      assert.equal(compat.fontConvert.debugging.length, reference.fontConvert.debugging.length);
-    });
+  it('gives each function the length of its 2.x function, debugging included', () => {
+    for (const name of FUNCTIONS) assert.equal(compat[name].length, reference[name].length, name);
+    assert.equal(typeof compat.fontConvert.debugging, 'function');
+    assert.equal(compat.fontConvert.debugging.length, reference.fontConvert.debugging.length);
+  });
 
   it('exports the same functions by name', () => {
     for (const name of FUNCTIONS) assert.equal(named[name], compat[name], name);

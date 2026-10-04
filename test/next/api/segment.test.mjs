@@ -147,8 +147,8 @@ function piecesHoldingSeveral(pieces, boundaries) {
 }
 
 describe('truncate (DESIGN.md §11.7)', () => {
-  // A line like the pangram of MIGRATION.md's truncate examples, which 2.x truncate cuts into text that is no prefix
-  // of it (DESIGN.md §10 Q5).
+  // A line like the pangram of MIGRATION.md's truncate examples, which 2.10's truncate cut into text that is no
+  // prefix of it (DESIGN.md §10 Q5).
   const PANGRAM = '\u101E\u102E\u101F\u102D\u102F\u1020\u103A\u1000\u1031\u102C\u1004\u103A\u1038\u1000\u102C\u1038' +
     ' \u1012\u1031\u102C\u1004\u103A\u1038\u1001\u101B\u1019\u1038\u1006\u1004\u1037\u103A \u1019\u1031\u101C\u1000' +
     '\u103B\u1004\u103A \u1007\u101C\u103D\u1014\u103A \u1005\u102C\u1000\u102D\u102F \u1008\u1031\u1038';

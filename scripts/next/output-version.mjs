@@ -10,8 +10,8 @@
 // OUTPUT_VERSION tells a dataset which output it holds, and a dataset can hold only released output. So a change
 // needs an OUTPUT_VERSION in src/version.js above that of the latest release the base descends from (its tag
 // v<version>, a prerelease included): the first change after a release raises it, and later changes before the
-// next release share that number. A 2.x release has no src/version.js and counts as 1, 2.10.0's output, which compat
-// keeps. Without a release tag in the base's history (a shallow clone), the change must raise the base's own
+// next release share that number. A 2.x release has no src/version.js and counts as 1, the output 3.0's changes
+// start from. Without a release tag in the base's history (a shallow clone), the change must raise the base's own
 // number. OUTPUT_VERSION never goes down. CI's Compare job runs this after the comparison of the 3.0 API, and
 // test/next/output-version.test.mjs checks outputVersionVerdict.
 

@@ -23,9 +23,9 @@ describe('API contract matrix', () => {
       assert.ok(result.ok, result.text);
       t.diagnostic(result.text);
     };
-    // The cells are those of main.js at the 2.x reference, 8923365. compat and the builds that hold it give them
-    // once compat has the 2.x changes that touch cells (scripts/testing/pending-port.js); until then 912 of the
-    // 3,915 cells differ.
+    // The cells are those of main.js at the 2.x reference, 8923365. compat and the builds that hold it give every one
+    // of them since the port of 2.11, but the known build difference. After a later merge of the 2.x line they wait
+    // for the ports of the changes that touch cells (MATRIX_CHANGES, scripts/testing/pending-port.js).
     it(name + ' gives the recorded result, error class and console output in every cell',
       name === 'main.js' ? check : pendingPort(MATRIX_CHANGES, check));
   }

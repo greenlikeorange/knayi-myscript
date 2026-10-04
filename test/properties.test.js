@@ -5,7 +5,6 @@ const fc = require('fast-check');
 const knayi = require('../src/compat/index.js').default;
 const arb = require('../scripts/testing/arbitraries');
 const { check } = require('../scripts/testing/fuzz-settings');
-const { pendingPort } = require('../scripts/testing/pending-port');
 
 // Properties of the public API, checked with fast-check on generated input (seed and size: see
 // scripts/testing/fuzz-settings.js).
@@ -124,7 +123,7 @@ describe('truncate keeps the start of the text', () => {
     'Zawgyi text': arb.zawgyiText(40)
   };
   for (const [kind, text] of Object.entries(texts)) {
-    it('on ' + kind, pendingPort('41984eb', () => {
+    it('on ' + kind, () => {
       check(fc.property(text.filter(myanmar), fc.constantFrom(undefined, 'unicode', 'zawgyi'), fc.integer({ min: 1, max: 44 }),
         fc.constantFrom('...', '\u2026', '[more]'), (content, font, length, omission) => {
           const options = { fontType: font, length: length, omission: omission };
@@ -136,7 +135,7 @@ describe('truncate keeps the start of the text', () => {
         // as syllBreak detects it.
         ['\u200B\uFEFF\u1084\u1000\u103F\u1000', undefined, 3, '\u2026']
       ]);
-    }));
+    });
   }
 });
 describe('no call form throws', () => {

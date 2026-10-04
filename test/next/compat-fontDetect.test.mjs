@@ -35,20 +35,19 @@ afterEach(resetOptions);
 describe('compat: fontDetect (C13, C14)', () => {
   // 2.11 ignores a fallback that is not a string (86f0040), and takes null options and checks the detector options
   // (fb6594d).
-  it('C13: answers every fallback and options value as main.js does, console included',
-    () => {
-      const fallbacks = [undefined, null, '', 0, 'unicode', 'en', 5, {}];
-      const options = [undefined, null, {}, 0, [], 'rules', { adapter: 'rules' }, { adapter: 'foo' },
-        { myanmartools_zg_threshold: 'x' }, { myanmartools_zg_threshold: [NaN, NaN] }, { use_myanmartools: false }];
-      for (const text of [UNICODE, ZAWGYI, TIE, ' \u200B' + TIE + ' ', 'abc', '']) {
-        for (const fallback of fallbacks) {
-          for (const option of options) {
-            assertSameAsReference((k) => k.fontDetect(text, fallback, option),
-              JSON.stringify([text, fallback, option]));
-          }
+  it('C13: answers every fallback and options value as main.js does, console included', () => {
+    const fallbacks = [undefined, null, '', 0, 'unicode', 'en', 5, {}];
+    const options = [undefined, null, {}, 0, [], 'rules', { adapter: 'rules' }, { adapter: 'foo' },
+      { myanmartools_zg_threshold: 'x' }, { myanmartools_zg_threshold: [NaN, NaN] }, { use_myanmartools: false }];
+    for (const text of [UNICODE, ZAWGYI, TIE, ' \u200B' + TIE + ' ', 'abc', '']) {
+      for (const fallback of fallbacks) {
+        for (const option of options) {
+          assertSameAsReference((k) => k.fontDetect(text, fallback, option),
+            JSON.stringify([text, fallback, option]));
         }
       }
-    });
+    }
+  });
 
   it('C14: the rule scorer counts on the cleaned text, and a tie gives the fallback as given', () => {
     const fallback = { any: 'value' };

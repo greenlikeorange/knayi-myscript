@@ -51,17 +51,16 @@ describe('compat: the 2.x option store (C2-C4)', () => {
   });
 
   // 2.11 checks the threshold and stores zawgyiDetector with the other detector options (fb6594d, 840c8c5).
-  it('C4: mergeDetectorOptions gives what globalOptions.detector gives, console included, from either store',
-    () => {
-      for (const store of STORES) {
-        for (const options of DETECTOR_OPTIONS) {
-          setBoth(store);
-          const expected = recordConsole(() => globalOptions.detector(options));
-          const actual = recordConsole(() => mergeDetectorOptions(options));
-          assert.deepEqual(actual, expected, JSON.stringify(store) + ' ' + String(JSON.stringify(options)));
-        }
+  it('C4: mergeDetectorOptions gives what globalOptions.detector gives, console included, from either store', () => {
+    for (const store of STORES) {
+      for (const options of DETECTOR_OPTIONS) {
+        setBoth(store);
+        const expected = recordConsole(() => globalOptions.detector(options));
+        const actual = recordConsole(() => mergeDetectorOptions(options));
+        assert.deepEqual(actual, expected, JSON.stringify(store) + ' ' + String(JSON.stringify(options)));
       }
-    });
+    }
+  });
 
   // 2.11 writes the threshold error only when not silent (fb6594d); 2.10 wrote it in silent mode too.
   it('C4: the threshold error prints unless silent, and the result holds a copy of the threshold', () => {
@@ -77,20 +76,19 @@ describe('compat: the 2.x option store (C2-C4)', () => {
   });
 
   // 2.11 takes null as no options, checks the threshold, and stores zawgyiDetector (fb6594d, 840c8c5).
-  it('C3: setGlobalOptions stores what setOptions stores, and throws where it throws',
-    () => {
-      const calls = [undefined, null, {}, { silent_mode: 1 }, { silent_mode: 'false' }, { silent_mode: undefined },
-        { detector: null }, { detector: { myanmartools_zg_threshold: [1] } }, { detector: { use_myanmartools: true } },
-        Object.create({ silent_mode: true }), 5, 'silent_mode', []];
-      for (const options of calls) {
-        setBoth(STORES[0]);
-        const expected = recordConsole(() => globalOptions.setOptions(options));
-        const actual = recordConsole(() => setGlobalOptions(options));
-        assert.deepEqual(actual, expected, String(JSON.stringify(options)));
-        assert.equal(isSilentMode(), globalOptions.isSilentMode());
-        assert.deepEqual(storedDetectorOptions(), globalOptions.detector({}));
-      }
-    });
+  it('C3: setGlobalOptions stores what setOptions stores, and throws where it throws', () => {
+    const calls = [undefined, null, {}, { silent_mode: 1 }, { silent_mode: 'false' }, { silent_mode: undefined },
+      { detector: null }, { detector: { myanmartools_zg_threshold: [1] } }, { detector: { use_myanmartools: true } },
+      Object.create({ silent_mode: true }), 5, 'silent_mode', []];
+    for (const options of calls) {
+      setBoth(STORES[0]);
+      const expected = recordConsole(() => globalOptions.setOptions(options));
+      const actual = recordConsole(() => setGlobalOptions(options));
+      assert.deepEqual(actual, expected, String(JSON.stringify(options)));
+      assert.equal(isSilentMode(), globalOptions.isSilentMode());
+      assert.deepEqual(storedDetectorOptions(), globalOptions.detector({}));
+    }
+  });
 
   it('C3: keeps silent_mode as given; any truthy value is silent', () => {
     for (const value of [1, 'false', {}, true]) {

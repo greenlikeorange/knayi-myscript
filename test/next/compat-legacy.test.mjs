@@ -6,7 +6,7 @@
 
 import { describe, it, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { assertSameAsReference, compat, pendingPort, recordConsole, resetOptions } from './compat-helpers.mjs';
+import { assertSameAsReference, compat, recordConsole, resetOptions } from './compat-helpers.mjs';
 import { toJoinSeparator, legacyWinTables } from '../../src/compat/legacy.js';
 import { WIN_GLYPHS, LOOK_ALIKE_SEQUENCES, C1_ALIASES } from '../../src/fonts/win.js';
 import { library } from './helpers.mjs';
@@ -33,14 +33,14 @@ describe('compat: font names in syllBreak, spellingFix and truncate (C11, C12)',
     }
   });
 
-  it('truncate answers every font name as main.js does', pendingPort('41984eb', () => {
+  it('truncate answers every font name as main.js does', () => {
     for (const name of FONT_NAMES) {
       for (const text of [UNICODE, ZAWGYI, ' ' + UNICODE + '\u200B ']) {
         const what = String(name) + ' on ' + JSON.stringify(text);
         assertSameAsReference((k) => k.truncate(text + text, { fontType: name, length: 9 }), 'truncate ' + what);
       }
     }
-  }));
+  });
 
   it('syllBreak and truncate throw ERR_KNAYI_INVALID_FONT for win and unknown names, Object.prototype\'s too', () => {
     for (const name of ['win', 'WIN', 'foo', 'constructor', 'toString', '__proto__', 'hasOwnProperty']) {

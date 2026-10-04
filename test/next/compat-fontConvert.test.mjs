@@ -28,16 +28,15 @@ describe('compat: fontConvert (C15-C19)', () => {
   });
 
   // And debugging's report on every exit with text (b6cbfca).
-  it('C17-C19: debugging gives main.js\'s log, and its report on every early exit',
-    () => {
-      for (const text of TEXTS.concat([null, '', 0, {}, new String(ZAWGYI)])) {
-        for (const to of FONTS) {
-          for (const from of FONTS) {
-            assertSameAsReference((k) => k.fontConvert.debugging(text, to, from), JSON.stringify([text, to, from]));
-          }
+  it('C17-C19: debugging gives main.js\'s log, and its report on every early exit', () => {
+    for (const text of TEXTS.concat([null, '', 0, {}, new String(ZAWGYI)])) {
+      for (const to of FONTS) {
+        for (const from of FONTS) {
+          assertSameAsReference((k) => k.fontConvert.debugging(text, to, from), JSON.stringify([text, to, from]));
         }
       }
-    });
+    }
+  });
 
   it('C17: the font log names its stages in 2.x order, with \'glyphs\' only when debugging', () => {
     // Zero before i is wa, and i typed twice and then ii is a typo for ii.

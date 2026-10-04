@@ -1,34 +1,31 @@
 'use strict';
 // The 2.x behaviours that compat (src/compat/) does not have yet, and the tests that wait for them.
 //
-// The merge of the final 2.x line (branch detect-encoding, commit 8923365) into next brought 2.x's tests with it,
-// pointed at compat, and moved the 2.x reference to that commit (docs/next/DESIGN.md §1.1, §8). compat still gives
-// 2.10.0's output, so a test of a later 2.x change fails until that change is ported into src/. Such a test is
-// written as `it(name, pendingPort(commit, fn))`: it passes while fn fails, and fails as soon as fn passes, saying
-// which commit it waits for. So each port turns exactly its own tests red, and the port removes their pendingPort.
-// A script that is not a test file checks the same way with pendingPortNow(commit, fn), which runs fn at once.
-// Nothing else may fail: a test that fails for any other reason is not marked.
+// A merge of the 2.x line into next brings 2.x's tests with it, pointed at compat, and moves the 2.x reference to
+// the merged commit (docs/next/DESIGN.md §1.1, §8). Until each 2.x change is ported into src/, a test of it fails.
+// Such a test is written as `it(name, pendingPort(commit, fn))`: it passes while fn fails, and fails as soon as fn
+// passes, saying which commit it waits for. So each port turns exactly its own tests red, and the port removes their
+// pendingPort. A script that is not a test file checks the same way with pendingPortNow(commit, fn), which runs fn
+// at once. Nothing else may fail: a test that fails for any other reason is not marked.
 //
 // KNAYI_PENDING_PORT=run runs every marked test as a plain test, to see why it fails, or to check it against the
 // 2.x reference (scripts/reference/main.js), where each one passes.
 //
-// Each key is the 2.x commit that made the change; the port of a commit removes its key once no test names it.
+// Each key is the 2.x commit that made the change; the port of a commit removes its key once no test names it. The
+// port of the 2.x stack #73-#80 (commit 8923365, 2.11.0) ported every change it brought, so none waits now: the
+// tables are empty until the next merge of the 2.x line.
 
-const PENDING = Object.freeze({
-  '41984eb': 'truncate returns a start of the text, and breaks only that start (PR 4.9)'
-});
+const PENDING = Object.freeze({});
 
-// The changes that change cells of the contract matrix (test/contract/api-matrix.json): truncate's prefix.
+// The changes that change cells of the contract matrix (test/contract/api-matrix.json).
 // test/contract/api-matrix.test.js and scripts/bun-matrix.js check compat and its builds against the matrix as
 // waiting for them.
-const MATRIX_CHANGES = Object.freeze(['41984eb']);
+const MATRIX_CHANGES = Object.freeze([]);
 
 // The examples of the 2.x API in the documents that show a change compat does not have yet, by file and code (as
 // scripts/testing/readme-examples.js reads them), with the commit each waits for. test/readme.test.js and
 // test/next/compat-index.test.mjs run them as waiting for it.
-const PENDING_EXAMPLES = Object.freeze({
-  "MIGRATION.md compat.truncate('အာယုဝဍ်ဎနဆေးညွှန်းစာကို ဇလွန်ဈေးဘေးဗာဒံပင်ထက် အဓိဋ္ဌာန်လျက် ဂဃနဏဖတ်ခဲ့သည်။', { length: 30, omission: '...' })": '41984eb',
-});
+const PENDING_EXAMPLES = Object.freeze({});
 
 // The commits as a list, each checked against PENDING. commits: one commit, or a list of them when the test needs
 // each.
@@ -49,10 +46,11 @@ function passesNow(list) {
     '. Remove its pendingPort.');
 }
 
-// A test function that passes while fn fails, for it(name, ...).
+// A test function that passes while fn fails, for it(name, ...). With no commit to wait for (an empty list, such as
+// MATRIX_CHANGES when no change waits) it is fn itself.
 function pendingPort(commits, fn) {
   const list = pendingList(commits);
-  if (process.env.KNAYI_PENDING_PORT === 'run') return fn;
+  if (list.length === 0 || process.env.KNAYI_PENDING_PORT === 'run') return fn;
   return async function pending() {
     try {
       await fn.apply(this, arguments);
@@ -63,10 +61,11 @@ function pendingPort(commits, fn) {
   };
 }
 
-// Runs fn, a synchronous check, at once: it must fail while the commits wait for their port.
+// Runs fn, a synchronous check, at once: it must fail while the commits wait for their port, and pass when there are
+// none.
 function pendingPortNow(commits, fn) {
   const list = pendingList(commits);
-  if (process.env.KNAYI_PENDING_PORT === 'run') {
+  if (list.length === 0 || process.env.KNAYI_PENDING_PORT === 'run') {
     fn();
     return;
   }
