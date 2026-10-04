@@ -26,6 +26,7 @@ const evidence: EncodingDetection = knayi.detectEncoding(zawgyi);
 check(evidence.encoding === "zawgyi", "detectEncoding");
 const options: TruncateOptions = { length: 10, omission: "" };
 check(typeof knayi.truncate(unicode, options) === "string", "truncate");
+check([unicode].map(knayi.truncate)[0] === knayi.truncate(unicode), "lines.map(knayi.truncate)");
 check(normalize(unicode) === unicode, "normalize");
 check(deepConvert === fontConvert, "library/converter is fontConvert");
 const deepDebug: ConvertDebug = deepConvert.debugging(zawgyi, "unicode", "zawgyi");

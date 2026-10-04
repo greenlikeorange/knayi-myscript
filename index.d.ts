@@ -1,5 +1,13 @@
 // Types for knayi-myscript (main.js). library/converter.d.ts types the deep path knayi-myscript/library/converter.
 // In 2.x this file may only grow (ARCHITECTURE.md, "Stable surfaces"). test/readme.test.js runs the examples below.
+//
+// Array#map calls a function with the line, its index and the array. fontDetect, spellingFix and truncate read that
+// index and array as setting nothing, so each has an overload that takes them, and `lines.map(knayi.truncate)`
+// type-checks. The overload comes first, since TypeScript reads Parameters and ReturnType from the last signature,
+// and has a short JSDoc of its own, since an editor shows each signature's own JSDoc while you type a call.
+// normalize and detectEncoding read one argument, and need an overload only once they take a second. syllBreak and
+// fontConvert change what they do for map's arguments, and get none. typecheck/map-callbacks.ts checks these types,
+// and test/inputs.test.js what the calls return.
 
 /**
  * A font name knayi reads: `'unicode'` (or `'uni'`), `'zawgyi'` (or `'zaw'`), and `'win'`, the Win Innwa family of
@@ -134,6 +142,17 @@ export declare const version: string;
  */
 export declare function setGlobalOptions(options?: GlobalOptions | null): void;
 
+// The result type is string, as for a fallback of any string: a call whose fallback is typed any can match this
+// signature, and then it may return that fallback.
+/**
+ * fontDetect as an Array#map callback: `lines.map(knayi.fontDetect)` gives each line what `fontDetect(line)` gives.
+ * The index map passes is no fallback, and the array sets no option. The other signature has the details.
+ */
+export declare function fontDetect(
+  content: string | null | undefined,
+  index: number,
+  array?: ReadonlyArray<string | null | undefined>
+): string;
 /**
  * Tells whether text is Unicode or Zawgyi: returns `'unicode'` or `'zawgyi'`, never `'win'`.
  *
@@ -142,6 +161,12 @@ export declare function setGlobalOptions(options?: GlobalOptions | null): void;
  * `undefined`, `''`, `0`, `false`, `NaN`) and text with no Myanmar letters (U+1000 to U+109F) return the fallback,
  * or `'en'` if there is none. detectEncoding gives the rule scorer's evidence, and tells a tie apart from text with no
  * Myanmar letters.
+ *
+ * `lines.map(knayi.fontDetect)` works: map passes each line's index as the fallback, which is no fallback, and the
+ * array as the options, which set none, so each line gives what `fontDetect(line)` gives. TypeScript types the result
+ * as `string[]`: it reads fontDetect passed as a value with any string as the fallback, as it reads
+ * `ReturnType<typeof fontDetect>`. For `'unicode' | 'zawgyi' | 'en'`, write
+ * `lines.map((line) => knayi.fontDetect(line))`.
  *
  * @param content The text.
  * @param fallbackFontType What to return when the text does not decide. It is returned as given. A value that is not
@@ -192,6 +217,10 @@ export declare function detectEncoding(content: string | null | undefined): Enco
  * unchanged, except from Win, whose text is ASCII. A missing or unknown target, a Win target, and Win to Zawgyi
  * return the text, with an error unless silent. Missing content returns `''`.
  *
+ * Don't pass fontConvert to Array#map as it is: map passes each line's index as the target, which is no font, so each
+ * line comes back unconverted, with an error unless silent, and the types refuse it. Write
+ * `lines.map((line) => knayi.fontConvert(line, 'unicode'))`.
+ *
  * @param content The text.
  * @param targetFontType The font to convert to: `'unicode'` or `'zawgyi'`.
  * @param originalFontType The font of the text: `'unicode'`, `'zawgyi'` or `'win'`. Omitted, `null` or an unknown
@@ -241,7 +270,7 @@ export declare namespace fontConvert {
  * back unchanged, and missing content as `''`.
  *
  * Don't pass syllBreak to Array#map as it is: map passes each line's index as the font and the array as the break
- * point. Write `lines.map((line) => knayi.syllBreak(line))`.
+ * point, and the types refuse it. Write `lines.map((line) => knayi.syllBreak(line))`.
  *
  * @param content The text.
  * @param fontType `'unicode'` or `'zawgyi'` (see FontName). Omitted, `null`, `''` or a value that is not a string,
@@ -261,10 +290,23 @@ export declare function syllBreak(
 ): string;
 
 /**
+ * spellingFix as an Array#map callback: `lines.map(knayi.spellingFix)` gives each line what `spellingFix(line)`
+ * gives. The index map passes names no font, so fontDetect chooses it, and the array is not read. The other
+ * signature has the details.
+ */
+export declare function spellingFix(
+  content: string | null | undefined,
+  index: number,
+  array?: ReadonlyArray<string | null | undefined>
+): string;
+/**
  * Collapses a mark typed two or more times in a row into one mark. It does not reorder marks: that is normalize.
  *
  * The text is trimmed, and its zero-width spaces and non-joiners removed, first. Text with no Myanmar letters comes
  * back unchanged, and missing content as `''`.
+ *
+ * `lines.map(knayi.spellingFix)` works: map passes each line's index as the font, which names no font, so fontDetect
+ * chooses each line's font, as in `spellingFix(line)`.
  *
  * @param content The text.
  * @param fontType `'zawgyi'` or `'zaw'` (see FontName), in any letter case, collapses the Zawgyi marks, and any other
@@ -282,10 +324,23 @@ export declare function spellingFix(
 ): string;
 
 /**
+ * truncate as an Array#map callback: `lines.map(knayi.truncate)` gives each line what `truncate(line)` gives. The
+ * index map passes sets no option, so each line gets the defaults, and the array is not read. The other signature
+ * has the details.
+ */
+export declare function truncate(
+  content: string | null | undefined,
+  index: number,
+  array?: ReadonlyArray<string | null | undefined>
+): string;
+/**
  * Returns the longest start of the text that fits in `length`, omission included, and ends at a syllable break or
  * after whitespace, trimmed, and appends the omission, even to text that is shorter than `length`. Text with no
  * Myanmar letters is cut at the length. `''` returns the omission, and missing content `''`. Other values are
  * turned into strings first.
+ *
+ * `lines.map(knayi.truncate)` works: map passes each line's index as the options, which set none, so each line gets
+ * the defaults, as in `truncate(line)`.
  *
  * @param content The text.
  * @param options `length` (default 30), `omission` (default `'...'`) and the font, `fontType`.
@@ -303,6 +358,8 @@ export declare function truncate(content: string | null | undefined, options?: T
  * Unicode only: convert Zawgyi text with fontConvert first.
  *
  * Text with no character of the Myanmar blocks comes back in NFC only. Missing content returns `''`.
+ *
+ * It reads one argument, so `lines.map(knayi.normalize)` works.
  *
  * @param content The text.
  * @example

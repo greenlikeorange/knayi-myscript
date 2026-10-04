@@ -24,6 +24,7 @@ check(debug.steps.length > 0, "fontConvert.debugging");
 const options: DetectorOptions = { adapter: "rules" };
 check(fontDetect(unicode, null, options) === "unicode", "fontDetect");
 check(detectEncoding(unicode).encoding === "unicode", "detectEncoding");
+check([zawgyi, unicode].map(fontDetect).join() === "zawgyi,unicode", "lines.map(fontDetect)");
 check(syllBreak(unicode, "unicode", "|") === "မင်္ဂလာ|ပါ", "syllBreak");
 check(normalize(unicode) === unicode, "normalize");
 check(version === knayi.version, "version");

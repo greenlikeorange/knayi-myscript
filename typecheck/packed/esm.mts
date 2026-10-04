@@ -63,6 +63,13 @@ check(version === knayi.version, "version");
 check(deepConvert === fontConvert, "library/converter is fontConvert");
 const detected: "unicode" | "zawgyi" | "tie" = fontDetect(unicode, "tie");
 check(detected === "unicode", "fontDetect with a fallback");
+// As Array#map callbacks: index.d.ts gives these an overload for map's index and array.
+const lines = [zawgyi, unicode, "abc"];
+const fonts: string[] = lines.map(fontDetect);
+check(fonts.join() === "zawgyi,unicode,en", "lines.map(fontDetect)");
+check(lines.map(spellingFix)[1] === unicode, "lines.map(spellingFix)");
+check(lines.map(truncate)[2] === "abc...", "lines.map(truncate)");
+check(lines.map(normalize)[1] === unicode, "lines.map(normalize)");
 
 // The types are the package's own, not any.
 // @ts-expect-error normalize returns a string

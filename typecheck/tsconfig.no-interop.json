@@ -14,5 +14,5 @@
       "knayi-myscript/library/converter": ["library/converter.d.ts"]
     }
   },
-  "files": ["require-style.ts", "default-import.ts", "named-import.ts", "font-types.ts", "deep-path.ts"]
+  "files": ["require-style.ts", "default-import.ts", "named-import.ts", "font-types.ts", "deep-path.ts", "map-callbacks.ts"]
 }
