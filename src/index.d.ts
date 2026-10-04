@@ -56,10 +56,11 @@ export declare function createTrace(): Trace;
 // The result types of normalize and toUnicode, whose options decide what they return.
 
 /**
- * Options of type O with every key that T does not declare typed `never`, so that such a key is a compile error, as
- * it is a RangeError at run time. A generic parameter takes no excess-property check of its own.
+ * For options of type O, every key that T does not declare, typed `never`: options typed `O & UnknownKeys<O, T>`
+ * make such a key a compile error, as it is a RangeError at run time, since a type parameter takes no
+ * excess-property check of its own. Nothing for options that are no object, which the constraint on O judges.
  */
-type KnownKeys<O, T> = O extends object ? O & { [K in Exclude<keyof O, keyof T>]: never } : O;
+type UnknownKeys<O, T> = O extends object ? { [K in Exclude<keyof O, keyof T>]: never } : unknown;
 
 /**
  * What a function returns for options of type O when its flag F turns a string into R: R when O sets F to true,
@@ -113,7 +114,7 @@ export type NormalizeResult<O> = FlagResult<O, 'report', NormalizeReport>;
  * flag) give the union.
  */
 export declare function normalize<O extends NormalizeOptions | number | null | undefined = undefined>(text: string,
-  options?: KnownKeys<O, NormalizeOptions>): NormalizeResult<O>;
+  options?: O & UnknownKeys<O, NormalizeOptions>): NormalizeResult<O>;
 
 /** Whether normalize would return the text unchanged. It does not tell Zawgyi from Unicode. */
 export declare function isNormalized(text: string): boolean;
@@ -231,7 +232,7 @@ export type ToUnicodeResult<O> = FlagResult<O, 'offsets', ConversionWithOffsets>
  * stored ToUnicodeOptions, a boolean flag) give the union.
  */
 export declare function toUnicode<O extends ToUnicodeOptions | number | null | undefined = undefined>(text: string,
-  options?: KnownKeys<O, ToUnicodeOptions>): ToUnicodeResult<O>;
+  options?: O & UnknownKeys<O, ToUnicodeOptions>): ToUnicodeResult<O>;
 
 export interface ToZawgyiOptions {
   /** A trace from createTrace(), to fill with the text after the collapse and after each rule that changed it. */

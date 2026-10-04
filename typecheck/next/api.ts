@@ -40,6 +40,8 @@ const flagged: string | NormalizeReport = normalize(lines[0], { report: wantRepo
 const nullFlag: string = normalize(lines[0], { report: null });
 // @ts-expect-error: normalize takes no offsets, next to a key it takes too
 normalize('x', { report: true, offsets: true });
+// @ts-expect-error: options are an object, not a string
+normalize('x', 'report');
 try {
   normalize(lines[0]);
 } catch (error) {
@@ -93,6 +95,12 @@ const flaggedUnicode: string = toUnicode(lines[0], { offsets: wantOffsets });
 const reportType: NormalizeResult<{ report: true }> = normalize(lines[0], { report: true });
 // @ts-expect-error: toUnicode takes no to, next to a key it takes too
 toUnicode('x', { from: 'zawgyi', to: 'unicode' });
+// @ts-expect-error: options are an object, not a font name
+toUnicode('x', 'zawgyi');
+// @ts-expect-error: options are an object, not an array
+toUnicode('x', ['zawgyi']);
+declare const maybeOptions: ToUnicodeOptions | undefined;
+const maybeConverted: string | ConversionWithOffsets = toUnicode(lines[0], maybeOptions);
 // @ts-expect-error: from is a font name
 toUnicode('x', { from: 'Zawgyi' });
 // @ts-expect-error: tie is 'unicode' or 'zawgyi'
