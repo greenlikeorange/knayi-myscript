@@ -43,7 +43,7 @@ All library code is CommonJS in `library/`. Every file there is strict code: it 
 | Module | Exports | What it holds |
 | --- | --- | --- |
 | `converter.js` | `fontConvert`, `fontConvert.debugging` | Input checks and font routing for conversion. Both exports call `convert`, which takes the debug flag as an argument: `false` from `fontConvert`, `true` from `debugging`. Every exit that returns text before converting goes through `unconverted`, which gives `debugging` its report there. |
-| `detection.js` | `fontDetect`, `detectEncoding` | 29 signature patterns (12 Unicode, 17 Zawgyi) compiled to global regexes at load; the rule scorer, `countEvidence`, and `decide`, which gives `fontDetect`'s answer for its evidence; the optional myanmar-tools adapter, which uses the detector passed as `zawgyiDetector` or else the package, and the package's lazy loader, `nodeRequire`, which loads it only with `module.require`. |
+| `detection.js` | `fontDetect`, `detectEncoding` | The detector: both public detection functions, and the file the library requires for them. 29 signature patterns (12 Unicode, 17 Zawgyi) compiled to global regexes at load; the rule scorer, `countEvidence`, and `decide`, which gives `fontDetect`'s answer for its evidence; the optional myanmar-tools adapter, which uses the detector passed as `zawgyiDetector` or else the package, and the package's lazy loader, `nodeRequire`, which loads it only with `module.require`. |
 | `normalization.js` | `normalize` | Input checks, then NFC and, for text with a character of the Myanmar blocks, `arrangeUnicode`, typos, look-alikes, NFC. |
 | `syllBreak.js` | `syllBreak` | Input checks, font choice, then `breakText`. |
 | `spellingCheck.js` | `spellingFix` | Input checks, font choice, then `collapseMarks`. The file name differs from the export name. |
@@ -58,7 +58,7 @@ All library code is CommonJS in `library/`. Every file there is strict code: it 
 | `syllableRules.js` | `collapseMarks`, `breakParts`, `breakStart`, `joinParts`, `breakText`, `convertText` | Three jobs in one file: the Unicode to Zawgyi rules, the mark-collapse rules and the syllable-break rules. |
 | `unicodeParser.js` | `parseUnicode`, `serializeUnicode` | A Unicode syllable parser that only the tests use. No public function calls it. |
 | `syllable.js` | `parseUnicode`, `serializeUnicode`, `collapseMarks`, `breakParts`, `breakStart`, `joinParts`, `breakText`, `convertText` | The 2.x path of the syllable rules: one line that exports what `unicodeParser.js` and `syllableRules.js` export, under the names this file had when it held both. |
-| `detector.js` | `fontDetect`, as the module itself | The 2.x path of `fontDetect`: one line that exports `detection.js`'s `fontDetect`, as this file did when it held the detector. |
+| `detector.js` | `fontDetect`, as the module itself | Not the detector's code, which is in `detection.js`: only the 2.x path of `fontDetect`, one line that exports `detection.js`'s `fontDetect`, as this file did when it held the detector. |
 
 `main.js` requires neither `syllable.js` nor `unicodeParser.js`, so the builds leave them out: the parser would add about 430 bytes to `min.js` with gzip. They still ship in `library/`, so `require('knayi-myscript/library/syllable')` gives what it gave in 2.10 (`test/syllable.test.js` checks the names and the builds). The same holds for `detector.js`: the library requires `detection.js`, and `require('knayi-myscript/library/detector')` is still `fontDetect` (`test/detector.test.js`).
 
