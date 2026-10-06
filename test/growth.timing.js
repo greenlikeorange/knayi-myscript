@@ -6,17 +6,21 @@ const knayi = require('../main');
 // Super-linear time on structured random input. Each case is a prefix, a short unit repeated many times and a
 // suffix, drawn from the characters the rules care about: Burmese letters and marks, the Zawgyi and Win
 // glyphs, the other languages of the Myanmar blocks, digits, spaces, zero-width characters and the
-// punctuation the break rules read. Every public call form runs it with the unit repeated k and 2k times. In
-// linear time the second takes about twice as long; a quadratic path takes four times as long. 2.10.0's
+// punctuation the break rules read. Every public call form runs it with the unit repeated to n and 2n characters.
+// In linear time the second takes about twice as long; a quadratic path takes four times as long. 2.10.0's
 // quadratic normalize (ka, then e repeated) got past test/performance.test.js because that file only tries
 // the shapes someone thought of; scripts/check-redos.mjs checks the regexes one by one.
 //
-// Timings are noisy, so each size runs REPS times interleaved and the medians count, sizes grow until a call
-// takes MIN_MS, and a ratio above LIMIT is measured again at twice the size: a case fails only when the ratio is
-// above LIMIT at two sizes (or on all ATTEMPTS at the largest size). A burst of load on the machine spoils one
-// measurement, seldom two at different sizes, while super-linear code reads high at every size. The file runs on
-// its own, after the other test files (package.json `test`), so the fuzz, matrix and property tests do not
-// compete with it for the CPU.
+// Timings are noisy, on shared CI runners most of all, so the verdict has two steps (scripts/testing/growth.js,
+// which also holds the runner evidence behind the numbers). A cheap screen times the case at two sizes (SCREEN): a
+// ratio t(2n)/t(n) at or below SOFT_RATIO passes. A case above it is confirmed over an 8-fold span, from N to 8N
+// units, where linear code grows about 8 times and quadratic code about 64 times, and fails only when the exponent
+// from N to 8N and that of the top doubling, from 4N to 8N, both stay at 1.5 or more, or when one call passes the
+// time cap. A screen reading the confirmation does not
+// uphold is reported as a diagnostic ('above the soft bound, not confirmed'), so it stays visible. Every time is
+// the fastest of several readings of repeated calls, and each confirming reading lasts at least 20 ms and comes
+// after a full garbage collection. The file runs on its own, after the other test files (package.json `test`,
+// which runs it with --expose-gc), so the fuzz, matrix and property tests do not compete with it for the CPU.
 // fast-check shrinks a failing case and prints its seed; KNAYI_GROWTH_SEED replays it and KNAYI_GROWTH_RUNS
 // sets the number of random cases per call form (a nightly job can run many more).
 //
@@ -27,15 +31,16 @@ const knayi = require('../main');
 // under 'runs of marks that NFC reorders' check that on such runs in Myanmar and in other scripts, through every
 // call form that runs NFC.
 
-const LIMIT = 2.6; // t(2n) / t(n): about 2 in linear time, 4 in quadratic time (growth exponent 1.38)
-const ATTEMPTS = 3;
-const REPS = 5;
-const START_CHARS = 2048;
-// Past about 64k characters, memory effects alone push the ratio of even trivially linear calls to 2.5-3.5,
-// while a quadratic path is already obvious at a few thousand.
-const MAX_CHARS = 1 << 15;
-const MIN_MS = 4; // a median below this is mostly timer and GC noise, so the input grows
-const SLOW_MS = 2000; // one call this slow fails at once
+const growthCheck = require('../scripts/testing/growth');
+
+// The screen: t(2n) / t(n) from n = 4N to 8N, the top of the confirming span (N is growthCheck.CONFIRM.n: 4,096
+// characters under Node, 1,024 under Bun). It is about 2 in linear time and 4 in quadratic time; above SOFT_RATIO
+// (growth exponent 1.38) the case is confirmed. The screen sits at the top because a quadratic term weighs most
+// there: the weakest one the confirmation fails, which costs 0.35 times the linear time at N (an exponent of 1.5
+// from N to 8N), reads 3.2 from 4N to 8N, but only 2.5 from N to 2N, where the screen would pass it. Readings of
+// 1 ms keep the screen cheap (scripts/testing/growth.js says why); the confirmation takes three of 20 ms.
+const SOFT_RATIO = 2.6;
+const SCREEN = { n: 4 * growthCheck.CONFIRM.n, span: 2, soft: Math.log2(SOFT_RATIO) };
 const RUNS = Number(process.env.KNAYI_GROWTH_RUNS) || 10;
 const SEED = Number(process.env.KNAYI_GROWTH_SEED) || 20261003;
 
@@ -133,48 +138,12 @@ const FORMS = [
   { name: 'truncate zawgyi at 10', run: (s) => knayi.truncate(s, { length: 10, omission: '', fontType: 'zawgyi' }) }
 ];
 
-function time(fn, input) {
-  const start = process.hrtime.bigint();
-  fn(input);
-  return Number(process.hrtime.bigint() - start) / 1e6;
-}
-
-function median(values) {
-  const sorted = values.slice().sort((a, b) => a - b);
-  return sorted[sorted.length >> 1];
-}
-
-// How the call's time grows from k to 2k units: { ok, chars, ratios, ms }. After a ratio above LIMIT the next
-// measurement is at twice the size, until 4k units would pass MAX_CHARS.
+// How the call's time grows on the shape, by the two steps of scripts/testing/growth.js: { ok, verdict, screen,
+// confirm }. ok is false only for a confirmed super-linear verdict.
 function growth(fn, shape) {
-  const make = (k) => shape.prefix + shape.pump.repeat(k) + shape.suffix;
-  let k = Math.ceil(START_CHARS / shape.pump.length);
-  const ratios = [];
-  const highAt = new Set();
-  for (;;) {
-    const small = make(k);
-    const big = make(2 * k);
-    fn(small);
-    fn(big);
-    const a = [];
-    const b = [];
-    for (let r = 0; r < REPS; r++) {
-      a.push(time(fn, small));
-      b.push(time(fn, big));
-    }
-    const ms = [median(a), median(b)];
-    if (ms[1] > SLOW_MS) return { ok: false, chars: big.length, ratios, ms };
-    if (ms[1] < MIN_MS) {
-      if (big.length * 2 > MAX_CHARS) return { ok: true, chars: big.length, ratios, ms }; // too fast to matter
-      k *= 2;
-      continue;
-    }
-    ratios.push(ms[1] / ms[0]);
-    if (ratios[ratios.length - 1] <= LIMIT) return { ok: true, chars: big.length, ratios, ms };
-    highAt.add(big.length);
-    if (highAt.size >= 2 || ratios.length >= ATTEMPTS) return { ok: false, chars: big.length, ratios, ms };
-    if (make(4 * k).length <= MAX_CHARS) k *= 2;
-  }
+  const make = (n) => shape.prefix + shape.pump.repeat(Math.ceil(n / shape.pump.length)) + shape.suffix;
+  const result = growthCheck.checkGrowth(fn, make, { screen: SCREEN });
+  return Object.assign({ ok: result.verdict !== 'super-linear' }, result);
 }
 
 function codePoints(input) {
@@ -183,16 +152,20 @@ function codePoints(input) {
 
 function describeCase(shape, result) {
   return 'prefix [' + codePoints(shape.prefix) + '], unit [' + codePoints(shape.pump) + '], suffix [' +
-    codePoints(shape.suffix) + '] at ' + result.chars + ' characters: t(2n)/t(n) ' +
-    result.ratios.map((r) => r.toFixed(2)).join(', ') + ' (limit ' + LIMIT + '), ' +
-    result.ms.map((ms) => ms.toFixed(1)).join(' ms and ') + ' ms';
+    codePoints(shape.suffix) + ']: ' + growthCheck.describeGrowth(result);
+}
+
+// A screen reading above the soft bound that the confirmation did not uphold: reported, never a failure.
+function reportUnconfirmed(t, name, shape, result) {
+  if (result.verdict === 'unconfirmed') t.diagnostic(name + ' above the soft bound, not confirmed: ' + describeCase(shape, result));
 }
 
 describe('time grows linearly on structured random input', () => {
   FORMS.forEach((form, index) => {
-    it(form.name, () => {
+    it(form.name, (t) => {
       fc.assert(fc.property(shapes, (shape) => {
         const result = growth(form.run, shape);
+        reportUnconfirmed(t, form.name, shape, result);
         assert.ok(result.ok, form.name + ' grows faster than linear: ' + describeCase(shape, result));
       }), { seed: SEED + index, numRuns: RUNS, examples: EXAMPLES });
     });
@@ -202,33 +175,23 @@ describe('time grows linearly on structured random input', () => {
 // Every character of the alphabets repeated alone, and after ka, through the call forms whose readers walk runs of
 // marks: normalize and conversion to Unicode (`pumps` in FORMS). The random cases rarely draw a unit of one
 // character: a loop that rescanned the current run of anusvara for each anusvara took 8 s at 100k characters and
-// passed them at the pull request setting. Each pump is timed first at 4,096 and 8,192 characters, the faster of
-// two calls each; one that grows faster than LIMIT gets the full measurement of growth().
+// passed them at the pull request setting. Each pump gets the same two steps as the random cases.
 const KA = String.fromCharCode(0x1000);
 const PUMPS = ALL.map((ch) => ({ prefix: '', pump: ch, suffix: '' }))
   .concat(ALL.map((ch) => ({ prefix: KA, pump: ch, suffix: '' })));
 
-function quickRatio(fn, shape) {
-  const small = shape.prefix + shape.pump.repeat(4096);
-  const big = shape.prefix + shape.pump.repeat(8192);
-  fn(small);
-  fn(big);
-  const a = Math.min(time(fn, small), time(fn, small));
-  const b = Math.min(time(fn, big), time(fn, big));
-  return b / Math.max(a, 0.001);
-}
-
 describe('time grows linearly on a run of one character', () => {
   for (const form of FORMS.filter((f) => f.pumps)) {
     it(form.name, (t) => {
-      let measured = 0;
+      let confirmed = 0;
       for (const pump of PUMPS) {
-        if (quickRatio(form.run, pump) <= LIMIT) continue;
-        measured++;
         const result = growth(form.run, pump);
+        if (result.confirm) confirmed++;
+        reportUnconfirmed(t, form.name, pump, result);
         assert.ok(result.ok, form.name + ' grows faster than linear: ' + describeCase(pump, result));
       }
-      t.diagnostic(PUMPS.length + ' pumps, ' + measured + ' measured in full after a high first reading');
+      t.diagnostic(PUMPS.length + ' pumps, ' + confirmed + ' confirmed after a screen reading above the soft bound' +
+        (growthCheck.gcAvailable ? '' : '; no garbage collection before readings (run Node with --expose-gc)'));
     });
   }
 });
@@ -251,9 +214,10 @@ const NFC_RUNS = [
 
 describe('time grows linearly on runs of marks that NFC reorders', () => {
   for (const form of FORMS.filter((f) => f.nfc)) {
-    it(form.name, () => {
+    it(form.name, (t) => {
       for (const [name, run] of NFC_RUNS) {
         const result = growth(form.run, run);
+        reportUnconfirmed(t, form.name + ' on ' + name, run, result);
         assert.ok(result.ok, form.name + ' on ' + name + ' grows faster than linear: ' + describeCase(run, result));
       }
     });
