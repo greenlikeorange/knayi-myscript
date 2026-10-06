@@ -217,8 +217,13 @@ async function floresFiles(dataDir) {
   if (intact()) return Object.keys(FLORES_FILES);
   const archive = await file('flores');
   fs.mkdirSync(path.join(dataDir, 'flores'), { recursive: true });
-  // Relative paths and cwd: GNU tar on Windows reads "C:" in an absolute path as a remote host.
-  execFileSync('tar', ['-xzf', path.basename(archive), '-C', 'flores', ...Object.keys(FLORES_FILES)], { cwd: dataDir });
+  // Relative paths and cwd: GNU tar on Windows reads "C:" in an absolute path as a remote host. The archive names
+  // its members ./flores200_dataset/...; bsdtar (macOS, Windows) matches a name given without the ./ and GNU tar
+  // (Linux, so CI) does not, so the names to extract are taken from the archive's own listing.
+  const wanted = new Set(Object.keys(FLORES_FILES));
+  const members = execFileSync('tar', ['-tzf', path.basename(archive)], { cwd: dataDir, encoding: 'utf8', maxBuffer: 1 << 26 })
+    .split('\n').filter((m) => wanted.has(m.replace(/^\.\//, '')));
+  execFileSync('tar', ['-xzf', path.basename(archive), '-C', 'flores', ...members], { cwd: dataDir });
   if (!intact()) throw new Error('The FLORES files extracted from ' + archive + ' do not match their pinned sha256 (FLORES_FILES).');
   return Object.keys(FLORES_FILES);
 }

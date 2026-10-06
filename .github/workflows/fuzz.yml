@@ -59,8 +59,8 @@ jobs:
           KNAYI_GROWTH_SEED: ${{ steps.seed.outputs.seed }}
           KNAYI_GROWTH_RUNS: '500'
         run: |
-          echo "KNAYI_GROWTH_SEED=$KNAYI_GROWTH_SEED KNAYI_GROWTH_RUNS=$KNAYI_GROWTH_RUNS node --test test/growth.timing.js" | tee -a replay.txt
-          node --test test/growth.timing.js 2>&1 | tee growth.log
+          echo "KNAYI_GROWTH_SEED=$KNAYI_GROWTH_SEED KNAYI_GROWTH_RUNS=$KNAYI_GROWTH_RUNS node --expose-gc test/growth.timing.js" | tee -a replay.txt
+          node --expose-gc test/growth.timing.js 2>&1 | tee growth.log
       - if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

@@ -13,7 +13,9 @@
 //   --workloads a,b        line, word, string, document (default all four)
 //   --growth <which>       growth exponents for the head copy (head, the default), both copies, or none
 //   --offline              growth exponents only; they need no corpus cache (the timed rows read only FLORES)
-//   --max-exponent <x>     fail when a head growth exponent is above x (default 1.3)
+//   --soft-exponent <x>    confirm a growth exponent that the screen reads above x (default 1.3)
+//   --max-exponent <x>     fail when a confirmed head growth exponent, and that of its top doubling, are x or more
+//                          (default 1.5)
 //   --max-slowdown <x>     fail when a Node row's head/base time ratio is above 1 + x (default 0.2)
 //   --json <file>          also write every timing as JSON
 // Exit status: 0 within the limits, 1 when a limit failed or the head lacks a call form the base has, 2 on a usage or
@@ -26,27 +28,46 @@
 // on single calls that build long strings. Node needs no such step (identical copies stayed within 2%), but runs
 // it too when started with --expose-gc.
 //
-// Growth exponents (lib/timing.mjs): every adversarial shape of lib/inputs.mjs through the forms of GROWTH_FORMS,
-// and every single-character run of PUMPS through PUMP_FORMS, at n, 2n and 4n units (n = 8,192 under Node, 1,024
-// under Bun). A quick first reading above --max-exponent is measured in full three times, and the run fails only
-// when all three are above it.
+// Growth exponents: every adversarial shape of lib/inputs.mjs through the forms of GROWTH_FORMS, and every
+// single-character run of PUMPS through PUMP_FORMS, by the two steps of scripts/testing/growth.js, which
+// test/growth.timing.js shares. A screen reads log(t(4n) / t(n)) / log(4) (1 is linear, 2 quadratic) from n to 4n
+// units (SCREEN_N); a reading above --soft-exponent is confirmed at N, 4N and 8N (growth.js's CONFIRM: 4,096 to
+// 32,768 under Node, 1,024 to 8,192 under Bun), and the run fails only when the confirmed exponent from N to 8N and
+// that of the top doubling, from 4N to 8N, are both at least --max-exponent, or when one call takes more than a
+// second. Screen readings that the confirmation does not uphold
+// are listed, not failed. growth.js holds the runner evidence behind these numbers.
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { createRequire } from 'node:module';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { loadAll } from './datasets.mjs';
 import { prepareKnayi, instantiate, describe } from './lib/knayi.mjs';
 import { selectForms, formById, available } from './lib/callForms.mjs';
 import { perfTexts, workloads, WORKLOADS, SHAPES, GROWTH_FORMS, PUMPS, PUMP_FORMS } from './lib/inputs.mjs';
-import { alternate, median, timeOnce, growthExponent, collectGarbage } from './lib/timing.mjs';
+import { alternate, median, timeOnce, collectGarbage } from './lib/timing.mjs';
+
+const require = createRequire(import.meta.url);
+const growthCheck = require('../testing/growth.js');
 
 const RUNTIME = typeof Bun !== 'undefined' ? 'bun' : 'node';
 const HERE = fileURLToPath(import.meta.url);
 
+// The screen's n. A quadratic term with a small constant reads close to linear while the linear part dominates: a
+// normalize that rescanned its prefix at every eighth character took 5 ms at 25k units against 1.9 ms for the
+// linear code; on the 36 shapes it read at most 1.25 at n = 1,024, and 1.3 to 1.65 on 17 of them at n = 8,192. So
+// under V8, n = 8,192 (4n = 32,768), below 64k units, where two-byte strings pass 128 KB and go to the large-object
+// space (the Win reader took about 21 ns a unit up to 128k units and 60 ns at 1M). Under Bun the cost per unit of
+// linear code climbs from about 4k units, so n stays 1,024 there. Either way the screen reads a quadratic term at
+// least as strongly as the confirmation: the weakest term the confirmation fails, which costs 0.35 times the linear
+// time at N, reads 1.58 on Node's screen and 1.42 on Bun's, both above the soft bound of 1.3.
+const SCREEN_N = RUNTIME === 'bun' ? 1024 : 8192;
+
 function parseArgs(argv) {
   const opts = { base: 'origin/main', head: '.', runtimes: ['node', 'bun'], rounds: 3, runs: 7, lines: 400, minMs: 10, forms: [],
-    workloads: WORKLOADS.slice(), growth: 'head', offline: false, maxExponent: 1.3, maxSlowdown: 0.2, json: null };
+    workloads: WORKLOADS.slice(), growth: 'head', offline: false, softExponent: 1.3, maxExponent: growthCheck.CONFIRM.exponent,
+    maxSlowdown: 0.2, json: null };
   const value = (i) => {
     if (i + 1 >= argv.length || argv[i + 1].startsWith('--')) throw new Error(argv[i] + ' needs a value');
     return argv[i + 1];
@@ -74,6 +95,7 @@ function parseArgs(argv) {
       case '--workloads': opts.workloads = list(value(i++)); break;
       case '--growth': opts.growth = value(i++); break;
       case '--offline': opts.offline = true; break;
+      case '--soft-exponent': opts.softExponent = decimal(arg, value(i++)); break;
       case '--max-exponent': opts.maxExponent = decimal(arg, value(i++)); break;
       case '--max-slowdown': opts.maxSlowdown = decimal(arg, value(i++)); break;
       case '--json': opts.json = value(i++); break;
@@ -97,7 +119,7 @@ async function measure({ base, head, opts }) {
   const A = await instantiate(base);
   const B = await instantiate(head);
   const version = RUNTIME === 'bun' ? Bun.version : process.versions.node;
-  const result = { runtime: RUNTIME, version, workloads: {}, rows: [], growth: [] };
+  const result = { runtime: RUNTIME, version, workloads: {}, rows: [], growth: [], confirmN: growthCheck.CONFIRM.n };
   const forms = selectForms(opts.forms).filter((f) => available(f, A) && available(f, B));
   // A form the base has and the head lacks is a lost part of the API (report() fails the run); a form the base
   // lacks is an old release's, and is left out.
@@ -158,34 +180,28 @@ async function measure({ base, head, opts }) {
     const cells = SHAPES.flatMap((shape) => growthForms.map((form) => ({ shape, form, kind: 'shape' })))
       .concat(PUMPS.flatMap((shape) => pumpForms.map((form) => ({ shape, form, kind: 'pump' }))));
     for (const { shape, form, kind } of cells) {
-      const headGrowth = screenedGrowth((s) => { last = form.call(B, s); }, shape.make, opts.maxExponent);
-      const baseGrowth = opts.growth === 'both' ? screenedGrowth((s) => { last = form.call(A, s); }, shape.make, opts.maxExponent) : null;
+      const headGrowth = cellGrowth((s) => { last = form.call(B, s); }, shape.make, opts);
+      const baseGrowth = opts.growth === 'both' ? cellGrowth((s) => { last = form.call(A, s); }, shape.make, opts) : null;
       result.growth.push({ shape: shape.id, form: form.id, kind, head: headGrowth, base: baseGrowth });
     }
   }
   return result;
 }
 
-// A reading above the limit is measured twice more and the lowest of the three kept, so a cell fails only when all
-// three are above the limit, as in test/growth.timing.js: super-linear code reads high every time, while another
-// process or a garbage-collection pause (JavaScriptCore under Bun has more of them than V8) seldom spoils three
-// measurements in a row.
-function confirmedGrowth(call, make, limit) {
-  const first = growthExponent(call, make);
-  if (first.exponent != null && first.exponent <= limit) return first;
-  const tries = [first, growthExponent(call, make), growthExponent(call, make)];
-  const value = (g) => (g.exponent == null ? Infinity : g.exponent);
-  const kept = tries.slice().sort((x, y) => value(x) - value(y))[0];
-  return { ...kept, tries: tries.map((g) => g.exponent) };
-}
-
-// Every cell gets a quick first reading (two samples of 1 ms at each size, after 1 ms of calls), and the full
-// measurement of confirmedGrowth only when that reading is above the limit. Linear code reads low on the quick reading
-// too, and super-linear code high on both, so the 2,364 cells take about 25 s per runtime instead of minutes.
-function screenedGrowth(call, make, limit) {
-  const quick = growthExponent(call, make, { samples: 2, sampleMs: 1, warmMs: 1 });
-  if (quick.exponent != null && quick.exponent <= limit) return quick;
-  return confirmedGrowth(call, make, limit);
+// One cell's growth, as plain data: the screen's exponent (null when a call passed the time cap), the confirmed
+// exponent when the screen read above the soft bound, and the verdict. Linear code reads low on the screen, so the
+// 2,364 cells take about 25 s per runtime on a quiet laptop, and a confirmation adds about a quarter of a second.
+function cellGrowth(call, make, opts) {
+  const r = growthCheck.checkGrowth(call, make, {
+    screen: { n: SCREEN_N, span: 4, soft: opts.softExponent },
+    confirm: { exponent: opts.maxExponent }
+  });
+  const c = r.confirm;
+  return {
+    n: r.screen.n, units: r.screen.units[0], ms: r.screen.ms[0], exponent: r.screen.exponent, verdict: r.verdict,
+    confirmed: c ? c.exponent : null, confirmedTop: c ? c.top : null, confirmUnits: c ? c.units : null, confirmMs: c ? c.ms : null,
+    capped: r.screen.capped || Boolean(c && c.capped), describe: growthCheck.describeGrowth(r)
+  };
 }
 
 // Runs the measurement in another runtime: that runtime runs this file with --child and writes its result to a file.
@@ -250,33 +266,39 @@ function report(results, opts, base, head) {
     }
     if (r.growth.length) {
       const cells = r.growth.filter((g) => g.head);
-      const over = cells.filter((g) => g.head.exponent == null || g.head.exponent > opts.maxExponent);
+      const high = cells.filter((g) => g.head.verdict !== 'linear');
+      const over = cells.filter((g) => g.head.verdict === 'super-linear');
+      const unconfirmed = cells.filter((g) => g.head.verdict === 'unconfirmed');
       const highest = cells.filter((g) => g.head.exponent != null).sort((x, y) => y.head.exponent - x.head.exponent);
       const n = cells.length ? cells[0].head.n : 0;
-      console.log('\n' + r.runtime + ' ' + r.version + ': growth exponents of the head, per doubling from ' + num(n) + ' to ' +
-        num(4 * n) + ' units (1 is linear, 2 quadratic; the lowest of three readings when one is high)');
+      const c = growthCheck.CONFIRM;
+      console.log('\n' + r.runtime + ' ' + r.version + ': growth exponents of the head (1 is linear, 2 quadratic): a screen from ' +
+        num(n) + ' to ' + num(4 * n) + ' units, and for a screen reading above ' + opts.softExponent + ' a confirmation from ' +
+        num(r.confirmN) + ' to ' + num(c.span * r.confirmN) + ' units that fails when it and its top doubling reach ' + opts.maxExponent + ', or a call over ' + c.capMs + ' ms');
       const shapeCells = cells.filter((g) => g.kind !== 'pump').length;
       console.log('  ' + cells.length + ' cells (' + SHAPES.length + ' shapes × ' + (shapeCells / SHAPES.length) + ' call forms, ' +
         PUMPS.length + ' single-character runs × ' + ((cells.length - shapeCells) / PUMPS.length) + '), ' +
-        over.length + ' above ' + opts.maxExponent + '; highest:');
+        high.length + ' above ' + opts.softExponent + ' on the screen, ' + over.length + ' failed (confirmed, or a call over the time cap); highest screen readings:');
       for (const g of highest.slice(0, 5)) {
         console.log('    ' + fixed(g.head.exponent) + '  ' + g.form + ' on ' + g.shape + ' (' + num(g.head.units) + ' units in ' +
-          fixed(g.head.ms * 1000, 0) + ' µs)' + (g.base ? ', base ' + fixed(g.base.exponent) : ''));
+          fixed(g.head.ms * 1000, 0) + ' µs)' + (g.head.confirmed != null ? ', confirmed ' + fixed(g.head.confirmed) + ', top doubling ' + fixed(g.head.confirmedTop) : '') +
+          (g.base ? ', base ' + fixed(g.base.exponent) : ''));
       }
-      for (const g of over) {
-        failures.push(r.runtime + ' ' + g.form + ' on ' + g.shape + ': growth exponent ' +
-          (g.head.exponent == null ? 'not measured, ' + fixed(g.head.ms, 0) + ' ms at ' + num(g.head.units) + ' units' : fixed(g.head.exponent)));
+      // Readings above the soft bound that the confirmation did not uphold: listed so they stay visible.
+      for (const g of unconfirmed) {
+        console.log('  above ' + opts.softExponent + ', not confirmed: ' + g.form + ' on ' + g.shape + ': ' + g.head.describe);
       }
-      const baseOver = r.growth.filter((g) => g.base && (g.base.exponent == null || g.base.exponent > opts.maxExponent));
+      for (const g of over) failures.push(r.runtime + ' ' + g.form + ' on ' + g.shape + ': ' + g.head.describe);
+      const baseOver = r.growth.filter((g) => g.base && g.base.verdict === 'super-linear');
       if (baseOver.length) {
-        console.log('  base above ' + opts.maxExponent + ' (for reference): ' + baseOver.map((g) =>
-          g.form + ' on ' + g.shape + ' ' + (g.base.exponent == null ? 'too slow' : fixed(g.base.exponent))).join('; '));
+        console.log('  base confirmed super-linear (for reference): ' + baseOver.map((g) =>
+          g.form + ' on ' + g.shape + ' ' + (g.base.confirmed == null ? 'too slow' : fixed(g.base.confirmed))).join('; '));
       }
     }
   }
   if (notes.length) console.log('\nBun rows over 1.10 (report a reason in the PR):\n  ' + notes.join('\n  '));
   console.log('\n' + (failures.length ? 'FAIL' : 'OK') + (failures.length ? ':\n  ' + failures.join('\n  ') : ': within the limits (Node rows at most ' +
-    fixed(1 + opts.maxSlowdown) + ' times the base, growth exponents at most ' + opts.maxExponent + ')'));
+    fixed(1 + opts.maxSlowdown) + ' times the base, no growth exponent confirmed at ' + opts.maxExponent + ' or more)'));
   return failures;
 }
 
