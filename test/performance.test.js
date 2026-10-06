@@ -1,15 +1,17 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const knayi = require('../main');
+const { timeInputs } = require('../scripts/testing/growth');
 
 // Each input took several seconds in 2.9.0 because a regex retried from every position (quadratic time).
 // Linear code finishes these in a few milliseconds, so the limit only fails on a real regression.
 const LIMIT_MS = 1000;
 
+// The time of one call: the fastest of two readings of at least 20 ms, each after a full garbage collection
+// (scripts/testing/growth.js, shared with the growth test), since a collection or another test file running beside
+// this one only ever adds time. A first call slower than LIMIT_MS ends the measurement and is the result.
 function timed(fn) {
-  const start = process.hrtime.bigint();
-  fn();
-  return Number(process.hrtime.bigint() - start) / 1e6;
+  return timeInputs(fn, [null], { readings: 2, minMs: 20, capMs: LIMIT_MS }).ms[0];
 }
 
 describe('long input', () => {
