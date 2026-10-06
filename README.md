@@ -259,7 +259,7 @@ knayi.truncate(null) // ''
 
 ## Build
 
-`dist/` holds the build of the last release, or of the release being prepared, because jsDelivr serves the `dist/` of the main branch. It changes only in a release commit, which also changes the version. `npm run build` writes:
+`dist/` holds the build of the last release, or of the release being prepared, because jsDelivr serves the `dist/` of the main branch. It changes only in a release commit (`chore(release): X.Y.Z`), which changes the version or, before the version is tagged, rebuilds the release being prepared. `npm run build` writes:
 
 - `dist/knayi-myscript.mjs`
 - `dist/knayi-myscript.es.js` (same bytes as the `.mjs` file)

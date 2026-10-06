@@ -315,12 +315,14 @@ jobs:
           fi
           npm run perf -- --base "origin/$BASE_REF" --runtimes node --growth none "${limit[@]}"
 
-  # jsDelivr serves main's dist/ to @master links, so dist/ changes only in a release commit, which also changes
-  # the version in package.json; then dist/ must equal a fresh build. Pull requests compare with their base,
-  # pushes with the previous commit of the branch. Every other run also checks that dist/ equals the dist/ of the
-  # last release (the tag v<version>, or the commit that set the version while there is no tag), so a dist/ edited
-  # in one push still fails in the next. The job also checks that the commits .git-blame-ignore-revs names are in
-  # the history: a squash or rebase merge gives them new hashes, and the file then ignores nothing.
+  # jsDelivr serves main's dist/ to @master links, so dist/ changes only in a release: a change of the version in
+  # package.json, or, while the version has no tag v<version> yet, its release commit (subject
+  # `chore(release): <version>`); then dist/ must equal a fresh build. Pull requests compare with their base,
+  # pushes with the previous commit of the branch. Once the version is tagged, a run that does not change dist/ also
+  # checks that dist/ equals the tag's, so a dist/ edited in one push still fails in the next; while it is not, there
+  # is no released dist/ to compare with, and the run passes (scripts/check-dist.js). The job also checks that the
+  # commits .git-blame-ignore-revs names are in the history: a squash or rebase merge gives them new hashes, and the
+  # file then ignores nothing.
   dist:
     name: dist only in releases
     runs-on: ubuntu-latest
