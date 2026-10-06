@@ -65,14 +65,14 @@ footer { margin-top: 56px; color: var(--muted); font-size: .88rem; border-top: 1
 <p class="meta"><a href="./">knayi-myscript</a> · <a href="https://github.com/greenlikeorange/knayi-myscript">GitHub</a></p>
 <h1>Benchmark</h1>
 <p>How knayi 2.10.0 converts and detects Burmese text on public Zawgyi and Unicode data, next to knayi 2.8.3, myanmar-tools 1.1.3 and Rabbit 1.0.4.</p>
-<p class="meta">Run on 2026-10-02 · Apple M3 Max, Darwin 27.0.0 · Node v26.5.0 · every data set has an open license (see <a href="#sources">sources</a>) · see <a href="#limits">limits</a></p>
+<p class="meta">Run on 2026-10-06 · commit <a href="https://github.com/greenlikeorange/knayi-myscript/commit/d5fbf1c6653b498677509026cc8bd75cce251307"><code>d5fbf1c</code></a> · Intel(R) Xeon(R) Processor @ 2.80GHz, Linux 6.18.44-fc-v70 · Node v22.22.0 · every data set has an open license (see <a href="#sources">sources</a>) · see <a href="#limits">limits</a></p>
 </header>
 
 <section class="tiles" aria-label="Highlights">
 <div class="tile"><div class="value">96.6%</div><div class="label">Zawgyi → Unicode round trip, exact</div><div class="detail">knayi 2.8.3: 85.6% · myanmar-tools 1.1.3: 96.9% · 4,745 Wikipedia lines</div></div>
 <div class="tile"><div class="value">100.0%</div><div class="label">Google reference pairs, NFC</div><div class="detail">Rabbit 1.0.4: 97.5% · myanmar-tools 1.1.3: 97.5% · 80 pairs</div></div>
 <div class="tile"><div class="value">5.0%</div><div class="label">Wikipedia lines flagged as Zawgyi</div><div class="detail">plain fontDetect; on evidence 0.0% · myanmar-tools 1.1.3: 2.3% / 0.7%</div></div>
-<div class="tile"><div class="value">11 ms</div><div class="label">Slowest long input</div><div class="detail">knayi 2.8.3: 3,208 ms on the same input</div></div>
+<div class="tile"><div class="value">50 ms</div><div class="label">Slowest long input</div><div class="detail">knayi 2.8.3: 34,608 ms on the same input</div></div>
 </section>
 
 <h2>Accuracy</h2>
@@ -96,11 +96,11 @@ footer { margin-top: 56px; color: var(--muted); font-size: .88rem; border-top: 1
 <h2 id="speed">Speed</h2>
 <h3>Real text</h3>
 <p class="note">6,821 distinct lines of FLORES-200 and Wikipedia, and their Zawgyi form made by Rabbit. Mean of 10 runs after 3 warm-ups. Timings depend on the machine, so compare the ratio: below 1 means knayi 2.10.0 is faster.</p>
-<div class="scroll"><table><thead><tr><th scope="col">Task</th><th scope="col" class="num">knayi 2.10.0</th><th scope="col" class="num">knayi 2.8.3</th><th scope="col" class="num">ratio</th></tr></thead><tbody><tr><th scope="row">fontDetect</th><td class="num">33.8 ms</td><td class="num">33.0 ms</td><td class="num">1.03×</td></tr><tr><th scope="row">fontConvert Zawgyi → Unicode, source detected</th><td class="num">112.2 ms</td><td class="num">131.4 ms</td><td class="num">0.85×</td></tr><tr><th scope="row">fontConvert Unicode → Zawgyi</th><td class="num">107.3 ms</td><td class="num">109.9 ms</td><td class="num">0.98×</td></tr><tr><th scope="row">syllBreak</th><td class="num">41.9 ms</td><td class="num">33.6 ms</td><td class="num">1.25×</td></tr><tr><th scope="row">normalize</th><td class="num">84.9 ms</td><td class="num">164.9 ms</td><td class="num">0.52×</td></tr></tbody></table></div>
+<div class="scroll"><table><thead><tr><th scope="col">Task</th><th scope="col" class="num">knayi 2.10.0</th><th scope="col" class="num">knayi 2.8.3</th><th scope="col" class="num">ratio</th></tr></thead><tbody><tr><th scope="row">fontDetect</th><td class="num">60.1 ms</td><td class="num">66.8 ms</td><td class="num">0.90×</td></tr><tr><th scope="row">fontConvert Zawgyi → Unicode, source detected</th><td class="num">263.9 ms</td><td class="num">366.8 ms</td><td class="num">0.72×</td></tr><tr><th scope="row">fontConvert Unicode → Zawgyi</th><td class="num">191.5 ms</td><td class="num">250.5 ms</td><td class="num">0.76×</td></tr><tr><th scope="row">syllBreak</th><td class="num">101.9 ms</td><td class="num">104.4 ms</td><td class="num">0.98×</td></tr><tr><th scope="row">normalize</th><td class="num">229.4 ms</td><td class="num">497.1 ms</td><td class="num">0.46×</td></tr></tbody></table></div>
 <h3>Long input</h3>
 <p class="note">Inputs that took quadratic time before 2.9.1. One run each.</p>
-<div class="scroll"><table><thead><tr><th scope="col">Input</th><th scope="col" class="num">knayi 2.10.0</th><th scope="col" class="num">knayi 2.8.3</th></tr></thead><tbody><tr><th scope="row">fontConvert Zawgyi → Unicode, stacked ka + 20k alternating vowel signs</th><td class="num">0 ms</td><td class="num">416 ms</td></tr><tr><th scope="row">fontConvert Zawgyi → Unicode, stacked ka + 40k alternating vowel signs</th><td class="num">1 ms</td><td class="num">1,637 ms</td></tr><tr><th scope="row">fontConvert Zawgyi → Unicode, stacked ka + 80k alternating vowel signs</th><td class="num">1 ms</td><td class="num">6,493 ms</td></tr><tr><th scope="row">fontConvert Zawgyi → Unicode, kinzi + 80k alternating vowel signs</th><td class="num">2 ms</td><td class="num">6,621 ms</td></tr><tr><th scope="row">normalize, 50k × ဝ</th><td class="num">3 ms</td><td class="num">62 ms</td></tr><tr><th scope="row">normalize, 100k × ဝ</th><td class="num">4 ms</td><td class="num">575 ms</td></tr><tr><th scope="row">normalize, 200k × ဝ</th><td class="num">11 ms</td><td class="num">3,208 ms</td></tr></tbody></table></div>
-<p class="note">Sweep of 1,059 long inputs: every Myanmar code point repeated 30,000 times, every ordered pair of 29 marks repeated 10,000 times, and three base letters each followed by every mark, through 8 call forms. 8,472 runs, slowest 118 ms, 0 over 250 ms.</p>
+<div class="scroll"><table><thead><tr><th scope="col">Input</th><th scope="col" class="num">knayi 2.10.0</th><th scope="col" class="num">knayi 2.8.3</th></tr></thead><tbody><tr><th scope="row">fontConvert Zawgyi → Unicode, stacked ka + 20k alternating vowel signs</th><td class="num">1 ms</td><td class="num">1,247 ms</td></tr><tr><th scope="row">fontConvert Zawgyi → Unicode, stacked ka + 40k alternating vowel signs</th><td class="num">3 ms</td><td class="num">5,286 ms</td></tr><tr><th scope="row">fontConvert Zawgyi → Unicode, stacked ka + 80k alternating vowel signs</th><td class="num">7 ms</td><td class="num">20,864 ms</td></tr><tr><th scope="row">fontConvert Zawgyi → Unicode, kinzi + 80k alternating vowel signs</th><td class="num">6 ms</td><td class="num">19,777 ms</td></tr><tr><th scope="row">normalize, 50k × ဝ</th><td class="num">16 ms</td><td class="num">463 ms</td></tr><tr><th scope="row">normalize, 100k × ဝ</th><td class="num">20 ms</td><td class="num">6,958 ms</td></tr><tr><th scope="row">normalize, 200k × ဝ</th><td class="num">50 ms</td><td class="num">34,608 ms</td></tr></tbody></table></div>
+<p class="note">Sweep of 1,059 long inputs: every Myanmar code point repeated 30,000 times, every ordered pair of 29 marks repeated 10,000 times, and three base letters each followed by every mark, through 8 call forms. 8,472 runs, slowest 27 ms, 0 over 250 ms.</p>
 
 <h2 id="limits">Limits</h2>
 <ul class="note">
@@ -120,7 +120,7 @@ footer { margin-top: 56px; color: var(--muted); font-size: .88rem; border-top: 1
 <pre>npm run bench:page</pre>
 <p class="note">That runs <code>npm run eval</code> and <code>npm run bench -- --sweep</code> and rebuilds this page. Raw results: <a href="benchmark.json">benchmark.json</a>. Method: <a href="https://github.com/greenlikeorange/knayi-myscript/blob/main/scripts/eval/README.md">scripts/eval/README.md</a>.</p>
 
-<footer>Generated by scripts/eval/report.mjs on 2026-10-02T23:34:05.200Z.</footer>
+<footer>Generated by scripts/eval/report.mjs on 2026-10-06T16:23:01.635Z from d5fbf1c, library 8e1e7e564ad9 (sha256 of main.js and library/: 8e1e7e564ad9d8a1d219527b84a3256e830974bb03d0e99621dadb556e5f79c1).</footer>
 </main>
 </body>
 </html>

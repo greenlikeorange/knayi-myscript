@@ -1,8 +1,18 @@
 {
+  "code": {
+    "commit": "d5fbf1c6653b498677509026cc8bd75cce251307",
+    "dirty": false,
+    "libraryHash": "8e1e7e564ad9d8a1d219527b84a3256e830974bb03d0e99621dadb556e5f79c1"
+  },
   "eval": {
-    "generatedAt": "2026-10-02T23:34:05.200Z",
-    "node": "v26.5.0",
-    "platform": "Darwin 27.0.0",
+    "generatedAt": "2026-10-06T16:23:01.635Z",
+    "code": {
+      "commit": "d5fbf1c6653b498677509026cc8bd75cce251307",
+      "dirty": false,
+      "libraryHash": "8e1e7e564ad9d8a1d219527b84a3256e830974bb03d0e99621dadb556e5f79c1"
+    },
+    "node": "v22.22.0",
+    "platform": "Linux 6.18.44-fc-v70",
     "withUnlicensed": false,
     "engines": {
       "local": "knayi 2.10.0",
@@ -12,27 +22,33 @@
     },
     "datasets": {
       "google": {
-        "pairs": 80
+        "pairs": 80,
+        "sha256": "daa45bdd4f76524b26c12fc512557dad8788fb6bdf36beb1536ec57560014ba5"
       },
       "cldr": {
         "pairs": 89,
-        "notInGoogle": 11
+        "notInGoogle": 11,
+        "sha256": "d7e34b2a4447aab4299df10a70de5f6cf5833cb504c7c1ace6b23dac9d47b609"
       },
       "waitzar": {
         "lines": 2404,
-        "unique": 2390
+        "unique": 2390,
+        "sha256": "40c2a0febadba277c698db8fe919488693925146f7617d53fbcc8cb8a8ffc1f3"
       },
       "flores": {
         "lines": 2009,
-        "unique": 2009
+        "unique": 2009,
+        "sha256": "b8b0b76783024b85797e5cc75064eb83fc5288b41e9654dabc7be6ae944011f6"
       },
       "okell": {
         "lines": 17828,
-        "unique": 16924
+        "unique": 16924,
+        "sha256": "6bbafd699c587876317f6e0535b9dd8f9ec87c15efe4b7e65a8c7362ebcdbf4c"
       },
       "mc4": {
         "lines": 14304,
-        "unique": 14304
+        "unique": 14304,
+        "sha256": "69a1b20842b1d62f3490b9c463af950581e50ce1faee1b9ea16a2dfaa9b6d71f"
       },
       "wikipedia": {
         "dataset": "wikimedia/wikipedia",
@@ -41,7 +57,8 @@
         "rows": 1000,
         "seed": 20261002,
         "lines": 7855,
-        "unique": 4812
+        "unique": 4812,
+        "sha256": "df5efe2a7d3410fdefbcbc98e621e6d870531fbe4ad7e0ac75aec82285516c12"
       },
       "shn": {
         "dataset": "cis-lmu/GlotCC-V1",
@@ -50,7 +67,8 @@
         "rows": 648,
         "seed": null,
         "lines": 17089,
-        "unique": 9923
+        "unique": 9923,
+        "sha256": "27c29c05f09ad4b60825eacf66ec2bc89f771d71f85cd41afbc2a68fd470de16"
       },
       "mnw": {
         "dataset": "cis-lmu/GlotCC-V1",
@@ -59,7 +77,8 @@
         "rows": 24,
         "seed": null,
         "lines": 2743,
-        "unique": 2270
+        "unique": 2270,
+        "sha256": "674096e27f3e7d160c752a4966a3dcdf512e1e740fa6d5607f09ab2e6649453d"
       },
       "ksw": {
         "dataset": "cis-lmu/GlotCC-V1",
@@ -68,7 +87,8 @@
         "rows": 40,
         "seed": null,
         "lines": 1213,
-        "unique": 673
+        "unique": 673,
+        "sha256": "ff16ee6fbae60855f8f688785a69aba063651dd6294733490877a6179834d32d"
       },
       "blk": {
         "dataset": "cis-lmu/GlotCC-V1",
@@ -77,7 +97,8 @@
         "rows": 34,
         "seed": null,
         "lines": 1730,
-        "unique": 770
+        "unique": 770,
+        "sha256": "326dce382e9a57b8cf51c0750323998157ea082210054f180311b32f26278ebe"
       }
     },
     "sources": [
@@ -773,9 +794,14 @@
     ]
   },
   "bench": {
-    "generatedAt": "2026-10-02T23:34:05.327Z",
-    "machine": "Apple M3 Max, Darwin 27.0.0",
-    "node": "v26.5.0",
+    "generatedAt": "2026-10-06T16:23:02.297Z",
+    "code": {
+      "commit": "d5fbf1c6653b498677509026cc8bd75cce251307",
+      "dirty": false,
+      "libraryHash": "8e1e7e564ad9d8a1d219527b84a3256e830974bb03d0e99621dadb556e5f79c1"
+    },
+    "machine": "Intel(R) Xeon(R) Processor @ 2.80GHz, Linux 6.18.44-fc-v70",
+    "node": "v22.22.0",
     "engines": {
       "local": "knayi 2.10.0",
       "baseline": "knayi 2.8.3"
@@ -785,73 +811,73 @@
       "rows": [
         {
           "task": "fontDetect",
-          "local": 33.82605020000001,
-          "baseline": 32.9930751
+          "local": 60.11652410000001,
+          "baseline": 66.823311
         },
         {
           "task": "fontConvert Zawgyi → Unicode, source detected",
-          "local": 112.22029979999999,
-          "baseline": 131.42310429999998
+          "local": 263.9477609,
+          "baseline": 366.8078067
         },
         {
           "task": "fontConvert Unicode → Zawgyi",
-          "local": 107.29331240000002,
-          "baseline": 109.9319706
+          "local": 191.53180010000003,
+          "baseline": 250.5327418
         },
         {
           "task": "syllBreak",
-          "local": 41.9290042,
-          "baseline": 33.567271
+          "local": 101.8773358,
+          "baseline": 104.4386301
         },
         {
           "task": "normalize",
-          "local": 84.93057519999999,
-          "baseline": 164.862875
+          "local": 229.3512178,
+          "baseline": 497.1156008
         }
       ]
     },
     "longInput": [
       {
         "input": "fontConvert Zawgyi → Unicode, stacked ka + 20k alternating vowel signs",
-        "local": 0.283667,
-        "baseline": 415.978875
+        "local": 1.370717,
+        "baseline": 1247.266461
       },
       {
         "input": "fontConvert Zawgyi → Unicode, stacked ka + 40k alternating vowel signs",
-        "local": 0.526542,
-        "baseline": 1636.556791
+        "local": 2.999081,
+        "baseline": 5285.79867
       },
       {
         "input": "fontConvert Zawgyi → Unicode, stacked ka + 80k alternating vowel signs",
-        "local": 1.317,
-        "baseline": 6493.288458
+        "local": 6.961736,
+        "baseline": 20863.524957
       },
       {
         "input": "fontConvert Zawgyi → Unicode, kinzi + 80k alternating vowel signs",
-        "local": 2.053459,
-        "baseline": 6620.556417
+        "local": 5.849837,
+        "baseline": 19777.272312
       },
       {
         "input": "normalize, 50k × ဝ",
-        "local": 2.658125,
-        "baseline": 62.403625
+        "local": 15.556366,
+        "baseline": 463.205419
       },
       {
         "input": "normalize, 100k × ဝ",
-        "local": 4.272542,
-        "baseline": 574.620959
+        "local": 20.310829,
+        "baseline": 6958.187868
       },
       {
         "input": "normalize, 200k × ဝ",
-        "local": 11.109042,
-        "baseline": 3207.695916
+        "local": 50.431157,
+        "baseline": 34608.312029
       }
     ],
     "sweep": {
       "runs": 8472,
       "inputs": 1059,
       "marks": 29,
-      "slowest": 117.659875,
+      "slowest": 26.604132,
       "limit": 250,
       "slow": []
     }
