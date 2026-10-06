@@ -72,7 +72,7 @@
     "fast-check": "4.10.2",
     "myanmar-tools": "1.1.3",
     "recheck": "4.5.0",
-    "typescript": "5.9.3"
+    "typescript": "7.0.2"
   },
   "peerDependencies": {
     "myanmar-tools": ">=1.1.2 <1.2.0"
