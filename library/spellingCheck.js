@@ -1,7 +1,9 @@
-const fontDetect = require('./detector');
+'use strict';
+
+const fontDetect = require('./detection').fontDetect;
 const globalOptions = require('./globalOptions');
 const gate = require('./contentGate');
-const syllable = require('./syllable');
+const syllable = require('./syllableRules');
 
 function spellingFix(content, fontType){
   content = gate.toText(content);
@@ -10,16 +12,16 @@ function spellingFix(content, fontType){
     return '';
   }
 
-	if (!gate.hasMyanmar(content))
-		return content;
+  if (!gate.hasMyanmar(content))
+    return content;
 
-	if (!fontType)
-		fontType = fontDetect(content);
-	else
-		fontType = gate.resolveFont(fontType) || fontType;
+  // A font name that is not a string, or '', detects the font. 'zawgyi' collapses the Zawgyi marks, and any other
+  // name the Unicode marks, 'win' and unknown names included (collapseMarks).
+  var name = gate.givenName(fontType);
+  fontType = name === null ? fontDetect(content) : gate.resolveFont(name) || name;
 
-	content = gate.cleanText(content, true);
-	return syllable.collapseMarks(content, fontType);
+  content = gate.cleanText(content, true);
+  return syllable.collapseMarks(content, fontType);
 }
 
 module.exports = spellingFix;

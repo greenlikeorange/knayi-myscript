@@ -1,0 +1,85 @@
+name: perf A/A
+
+# An A/A run of scripts/eval/perf.mjs on GitHub's runners: the same copy timed against itself, several times. The
+# spread of its ratios is what the Perf job's limits must stay above, so this sets the --max-slowdown that blocks a
+# pull request (20% until a run here gives a better number), and shows how the growth gate reads linear code here:
+# how many screen readings go above the 1.3 soft bound, and the highest confirmed exponent, which fails at 1.5
+# (scripts/testing/growth.js). Run it by hand from the Actions tab, then record the spread in CONTRIBUTING.md
+# ("Speed is measured, not assumed").
+
+on:
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: How many A/A runs (each about 2 minutes of rows and growth exponents per runtime)
+        required: false
+        default: '3'
+
+permissions:
+  contents: read
+
+jobs:
+  aa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.2
+      - run: npm ci
+      # The rows time FLORES text, from the corpus cache that test.yml and the nightly fuzz workflow keep.
+      - name: Restore the corpus cache
+        id: corpus
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .eval-cache/data
+            !.eval-cache/data/mc4.gz
+            !.eval-cache/data/queries.tsv
+            !.eval-cache/data/flores.gz
+          key: corpus-${{ hashFiles('scripts/eval/datasets.mjs') }}
+      - name: A/A runs
+        env:
+          RUNS: ${{ inputs.runs }}
+          CACHED: ${{ steps.corpus.outputs.cache-hit }}
+        run: |
+          flags=()
+          if [ "$CACHED" != "true" ]; then
+            echo "::warning title=No corpus cache::Growth exponents only; run the nightly fuzz workflow first to fill the cache"
+            flags=(--offline)
+          fi
+          mkdir -p aa
+          for i in $(seq 1 "${RUNS:-3}"); do
+            echo "::group::A/A run $i"
+            npm run perf -- --base . --head . "${flags[@]}" --json "aa/aa-$i.json" | tee "aa/aa-$i.txt" || true
+            echo "::endgroup::"
+          done
+      - name: Spread
+        run: |
+          node -e "
+          const fs = require('fs');
+          const runs = fs.readdirSync('aa').filter((f) => f.endsWith('.json')).map((f) => JSON.parse(fs.readFileSync('aa/' + f, 'utf8')));
+          for (const runtime of ['node', 'bun']) {
+            const rows = runs.flatMap((r) => r.results.filter((x) => x.runtime === runtime).flatMap((x) => x.rows || []));
+            const growth = runs.flatMap((r) => r.results.filter((x) => x.runtime === runtime).flatMap((x) => x.growth || []));
+            const ratios = rows.map((x) => x.ratio);
+            const exps = growth.map((g) => g.head && g.head.exponent).filter((x) => x != null);
+            const high = growth.filter((g) => g.head && g.head.verdict !== 'linear');
+            const confirmed = high.map((g) => g.head.confirmed).filter((x) => x != null);
+            if (ratios.length) console.log(runtime + ' rows: ' + ratios.length + ', ratio ' + Math.min(...ratios).toFixed(3) + ' to ' + Math.max(...ratios).toFixed(3));
+            if (exps.length) console.log(runtime + ' growth screens: ' + exps.length + ', highest ' + Math.max(...exps).toFixed(2) + ', ' + high.length + ' above the soft bound' +
+              (confirmed.length ? ', highest confirmed exponent ' + Math.max(...confirmed).toFixed(2) : ''));
+          }
+          " | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: perf-aa
+          path: aa
+          retention-days: 30

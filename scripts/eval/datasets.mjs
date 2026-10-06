@@ -52,15 +52,39 @@ const FILES = {
   }
 };
 
+// The two FLORES files taken out of the archive. The archive is pinned above; these pins catch a damaged or
+// edited copy of the extracted text, which is otherwise never checked again.
+const FLORES_FILES = {
+  'flores200_dataset/dev/mya_Mymr.dev': 'fb8aeaf0144f1236287645eb8e91733276907448ad50bcd978ff9309d26487b9',
+  'flores200_dataset/devtest/mya_Mymr.devtest': 'bbccb36a909003dfbaf68cf59b63729769cab723a0f90a85f68efd9ded7b1512'
+};
+
 // Rows read through the Hugging Face datasets-server. Small configs are read whole. Large ones are read as
 // `blocks` random blocks of `rows` rows, picked with a fixed seed so every run reads the same rows.
+// The datasets-server always serves the current revision of a dataset, so a new download can hold other rows
+// than the sample the published results were made from. Each cached sample file is pinned by its sha256: a
+// sample that does not match stops the run, and `node scripts/eval/datasets.mjs --refresh-samples` downloads
+// new ones and prints their hashes for review.
 const SEED = 20261002;
 const HF_SAMPLES = {
-  wikipedia: { dataset: 'wikimedia/wikipedia', config: '20231101.my', field: 'text', blocks: 25, rows: 40 },
-  shn: { dataset: 'cis-lmu/GlotCC-V1', config: 'shn-Mymr', field: 'content' },
-  mnw: { dataset: 'cis-lmu/GlotCC-V1', config: 'mnw-Mymr', field: 'content' },
-  ksw: { dataset: 'cis-lmu/GlotCC-V1', config: 'ksw-Mymr', field: 'content' },
-  blk: { dataset: 'cis-lmu/GlotCC-V1', config: 'blk-Mymr', field: 'content' }
+  wikipedia: { dataset: 'wikimedia/wikipedia', config: '20231101.my', field: 'text', blocks: 25, rows: 40,
+    sha256: 'df5efe2a7d3410fdefbcbc98e621e6d870531fbe4ad7e0ac75aec82285516c12' },
+  shn: { dataset: 'cis-lmu/GlotCC-V1', config: 'shn-Mymr', field: 'content',
+    sha256: '27c29c05f09ad4b60825eacf66ec2bc89f771d71f85cd41afbc2a68fd470de16' },
+  mnw: { dataset: 'cis-lmu/GlotCC-V1', config: 'mnw-Mymr', field: 'content',
+    sha256: '674096e27f3e7d160c752a4966a3dcdf512e1e740fa6d5607f09ab2e6649453d' },
+  ksw: { dataset: 'cis-lmu/GlotCC-V1', config: 'ksw-Mymr', field: 'content',
+    sha256: 'ff16ee6fbae60855f8f688785a69aba063651dd6294733490877a6179834d32d' },
+  blk: { dataset: 'cis-lmu/GlotCC-V1', config: 'blk-Mymr', field: 'content',
+    sha256: '326dce382e9a57b8cf51c0750323998157ea082210054f180311b32f26278ebe' }
+};
+
+// The first Wikipedia sample, from before the sample was redrawn (hf-wikipedia.json: a bare array of 1,000
+// articles, 10,732 distinct lines). Nothing downloads it any more and it shares no article with the current
+// sample, but older caches still hold it and earlier measurements marked "(v1)" used it. compare.mjs reads it as
+// an extra corpus when it is cached.
+const LEGACY_SAMPLES = {
+  'wikipedia-v1': { file: 'hf-wikipedia.json', sha256: '7dd6303f18139f5ae995322b7da30202aa23d2f79b546a86b553b74f26aaed3e' }
 };
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -139,10 +163,26 @@ async function hfRows(spec, offset, length) {
   return (await fetchWithRetry('https://datasets-server.huggingface.co/rows?' + query)).json();
 }
 
-async function hfSample(id) {
+const samplePath = (id) => path.join(CACHE, 'data', 'hf-' + id + '-v2.json');
+
+function sampleMismatch(id, what, actual) {
   const spec = HF_SAMPLES[id];
-  const dest = path.join(CACHE, 'data', 'hf-' + id + '-v2.json');
-  if (fs.existsSync(dest)) return JSON.parse(fs.readFileSync(dest, 'utf8'));
+  return new Error(what + ' of ' + spec.dataset + ' ' + spec.config + ' (' + path.basename(samplePath(id)) + ') has sha256 ' +
+    actual + ', but ' + spec.sha256 + ' is pinned. The published results were made from the pinned sample, and another ' +
+    'sample would change them without notice. If the dataset changed upstream, run ' +
+    '`node scripts/eval/datasets.mjs --refresh-samples ' + id + '`, review the new sample, and update its sha256 in ' +
+    'HF_SAMPLES (scripts/eval/datasets.mjs). If only the cached file is damaged, delete it to download it again.');
+}
+
+// With `refresh`, the sample is downloaded again and kept whatever its hash; the caller reports the new hash.
+async function hfSample(id, { refresh = false } = {}) {
+  const spec = HF_SAMPLES[id];
+  const dest = samplePath(id);
+  if (fs.existsSync(dest) && !refresh) {
+    const actual = sha256(dest);
+    if (actual !== spec.sha256) throw sampleMismatch(id, 'The cached sample', actual);
+    return JSON.parse(fs.readFileSync(dest, 'utf8'));
+  }
   console.error('reading ' + spec.dataset + ' ' + spec.config + ' …');
   const total = (await hfRows(spec, 0, 1)).num_rows_total;
   if (!total) throw new Error(spec.dataset + ' ' + spec.config + ': the datasets-server reports no rows');
@@ -159,10 +199,33 @@ async function hfSample(id) {
     await sleep(1000);
   }
   const sample = { texts, meta: { dataset: spec.dataset, config: spec.config, total, rows: texts.length, seed: spec.blocks ? SEED : null } };
+  const body = JSON.stringify(sample);
+  const actual = crypto.createHash('sha256').update(body).digest('hex');
+  if (actual !== spec.sha256 && !refresh) throw sampleMismatch(id, 'The sample downloaded now', actual);
   fs.mkdirSync(path.dirname(dest), { recursive: true });
-  fs.writeFileSync(dest + '.part', JSON.stringify(sample));
+  fs.writeFileSync(dest + '.part', body);
   fs.renameSync(dest + '.part', dest);
   return sample;
+}
+
+// Extracts the two FLORES files from the pinned archive when they are missing or do not match their pins.
+async function floresFiles(dataDir) {
+  const intact = () => Object.entries(FLORES_FILES).every(([f, hash]) => {
+    const p = path.join(dataDir, 'flores', f);
+    return fs.existsSync(p) && sha256(p) === hash;
+  });
+  if (intact()) return Object.keys(FLORES_FILES);
+  const archive = await file('flores');
+  fs.mkdirSync(path.join(dataDir, 'flores'), { recursive: true });
+  // Relative paths and cwd: GNU tar on Windows reads "C:" in an absolute path as a remote host. The archive names
+  // its members ./flores200_dataset/...; bsdtar (macOS, Windows) matches a name given without the ./ and GNU tar
+  // (Linux, so CI) does not, so the names to extract are taken from the archive's own listing.
+  const wanted = new Set(Object.keys(FLORES_FILES));
+  const members = execFileSync('tar', ['-tzf', path.basename(archive)], { cwd: dataDir, encoding: 'utf8', maxBuffer: 1 << 26 })
+    .split('\n').filter((m) => wanted.has(m.replace(/^\.\//, '')));
+  execFileSync('tar', ['-xzf', path.basename(archive), '-C', 'flores', ...members], { cwd: dataDir });
+  if (!intact()) throw new Error('The FLORES files extracted from ' + archive + ' do not match their pinned sha256 (FLORES_FILES).');
+  return Object.keys(FLORES_FILES);
 }
 
 const read = (p) => fs.readFileSync(p, 'utf8').replace(BOM, '');
@@ -195,29 +258,47 @@ export const SOURCES = [
     license: 'none stated', licenseUrl: null, use: 'Detection of real search queries (opt-in only)', unlicensed: true }
 ];
 
-export async function loadAll({ withUnlicensed = false } = {}) {
+// The corpora loadAll reads. queries is not one of them: it is read only with withUnlicensed.
+export const CORPORA = ['google', 'cldr', 'waitzar', 'flores', 'okell', 'mc4', 'wikipedia', 'shn', 'mnw', 'ksw', 'blk'];
+
+// Every line set is returned as its distinct lines. `meta` states, per set, how many lines it had and how many
+// are distinct, and the sha256 its source is pinned to (the download, the sample or the extracted archive).
+// `withLegacy` also returns, in `legacy`, cached samples that nothing downloads any more (LEGACY_SAMPLES).
+// `only` reads just the listed corpora, and `without` skips the listed ones; a corpus that is not read is neither
+// downloaded nor checked, comes back empty and has no meta entry. CI reads everything but mc4, which the licence
+// policy in CONTRIBUTING.md keeps out of CI.
+export async function loadAll({ withUnlicensed = false, withLegacy = false, only = null, without = [] } = {}) {
+  const known = [...CORPORA, ...Object.keys(LEGACY_SAMPLES)];
+  const unknown = [...(only || []), ...without].filter((id) => !known.includes(id));
+  if (unknown.length) throw new Error('unknown corpus ' + unknown.join(', ') + '; the corpora are ' + known.join(', '));
+  const wanted = (id) => (!only || only.includes(id)) && !without.includes(id);
   const meta = {};
-  const lineSet = (id, lines) => {
+  const lineSet = (id, lines, sha) => {
     const distinct = unique(lines);
-    meta[id] = { ...(meta[id] || {}), lines: lines.length, unique: distinct.length };
+    meta[id] = { ...(meta[id] || {}), lines: lines.length, unique: distinct.length, sha256: sha };
     return distinct;
   };
 
-  const google = uniquePairs(read(await file('google')).split('\n').slice(1)
+  // CLDR is measured against Google's pairs, so it reads Google's file even when google itself is not wanted.
+  const googleAll = wanted('google') || wanted('cldr') ? uniquePairs(read(await file('google')).split('\n').slice(1)
     .map((l) => l.split('\t'))
     .filter((r) => r.length >= 3 && r[1] && r[2] && !/EXAMPLE NEEDED/.test(r.join(' ')))
-    .map((r) => [r[1], r[2]]));
+    .map((r) => [r[1], r[2]])) : [];
+  const google = wanted('google') ? googleAll : [];
+  if (wanted('google')) meta.google = { pairs: google.length, sha256: FILES.google.sha256 };
 
   // Most CLDR pairs repeat Google's file word for word; only the pairs Google does not have are measured.
-  const googleKeys = new Set(google.map((p) => p[0] + '\t' + p[1]));
-  const cldrAll = uniquePairs(read(await file('cldr')).split('\n')
-    .filter((l) => l && !l.startsWith('#'))
-    .map((l) => l.split('\t'))
-    .filter((r) => r.length >= 2 && r[0] && r[1])
-    .map((r) => [r[0], r[1].trimEnd()]));
-  const cldr = cldrAll.filter((p) => !googleKeys.has(p[0] + '\t' + p[1]));
-  meta.google = { pairs: google.length };
-  meta.cldr = { pairs: cldrAll.length, notInGoogle: cldr.length };
+  let cldr = [];
+  if (wanted('cldr')) {
+    const googleKeys = new Set(googleAll.map((p) => p[0] + '\t' + p[1]));
+    const cldrAll = uniquePairs(read(await file('cldr')).split('\n')
+      .filter((l) => l && !l.startsWith('#'))
+      .map((l) => l.split('\t'))
+      .filter((r) => r.length >= 2 && r[0] && r[1])
+      .map((r) => [r[0], r[1].trimEnd()]));
+    cldr = cldrAll.filter((p) => !googleKeys.has(p[0] + '\t' + p[1]));
+    meta.cldr = { pairs: cldrAll.length, notInGoogle: cldr.length, sha256: FILES.cldr.sha256 };
+  }
 
   // No license is stated for the query log, so it is only read on request.
   // Columns: query, freq, then the C++ and the JS myanmar-tools detector (p, converted, same?, class).
@@ -227,36 +308,100 @@ export async function loadAll({ withUnlicensed = false } = {}) {
     .filter((r) => r.length > 9 && r[0] && r[5] === r[9] && (r[5] === 'Z' || r[5] === 'U'))
     .map((r) => [r[0], { text: r[0], label: r[5] === 'Z' ? 'zawgyi' : 'unicode' }])).values()];
 
-  const waitzar = lineSet('waitzar', myanmarLines(read(await file('waitzar'))));
+  const waitzar = !wanted('waitzar') ? [] : lineSet('waitzar', myanmarLines(read(await file('waitzar'))), FILES.waitzar.sha256);
 
   const dataDir = path.join(CACHE, 'data');
-  const floresFiles = ['flores200_dataset/dev/mya_Mymr.dev', 'flores200_dataset/devtest/mya_Mymr.devtest'];
-  if (!fs.existsSync(path.join(dataDir, 'flores', floresFiles[1]))) {
-    const archive = await file('flores');
-    fs.mkdirSync(path.join(dataDir, 'flores'), { recursive: true });
-    // Relative paths and cwd: GNU tar on Windows reads "C:" in an absolute path as a remote host.
-    execFileSync('tar', ['-xzf', path.basename(archive), '-C', 'flores', ...floresFiles], { cwd: dataDir });
-  }
-  const flores = lineSet('flores', floresFiles.flatMap((f) => myanmarLines(read(path.join(dataDir, 'flores', f)))));
+  const flores = !wanted('flores') ? [] : lineSet('flores',
+    (await floresFiles(dataDir)).flatMap((f) => myanmarLines(read(path.join(dataDir, 'flores', f)))), FILES.flores.sha256);
 
-  const okell = lineSet('okell', myanmarLines(read(await file('okell'))));
+  const okell = !wanted('okell') ? [] : lineSet('okell', myanmarLines(read(await file('okell'))), FILES.okell.sha256);
 
-  const mc4 = lineSet('mc4', zlib.gunzipSync(fs.readFileSync(await file('mc4'))).toString('utf8').split('\n')
+  const mc4 = !wanted('mc4') ? [] : lineSet('mc4', zlib.gunzipSync(fs.readFileSync(await file('mc4'))).toString('utf8').split('\n')
     .filter(Boolean)
-    .flatMap((l) => myanmarLines(JSON.parse(l).text)));
+    .flatMap((l) => myanmarLines(JSON.parse(l).text)), FILES.mc4.sha256);
 
   const sampled = async (id) => {
+    if (!wanted(id)) return [];
     const sample = await hfSample(id);
     meta[id] = { ...sample.meta };
-    return lineSet(id, sample.texts.flatMap(myanmarLines));
+    return lineSet(id, sample.texts.flatMap(myanmarLines), HF_SAMPLES[id].sha256);
   };
   const wikipedia = await sampled('wikipedia');
   const other = {};
   for (const id of ['shn', 'mnw', 'ksw', 'blk']) other[id] = await sampled(id);
 
-  for (const [id, lines] of Object.entries({ waitzar, flores, okell, mc4, wikipedia, ...other })) {
-    if (lines.length === 0) throw new Error(id + ': no lines with Myanmar text');
+  const legacy = {};
+  if (withLegacy) {
+    for (const [id, spec] of Object.entries(LEGACY_SAMPLES)) {
+      const p = path.join(dataDir, spec.file);
+      if (!wanted(id) || !fs.existsSync(p)) continue;
+      const actual = sha256(p);
+      if (actual !== spec.sha256) {
+        throw new Error(spec.file + ' has sha256 ' + actual + ', but ' + spec.sha256 + ' is pinned (LEGACY_SAMPLES). ' +
+          'Nothing downloads this sample any more: restore it from an older cache, or delete it to run without it.');
+      }
+      legacy[id] = lineSet(id, JSON.parse(fs.readFileSync(p, 'utf8')).flatMap(myanmarLines), spec.sha256);
+    }
   }
 
-  return { google, cldr, queries, waitzar, flores, okell, mc4, wikipedia, other, meta };
+  for (const [id, lines] of Object.entries({ waitzar, flores, okell, mc4, wikipedia, ...other, ...legacy })) {
+    if (wanted(id) && lines.length === 0) throw new Error(id + ': no lines with Myanmar text');
+  }
+
+  return { google, cldr, queries, waitzar, flores, okell, mc4, wikipedia, other, legacy, meta };
+}
+
+// Checks every cached file against its pin without downloading anything. One row per file.
+export function checkCache() {
+  const dataDir = path.join(CACHE, 'data');
+  const row = (name, p, pinned) => {
+    if (!fs.existsSync(p)) return { name, status: 'missing' };
+    const actual = sha256(p);
+    return { name, status: actual === pinned ? 'ok' : 'mismatch', sha256: actual, pinned };
+  };
+  return [
+    ...Object.entries(FILES).map(([id, spec]) => row(id, path.join(dataDir, id + path.extname(new URL(spec.url).pathname)), spec.sha256)),
+    ...Object.entries(FLORES_FILES).map(([f, hash]) => row('flores/' + f, path.join(dataDir, 'flores', f), hash)),
+    ...Object.entries(HF_SAMPLES).map(([id, spec]) => row('hf-' + id, samplePath(id), spec.sha256)),
+    ...Object.entries(LEGACY_SAMPLES).map(([id, spec]) => row(id + ' (legacy)', path.join(dataDir, spec.file), spec.sha256))
+  ];
+}
+
+// node scripts/eval/datasets.mjs --check                   checks the cache against the pins; downloads nothing
+// node scripts/eval/datasets.mjs --fetch [--without a,b]   downloads what the cache lacks (CI fills its cache with
+//                                                          --without mc4), then checks the cache
+// node scripts/eval/datasets.mjs --refresh-samples [id …]  downloads the Hugging Face samples again, prints their hashes
+if (process.argv[1] && fs.realpathSync(path.resolve(process.argv[1])) === fs.realpathSync(fileURLToPath(import.meta.url))) {
+  const args = process.argv.slice(2);
+  const printCheck = () => {
+    const rows = checkCache();
+    for (const r of rows) {
+      console.log(r.status.padEnd(9) + r.name + (r.status === 'mismatch' ? ' (found ' + r.sha256 + ', pinned ' + r.pinned + ')' : ''));
+    }
+    // A missing file is downloaded on first use; only a file that does not match its pin is an error.
+    process.exitCode = rows.some((r) => r.status === 'mismatch') ? 1 : 0;
+  };
+  if (args.length === 1 && args[0] === '--check') {
+    printCheck();
+  } else if (args[0] === '--fetch' && (args.length === 1 || (args.length === 3 && args[1] === '--without'))) {
+    await loadAll({ without: args.length === 3 ? args[2].split(',').filter(Boolean) : [] });
+    printCheck();
+  } else if (args[0] === '--refresh-samples') {
+    const ids = args.length > 1 ? args.slice(1) : Object.keys(HF_SAMPLES);
+    const unknown = ids.filter((id) => !HF_SAMPLES[id]);
+    if (unknown.length) {
+      console.error('unknown sample ' + unknown.join(', ') + '; the samples are ' + Object.keys(HF_SAMPLES).join(', '));
+      process.exit(2);
+    }
+    for (const id of ids) {
+      const sample = await hfSample(id, { refresh: true });
+      const actual = sha256(samplePath(id));
+      console.log(id + ': ' + sample.meta.rows + ' of ' + sample.meta.total + ' rows, sha256 ' + actual +
+        (actual === HF_SAMPLES[id].sha256 ? ' (matches the pin)' : ' (pinned: ' + HF_SAMPLES[id].sha256 + '; update HF_SAMPLES to use it)'));
+    }
+  } else {
+    console.error('usage: node scripts/eval/datasets.mjs --check | --fetch [--without a,b] | --refresh-samples [' +
+      Object.keys(HF_SAMPLES).join(' ') + ']');
+    process.exit(2);
+  }
 }

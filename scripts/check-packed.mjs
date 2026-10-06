@@ -2,21 +2,16 @@ import { execSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { packFresh } from "./pack-fresh.mjs";
 
-const root = path.join(import.meta.dirname, "..");
 const packDir = fs.mkdtempSync(path.join(os.tmpdir(), "knayi-pack-"));
 const appDir = fs.mkdtempSync(path.join(os.tmpdir(), "knayi-app-"));
-
-execSync("npm pack --pack-destination " + JSON.stringify(packDir), {
-  cwd: root,
-  stdio: "inherit"
+process.on("exit", () => {
+  for (const dir of [packDir, appDir]) fs.rmSync(dir, { recursive: true, force: true });
 });
 
-const tarballName = fs.readdirSync(packDir).find((name) => name.endsWith(".tgz"));
-if (!tarballName) {
-  throw new Error("npm pack did not write a tarball");
-}
-const tarball = path.join(packDir, tarballName);
+// The tracked dist/ holds the last release, so the tarball gets a fresh build of this checkout.
+const tarball = packFresh(packDir);
 
 fs.writeFileSync(path.join(appDir, "package.json"), JSON.stringify({
   name: "knayi-pack-check",

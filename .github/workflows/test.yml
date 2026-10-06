@@ -1,35 +1,360 @@
 name: test
 
+# Pushes to main, pull requests, and a run by hand on any branch (Actions, "Run workflow"). A push to the branch of
+# an open pull request then runs once, as the pull request, and a tag push does not repeat main's run.
 on:
   push:
+    branches: [main]
   pull_request:
+  workflow_dispatch:
+
+# The jobs only read the repository. Each action is pinned to a full commit SHA, with its version in a comment;
+# Dependabot (.github/dependabot.yml) proposes updates.
+permissions:
+  contents: read
+
+# A new push to a pull request cancels the run for the previous push. Other runs are never cancelled.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
+  # npm test: the unit, table, README, fuzz, property, adapter, layering, growth and Unicode tests, the API
+  # contract matrix on main.js and on the .mjs and min.js builds, and the browser floor and RegExp checks of the
+  # builds. The builds are made in a temporary directory; dist/ is not touched.
   node:
+    name: Node ${{ matrix.node }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
-        node: [22, 24]
+        node: [22, 24, 26]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ matrix.node }}
-      - run: npm install
+          cache: npm
+      - run: npm ci
+      # The tests, a type-check of typecheck/, then the min.js size budget (posttest).
       - run: npm test
+      # test/syntax.test.js is the ES2015 gate for every dist file (one test each); it must run, not be skipped.
+      - name: Check the syntax test ran
+        run: node scripts/check-tests-ran.mjs --min 4 test/syntax.test.js
 
+  # The same tests under Bun, including the contract matrix on all three builds in a process of its own, and the
+  # packed tarball installed with Bun.
   bun:
+    name: Bun
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
-      - uses: oven-sh/setup-bun@v2
+          cache: npm
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.4.2
-      - run: npm install
-      - run: npm test
+      - run: npm ci
       - run: npm run test:bun
       - run: npm run test:pack
+
+  # README says knayi runs on Node 16 or newer, but the test suite needs Node 22. Build on Node 22, then run the
+  # plain-Node smoke script on the older versions, against main.js and the fresh build.
+  smoke:
+    name: Smoke on Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [16, 18, 20]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: node scripts/build.js "$RUNNER_TEMP/dist"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node }}
+      - run: node scripts/smoke.js "$RUNNER_TEMP/dist"
+
+  # Static checks that need Node 20.11 or newer: every regex the library ships through recheck, the types as
+  # users get them from the packed tarball, and the min.js size with a per-module breakdown.
+  checks:
+    name: ReDoS, types and size
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check:redos
+      - run: npm run check:types
+      - run: npm run check:size
+
+  # The script and module builds in Chromium, Firefox and WebKit against main.js, and axe on the demo and
+  # benchmark pages. The browsers are cached by Playwright's version and the runner image: Playwright ships
+  # separate builds for each Ubuntu release under the same directory names, and skips a browser whose directory
+  # is complete, so a cache keyed on the lockfile alone would bring 24.04 builds to a 26.04 runner (and download
+  # 1.1 GB again on every lockfile change). The install step then only adds the system packages they need.
+  browser:
+    name: Browsers
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Name the browser cache
+        id: browsers
+        run: |
+          echo "image=$ImageOS" >> "$GITHUB_OUTPUT"
+          echo "playwright=$(node -p "require('playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.browsers.outputs.image }}-${{ steps.browsers.outputs.playwright }}
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: npm run test:browser
+      - if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-results
+          path: test-results/browser
+          retention-days: 7
+
+  # Output identity (CONTRIBUTING.md): every call form on two copies of knayi.
+  # - A pull request is compared with its base branch under Node and Bun. With the DELIBERATE label, the
+  #   `--expect form:set=n` lines of its description are the differences it may show (CI skips `all` totals and the
+  #   sets it does not read). The label and the description are read from the API when the step runs, not from
+  #   the event, so after adding the label or editing the counts, re-run this job.
+  # - Every run compares main.js with the min.js and .mjs builds made from it.
+  # The corpus cache holds every pinned corpus but mC4 (decision 22) and never queries.tsv. It is keyed on
+  # scripts/eval/datasets.mjs, which holds every pin, and only a push to the default branch or the nightly fuzz
+  # workflow (.github/workflows/fuzz.yml, which also keeps it from expiring after 7 days unused) fills it. Every run
+  # restores it, fork pull requests too: a pull request may read the base branch's caches, and can write only to
+  # its own scope, which nothing here saves to. A run with a cold cache compares generated and fuzz inputs only
+  # (--offline).
+  compare:
+    name: Compare
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # pull-requests: read lets the compare step read the pull request's labels and description.
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # compare unpacks the base branch with git archive.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.2
+      - run: npm ci
+      - name: Restore the corpus cache
+        id: corpus
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .eval-cache/data
+            !.eval-cache/data/mc4.gz
+            !.eval-cache/data/queries.tsv
+            !.eval-cache/data/flores.gz
+          key: corpus-${{ hashFiles('scripts/eval/datasets.mjs') }}
+      # Downloads from GitHub, FLORES, Zenodo and Hugging Face, each checked against its pin. A failed download
+      # leaves the cache cold; the run then continues offline. About 40 Hugging Face requests with back-off on
+      # HTTP 429, so it gets its own time limit, below the job's.
+      - name: Fill the corpus cache
+        id: fill
+        if: >-
+          steps.corpus.outcome == 'success' && steps.corpus.outputs.cache-hit != 'true' &&
+          github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
+        continue-on-error: true
+        timeout-minutes: 10
+        run: node scripts/eval/datasets.mjs --fetch --without mc4
+      - name: Save the corpus cache
+        if: steps.fill.outcome == 'success'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .eval-cache/data
+            !.eval-cache/data/mc4.gz
+            !.eval-cache/data/queries.tsv
+            !.eval-cache/data/flores.gz
+          key: corpus-${{ hashFiles('scripts/eval/datasets.mjs') }}
+      - name: Choose the inputs
+        id: inputs
+        env:
+          CACHED: ${{ steps.corpus.outputs.cache-hit == 'true' || steps.fill.outcome == 'success' }}
+        run: |
+          if [ "$CACHED" = "true" ]; then
+            node scripts/eval/datasets.mjs --check
+            echo "flags=--without mc4" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning title=Compare ran offline::No corpus cache: only generated and fuzz inputs were compared. The nightly fuzz workflow refills the cache; run it by hand to refill it now."
+            echo "flags=--offline" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Compare with the base branch under Node
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          FLAGS: ${{ steps.inputs.outputs.flags }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The labels and the description as they are now: a re-run of this job reuses the event of the first
+          # run, which still holds the labels and description of the last push.
+          pr=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER")
+          DELIBERATE=$(printf '%s' "$pr" | jq -r '[.labels[].name] | index("DELIBERATE") != null')
+          PR_BODY=$(printf '%s' "$pr" | jq -r '.body // ""')
+          echo "DELIBERATE label: $DELIBERATE"
+          # --skip-missing-sets: counts for sets this run lacks (mC4, wikipedia-v1, or every corpus when offline)
+          # are listed and skipped. `all` totals are dropped, since they add up sets CI does not read.
+          args=(--base "origin/$BASE_REF" $FLAGS --skip-missing-sets)
+          if [ "$DELIBERATE" = "true" ]; then
+            entries=$(printf '%s\n' "$PR_BODY" | grep -oE -- '--expect [A-Za-z0-9._-]+:[A-Za-z0-9._-]+=[0-9]+' \
+              | cut -d' ' -f2 | grep -vE ':all=' || true)
+            for entry in $entries; do args+=(--expect "$entry"); done
+          fi
+          printf '%s\n' "${args[@]}" > "$RUNNER_TEMP/compare-args"
+          echo "npm run compare -- ${args[*]}"
+          npm run compare -- "${args[@]}"
+      - name: Compare with the base branch under Bun
+        if: github.event_name == 'pull_request'
+        run: |
+          args=()
+          while IFS= read -r arg; do args+=("$arg"); done < "$RUNNER_TEMP/compare-args"
+          bun scripts/eval/compare.mjs "${args[@]}"
+      - name: Compare main.js with the min.js and .mjs builds
+        env:
+          FLAGS: ${{ steps.inputs.outputs.flags }}
+        run: |
+          npm run compare -- --base . --head min:. $FLAGS
+          npm run compare -- --base . --head mjs:. $FLAGS
+          bun scripts/eval/compare.mjs --base . --head min:. $FLAGS
+
+  # Speed (CONTRIBUTING.md). Blocking: super-linear growth on the adversarial inputs, under Node and Bun, which
+  # needs no corpus: a screen reading above 1.3 that a confirmation puts at 1.5 or more both from N to 8N units
+  # and over the top doubling, from 4N to 8N, or a call over a second (scripts/testing/growth.js, with the runner evidence for these numbers); readings the
+  # confirmation does not uphold are listed in the log. On a pull request with the corpus cache, also a Node row
+  # more than 20% slower than the base branch: a provisional threshold until the A/A workflow (perf-aa.yml) run on
+  # these runners sets it. A pull request labelled SLOWER, which is slower on purpose (a correctness fix, say) and
+  # says why in its description, passes the row check with up to twice the base's time; the label is read when the
+  # step runs, so re-run the job after adding it.
+  perf:
+    name: Perf
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.2
+      - run: npm ci
+      - name: Growth exponents under Node and Bun
+        run: npm run perf -- --base . --offline
+      - name: Restore the corpus cache
+        id: corpus
+        if: github.event_name == 'pull_request'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .eval-cache/data
+            !.eval-cache/data/mc4.gz
+            !.eval-cache/data/queries.tsv
+            !.eval-cache/data/flores.gz
+          key: corpus-${{ hashFiles('scripts/eval/datasets.mjs') }}
+      - name: Node timing against the base branch
+        if: steps.corpus.outputs.cache-hit == 'true'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          limit=()
+          if gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq '[.labels[].name] | index("SLOWER") != null' | grep -qx true; then
+            echo "::notice title=SLOWER::The pull request is slower on purpose; Node rows may take up to twice the base's time"
+            limit=(--max-slowdown 1)
+          fi
+          npm run perf -- --base "origin/$BASE_REF" --runtimes node --growth none "${limit[@]}"
+
+  # jsDelivr serves main's dist/ to @master links, so dist/ changes only in a release: a change of the version in
+  # package.json, or, while the version has no tag v<version> yet, its release commit (subject
+  # `chore(release): <version>`); then dist/ must equal a fresh build. Pull requests compare with their base,
+  # pushes with the previous commit of the branch. Once the version is tagged, a run that does not change dist/ also
+  # checks that dist/ equals the tag's, so a dist/ edited in one push still fails in the next; while it is not, there
+  # is no released dist/ to compare with, and the run passes (scripts/check-dist.js). The job also checks that the
+  # commits .git-blame-ignore-revs names are in the history: a squash or rebase merge gives them new hashes, and the
+  # file then ignores nothing.
+  dist:
+    name: dist only in releases
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Check dist/
+        env:
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          base="$BASE_SHA"
+          # A new branch, or a force push that dropped the previous commit, has no usable base: use the default branch.
+          if [ -z "$base" ] || ! git cat-file -e "$base^{commit}" 2>/dev/null; then
+            base="origin/$DEFAULT_BRANCH"
+          fi
+          node scripts/check-dist.js --base "$base"
+      - name: Check .git-blame-ignore-revs
+        run: |
+          for hash in $(grep -E '^[0-9a-f]{40}$' .git-blame-ignore-revs); do
+            if ! git merge-base --is-ancestor "$hash" HEAD; then
+              echo "::error file=.git-blame-ignore-revs::$hash is not in this history; merge with a merge commit, or update the hash"
+              exit 1
+            fi
+          done

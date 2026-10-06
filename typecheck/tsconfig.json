@@ -6,11 +6,12 @@
     "strict": true,
     "esModuleInterop": true,
     "noEmit": true,
-    "skipLibCheck": true,
+    "skipLibCheck": false,
     "baseUrl": "..",
     "paths": {
-      "knayi-myscript": ["index.d.ts"]
+      "knayi-myscript": ["index.d.ts"],
+      "knayi-myscript/library/converter": ["library/converter.d.ts"]
     }
   },
-  "files": ["require-style.ts", "default-import.ts", "named-import.ts"]
+  "files": ["require-style.ts", "default-import.ts", "named-import.ts", "font-types.ts", "deep-path.ts", "map-callbacks.ts"]
 }

@@ -1,3 +1,4 @@
+'use strict';
 // Win Innwa family (WinMyanmar Systems, 1992-2005) -> Unicode.
 //
 // Win fonts draw Burmese glyphs on the ASCII and Windows-1252 code points of the keys that type them

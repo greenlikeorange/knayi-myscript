@@ -6,7 +6,7 @@ Notes behind knayi 2.10's `normalize`, from October 2026: what the 2.9 version d
 
 - 2.9's `normalize` changed half of the lines of clean, human-typed Unicode. It turned correct words and numbers into wrong ones, broke contractions, and wrote the dot below and asat in the opposite order to NFC.
 - 2.10's `normalize` puts each syllable in Unicode storage order with the same rules as Zawgyi and Win conversion (`library/storageOrder.js`). It then makes a few typing fixes, shared with conversion (`library/typingFixes.js`), and returns NFC.
-- On clean text it changes far less, and what it changes is meant: NFC order, Unicode Technical Note #11 order, typos and Zawgyi typing habits. Normalizing twice changes nothing more, and text from `fontConvert` comes back unchanged.
+- On clean text it changes far less, and what it changes is meant: NFC order, Unicode Technical Note #11 order, typos and Zawgyi typing habits. Normalizing twice changes no line of the Unicode corpora, and text from `fontConvert` comes back unchanged except where an ေ or medial ra has no consonant after it (section 4). Garbled text can change in both cases.
 
 ## 1. What 2.9 did to correct text
 
@@ -33,8 +33,8 @@ What 2.9 got wrong:
 ## 2. Design
 
 - **Syllables:** `arrangeUnicode` reads Unicode in its logical order. Kinzi (nga or ra, asat, virama) belongs to the consonant after it, virama plus consonant is a stacked consonant, and ေ and medial ra are marks like the others. Each syllable then goes through the same `order` as Zawgyi and Win: a mark typed twice counts once, asat goes where UTN #11 puts it, and the look-alike letters are fixed.
-- **Typing fixes** (`typingFixes.js`): look-alike digits and letters, and a few misspellings. Zawgyi and Win conversion apply them too, so normalize leaves converted text as it is.
-- **NFC first and last.** NFC can move a dot below in front of an asat or virama, which changes what they attach to, so the syllables are read from NFC text.
+- **Typing fixes** (`typingFixes.js`): look-alike digits and letters, and a few misspellings. Zawgyi and Win conversion apply them too, so converted text rarely has anything left for them to fix (section 4).
+- **NFC first and last.** NFC can move a dot below in front of an asat or virama, which changes what they attach to, so the syllables are read from NFC text. Text with no character of the Myanmar blocks (U+1000–U+109F, U+A9E0–U+A9FF, U+AA60–U+AA7F) is returned after the first NFC, since the other steps would give it back as it is.
 
 ## 3. Decisions
 
@@ -53,12 +53,13 @@ What 2.9 got wrong:
 
 **Spaces and joiners.**
 - **Space before a mark:** dropped, as in Zawgyi conversion (`သုံ း` becomes သုံး), but not after a digit. 781 lines of the test text have one, most of them in Okell's corpus.
-- **Zero-width spaces:** kept, and moved out of a syllable.
-- **Joiners and non-joiners:** stay exactly where they are, since in Unicode text they can shape the syllable on purpose.
+- **Zero-width spaces, word joiners (U+2060) and zero-width no-break spaces (U+FEFF):** kept, and moved out of a syllable, as in Zawgyi conversion.
+- **Zero-width joiners and non-joiners (U+200D, U+200C):** stay exactly where they are, since in Unicode text they can shape the syllable on purpose. A mark after one stays after it. Zawgyi and Win conversion move these two out of a syllable too.
 
 **Look-alikes** change only in clear cases. The rest of 2.9's guesses are gone.
 - **ဝ and ရ as digits:** only inside a number (၄ဝဝ, ၂၉,ဝ၂၈, ၂၀၁ရ). Not when glued to the word before the number, and ရ not when glued to the word after it (၂ရတယ်).
 - **၀ and ၇ as letters:** when they carry a vowel sign or start a closed syllable (၀င်, ဆို၇င်), and ၀ also inside a word with no digit next to it (ဘ၀). A visarga after digits is a colon (၁၇း၂၁).
+- **Shan, Mon and Karen marks** count as marks here too (issue #43): Shan ၀ႆ, ၀ႃ and ၀ႂ်, ၀ before a Shan consonant with asat (၀ၼ်း), and Karen သ၇ၣ် (teacher) and က၇ၢ. Their tone marks alone do not: S'gaw Karen text types the Shan tone-2 after numbers as a comma (၁၄း၁၅ႇ, in 6 lines of the sample). In the GlotCC text this changes only 15 S'gaw Karen lines, all of them ၇ typed for ရ.
 - **A lone ဝ** stays a letter. It is a word (ဝ, fat) and ends words (လုံးဝ).
 
 **ဥ and ဉ.** ဥ that takes asat, aa or a stacked consonant is ဉ, as UTN #11 says (ညဉ့်). The exception is right after a vowel sign, where Pa'o writes ဥ်း as a syllable. In the test text, Okell has ဥ with asat 65 times, all after a consonant (စဥ့်). Pa'o has it 22 times after a vowel sign and once after a consonant. FLORES and Wikipedia have none. Zawgyi conversion keeps converting it everywhere, since Zawgyi text is Burmese (ယာဥ္ is ယာဉ်).
@@ -73,7 +74,13 @@ Sharing the typing fixes changes 226 of 9,987 real Zawgyi lines (mC4), all check
 - **The asat of ော်:** ကျော်.
 - **Neutral:** a dozen lines of garbled text.
 
-Win output is unchanged on the ufc and python-myanmar pairs. normalize still changes 22 converted Zawgyi lines, all with marks that belong to no syllable.
+Win output is unchanged on the ufc and python-myanmar pairs. normalize still changed 22 of those converted Zawgyi lines, all with marks that belong to no syllable. On the current mC4 sample it changes 31 of the 10,166 distinct lines that `fontDetect` calls Zawgyi, once converted, and none of the 2,329 WaitZar words it calls Zawgyi. Each of the 31 has an ေ or medial ra with no consonant after it: the converters leave it where it was typed, and `normalize` attaches it to the syllable before, as Zawgyi `ကေျ` converts to `ကေြ` and `normalize` makes that `ကြေ`. On generated and random strings, `normalize` also changes converted text in other places, for example where marks have no consonant before them.
+
+**One order for the typing fixes.** 2.10's conversion made them in the opposite order to `normalize`: look-alikes, then typos. Both now make the typos first, as `normalize` did. The order counts only where a typo fix and a look-alike read the same characters, as with a ရ before the digit ၄ of a lagaung:
+- **Typos first:** the ၄ follows no digit, so it is ၎, and the ရ, next to no digit, stays ရ. Win `&4if;` is ရ၎င်း, as `normalize` makes ရ၄င်း and as Zawgyi `ရ၄င္း` already was, since Zawgyi's own sequence rule reads the ၄ before anything else.
+- **Look-alikes first,** as 2.10's conversion did: the ရ next to the ၄ is ၇, and then the ၄ follows a digit and stays ၄. Win `&4if;` was ၇၄င်း, and so was Zawgyi typed with the visarga before the asat (`ရ၄ငး္`), which the sequence rule does not match.
+
+`normalize`'s order was kept, rather than conversion's, because it reads ၄င်း after a letter as ၎င်း, as the typo rule means, and because it changes no `normalize` output. On every corpus of `npm run compare` (mC4's 14,304 distinct lines included, read as Zawgyi and with a detected font), and on its generated and random Win strings, it changes no converted line. In `fontConvert.debugging`, the two stages and the text between them come in the new order where both change a line: 1 mC4 line and 1 Shan line read as Zawgyi.
 
 On the benchmark page, the Wikipedia round trip (Wikipedia → Rabbit's Zawgyi → knayi) falls from 99.1% to 96.6%. That row counts a line as right only when it comes back exactly as Wikipedia has it, and 120 lines of the Wikipedia text have typing errors that knayi now corrects. 118 have ဝ or ရ typed in a number (၁ဝ ရက်, ၁၂:၃ဝ, ၁၉ရ၂), and 2 have ိ and ီ together.
 
@@ -85,18 +92,19 @@ On the benchmark page, the Wikipedia round trip (Wikipedia → Rabbit's Zawgyi �
 | --- | ---: | ---: | ---: |
 | Shan | 9,923 | 5,750 | 266 |
 | Mon | 2,270 | 715 | 119 |
-| S'gaw Karen | 673 | 376 | 194 |
+| S'gaw Karen | 673 | 376 | 196 |
 | Pa'o | 770 | 142 | 17 |
 
 Letters and marks the Burmese rules do not know end a syllable and stay where they are. What still changes is mostly:
 - NFC, and UTN #11 order;
-- ဝ typed in numbers;
+- ဝ typed in numbers, and ၀ or ၇ typed in words (Karen သရၣ်);
 - the Burmese look-alike fixes: Mon ဝဥ္ဇ becomes ဝဉ္ဇ, and Pa'o စျ becomes ဈ, which may not be right in Pa'o.
 
 ## 6. Speed
 
 - **Real text:** 4.6 million characters of Wikipedia and Okell text take about 550 ms (2.9: about 830 ms). Zawgyi conversion with the shared typing fixes is as fast as before them.
-- **Worst cases stay linear:** a million marks on one consonant, a million ေ with or without consonants, and a million wa, digits, stacked consonants or kinzi each take about 200 ms or less.
+- **Text with no Myanmar character** gets only the first NFC. On 4.5 million characters of English, that takes about a fiftieth of the time all the steps took as one string, and a twelfth a line at a time, under Node.
+- **Worst cases stay linear:** a million marks on one consonant, a million ေ with or without consonants, and a million wa, digits, stacked consonants or kinzi each take about 200 ms or less. So does a run of marks of two classes, such as dot below and virama repeated, which NFC has to put in order: the runtime's `String.prototype.normalize` does that in quadratic time (32,000 pairs took about 1 s, 64,000 about 4 s), so `library/nfc.js` puts a long run in order first, and a million characters of it take about 70 ms.
 
 ## 7. Open questions
 

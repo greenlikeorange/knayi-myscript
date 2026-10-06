@@ -1,3 +1,4 @@
+'use strict';
 // Puts text from a visual-order font (Zawgyi, Win) into Unicode storage order.
 //
 // These fonts store text in the order the glyphs are drawn: e and medial ra before the consonant, kinzi and
@@ -7,6 +8,7 @@
 // sits on the consonant, medials, e, vowels, anusvara, dot below, asat, visarga.
 
 const typingFixes = require('./typingFixes');
+const nfc = require('./nfc');
 // Roles of a glyph in a syllable.
 const BASE = 'base'; // consonant, independent vowel, digit or symbol: starts a syllable
 const PRE = 'pre'; // drawn before the consonant (e, medial ra): belongs to the next base
@@ -37,16 +39,9 @@ const AI_ANUSVARA = 8; // MARK_ORDER index of ai and anusvara
 const FIRST_VOWEL = 5; // MARK_ORDER index of i and ii: vowels and finals from here on
 const ASAT = '\u103A';
 const VIRAMA = '\u1039';
-const VISARGA = '\u1038';
-const AA = '\u102B\u102C'; // aa, tall aa
 const AA_TALL = '\u102B';
 const AA_SHORT = '\u102C';
 const ANUSVARA = '\u1036';
-const LOWER_VOWELS = '\u102F\u1030';
-const E_AA = '\u1031\u102B\u102C'; // e, aa, tall aa
-const I = '\u102D\u102E'; // i, ii
-const DOT_BELOW = '\u1037';
-const MEDIALS = '\u103B\u103C\u103D\u103E';
 const MEDIAL_YA = '\u103B';
 const MEDIAL_HA = '\u103E';
 const CA = '\u1005';
@@ -73,11 +68,27 @@ function rank(mark) {
   return index === undefined ? MARK_ORDER.length : index;
 }
 
-// Whether any of the first `end` marks (all of them by default) is in `set`.
-function hasAny(marks, set, end) {
-  var stop = end === undefined ? marks.length : end;
-  for (var i = 0; i < stop; i++) {
-    if (set.indexOf(marks[i]) >= 0) return true;
+// order keeps the ranks of a syllable's marks in one number, with the bit 1 << rank for each, and tests that
+// number instead of searching the marks. Each mark it looks for has a rank of its own, or shares it only with
+// marks it looks for along with it (i and ii, the lower vowels, aa and tall aa). The ranks are written out as
+// numbers, so that the build holds each bit as a constant; test/unit/mark-ranks.test.js checks them against
+// MARK_ORDER.
+const MEDIAL_YA_BIT = 1 << 0;
+const MEDIAL_BITS = 1 << 0 | 1 << 1 | 1 << 2 | 1 << 3; // medial ya, ra, wa and ha
+const MEDIAL_HA_BIT = 1 << 3;
+const E_AA_BITS = 1 << 4 | 1 << 7; // e, aa, tall aa
+const I_BIT = 1 << 5; // i, ii
+const LOWER_VOWEL_BIT = 1 << 6;
+const AA_BIT = 1 << 7; // aa, tall aa
+const DOT_BELOW_BIT = 1 << 9;
+const ASAT_BIT = 1 << 10;
+const VISARGA_BIT = 1 << 11;
+
+// Whether e or aa was typed before the mark at `end`. The order the marks were typed in counts here, so this
+// reads them one by one.
+function isEOrAaBefore(marks, end) {
+  for (var i = 0; i < end; i++) {
+    if ((1 << rank(marks[i])) & E_AA_BITS) return true;
   }
   return false;
 }
@@ -87,12 +98,17 @@ function isMyanmarLetter(code) {
   return (code >= 0x1000 && code <= 0x102A) || code === 0x103F || (code >= 0x104C && code <= 0x104F);
 }
 
-// A space typed between a syllable and its next mark only moved the mark. Zero-width spaces and joiners
-// mark word breaks, so they stay, but after the syllable they were typed in.
+// A space typed between a syllable and its next mark only moved the mark.
 function isSpace(code) {
   return code === 0x20 || code === 0xA0;
 }
 
+// The zero-width characters. They are not all word breaks: the zero-width space (U+200B) is one, the non-joiner
+// and joiner (U+200C, U+200D) change how letters join, and the word joiner (U+2060) and the zero-width no-break
+// space (U+FEFF) forbid a break. The readers keep them all. arrange holds each one after an open syllable as it
+// holds spaces: if the syllable goes on, the spaces are dropped and the zero-width characters are written after
+// it. One typed between an e or medial ra and its base is written before that syllable. arrangeUnicode holds
+// U+200B, U+2060 and U+FEFF the same way, but U+200C and U+200D stay where typed, and end the syllable.
 function isZeroWidth(code) {
   return code === 0x200B || code === 0x200C || code === 0x200D || code === 0x2060 || code === 0xFEFF;
 }
@@ -104,8 +120,18 @@ function order(syllable) {
   if (!syllable.marks.length && !stack) return syllable.kinzi + base;
   var stacked = stack !== '' || base.indexOf(VIRAMA) > 0; // a ligature base such as tta + ttha has one too
   var marks = [];
+  // The bit 1 << rank of each mark typed. Taking asat or medial ya out of marks below leaves it as it is, so
+  // the one later test for either, asat for u, reads marks. The flags read from it below (hasAa, dotBelow,
+  // slip, lower) may hold a bit rather than true; each is only tested for truth.
+  var rankBits = 0;
   for (var m = 0; m < syllable.marks.length; m++) {
-    if (marks.indexOf(syllable.marks[m]) < 0) marks.push(syllable.marks[m]); // a mark typed twice counts once
+    var typed = syllable.marks[m];
+    var bit = 1 << rank(typed);
+    // A mark typed twice counts once. It can be there already only if a mark of its rank is.
+    if (!(rankBits & bit) || marks.indexOf(typed) < 0) {
+      marks.push(typed);
+      rankBits |= bit;
+    }
   }
 
   // Where the asat goes (Unicode Technical Note #11). It is stored last when typed after e or aa (kyaw), and
@@ -116,23 +142,23 @@ function order(syllable) {
   // consonant's asat, and is dropped.
   var early = false;
   var afterMedials = false;
-  var asat = marks.indexOf(ASAT);
-  var hasAa = hasAny(marks, AA);
-  if (asat >= 0) {
-    var dotBelow = marks.indexOf(DOT_BELOW) >= 0;
-    var slip = !hasAa && (hasAny(marks, I) || (stacked && !dotBelow));
-    var last = dotBelow || hasAny(marks, E_AA, asat) || (hasAa && !hasAny(marks, MEDIALS));
+  var hasAa = rankBits & AA_BIT;
+  if (rankBits & ASAT_BIT) {
+    var asat = marks.indexOf(ASAT);
+    var dotBelow = rankBits & DOT_BELOW_BIT;
+    var slip = !hasAa && ((rankBits & I_BIT) || (stacked && !dotBelow));
+    var last = dotBelow || isEOrAaBefore(marks, asat) || (hasAa && !(rankBits & MEDIAL_BITS));
     if (slip) {
       marks.splice(asat, 1);
     } else if (!last) {
       marks.splice(asat, 1);
-      if (marks.indexOf(MEDIAL_HA) >= 0) afterMedials = true;
+      if (rankBits & MEDIAL_HA_BIT) afterMedials = true;
       else early = true;
     }
   }
 
   // Letters the fonts draw alike.
-  var ya = marks.indexOf(MEDIAL_YA);
+  var ya = (rankBits & MEDIAL_YA_BIT) ? marks.indexOf(MEDIAL_YA) : -1;
   if (ya >= 0 && stack.slice(-1) === CA) {
     stack = stack.slice(0, -1) + JHA; // stacked ca with medial ya is stacked jha
     marks.splice(ya, 1);
@@ -143,7 +169,7 @@ function order(syllable) {
   if (base === U && !syllable.keepU && (stacked || early || afterMedials || marks.indexOf(ASAT) >= 0 || hasAa)) {
     base = NYA; // the vowel u never takes a stacked consonant, asat or aa: it is nya
   }
-  var marksBesidesVisarga = marks.length - (marks.indexOf(VISARGA) >= 0 ? 1 : 0);
+  var marksBesidesVisarga = marks.length - ((rankBits & VISARGA_BIT) ? 1 : 0);
   if (base === SEVEN && (early || afterMedials || marksBesidesVisarga > 0)) {
     base = RA; // a digit takes no vowel sign or medial: seven is ra. After digits, visarga is a colon (7:30).
   }
@@ -151,7 +177,7 @@ function order(syllable) {
   // ai and anusvara come after a lower vowel and aa. With no lower vowel, either can also be typed before aa
   // to sit on the consonant, as Mon and Karen write it (khr-anusvara-aa, Christ): it stays there, except
   // anusvara before tall aa, which UTN #11 does not allow.
-  var lower = hasAny(marks, LOWER_VOWELS);
+  var lower = rankBits & LOWER_VOWEL_BIT;
   var ranks = RANKS; // reused: order never runs inside itself
   for (var r = 0; r < marks.length; r++) {
     var markRank = rank(marks[r]);
@@ -196,18 +222,29 @@ function glyph(role, text, extra) {
 
 // A font for toUnicode. `table` maps the font's characters to [role, Unicode text, marks that come with it];
 // `sequences` are [pattern, replacement] pairs applied first, for letters the font types as look-alike
-// sequences. The glyphs are keyed by character code, which is faster to look up than a character.
+// sequences. The glyphs are an array indexed by character code, with null where there is no glyph: reading it
+// is faster than a Map's get. It ends at the highest code with a glyph (U+1097 for Zawgyi, U+2039 for Win).
 function font(table, sequences) {
-  var glyphs = new Map();
-  Object.keys(table).forEach(function (ch) {
+  var chars = Object.keys(table);
+  var length = 0x1050; // the Myanmar letters added below
+  chars.forEach(function (ch) {
+    length = Math.max(length, ch.charCodeAt(0) + 1);
+  });
+  var glyphs = new Array(length).fill(null);
+  chars.forEach(function (ch) {
     var entry = table[ch];
-    glyphs.set(ch.charCodeAt(0), glyph(entry[0], entry[1], entry[2] || ''));
+    glyphs[ch.charCodeAt(0)] = glyph(entry[0], entry[1], entry[2] || '');
   });
   // Myanmar letters the table does not list, such as letters the sequences make, are bases as they are.
   for (var code = 0x1000; code <= 0x104F; code++) {
-    if (!glyphs.has(code) && isMyanmarLetter(code)) glyphs.set(code, glyph(BASE, String.fromCharCode(code), ''));
+    if (glyphs[code] === null && isMyanmarLetter(code)) glyphs[code] = glyph(BASE, String.fromCharCode(code), '');
   }
   return { glyphs: glyphs, sequences: sequences };
+}
+
+// The glyph for a character code, or null.
+function glyphAt(glyphs, code) {
+  return code < glyphs.length ? glyphs[code] : null;
 }
 
 // Writes each syllable of `content` in Unicode order.
@@ -243,8 +280,8 @@ function arrange(content, glyphs) {
       continue;
     }
 
-    var g = glyphs.get(code);
-    if (g === undefined) {
+    var g = glyphAt(glyphs, code);
+    if (g === null) {
       write(content.charAt(i));
     } else if (g.role === BASE) {
       close();
@@ -323,6 +360,9 @@ function arrangeUnicode(content) {
   var syllable = null;
   var pending = []; // e and medial ra typed before their consonant
   var runEnd = 0; // end of the last run of e and medial ra placeTypedFirst looked past, so it reads each once
+  // What placeTypedFirst has learned about the open syllable's marks. Marks are only ever added, so it reads
+  // each one once (marks[0..seen)), and a long run of marks on one consonant stays linear.
+  var seen = 0, hasMedialHa = false, hasAsat = false, hasVowel = false;
 
   function close() {
     if (!syllable) return;
@@ -335,6 +375,8 @@ function arrangeUnicode(content) {
   function start(kinzi, base, keepU) {
     close();
     syllable = { kinzi: kinzi, base: base, stack: '', marks: pending, after: '', kept: '', keepU: keepU };
+    seen = 0;
+    hasMedialHa = hasAsat = hasVowel = false;
     pending = [];
   }
 
@@ -347,7 +389,9 @@ function arrangeUnicode(content) {
 
   // Whether the mark (or virama) at i belongs to the open syllable, past any spaces held after it.
   function goesOn(code) {
-    if (syllable.after === syllable.kept) return true; // nothing but zero-width characters held
+    // Nothing but zero-width characters held. kept is always a subsequence of after, so equal lengths mean
+    // equal strings, and comparing lengths keeps this constant-time.
+    if (syllable.after.length === syllable.kept.length) return true;
     return !isTypedFirst(code) && !isDigit(syllable.base.charCodeAt(0));
   }
 
@@ -364,12 +408,16 @@ function arrangeUnicode(content) {
     }
     var after = content.charCodeAt(runEnd);
     if (!syllable && isOtherMyanmar(content.charCodeAt(i - 1))) return ALONE;
-    var finished = !syllable || syllable.after !== syllable.kept;
-    for (var m = 0; !finished && m < syllable.marks.length; m++) {
-      var mark = syllable.marks[m];
-      if (rank(mark) < FIRST_VOWEL) continue;
-      if (mark === ASAT && (code === 0x103C || syllable.marks.indexOf(MEDIAL_HA) >= 0)) continue;
-      finished = true;
+    var finished = !syllable || syllable.after.length !== syllable.kept.length;
+    if (!finished) {
+      for (var marks = syllable.marks; seen < marks.length; seen++) {
+        var mark = marks[seen];
+        if (mark === MEDIAL_HA) hasMedialHa = true;
+        if (rank(mark) < FIRST_VOWEL) continue;
+        if (mark === ASAT) hasAsat = true;
+        else hasVowel = true;
+      }
+      finished = hasVowel || (hasAsat && code !== 0x103C && !hasMedialHa);
     }
     if (!finished || (syllable && (isUnicodeMark(after) || after === 0x1039))) return HERE;
     return isMyanmarLetter(after) || isDigit(after) ? NEXT : ALONE;
@@ -384,8 +432,8 @@ function arrangeUnicode(content) {
 
   for (var i = 0; i < content.length; i++) {
     var code = content.charCodeAt(i);
-    // Zero-width spaces move out of a syllable as in arrange, but joiners and non-joiners stay where they
-    // are: in Unicode text they can be there on purpose, to shape the syllable.
+    // U+200B, U+2060 and U+FEFF move out of a syllable as in arrange, but the non-joiner and joiner stay where
+    // they are: in Unicode text they can be there on purpose, to shape the syllable.
     var zeroWidth = isZeroWidth(code) && code !== 0x200C && code !== 0x200D;
     var place = isTypedFirst(code) ? placeTypedFirst(i) : HERE;
     if (syllable && (zeroWidth || isSpace(code))) {
@@ -426,8 +474,8 @@ function arrangeUnicode(content) {
 function glyphsInTypedOrder(content, glyphs) {
   var out = '';
   for (var i = 0; i < content.length; i++) {
-    var g = glyphs.get(content.charCodeAt(i));
-    out += g === undefined ? content.charAt(i) : g.text + g.extra;
+    var g = glyphAt(glyphs, content.charCodeAt(i));
+    out += g === null ? content.charAt(i) : g.text + g.extra;
   }
   return out;
 }
@@ -446,8 +494,9 @@ function zeroAsWa(text) {
 }
 
 // Font text -> Unicode: the font's look-alike sequences, then its glyphs in syllable order, zero as wa, the
-// typing fixes normalize makes (typingFixes.js) and NFC. With debug, returns { matched_patterns, steps } like
-// fontConvert.debugging, where each step is the text after a stage that changed it.
+// typing fixes normalize makes, in its order (typingFixes.js: typos, then look-alikes), and NFC. With debug,
+// returns { matched_patterns, steps } like fontConvert.debugging, where each step is the text after a stage
+// that changed it.
 function toUnicode(content, font, debug) {
   var steps = [content];
   var patterns = [];
@@ -467,9 +516,9 @@ function toUnicode(content, font, debug) {
   if (debug) step('glyphs', glyphsInTypedOrder(text, font.glyphs));
   var result = step('syllables', arrange(text, font.glyphs));
   result = step('zero as wa', zeroAsWa(result));
-  result = step('look-alikes', typingFixes.lookAlikes(result));
   result = step('typos', typingFixes.typos(result));
-  result = step('NFC', result.normalize('NFC'));
+  result = step('look-alikes', typingFixes.lookAlikes(result));
+  result = step('NFC', nfc(result));
   return debug ? { matched_patterns: patterns, steps: steps } : result;
 }
 

@@ -54,7 +54,7 @@ Counts of human-typed Unicode are from FLORES-200 (CC BY-SA 4.0), a Burmese Wiki
 
 **A space typed before a dot below** (`ၿမိဳ ့`) is dropped, as in 2.9. In mC4 it comes before a letter 381 times and before a second space 140 times. Moving it after the dot, as myanmar-tools does, splits words such as မြို့နယ် and အောက်မေ့မိပါတယ်, and doubles the second space. A space typed before any other mark (`တစ္ခ ု`) only moved the mark and is dropped too, as myanmar-tools does. A line break is never dropped.
 
-**Zero-width spaces and non-joiners** are kept from 2.10 on; 2.9 removed them. They appear in 113 of the 9,987 lines, mostly between words. Some tools type one after every asat, inside a syllable (`က်င္​း`, 187 times); it moves to the end of the syllable (ကျင်း​). myanmar-tools drops some of these and moves others, and drops the space after some of them.
+**Zero-width spaces and non-joiners** are kept from 2.10 on; 2.9 removed them. They appear in 113 of the 9,987 lines, mostly between words. Some tools type one after every asat, inside a syllable (`က်င္​း`, 187 times); it moves to the end of the syllable (ကျင်း​). myanmar-tools drops some of these and moves others, and drops the space after some of them. The other zero-width characters, the joiner (U+200D), the word joiner (U+2060) and the zero-width no-break space (U+FEFF), are kept and moved the same way, and one typed between ေ or medial ra and its consonant goes before the syllable.
 
 **Letters Zawgyi draws alike:**
 - စ with medial ya is ဈ, also stacked (မဇ္ဈိမ). U+1069 is stacked ဈ, not stacked စ with medial ya.
@@ -85,6 +85,18 @@ The three CLDR pairs 2.10 misses expect ICU's output: the asat of ါ် before 
 - 26 have a medial before the asat (ချ်, ဂျ်), and come back in UTN #11 order;
 - 3 have ၄င်း, and come back as ၎င်း;
 - 7 are FLORES typos that come back corrected.
+
+**Stacked ဈ from Unicode** (refactor plan PR 4.8, after 2.10.0). Unicode → Zawgyi wrote U+1069, Zawgyi's stacked ဈ, for stacked စ with medial ya (`္စျ`), but had no rule for stacked ဈ itself (`္ဈ`, as in မဇ္ဈိမ). Its virama stayed U+1039, which Zawgyi reads as an asat, so မဇ္ဈိမ came back from Zawgyi as မဇ်ဈိမ. A rule next to the one for `္စျ` now writes U+1069 for `္ဈ` too; like the other stacked-consonant rules, it runs before the rule that writes the asat as U+1039. myanmar-tools 1.1.3 and Rabbit write U+1069 for stacked ဈ in every one of the 36 Unicode lines and pairs below that have it, and one of the three Zawgyi spellings of မဇ္ဈိမ in Google's pairs is U+1069. Round trip, Unicode → Zawgyi → Unicode with knayi, on distinct lines:
+
+| Data | Lines | With `္ဈ` | Now come back as `normalize` writes them | Now come back exactly |
+| --- | ---: | ---: | ---: | ---: |
+| FLORES | 2,009 | 0 | 0 | 0 |
+| Wikipedia, current sample | 4,812 | 8 | 8 | 8 |
+| Wikipedia, first sample | 10,732 | 12 | 12 | 9 |
+| Okell | 16,924 | 13 | 12 | 8 |
+| google/language-resources pairs | 80 | 3 | 3 | 3 |
+
+None of these lines came back before. Where a line still differs, the difference is elsewhere: a medial ra written after spaces (the Okell line), a zero typed for ဝ, a no-break space before a virama. No changed line was checked by hand: 0 of the 50 corpus lines and pair strings whose Zawgyi output changed (8 Wikipedia, 12 of the first Wikipedia sample, 13 Okell, 14 mC4, 1 Shan, 1 Pa'o and 1 Google pair string; CHANGELOG.md). A script checked every changed string, those and the generated and random ones: each output is the old one with U+1039 U+1008 written as U+1069, and each input has a virama before ဈ. In 10 of the 14 mC4 lines that change, the text is Zawgyi read as Unicode, with ေ typed between the asat and ဈ.
 
 **Win**, converted with the shared rules:
 - **Reference pairs:** the ufc and python-myanmar pairs give the same output as before.

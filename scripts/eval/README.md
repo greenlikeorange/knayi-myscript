@@ -20,6 +20,46 @@ They need Node 20.11 or newer and network access the first time. Downloads go to
 
 The comparison packages (`knayi-myscript@<baseline>`, `myanmar-tools@1.1.3`, `rabbit-node@1.0.4`) are installed into the cache, not into this project. myanmar-tools 1.2.0 on npm cannot be loaded, so 1.1.3 is used.
 
+## Comparing two copies
+
+`npm run compare` runs two copies of knayi side by side and reports every call whose output differs. A refactor must show 0 differences; a change made on purpose states its exact counts.
+
+```bash
+npm run compare                                   # this working tree against origin/main
+npm run compare -- --base origin/main --head .    # the same, spelled out
+npm run compare -- --base . --head min:.          # main.js against the min.js built from it, run in a vm
+npm run compare -- --offline                      # generated and fuzz inputs only: no corpus cache, no network
+npm run compare -- --without mc4                  # every corpus but mC4, as CI runs it
+npm run compare -- --expect normalize:ksw=15 --expect normalize:all=66
+```
+
+A copy is named by a spec: a path (`.` is this working tree), a git ref (`origin/main`, `v2.9.1`, `git:HEAD~1`) unpacked read-only with `git archive` into a temporary directory, `npm:<version>` for a release that is already installed (in `node_modules/` or the eval cache; nothing is downloaded), or `min:` and `mjs:` followed by a dist file or by any of these, which builds that copy's dist files with its own `scripts/build.js` in a temporary directory. Both copies run in one process, each as its own module instance, so `--base . --head .` is a valid A/A check. In CI, fetch the base first, since a shallow checkout has no `origin/main`; `.github/workflows/test.yml` checks out with full history.
+
+CI keeps a corpus cache without mC4 and without the query log (CONTRIBUTING.md, licence policy), so it runs with `--without mc4`. Only a push to the default branch fills that cache, with `node scripts/eval/datasets.mjs --fetch --without mc4`. Every run restores it, pull requests from forks included (they may read the base branch's cache), and a run with a cold cache uses `--offline`. A pull request labelled DELIBERATE writes its counts in its description as `--expect form:set=n`, and CI passes them with `--skip-missing-sets`, which lists and skips the counts for sets the run does not have (mC4, the legacy `wikipedia-v1` sample, and every corpus when it runs offline); CI also drops `all` totals, which add up sets it does not read.
+
+Every public call form is compared (`scripts/eval/lib/callForms.mjs`): normalize; fontConvert from Zawgyi, Win and a detected font to Unicode, and from Unicode to Zawgyi; the four `fontConvert.debugging` forms; fontDetect with the default and the `unicode` fallback; detectEncoding; syllBreak with `unicode`, `zawgyi` and a detected font; spellingFix with both fonts; and truncate at 10, 30, 60 and 120 characters. A string result is compared as it is, any other value as its JSON, and a throw by its error class only. A form an old base release lacks is skipped; a form the base has and the head lacks fails the run, in compare and in perf.
+
+The inputs (`scripts/eval/lib/inputs.mjs`) are the distinct lines of every cached corpus (see [Data](#data)), the reference pairs with both columns, and the first Wikipedia sample when an older cache still holds it; every Myanmar code point alone, doubled and in every ordered pair after က (25,920 strings); Myanmar Extended-A, -B and -C and the spaces and joiners around Myanmar text; `generated.rows`, every probe the tests hold (the main and edge probes of `test/fixtures/tables.json`, the strings of the README and ARCHITECTURE.md examples and the contract matrix's content probes), alone and next to ka, a digit, a space, `u` and `1`, which reaches rules of four or more characters that the pairs do not; Win text, every printable Latin-1 character alone and before every printable ASCII character (18,145) and the Windows-1252 and C1 characters next to ASCII; and three seeded fuzz sets (`--fuzz`, `--seed`). The Win forms read the Win sets and the generated and fuzz Myanmar sets; every other form reads all Myanmar sets.
+
+A differing cell prints its count and first examples with code points. `--expect form:set=n` lists a deliberate difference (`all` as the set counts the form's total), and every cell not listed must be 0; the exit status is 1 otherwise. The work is split over one worker thread per CPU: about 2.5 million comparisons take 4 s on a 16-core laptop and use about 50 s of CPU time in all. Run it under Bun with `bun scripts/eval/compare.mjs`.
+
+## Speed of a change
+
+`npm run perf` times two copies against each other, named as for `compare`, and reports only their ratio: absolute times on the same machine drift by 10-25% between runs, while two identical copies timed this way stay within a few percent.
+
+```bash
+npm run perf                              # this working tree against origin/main, under Node and Bun
+npm run perf -- --base HEAD               # an A/A run: how much the ratios move when nothing changed
+npm run perf -- --runtimes node --forms normalize,fontConvert.zawgyi-unicode
+npm run perf -- --offline                 # growth exponents only; no corpus cache needed
+```
+
+- **Rows.** Every call form except three of the truncate lengths, on the same text in four shapes: a call per line (400 FLORES lines), a call per word, one call on the lines joined by spaces, and one on the lines joined by line breaks. Zawgyi forms read that text converted by the base copy, and Win forms a synthetic Win version of it (speed only). Both copies run in one process, interleaved: 3 rounds over all rows, each with 7 runs per copy that alternate which copy goes first, and each run repeats the workload until it takes 10 ms. A row's ratio is the median over the rounds; the round range is printed beside it. Under Bun a full garbage collection runs before each timed run.
+- **Growth exponents.** Every adversarial shape (`SHAPES` in `lib/inputs.mjs`: the plan's 26 long-input shapes, the shapes of `test/performance.test.js`, the 2.10 quadratic ones, and runs of marks of two combining classes, which NFC puts in order, in Myanmar and in other scripts) through 10 call forms, and every character the growth test draws from repeated alone and after ka (`PUMPS`, 272 runs) through normalize, conversion to Unicode from Zawgyi, Win and a detected font, Unicode to Zawgyi, syllBreak and spellingFix, by the two steps of `scripts/testing/growth.js`, which `test/growth.timing.js` shares. A screen times n and 4n units and reads log(t(4n)/t(n))/log 4, so 1 is linear and 2 quadratic; each t is the fastest of three readings of at least 1 ms, since interference only adds time. Under Node n is 8,192: at 1,024 a quadratic term with a small constant still reads close to linear (a normalize that rescanned its prefix at every eighth character read at most 1.25 there, and up to 1.65 at 8,192). Larger sizes mislead: once strings pass 64k units, V8 stores them as large objects and linear code costs about three times as much per unit. Under Bun n stays 1,024, because the cost per unit of linear code climbs from about 4k units. A screen reading above 1.3 (`--soft-exponent`) is confirmed at N, 4N and 8N units (N is 4,096 under Node and 1,024 under Bun): linear code grows about 8 times from N to 8N and quadratic code about 64 times, and the confirmation counts only when the exponent from N to 8N and that of the top doubling, from 4N to 8N, both read high; each size gets the fastest of three readings of at least 20 ms, each after a full garbage collection. A single doubling cannot tell a step in the cost per unit (a cache level, a garbage-collection threshold) from super-linear code, and on GitHub's runners such steps failed the earlier one-step gate (Node 24 read 1.31-1.35 on runs of U+1050, U+1056 and U+1058); `scripts/testing/growth.js` gives the evidence. The growth part takes about 25 s per runtime on a laptop.
+- **Limits.** The run fails (exit status 1) when a confirmed growth exponent of the head, and that of its top doubling, are 1.5 or more (`--max-exponent`), when one call takes more than a second, or when a Node row is more than 20% slower than the base (`--max-slowdown`). Screen readings above 1.3 that the confirmation does not uphold are listed, not failed. Bun rows are reported, and those more than 10% slower are listed for a written reason. A full run takes about 2 minutes on a laptop: about 40 s of rows and 20 s of growth per runtime.
+
+On an M3 Max shared with other jobs, an A/A run (`--base HEAD`) gave Node rows between 0.97 and 1.02 (single rounds 0.96 to 1.03) and Bun rows between 0.96 and 1.06 (single rounds 0.91 to 1.09); the highest growth exponent was 1.05 under Node and 1.11 under Bun. With `--growth both` against origin/main, which does not have the 2.10 normalize fix yet, its six quadratic shapes read 1.4-2.0 for the base.
+
 ## Data
 
 There is no large public corpus of human-typed Zawgyi with a human-checked Unicode version. The reference pairs are few, and the larger sets are real text with labels from tools, or real text without labels. Every set is measured on its distinct lines: pages repeat headings and boilerplate (Wikipedia's "references" heading alone appears hundreds of times in a sample).
@@ -36,7 +76,17 @@ There is no large public corpus of human-typed Zawgyi with a human-checked Unico
 | [GlotCC-V1](https://huggingface.co/datasets/cis-lmu/GlotCC-V1) Shan, Mon, S'gaw Karen, Pa'o | other languages flagged as Zawgyi | every document (24–648 per language) | CC0 1.0 | Unicode that legitimately uses code points Zawgyi also uses. Text from Common Crawl, whose terms of use apply. |
 | [mC4](https://huggingface.co/datasets/allenai/c4) `c4-my` validation | web text without labels | 14,304 lines | ODC-BY | About two thirds Zawgyi. Agreement with myanmar-tools only. Text from Common Crawl. |
 
-Every download must match a pinned sha256. GitHub files are also pinned to a commit, mC4 to a revision, and Okell to a Zenodo record; the FLORES URL has no version, so its hash is its only pin. Downloads are written to a temporary file first. A file that doesn't match is downloaded once more, and the run stops if it still doesn't match. The Hugging Face rows come from the current revision of each dataset, and a short or empty sample stops the run.
+Every download must match a pinned sha256. GitHub files are also pinned to a commit, mC4 to a revision, and Okell to a Zenodo record; the FLORES URL has no version, so its hash is its only pin, and the two files taken out of its archive are pinned too. Downloads are written to a temporary file first. A file that doesn't match is downloaded once more, and the run stops if it still doesn't match.
+
+The Hugging Face rows come from the current revision of each dataset, so a new download can hold other rows than the published results used. Each sample file in the cache is pinned by its sha256 in `HF_SAMPLES`, and a sample that doesn't match stops the run, as does a short or empty one. To adopt a new sample on purpose:
+
+```bash
+node scripts/eval/datasets.mjs --check                        # compare the cache with the pins; downloads nothing
+node scripts/eval/datasets.mjs --fetch --without mc4          # download what the cache lacks, except mC4, then check it
+node scripts/eval/datasets.mjs --refresh-samples wikipedia    # download a sample again and print its sha256
+```
+
+Then review the change and update the sha256 in `HF_SAMPLES`. Caches made before the Wikipedia sample was redrawn also hold the first sample, `hf-wikipedia.json` (10,732 distinct lines, no article in common with the current one). Nothing downloads it any more; `loadAll({ withLegacy: true })` returns it when it is there and matches its pin.
 
 ## What is measured
 
@@ -44,6 +94,7 @@ Every download must match a pinned sha256. GitHub files are also pinned to a com
 - **Detection.** The share of real Zawgyi recognised "on evidence", with fallback `'unicode'`, so a word only counts when the detector finds Zawgyi evidence.
 - **Unicode flagged as Zawgyi.** Two numbers per engine. "default" is a plain `fontDetect(text)`, where a tie between the scores returns `'zawgyi'`. "evidence" passes `'unicode'` as the fallback. Lower is better, but a detector can lower it just by calling Zawgyi less often, so the page doesn't bold a winner; read it next to the detection table.
 - **myanmar-tools** is scored with the thresholds of knayi's adapter: Zawgyi above p = 0.95, Unicode below 0.05, and the fallback in between.
+- **One detection per text.** Each engine detects a text once and reads the result with each fallback a table asks for (`detect` in `engines.mjs`): knayi with `detectEncoding`, read as `fontDetect` reads it, and myanmar-tools with one probability. A knayi release without `detectEncoding`, such as the baseline, calls `fontDetect` once per fallback.
 - **Web text.** How much each engine calls Zawgyi, and how often knayi agrees with myanmar-tools where myanmar-tools is confident.
 
 Rows whose labels or expected outputs came from Google's tools favour myanmar-tools. The tables say which ones.
@@ -63,6 +114,7 @@ Rows whose labels or expected outputs came from Google's tools favour myanmar-to
 - **Licensed data only.** Every result row names its sources. `report.mjs` refuses any row whose source isn't openly licensed in `datasets.mjs`, and any run made with `--with-unlicensed`.
 - **Aggregate numbers only.** It publishes percentages and timings, never the text itself, and lists every source with its size and license.
 - **Rebuild on release.** Run `npm run bench:page` before a release and commit the two files. The page says which machine produced the timings and lists the limits of the evaluation.
+- **Named code and data.** `run.mjs` and `bench.mjs` record the code they measured as `code`: the commit, `dirty` when `main.js`, `library/`, `scripts/` or `package.json` have uncommitted changes, and `libraryHash`, the sha256 of `main.js` and every file under `library/`. `report.mjs` refuses results from two different code states, shows the commit on the page and writes `code` at the top of `benchmark.json`. Each data set in the eval results carries the sha256 it is pinned to.
 
 ## Win glyph table
 

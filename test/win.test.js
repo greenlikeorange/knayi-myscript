@@ -61,6 +61,14 @@ describe('Win', () => {
       assert.equal(toUnicode('7;30'), '၇း၃၀');
     });
 
+    it('reads the digit four after ra as lagaung, as normalize does', () => {
+      // The typos come before the look-alikes, in both pipelines (ARCHITECTURE.md, Typing fixes and their order):
+      // once the four is lagaung, the ra is next to no digit and stays ra.
+      assert.equal(toUnicode('&4if;'), 'ရ၎င်း');
+      assert.equal(knayi.normalize('ရ၄င်း'), 'ရ၎င်း');
+      assert.deepEqual(knayi.fontConvert.debugging('&4if;', 'unicode', 'win').matched_patterns, ['glyphs', 'typos']);
+    });
+
     it('returns marks in Unicode order, dot below before asat', () => {
       // Win types asat (f) before the dot below (h).
       assert.equal(toUnicode('ajumifh'), '\u1000\u103C\u1031\u102C\u1004\u1037\u103A');

@@ -19,14 +19,24 @@
     "dist/knayi-myscript.min.js"
   ],
   "scripts": {
-    "pretest": "node scripts/build.js",
-    "test": "node --test && tsc -p typecheck/tsconfig.json --noEmit && tsc -p typecheck/tsconfig.no-interop.json --noEmit",
-    "test:bun": "bun scripts/bun-contract.js && bun scripts/bun-esm.mjs",
+    "build": "node scripts/build.js",
+    "test": "node --test \"test/**/*.test.js\" && node --expose-gc test/growth.timing.js && tsc -p typecheck/tsconfig.json --noEmit && tsc -p typecheck/tsconfig.no-interop.json --noEmit",
+    "posttest": "node scripts/check-size.js",
+    "test:bun": "bun scripts/bun-contract.js && bun scripts/bun-esm.mjs && bun scripts/bun-matrix.js && bun test ./test && bun test --timeout 120000 ./test/growth.timing.js",
     "test:pack": "node scripts/check-packed.mjs",
+    "test:smoke": "node scripts/smoke.js",
+    "test:fuzz": "node --test test/fuzz.test.js test/properties.test.js",
+    "test:browser": "playwright test -c scripts/browser/playwright.config.js",
+    "check:size": "node scripts/check-size.js --modules",
+    "check:dist": "node scripts/check-dist.js",
+    "check:redos": "node scripts/check-redos.mjs",
+    "check:types": "node scripts/check-types.mjs",
+    "matrix:update": "node scripts/contract/update.js",
+    "compare": "node scripts/eval/compare.mjs",
+    "perf": "node scripts/eval/perf.mjs",
     "eval": "node scripts/eval/run.mjs",
     "bench": "node scripts/eval/bench.mjs",
-    "bench:page": "node scripts/eval/page.mjs",
-    "build": "node scripts/build.js"
+    "bench:page": "node scripts/eval/page.mjs"
   },
   "repository": {
     "type": "git",
@@ -54,9 +64,15 @@
   },
   "homepage": "https://github.com/greenlikeorange/knayi-myscript",
   "devDependencies": {
-    "acorn": "^8.18.0",
-    "esbuild": "^0.25.0",
-    "typescript": "^5.9.3"
+    "@arethetypeswrong/cli": "0.18.5",
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.63.0",
+    "acorn": "8.18.0",
+    "esbuild": "0.25.12",
+    "fast-check": "4.10.2",
+    "myanmar-tools": "1.1.3",
+    "recheck": "4.5.0",
+    "typescript": "5.9.3"
   },
   "peerDependencies": {
     "myanmar-tools": ">=1.1.2 <1.2.0"

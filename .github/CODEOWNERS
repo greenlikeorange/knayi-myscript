@@ -1,0 +1,18 @@
+# The checks that judge a pull request, and the snapshots they compare against. A pull request runs its own copy
+# of them, so one that also edits them could loosen the gate it is judged by; GitHub asks the maintainer to review
+# any change here, and requires that review once "Require review from Code Owners" is on in the rules for main.
+
+/.github/                        @greenlikeorange
+/scripts/eval/compare.mjs        @greenlikeorange
+/scripts/eval/perf.mjs           @greenlikeorange
+/scripts/eval/lib/               @greenlikeorange
+/scripts/eval/datasets.mjs       @greenlikeorange
+/scripts/check-*                 @greenlikeorange
+/scripts/contract/               @greenlikeorange
+/scripts/testing/                @greenlikeorange
+/scripts/oracle/                 @greenlikeorange
+/scripts/browser/floor.js        @greenlikeorange
+/scripts/redos-allowlist.json    @greenlikeorange
+/test/contract/api-matrix.json   @greenlikeorange
+/test/fixtures/                  @greenlikeorange
+/dist/                           @greenlikeorange
