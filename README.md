@@ -21,6 +21,19 @@ Browser script, global name `knayi`:
 <script src="https://unpkg.com/knayi-myscript@2.10.0/dist/knayi-myscript.min.js"></script>
 ```
 
+## Accuracy and speed
+
+The [benchmark page](https://greenlikeorange.github.io/knayi-myscript/benchmark.html) measures 2.10.0 on public data with open licences, next to knayi 2.8.3, myanmar-tools 1.1.3 and Rabbit 1.0.4 (`npm run eval` and `npm run bench`; see [scripts/eval/README.md](scripts/eval/README.md)).
+
+| Measure | knayi 2.10.0 | knayi 2.8.3 | myanmar-tools 1.1.3 |
+| --- | ---: | ---: | ---: |
+| Zawgyi to Unicode, Google's 80 reference pairs | 100.0% | 81.3% | 97.5% |
+| Zawgyi to Unicode, 4,745 Wikipedia lines there and back | 96.6% | 85.6% | 96.9% |
+| Hand-typed Zawgyi words found (WaitZar, 2,082 words) | 79.6% | 79.6% | 96.5% |
+| Unicode Wikipedia lines called Zawgyi by a plain `fontDetect` | 5.0% | 5.9% | 2.3% |
+
+On 6,821 lines of real text, 2.10.0 takes 0.46 times 2.8.3's time for `normalize`, 0.72 for Zawgyi to Unicode with the font detected, 0.76 for Unicode to Zawgyi and 0.90 for `fontDetect`. Input that took quadratic time in 2.8.3 now takes linear time: `normalize` on 200,000 ဝ takes 50 ms, where 2.8.3 took 34.6 s. The page gives every set, the machine the numbers come from, and the limits of each measure.
+
 ## Runtime
 
 Node.js 16 or newer. CI runs the tests on Node 22, 24, and 26, and a smoke test of the README examples and the builds on Node 16, 18, and 20. Building and testing the package needs Node 22 or newer. Node 24 is the version in `.nvmrc`.
