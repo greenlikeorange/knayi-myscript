@@ -7,27 +7,40 @@ var knayi = (() => {
   // library/globalOptions.js
   var require_globalOptions = __commonJS({
     "library/globalOptions.js"(exports, module) {
+      "use strict";
       var OPTIONS = {
         silent_mode: false,
         detector: {
           use_myanmartools: false,
-          myanmartools_zg_threshold: [0.05, 0.95]
+          myanmartools_zg_threshold: [0.05, 0.95],
+          zawgyiDetector: null
         }
       };
       function detector(incoming) {
         incoming = incoming || {};
         var use_myanmartools = Object.prototype.hasOwnProperty.call(incoming, "use_myanmartools") ? incoming.use_myanmartools : OPTIONS.detector.use_myanmartools;
         var myanmartools_zg_threshold = Object.prototype.hasOwnProperty.call(incoming, "myanmartools_zg_threshold") ? incoming.myanmartools_zg_threshold : OPTIONS.detector.myanmartools_zg_threshold;
-        if (!Array.isArray(myanmartools_zg_threshold) || typeof myanmartools_zg_threshold[0] !== "number" || typeof myanmartools_zg_threshold[1] !== "number") {
-          console.error("myanmartools_zg_threshold must be [number, number]");
+        var zawgyiDetector = Object.prototype.hasOwnProperty.call(incoming, "zawgyiDetector") ? incoming.zawgyiDetector : OPTIONS.detector.zawgyiDetector;
+        if (!Array.isArray(myanmartools_zg_threshold) || typeof myanmartools_zg_threshold[0] !== "number" || typeof myanmartools_zg_threshold[1] !== "number" || !isFinite(myanmartools_zg_threshold[0]) || !isFinite(myanmartools_zg_threshold[1]) || myanmartools_zg_threshold[0] > myanmartools_zg_threshold[1]) {
+          if (!OPTIONS.silent_mode) {
+            console.error("[ERR_KNAYI_INVALID_THRESHOLD] myanmartools_zg_threshold must be two finite numbers in order.");
+          }
           myanmartools_zg_threshold = OPTIONS.detector.myanmartools_zg_threshold;
+        }
+        if (zawgyiDetector != null && typeof zawgyiDetector.getZawgyiProbability !== "function") {
+          if (!OPTIONS.silent_mode) {
+            console.error("[ERR_KNAYI_INVALID_DETECTOR] zawgyiDetector must have a getZawgyiProbability method.");
+          }
+          zawgyiDetector = OPTIONS.detector.zawgyiDetector;
         }
         return {
           use_myanmartools,
-          myanmartools_zg_threshold: myanmartools_zg_threshold.slice()
+          myanmartools_zg_threshold: myanmartools_zg_threshold.slice(),
+          zawgyiDetector
         };
       }
-      function setOptions(options = {}) {
+      function setOptions(options) {
+        if (options == null) return;
         if (Object.keys(options).indexOf("silent_mode") !== -1) {
           OPTIONS.silent_mode = options.silent_mode;
         }
@@ -48,6 +61,7 @@ var knayi = (() => {
   // library/contentGate.js
   var require_contentGate = __commonJS({
     "library/contentGate.js"(exports, module) {
+      "use strict";
       var MYANMAR = /[\u1000-\u109F]/;
       var FONT_ALIASES = {
         unicode: "unicode",
@@ -67,10 +81,31 @@ var knayi = (() => {
       }
       function resolveFont(fontType) {
         if (fontType == null || fontType === "") return null;
+        fontType = toText(fontType);
+        if (typeof fontType === "string") fontType = fontType.toLowerCase();
         if (Object.prototype.hasOwnProperty.call(FONT_ALIASES, fontType)) {
           return FONT_ALIASES[fontType];
         }
         return null;
+      }
+      function libraryError(code, message, Ctor) {
+        var error = new (Ctor || Error)(message);
+        error.code = code;
+        return error;
+      }
+      function givenName(value) {
+        value = toText(value);
+        return typeof value === "string" && value !== "" ? value : null;
+      }
+      function breakFont(fontType, apiName) {
+        var name = givenName(fontType);
+        var font = resolveFont(name);
+        if (name === null || font === "unicode" || font === "zawgyi") return font;
+        throw libraryError(
+          "ERR_KNAYI_INVALID_FONT",
+          "knayi." + apiName + " takes the font 'unicode' or 'zawgyi', not " + JSON.stringify(name) + ".",
+          TypeError
+        );
       }
       function cleanText(content, trim) {
         var text = trim ? content.trim() : content;
@@ -81,14 +116,18 @@ var knayi = (() => {
         toText,
         hasMyanmar,
         resolveFont,
+        givenName,
+        breakFont,
+        libraryError,
         cleanText
       };
     }
   });
 
-  // library/detector.js
-  var require_detector = __commonJS({
-    "library/detector.js"(exports, module) {
+  // library/detection.js
+  var require_detection = __commonJS({
+    "library/detection.js"(exports, module) {
+      "use strict";
       var library = {};
       var whitespace = "[\\x20\\t\\r\\n\\f]";
       var globalOptions = require_globalOptions();
@@ -97,7 +136,7 @@ var knayi = (() => {
       var myanmarToolsLoadAttempted = false;
       var myanmarToolsLoadError = null;
       function nodeRequire(id) {
-        var proc = globalThis.process;
+        var proc = typeof globalThis !== "undefined" && globalThis.process;
         if (!proc || !proc.versions || typeof proc.versions.node !== "string") return null;
         var req = null;
         try {
@@ -105,15 +144,7 @@ var knayi = (() => {
         } catch (e) {
           req = null;
         }
-        if (typeof req === "function") return req.call(module, id);
-        if (typeof proc.getBuiltinModule === "function") {
-          var nodeModule = proc.getBuiltinModule("module");
-          if (nodeModule && typeof nodeModule.createRequire === "function") {
-            var from = typeof __filename === "string" ? __filename : proc.cwd() + "/package.json";
-            return nodeModule.createRequire(from)(id);
-          }
-        }
-        return null;
+        return typeof req === "function" ? req.call(module, id) : null;
       }
       function loadMyanmarTools() {
         if (myanmarToolsLoadAttempted) return myanmartoolZawgyiDetector;
@@ -145,9 +176,9 @@ var knayi = (() => {
         unicode: [
           "\u103E",
           "\u103F",
-          "\u100A\u103A",
+          "[\u100A]\u103A",
           "\u1014\u103A",
-          "\u1004\u103A",
+          "[\u1004]\u103A",
           "\u1031\u1038",
           "\u1031\u102C",
           "\u103A\u1038",
@@ -183,65 +214,78 @@ var knayi = (() => {
           library.detect[type][i] = new RegExp(library.detect[type][i], "g");
         }
       });
-      function scoreWithRules(content, fallback) {
-        var match = {};
+      function countEvidence(content) {
+        var evidence = { encoding: "unknown", unicode: 0, zawgyi: 0 };
         for (var type in library.detect) {
-          match[type] = 0;
           for (var i = 0; i < library.detect[type].length; i++) {
             var found = content.match(library.detect[type][i]);
-            match[type] += found && found.length || 0;
+            evidence[type] += found && found.length || 0;
           }
         }
-        if (match.unicode > match.zawgyi) return "unicode";
-        if (match.unicode < match.zawgyi) return "zawgyi";
-        return fallback;
+        if (evidence.unicode > evidence.zawgyi) evidence.encoding = "unicode";
+        if (evidence.unicode < evidence.zawgyi) evidence.encoding = "zawgyi";
+        return evidence;
       }
-      function scoreWithMyanmarTools(content, fallback, threshold) {
-        var probability = myanmartoolZawgyiDetector.getZawgyiProbability(content);
+      function decide(evidence, fallback) {
+        return evidence.encoding === "unknown" ? fallback : evidence.encoding;
+      }
+      function scoreWithMyanmarTools(zawgyiDetector, content, fallback, threshold) {
+        var probability = zawgyiDetector.getZawgyiProbability(content);
         if (probability < threshold[0]) return "unicode";
         if (probability > threshold[1]) return "zawgyi";
         return fallback;
       }
-      var warnedMissingMyanmarTools = false;
-      function chooseAdapter(options) {
-        if (options.adapter === "rules" || options.adapter === "myanmartools") {
-          return options.adapter;
-        }
-        if (options.use_myanmartools) return "myanmartools";
-        return "rules";
-      }
-      function fontDetect(content, fallback_font_type, options = {}) {
+      function textToDetect(content, apiName) {
         content = gate.toText(content);
-        if (gate.isMissing(content)) {
-          if (!globalOptions.isSilentMode()) console.warn("Content must be specified on knayi.fontDetect.");
-          return fallback_font_type || "en";
+        if (gate.isMissing(content) && !globalOptions.isSilentMode()) {
+          console.warn("Content must be specified on knayi." + apiName + ".");
         }
-        if (!gate.hasMyanmar(content))
-          return fallback_font_type || "en";
-        content = gate.cleanText(content, true);
+        return gate.hasMyanmar(content) ? gate.cleanText(content, true) : null;
+      }
+      var warnedMissingMyanmarTools = false;
+      function chooseAdapter(requested, use_myanmartools) {
+        requested = gate.givenName(requested);
+        if (requested === "rules" || requested === "myanmartools") return requested;
+        if (requested && !globalOptions.isSilentMode()) {
+          console.warn("Unknown adapter " + JSON.stringify(requested) + " on knayi.fontDetect.");
+        }
+        return use_myanmartools ? "myanmartools" : "rules";
+      }
+      function fontDetect(content, fallback_font_type, options) {
+        fallback_font_type = gate.givenName(fallback_font_type);
+        content = textToDetect(content, "fontDetect");
+        if (content === null) return fallback_font_type || "en";
         fallback_font_type = fallback_font_type || "zawgyi";
-        var requestedAdapter = options.adapter;
+        var requestedAdapter = options && options.adapter;
         options = globalOptions.detector(options);
-        if (requestedAdapter) options.adapter = requestedAdapter;
-        if (chooseAdapter(options) === "rules") {
-          return scoreWithRules(content, fallback_font_type);
+        if (chooseAdapter(requestedAdapter, options.use_myanmartools) === "rules") {
+          return decide(countEvidence(content), fallback_font_type);
         }
-        if (!loadMyanmarTools()) {
+        var zawgyiDetector = options.zawgyiDetector || loadMyanmarTools();
+        if (!zawgyiDetector) {
           if (!globalOptions.isSilentMode() && !warnedMissingMyanmarTools) {
             console.warn(missingMyanmarToolsMessage());
             warnedMissingMyanmarTools = true;
           }
-          return scoreWithRules(content, fallback_font_type);
+          return decide(countEvidence(content), fallback_font_type);
         }
-        return scoreWithMyanmarTools(content, fallback_font_type, options.myanmartools_zg_threshold);
+        return scoreWithMyanmarTools(zawgyiDetector, content, fallback_font_type, options.myanmartools_zg_threshold);
       }
-      module.exports = fontDetect;
+      function detectEncoding(content) {
+        content = textToDetect(content, "detectEncoding");
+        return content === null ? { encoding: "none", unicode: 0, zawgyi: 0 } : countEvidence(content);
+      }
+      module.exports = {
+        fontDetect,
+        detectEncoding
+      };
     }
   });
 
-  // library/syllable.js
-  var require_syllable = __commonJS({
-    "library/syllable.js"(exports, module) {
+  // library/syllableRules.js
+  var require_syllableRules = __commonJS({
+    "library/syllableRules.js"(exports, module) {
+      "use strict";
       var convertRules = {
         unicode: {
           zawgyi: {
@@ -253,7 +297,7 @@ var knayi = (() => {
               // ့ rules
               [/([\u1033\u1034])[\u1037\u1094]/g, "$1\u1095"],
               // [/\u107e([\u1000-\u1021])/],
-              [/\u1004\u103a\u1039/g, "\u1064"],
+              [/[\u1004]\u103a\u1039/g, "\u1064", "\\u1004\\u103a\\u1039"],
               [/\u1064([\u1000-\u1021])/g, "$1\u1064"],
               // င်္ + ျ ြ ွ ှ ့ ု ူ + ိ ီ ံ
               [/\u1064([\u103b\u103c\u103d\u103e\u1037\u102f\u1030]*)\u102d/g, "\u108B$1"],
@@ -289,15 +333,17 @@ var knayi = (() => {
               [/\u1039\u1011/g, "\u1073"],
               [/\u1039\u1010/g, "\u1071"],
               [/\u1039\u100f/g, "\u1070"],
-              [/\u100d\u1039\u100e/g, "\u106F"],
-              [/\u100f\u1039\u100d/g, "\u1091"],
-              [/\u100d\u1039\u100d/g, "\u106E"],
-              [/\u100b\u1039\u100c/g, "\u1092"],
+              [/[\u100d]\u1039\u100e/g, "\u106F", "\\u100d\\u1039\\u100e"],
+              [/[\u100f]\u1039\u100d/g, "\u1091", "\\u100f\\u1039\\u100d"],
+              [/[\u100d]\u1039\u100d/g, "\u106E", "\\u100d\\u1039\\u100d"],
+              [/[\u100b]\u1039\u100c/g, "\u1092", "\\u100b\\u1039\\u100c"],
               [/\u1039\u100c/g, "\u106D"],
-              [/\u100b\u1039\u100b/g, "\u1097"],
+              [/[\u100b]\u1039\u100b/g, "\u1097", "\\u100b\\u1039\\u100b"],
               [/\u1039\u100b/g, "\u106C"],
               // [/\u1009/g, "\u106a"],
               [/\u1039\u1005\u103b/g, "\u1069"],
+              [/\u1039\u1008/g, "\u1069"],
+              // stacked jha, which the rule above writes for stacked ca with medial ya
               [/\u1039\u1007/g, "\u1068"],
               [/\u1039\u1006/g, "\u1066"],
               [/\u1039\u1005/g, "\u1065"],
@@ -316,6 +362,9 @@ var knayi = (() => {
               [/\u103e/g, "\u103D"],
               [/([^\u1000\u1003\u1006\u100f\u1010\u1011\u1018\u1021\u101a\u101c\u101e\u101f])\u1071/g, "$1\u1072"]
             ],
+            // Rules that apply while they match. One replace is enough: each replaces the medial ra its pattern starts
+            // with (U+103B or U+107E) by another glyph, and the rest of its pattern matches neither of those two nor
+            // the glyphs the rule writes, so one replace finds every match and makes no new one (test/syllable.test.js).
             asLongAsMatch: [
               // [/([\u103b\u103c\u103d\u103e])\u1031/g, "\u1031$1"],
               [/\u103b([\u1000\u1003\u1006\u100f\u1010\u1011\u1018\u1021\u101a\u101c\u101e\u101f])/g, "\u107E$1"],
@@ -330,119 +379,18 @@ var knayi = (() => {
           }
         }
       };
-      var C = "\u1000-\u1021";
-      var M = "\u103B\u103C\u103D\u103E";
-      var V = "\u102B\u102C\u102D\u102E\u102F\u1030\u1031\u1032";
-      var S = "\u1039";
-      var A = "\u103A";
-      var F = "\u1036\u1037\u1038";
-      var MEDIALS = M;
-      var VOWELS = V;
-      var TONES = F;
-      var ASAT = A;
-      var VIRAMA = S;
-      var KINZI = "\u1004" + ASAT + VIRAMA;
-      var CONSONANT = new RegExp("[" + C + "]");
-      function isConsonant(ch) {
-        return !!ch && CONSONANT.test(ch);
-      }
-      function parseUnicode(content) {
-        var syllables = [];
-        var i = 0;
-        while (i < content.length) {
-          var start = i;
-          var kinzi = false;
-          if (content.slice(i, i + KINZI.length) === KINZI && isConsonant(content[i + KINZI.length])) {
-            kinzi = true;
-            i += KINZI.length;
-          }
-          if (!isConsonant(content[i])) {
-            syllables.push({ raw: content[start] });
-            i = start + 1;
-            continue;
-          }
-          var onset = "";
-          while (isConsonant(content[i])) {
-            onset += content[i];
-            i += 1;
-            if (content[i] === VIRAMA && isConsonant(content[i + 1])) {
-              onset += VIRAMA + content[i + 1];
-              i += 2;
-            } else {
-              break;
-            }
-          }
-          var medials = "";
-          var vowel = "";
-          var marks = "";
-          var coda = "";
-          var tones = "";
-          while (i < content.length) {
-            var ch = content[i];
-            if (MEDIALS.indexOf(ch) !== -1) {
-              medials += ch;
-              marks += ch;
-              i += 1;
-              continue;
-            }
-            if (VOWELS.indexOf(ch) !== -1) {
-              vowel += ch;
-              marks += ch;
-              i += 1;
-              continue;
-            }
-            if (TONES.indexOf(ch) !== -1) {
-              tones += ch;
-              marks += ch;
-              i += 1;
-              continue;
-            }
-            if (ch === ASAT) {
-              marks += ch;
-              i += 1;
-              continue;
-            }
-            if (isConsonant(ch) && content[i + 1] === ASAT) {
-              coda += ch + ASAT;
-              i += 2;
-              continue;
-            }
-            break;
-          }
-          syllables.push({
-            kinzi,
-            onset,
-            medials,
-            vowel,
-            coda,
-            tones,
-            marks
-          });
-        }
-        return syllables;
-      }
-      function serializeUnicode(syllables) {
-        return syllables.map(function(syllable) {
-          if (syllable.raw != null) return syllable.raw;
-          return (syllable.kinzi ? KINZI : "") + syllable.onset + syllable.medials + syllable.vowel + syllable.coda + syllable.tones;
-        }).join("");
-      }
-      function compileCollapse(chars) {
-        return chars.split(" ").map(function(ch) {
-          return [new RegExp("[" + ch + "]{2,}", "g"), ch];
-        });
-      }
+      var COLLAPSE_MARKS = {
+        unicode: "\u102B\u102C\u102D\u102E\u102F\u1030\u1031\u1032\u1036\u1037\u1038\u103A\u103B\u103C\u103D\u103E\u1039",
+        zawgyi: "\u102B\u102C\u102D\u102E\u102F\u1030\u1031\u1032\u1033\u1034\u1036\u1037\u1038\u1039\u103A\u103B\u103C\u103D\u105A\u1060\u1061\u1062\u1063\u1064\u1065\u1066\u1067\u1068\u1069\u106A\u106B\u106C\u106D\u1070\u1071\u1072\u1073\u1074\u1075\u1076\u1077\u1078\u1079\u107A\u107B\u107C\u107D\u107E\u107F\u1080\u1081\u1082\u1083\u1084\u1085\u1087\u1088\u1089\u108A\u108B\u108C\u108D\u108E\u1093\u1094\u1095\u1096"
+      };
       var COLLAPSE = {
-        unicode: compileCollapse("\u102B \u102C \u102D \u102E \u102F \u1030 \u1031 \u1032 \u1036 \u1037 \u1038 \u103A \u103B \u103C \u103D \u103E \u1039"),
-        zawgyi: compileCollapse("\u102B \u102C \u102D \u102E \u102F \u1030 \u1031 \u1032 \u1033 \u1034 \u1036 \u1037 \u1038 \u1039 \u103A \u103B \u103C \u103D \u105A \u1060 \u1061 \u1062 \u1063 \u1064 \u1065 \u1066 \u1067 \u1068 \u1069 \u106A \u106B \u106C \u106D \u1070 \u1071 \u1072 \u1073 \u1074 \u1075 \u1076 \u1077 \u1078 \u1079 \u107A \u107B \u107C \u107D \u107E \u107F \u1080 \u1081 \u1082 \u1083 \u1084 \u1085 \u1087 \u1088 \u1089 \u108A \u108B \u108C \u108D \u108E \u1093 \u1094 \u1095 \u1096")
+        unicode: new RegExp("([" + COLLAPSE_MARKS.unicode + "])\\1\\1*", "g"),
+        zawgyi: new RegExp("([" + COLLAPSE_MARKS.zawgyi + "])\\1\\1*", "g")
       };
       function collapseMarks(content, fontType) {
-        var rules = COLLAPSE[fontType] || COLLAPSE.unicode;
-        for (var i = 0; i < rules.length; i++) {
-          rules[i][0].lastIndex = 0;
-          content = content.replace(rules[i][0], rules[i][1]);
-        }
-        return content;
+        var re = Object.prototype.hasOwnProperty.call(COLLAPSE, fontType) ? COLLAPSE[fontType] : COLLAPSE.unicode;
+        re.lastIndex = 0;
+        return content.replace(re, "$1");
       }
       var BREAK_RULES = {
         zawgyi: [
@@ -478,20 +426,35 @@ var knayi = (() => {
           [/([\u1000-\u1021])\u200B([\u1000-\u1021])/g, "$1$2"]
         ]
       };
-      function breakParts(content, fontType) {
+      function markBreaks(content, fontType, whole) {
         var rules = BREAK_RULES[fontType];
         var text = content;
         for (var i = 0; i < rules.length; i++) {
-          if (rules[i][2] && rules[i][2].test(content)) continue;
+          if (rules[i][2] && rules[i][2].test(whole || content)) continue;
           rules[i][0].lastIndex = 0;
           text = text.replace(rules[i][0], rules[i][1]);
         }
-        text = text.replace(/^\u200B/, "");
-        return text.split(/[\u200B\u200C]/);
+        return text.replace(/^\u200B/, "");
+      }
+      function breakParts(content, fontType) {
+        return markBreaks(content, fontType).split(/[\u200B\u200C]/);
+      }
+      var WHITESPACE = /\s/g;
+      function breakStart(content, fontType, length) {
+        WHITESPACE.lastIndex = length + 1;
+        var space = content.length > length && WHITESPACE.exec(content);
+        if (!space) return breakParts(content, fontType);
+        return markBreaks(content.slice(0, space.index), fontType, content).split(/[\u200B\u200C]/);
+      }
+      function isDefaultBreakpoint(breakpoint) {
+        return !breakpoint || breakpoint === "\u200B";
       }
       function joinParts(parts, breakpoint) {
-        var breakChar = breakpoint && breakpoint !== "\u200B" ? breakpoint : "\u200B";
-        return parts.join(breakChar);
+        return parts.join(isDefaultBreakpoint(breakpoint) ? "\u200B" : breakpoint);
+      }
+      function breakText(content, fontType, breakpoint) {
+        if (isDefaultBreakpoint(breakpoint)) return markBreaks(content, fontType);
+        return joinParts(breakParts(content, fontType), breakpoint);
       }
       function ruleMatches(rule, content) {
         var re = rule[0];
@@ -503,24 +466,12 @@ var knayi = (() => {
         re.lastIndex = 0;
         return content.replace(re, rule[1]);
       }
-      function replaceRepeated(content, rule) {
-        var guard = 0;
-        while (guard < 40) {
-          guard += 1;
-          if (!ruleMatches(rule, content)) break;
-          var next = replaceOnce(content, rule);
-          if (next === content) break;
-          content = next;
-        }
-        return content;
-      }
       function convertText(content, from, to, debug) {
         var refLib = convertRules[from][to];
         var logs = debug ? { to, from, matched_patterns: [], steps: [] } : null;
         function record(rule, current) {
           if (!logs) return;
-          if (!ruleMatches(rule, current)) return;
-          logs.matched_patterns.push(rule[0].source);
+          logs.matched_patterns.push(rule[2] || rule[0].source);
           logs.steps.push(current);
         }
         for (var i = 0; i < refLib.oneTime.length; i++) {
@@ -529,8 +480,9 @@ var knayi = (() => {
           content = next;
         }
         for (var j = 0; j < refLib.asLongAsMatch.length; j++) {
+          if (!ruleMatches(refLib.asLongAsMatch[j], content)) continue;
           record(refLib.asLongAsMatch[j], content);
-          content = replaceRepeated(content, refLib.asLongAsMatch[j]);
+          content = replaceOnce(content, refLib.asLongAsMatch[j]);
         }
         if (logs) {
           logs.steps.push(content);
@@ -539,11 +491,11 @@ var knayi = (() => {
         return content;
       }
       module.exports = {
-        parseUnicode,
-        serializeUnicode,
         collapseMarks,
         breakParts,
+        breakStart,
         joinParts,
+        breakText,
         convertText
       };
     }
@@ -552,6 +504,7 @@ var knayi = (() => {
   // library/typingFixes.js
   var require_typingFixes = __commonJS({
     "library/typingFixes.js"(exports, module) {
+      "use strict";
       var ZERO = "\u1040";
       var SEVEN = "\u1047";
       var WA = "\u101D";
@@ -639,10 +592,105 @@ var knayi = (() => {
     }
   });
 
+  // library/nfc.js
+  var require_nfc = __commonJS({
+    "library/nfc.js"(exports, module) {
+      "use strict";
+      var LONGEST = 30;
+      var HIGH = String.fromCharCode(4154);
+      var LOW = String.fromCharCode(4151);
+      var kinds = null;
+      var parts = {};
+      var classes = [];
+      var classOf = {};
+      function nfd(text) {
+        return text.normalize("NFD");
+      }
+      function classFor(y) {
+        var i, mark;
+        if (classOf[y]) return classOf[y];
+        for (i = 0; i < classes.length; i++) {
+          mark = classes[i].mark;
+          if (nfd(mark + y) !== mark + y) break;
+          if (nfd(y + mark) === y + mark) return classOf[y] = classes[i];
+        }
+        classes.splice(i, 0, classOf[y] = { mark: y });
+        for (i = 0; i < classes.length; i++) classes[i].rank = i;
+        return classOf[y];
+      }
+      function decompose(code) {
+        var d = nfd(String.fromCodePoint(code));
+        var list = [];
+        var i, y, probe;
+        for (i = 0; i < d.length; i += y.length) {
+          y = String.fromCodePoint(d.codePointAt(i));
+          probe = HIGH + y + LOW;
+          if (nfd(probe) === probe) return null;
+          list.push(y, classFor(y));
+        }
+        return parts[code] = list;
+      }
+      function isRunAt(text, i) {
+        var code = text.charCodeAt(i);
+        if (code < 768) return false;
+        if (code >= 55296 && code < 57344) {
+          code = text.codePointAt(code < 56320 ? i : i - 1) | 0;
+          if (code < 65536) return false;
+        }
+        if (code > 131071) return !!(parts[code] || decompose(code));
+        if (!kinds) kinds = new Uint8Array(131072);
+        if (!kinds[code]) kinds[code] = decompose(code) ? 2 : 1;
+        return kinds[code] === 2;
+      }
+      function inOrder(text, from, to) {
+        var buckets = [];
+        var out = "";
+        var i, j, list, code, rank;
+        for (i = from; i < to; i += code > 65535 ? 2 : 1) {
+          code = text.codePointAt(i);
+          list = parts[code];
+          for (j = 0; j < list.length; j += 2) {
+            rank = list[j + 1].rank;
+            (buckets[rank] || (buckets[rank] = [])).push(list[j]);
+          }
+        }
+        for (i = 0; i < buckets.length; i++) {
+          if (buckets[i]) out += buckets[i].join("");
+        }
+        return out;
+      }
+      function reorder(text, longest) {
+        var out = "";
+        var done = 0;
+        var i, from, to;
+        for (i = longest; i < text.length; i += longest + 1) {
+          if (isRunAt(text, i)) {
+            from = i;
+            to = i + 1;
+            while (from > done && isRunAt(text, from - 1)) from--;
+            while (to < text.length && isRunAt(text, to)) to++;
+            if (to - from > longest) {
+              out += text.slice(done, from) + inOrder(text, from, to);
+              done = i = to;
+            }
+          }
+        }
+        return done ? out + text.slice(done) : text;
+      }
+      function nfc(text) {
+        return reorder(text, LONGEST).normalize("NFC");
+      }
+      nfc.reorder = reorder;
+      module.exports = nfc;
+    }
+  });
+
   // library/storageOrder.js
   var require_storageOrder = __commonJS({
     "library/storageOrder.js"(exports, module) {
+      "use strict";
       var typingFixes = require_typingFixes();
+      var nfc = require_nfc();
       var BASE = "base";
       var PRE = "pre";
       var MARK = "mark";
@@ -681,16 +729,9 @@ var knayi = (() => {
       var FIRST_VOWEL = 5;
       var ASAT = "\u103A";
       var VIRAMA = "\u1039";
-      var VISARGA = "\u1038";
-      var AA = "\u102B\u102C";
       var AA_TALL = "\u102B";
       var AA_SHORT = "\u102C";
       var ANUSVARA = "\u1036";
-      var LOWER_VOWELS = "\u102F\u1030";
-      var E_AA = "\u1031\u102B\u102C";
-      var I = "\u102D\u102E";
-      var DOT_BELOW = "\u1037";
-      var MEDIALS = "\u103B\u103C\u103D\u103E";
       var MEDIAL_YA = "\u103B";
       var MEDIAL_HA = "\u103E";
       var CA = "\u1005";
@@ -711,10 +752,19 @@ var knayi = (() => {
         var index = RANK[mark];
         return index === void 0 ? MARK_ORDER.length : index;
       }
-      function hasAny(marks, set, end) {
-        var stop = end === void 0 ? marks.length : end;
-        for (var i = 0; i < stop; i++) {
-          if (set.indexOf(marks[i]) >= 0) return true;
+      var MEDIAL_YA_BIT = 1 << 0;
+      var MEDIAL_BITS = 1 << 0 | 1 << 1 | 1 << 2 | 1 << 3;
+      var MEDIAL_HA_BIT = 1 << 3;
+      var E_AA_BITS = 1 << 4 | 1 << 7;
+      var I_BIT = 1 << 5;
+      var LOWER_VOWEL_BIT = 1 << 6;
+      var AA_BIT = 1 << 7;
+      var DOT_BELOW_BIT = 1 << 9;
+      var ASAT_BIT = 1 << 10;
+      var VISARGA_BIT = 1 << 11;
+      function isEOrAaBefore(marks, end) {
+        for (var i = 0; i < end; i++) {
+          if (1 << rank(marks[i]) & E_AA_BITS) return true;
         }
         return false;
       }
@@ -733,26 +783,32 @@ var knayi = (() => {
         if (!syllable.marks.length && !stack) return syllable.kinzi + base;
         var stacked = stack !== "" || base.indexOf(VIRAMA) > 0;
         var marks = [];
+        var rankBits = 0;
         for (var m = 0; m < syllable.marks.length; m++) {
-          if (marks.indexOf(syllable.marks[m]) < 0) marks.push(syllable.marks[m]);
+          var typed = syllable.marks[m];
+          var bit = 1 << rank(typed);
+          if (!(rankBits & bit) || marks.indexOf(typed) < 0) {
+            marks.push(typed);
+            rankBits |= bit;
+          }
         }
         var early = false;
         var afterMedials = false;
-        var asat = marks.indexOf(ASAT);
-        var hasAa = hasAny(marks, AA);
-        if (asat >= 0) {
-          var dotBelow = marks.indexOf(DOT_BELOW) >= 0;
-          var slip = !hasAa && (hasAny(marks, I) || stacked && !dotBelow);
-          var last = dotBelow || hasAny(marks, E_AA, asat) || hasAa && !hasAny(marks, MEDIALS);
+        var hasAa = rankBits & AA_BIT;
+        if (rankBits & ASAT_BIT) {
+          var asat = marks.indexOf(ASAT);
+          var dotBelow = rankBits & DOT_BELOW_BIT;
+          var slip = !hasAa && (rankBits & I_BIT || stacked && !dotBelow);
+          var last = dotBelow || isEOrAaBefore(marks, asat) || hasAa && !(rankBits & MEDIAL_BITS);
           if (slip) {
             marks.splice(asat, 1);
           } else if (!last) {
             marks.splice(asat, 1);
-            if (marks.indexOf(MEDIAL_HA) >= 0) afterMedials = true;
+            if (rankBits & MEDIAL_HA_BIT) afterMedials = true;
             else early = true;
           }
         }
-        var ya = marks.indexOf(MEDIAL_YA);
+        var ya = rankBits & MEDIAL_YA_BIT ? marks.indexOf(MEDIAL_YA) : -1;
         if (ya >= 0 && stack.slice(-1) === CA) {
           stack = stack.slice(0, -1) + JHA;
           marks.splice(ya, 1);
@@ -763,11 +819,11 @@ var knayi = (() => {
         if (base === U && !syllable.keepU && (stacked || early || afterMedials || marks.indexOf(ASAT) >= 0 || hasAa)) {
           base = NYA;
         }
-        var marksBesidesVisarga = marks.length - (marks.indexOf(VISARGA) >= 0 ? 1 : 0);
+        var marksBesidesVisarga = marks.length - (rankBits & VISARGA_BIT ? 1 : 0);
         if (base === SEVEN && (early || afterMedials || marksBesidesVisarga > 0)) {
           base = RA;
         }
-        var lower = hasAny(marks, LOWER_VOWELS);
+        var lower = rankBits & LOWER_VOWEL_BIT;
         var ranks = RANKS;
         for (var r = 0; r < marks.length; r++) {
           var markRank = rank(marks[r]);
@@ -808,15 +864,23 @@ var knayi = (() => {
         };
       }
       function font(table, sequences) {
-        var glyphs = /* @__PURE__ */ new Map();
-        Object.keys(table).forEach(function(ch) {
+        var chars = Object.keys(table);
+        var length = 4176;
+        chars.forEach(function(ch) {
+          length = Math.max(length, ch.charCodeAt(0) + 1);
+        });
+        var glyphs = new Array(length).fill(null);
+        chars.forEach(function(ch) {
           var entry = table[ch];
-          glyphs.set(ch.charCodeAt(0), glyph(entry[0], entry[1], entry[2] || ""));
+          glyphs[ch.charCodeAt(0)] = glyph(entry[0], entry[1], entry[2] || "");
         });
         for (var code = 4096; code <= 4175; code++) {
-          if (!glyphs.has(code) && isMyanmarLetter(code)) glyphs.set(code, glyph(BASE, String.fromCharCode(code), ""));
+          if (glyphs[code] === null && isMyanmarLetter(code)) glyphs[code] = glyph(BASE, String.fromCharCode(code), "");
         }
         return { glyphs, sequences };
+      }
+      function glyphAt(glyphs, code) {
+        return code < glyphs.length ? glyphs[code] : null;
       }
       function arrange(content, glyphs) {
         var out = "";
@@ -844,8 +908,8 @@ var knayi = (() => {
             out += content.charAt(i);
             continue;
           }
-          var g = glyphs.get(code);
-          if (g === void 0) {
+          var g = glyphAt(glyphs, code);
+          if (g === null) {
             write(content.charAt(i));
           } else if (g.role === BASE) {
             close();
@@ -984,8 +1048,8 @@ var knayi = (() => {
       function glyphsInTypedOrder(content, glyphs) {
         var out = "";
         for (var i = 0; i < content.length; i++) {
-          var g = glyphs.get(content.charCodeAt(i));
-          out += g === void 0 ? content.charAt(i) : g.text + g.extra;
+          var g = glyphAt(glyphs, content.charCodeAt(i));
+          out += g === null ? content.charAt(i) : g.text + g.extra;
         }
         return out;
       }
@@ -1017,9 +1081,9 @@ var knayi = (() => {
         if (debug) step("glyphs", glyphsInTypedOrder(text, font2.glyphs));
         var result = step("syllables", arrange(text, font2.glyphs));
         result = step("zero as wa", zeroAsWa(result));
-        result = step("look-alikes", typingFixes.lookAlikes(result));
         result = step("typos", typingFixes.typos(result));
-        result = step("NFC", result.normalize("NFC"));
+        result = step("look-alikes", typingFixes.lookAlikes(result));
+        result = step("NFC", nfc(result));
         return debug ? { matched_patterns: patterns, steps } : result;
       }
       module.exports = {
@@ -1034,6 +1098,7 @@ var knayi = (() => {
   // library/win.js
   var require_win = __commonJS({
     "library/win.js"(exports, module) {
+      "use strict";
       var storageOrder = require_storageOrder();
       var BASE = storageOrder.ROLES.BASE;
       var PRE = storageOrder.ROLES.PRE;
@@ -1393,6 +1458,7 @@ var knayi = (() => {
   // library/zawgyi.js
   var require_zawgyi = __commonJS({
     "library/zawgyi.js"(exports, module) {
+      "use strict";
       var storageOrder = require_storageOrder();
       var BASE = storageOrder.ROLES.BASE;
       var PRE = storageOrder.ROLES.PRE;
@@ -1584,55 +1650,69 @@ var knayi = (() => {
   // library/converter.js
   var require_converter = __commonJS({
     "library/converter.js"(exports, module) {
-      var fontDetect = require_detector();
+      "use strict";
+      var fontDetect = require_detection().fontDetect;
       var globalOptions = require_globalOptions();
       var gate = require_contentGate();
-      var syllable = require_syllable();
+      var syllable = require_syllableRules();
       var win = require_win();
       var zawgyi = require_zawgyi();
       var DRAWING_ORDER_FONTS = { win, zawgyi };
       function fontConvert(content, to, from) {
+        return convert(content, to, from, false);
+      }
+      function convert(content, to, from, debug) {
         content = gate.toText(content);
         if (gate.isMissing(content)) {
           if (!globalOptions.isSilentMode()) console.warn("Content must be specified on knayi.fontConvert.");
-          return "";
+          return unconverted("", to, from, debug);
         }
         if (typeof content !== "string")
           return content;
         if (gate.resolveFont(from) !== "win" && !gate.hasMyanmar(content))
-          return content;
+          return unconverted(content, to, from, debug);
         if (!to) {
           if (!globalOptions.isSilentMode()) console.error("Convert target font must be specified on knayi.fontConvert.");
-          return content;
+          return unconverted(content, to, from, debug);
         }
         content = content.trim();
+        var source = gate.givenName(from);
         to = gate.resolveFont(to);
         from = gate.resolveFont(from);
         if (!to) {
-          if (!globalOptions.isSilentMode()) console.error("Convert library dosen't have this fontType.");
-          return content;
+          if (!globalOptions.isSilentMode()) console.error("Convert library doesn't have this fontType.");
+          return unconverted(content, to, from, debug);
         } else if (!from) {
+          if (source !== null && !globalOptions.isSilentMode()) {
+            console.warn("Unknown source font " + JSON.stringify(source) + " on knayi.fontConvert; detecting it.");
+          }
           from = fontDetect(content);
         }
         if (to === from) {
-          return content;
+          return unconverted(content, to, from, debug);
         }
         if (to === "win" || from === "win" && to !== "unicode") {
           if (!globalOptions.isSilentMode()) console.error("knayi.fontConvert converts Win text to Unicode only.");
-          return content;
+          return unconverted(content, to, from, debug);
         }
-        var debug = this && this.debug;
         if (DRAWING_ORDER_FONTS[from]) return drawingOrderToUnicode(content, from, debug);
         content = syllable.collapseMarks(content, from);
         return syllable.convertText(content, from, to, debug);
+      }
+      function unconverted(text, to, from, debug) {
+        if (!debug) return text;
+        return { to: fontName(to), from: fontName(from), matched_patterns: [], steps: [text] };
+      }
+      function fontName(font) {
+        return gate.resolveFont(gate.givenName(font)) || "";
       }
       function drawingOrderToUnicode(content, from, debug) {
         var result = DRAWING_ORDER_FONTS[from].toUnicode(content, debug);
         if (!debug) return result;
         return { to: "unicode", from, matched_patterns: result.matched_patterns, steps: result.steps };
       }
-      fontConvert.debugging = function(param1, param2, param3) {
-        return fontConvert.apply({ debug: true }, [param1, param2, param3]);
+      fontConvert.debugging = function(content, to, from) {
+        return convert(content, to, from, true);
       };
       module.exports = fontConvert;
     }
@@ -1641,10 +1721,11 @@ var knayi = (() => {
   // library/syllBreak.js
   var require_syllBreak = __commonJS({
     "library/syllBreak.js"(exports, module) {
-      var fontDetect = require_detector();
+      "use strict";
+      var fontDetect = require_detection().fontDetect;
       var globalOptions = require_globalOptions();
       var gate = require_contentGate();
-      var syllable = require_syllable();
+      var syllable = require_syllableRules();
       function syllBreak(content, fontType, breakpoint) {
         content = gate.toText(content);
         if (gate.isMissing(content)) {
@@ -1654,11 +1735,8 @@ var knayi = (() => {
         if (!gate.hasMyanmar(content))
           return content;
         content = gate.cleanText(content, true);
-        if (!fontType)
-          fontType = fontDetect(content);
-        else
-          fontType = gate.resolveFont(fontType) || fontType;
-        return syllable.joinParts(syllable.breakParts(content, fontType), breakpoint);
+        var font = gate.breakFont(fontType, "syllBreak") || fontDetect(content);
+        return syllable.breakText(content, font, breakpoint);
       }
       module.exports = syllBreak;
     }
@@ -1667,10 +1745,11 @@ var knayi = (() => {
   // library/spellingCheck.js
   var require_spellingCheck = __commonJS({
     "library/spellingCheck.js"(exports, module) {
-      var fontDetect = require_detector();
+      "use strict";
+      var fontDetect = require_detection().fontDetect;
       var globalOptions = require_globalOptions();
       var gate = require_contentGate();
-      var syllable = require_syllable();
+      var syllable = require_syllableRules();
       function spellingFix(content, fontType) {
         content = gate.toText(content);
         if (gate.isMissing(content)) {
@@ -1679,10 +1758,8 @@ var knayi = (() => {
         }
         if (!gate.hasMyanmar(content))
           return content;
-        if (!fontType)
-          fontType = fontDetect(content);
-        else
-          fontType = gate.resolveFont(fontType) || fontType;
+        var name = gate.givenName(fontType);
+        fontType = name === null ? fontDetect(content) : gate.resolveFont(name) || name;
         content = gate.cleanText(content, true);
         return syllable.collapseMarks(content, fontType);
       }
@@ -1693,16 +1770,28 @@ var knayi = (() => {
   // library/truncate.js
   var require_truncate = __commonJS({
     "library/truncate.js"(exports, module) {
-      var fontDetect = require_detector();
+      "use strict";
+      var fontDetect = require_detection().fontDetect;
       var globalOptions = require_globalOptions();
       var gate = require_contentGate();
-      var syllable = require_syllable();
+      var syllable = require_syllableRules();
+      function fitParts(parts, budget) {
+        var kept = "";
+        for (var i = 0; i < parts.length; i++) {
+          var left = budget - kept.length;
+          if (!(parts[i].length <= left)) {
+            return left > 0 ? kept + parts[i].slice(0, parts[i].slice(0, left).search(/\s\S*$/) + 1) : kept;
+          }
+          kept += parts[i];
+        }
+        return kept;
+      }
       function truncate(content, options) {
         options = options || {};
         var fontType = options.fontType;
         var length = options.length || 30;
         var omission = options.omission || "...";
-        var absoulteLength = length - omission.length;
+        var budget = length - omission.length;
         content = gate.toText(content);
         if (content !== "" && gate.isMissing(content)) {
           if (!globalOptions.isSilentMode()) console.warn("Content must be specified on knayi.truncate.");
@@ -1711,29 +1800,9 @@ var knayi = (() => {
         if (typeof content !== "string")
           content = String(content);
         if (content === "" || !gate.hasMyanmar(content))
-          return content.substr(0, absoulteLength) + omission;
-        if (!fontType)
-          fontType = fontDetect(content);
-        else
-          fontType = gate.resolveFont(fontType) || fontType;
-        var syllables = syllable.breakParts(gate.cleanText(content, true), fontType);
-        return syllables.reduce(function(curr, syll) {
-          var left = absoulteLength - curr.length;
-          if (left > 0) {
-            if (syll.length <= left) {
-              curr += syll;
-            } else {
-              var spaceBreak = syll.split(/\s/);
-              curr += spaceBreak.reduce(function(_curr, word) {
-                if (word.length + 1 <= left - _curr.length) {
-                  _curr += word + " ";
-                }
-                return _curr;
-              }, "");
-            }
-          }
-          return curr;
-        }, "").trim() + omission;
+          return content.substr(0, budget) + omission;
+        var font = gate.breakFont(fontType, "truncate") || fontDetect(content);
+        return fitParts(syllable.breakStart(gate.cleanText(content, true), font, budget), budget).trim() + omission;
       }
       module.exports = truncate;
     }
@@ -1742,10 +1811,13 @@ var knayi = (() => {
   // library/normalization.js
   var require_normalization = __commonJS({
     "library/normalization.js"(exports, module) {
+      "use strict";
       var globalOptions = require_globalOptions();
       var gate = require_contentGate();
       var storageOrder = require_storageOrder();
       var typingFixes = require_typingFixes();
+      var nfc = require_nfc();
+      var MYANMAR_BLOCKS = /[\u1000-\u109F\uA9E0-\uA9FF\uAA60-\uAA7F]/;
       function normalize(content) {
         content = gate.toText(content);
         if (gate.isMissing(content)) {
@@ -1754,8 +1826,10 @@ var knayi = (() => {
         }
         if (typeof content !== "string")
           return content;
-        var text = storageOrder.arrangeUnicode(content.normalize("NFC"));
-        return typingFixes.lookAlikes(typingFixes.typos(text)).normalize("NFC");
+        var text = nfc(content);
+        if (!MYANMAR_BLOCKS.test(text)) return text;
+        text = storageOrder.arrangeUnicode(text);
+        return nfc(typingFixes.lookAlikes(typingFixes.typos(text)));
       }
       module.exports = normalize;
     }
@@ -1765,7 +1839,7 @@ var knayi = (() => {
   var require_main = __commonJS({
     "main.js"(exports, module) {
       var globalOptions = require_globalOptions();
-      var fontDetect = require_detector();
+      var detection = require_detection();
       var fontConvert = require_converter();
       var syllBreak = require_syllBreak();
       var spellingFix = require_spellingCheck();
@@ -1773,10 +1847,13 @@ var knayi = (() => {
       var normalize = require_normalization();
       var version = "2.10.0";
       var setGlobalOptions = globalOptions.setOptions;
+      var fontDetect = detection.fontDetect;
+      var detectEncoding = detection.detectEncoding;
       module.exports = {
         version,
         setGlobalOptions,
         fontDetect,
+        detectEncoding,
         fontConvert,
         syllBreak,
         spellingFix,
