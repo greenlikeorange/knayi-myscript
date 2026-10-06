@@ -2,8 +2,10 @@ name: perf A/A
 
 # An A/A run of scripts/eval/perf.mjs on GitHub's runners: the same copy timed against itself, several times. The
 # spread of its ratios is what the Perf job's limits must stay above, so this sets the --max-slowdown that blocks a
-# pull request (20% until a run here gives a better number) and checks the 1.3 growth exponent bound. Run it by
-# hand from the Actions tab, then record the spread in CONTRIBUTING.md ("Speed is measured, not assumed").
+# pull request (20% until a run here gives a better number), and shows how the growth gate reads linear code here:
+# how many screen readings go above the 1.3 soft bound, and the highest confirmed exponent, which fails at 1.5
+# (scripts/testing/growth.js). Run it by hand from the Actions tab, then record the spread in CONTRIBUTING.md
+# ("Speed is measured, not assumed").
 
 on:
   workflow_dispatch:
@@ -69,8 +71,11 @@ jobs:
             const growth = runs.flatMap((r) => r.results.filter((x) => x.runtime === runtime).flatMap((x) => x.growth || []));
             const ratios = rows.map((x) => x.ratio);
             const exps = growth.map((g) => g.head && g.head.exponent).filter((x) => x != null);
+            const high = growth.filter((g) => g.head && g.head.verdict !== 'linear');
+            const confirmed = high.map((g) => g.head.confirmed).filter((x) => x != null);
             if (ratios.length) console.log(runtime + ' rows: ' + ratios.length + ', ratio ' + Math.min(...ratios).toFixed(3) + ' to ' + Math.max(...ratios).toFixed(3));
-            if (exps.length) console.log(runtime + ' growth exponents: ' + exps.length + ', highest ' + Math.max(...exps).toFixed(2));
+            if (exps.length) console.log(runtime + ' growth screens: ' + exps.length + ', highest ' + Math.max(...exps).toFixed(2) + ', ' + high.length + ' above the soft bound' +
+              (confirmed.length ? ', highest confirmed exponent ' + Math.max(...confirmed).toFixed(2) : ''));
           }
           " | tee -a "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
